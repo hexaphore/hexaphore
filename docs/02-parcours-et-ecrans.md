@@ -142,7 +142,9 @@ Feuille modale qui monte aux deux tiers, champ de recherche focalisé et clavier
 - **Récents** : les 20 derniers aliments distincts, tous modes de saisie confondus, triés par date de dernière utilisation.
 - **Favoris** : aliments et repas composés épinglés, en tête.
 
-**Pendant la frappe** : résultats à partir du 2ᵉ caractère, débounce 120 ms, recherche locale sur trois sources fusionnées et ordonnées :
+**Pendant la frappe** : résultats à partir du **2ᵉ caractère**, une fois écoulées **120 ms sans nouvelle frappe**. La requête n'est jamais lancée à chaque touche : on attend que la saisie se stabilise, et une frappe qui arrive avant l'échéance annule la précédente. Sans cela, taper « chocolat » déclenche sept recherches dont six sont jetées, et les résultats clignotent pendant qu'on écrit.
+
+Recherche locale sur trois sources fusionnées et ordonnées :
 
 1. aliments personnels et produits déjà scannés (ce que l'utilisateur mange vraiment),
 2. CIQUAL,

@@ -126,11 +126,21 @@ La pastille de source est une icône monochrome de 16 dp, pas une couleur — le
 
 Fond transparent, bordure 1,5 dp en `base`, texte en `base`, lueur externe au repos. À l'appui : fond à 12 % d'opacité, lueur intensifiée, réduction d'échelle à 0,97.
 
-Le bouton principal de chaque écran est le seul à porter un fond dégradé plein. Un écran, un bouton plein — cette règle empêche l'inflation visuelle.
+Le bouton principal de chaque écran est le seul à porter un fond plein : un dégradé vertical de la teinte **à faible opacité**, posé sur le fond sombre. Pas un aplat néon — il imposerait du texte foncé par-dessus, ce que la règle de contraste interdit. Le néon reste le trait et le texte ; le fond ne fait que le porter.
+
+Un écran, un bouton plein : cette règle empêche l'inflation visuelle.
 
 ### `SourceBadge`
 
-Étiquette de provenance sur l'écran de validation. `CIQUAL` et `Open Food Facts` en neutre ; `Estimation IA` en ambre avec une icône d'avertissement discrète. La distinction visuelle est délibérée : une estimation ne se lit pas comme une donnée mesurée.
+Étiquette de provenance sur l'écran de validation. Toutes les sources sont **neutres** : fond `surfaceVariant`, texte `onSurfaceVariant`, contour `outline`.
+
+`Estimation IA` se distingue par la **forme**, jamais par la teinte : contour en pointillés, et un glyphe en vague de 16 dp devant le libellé. La distinction reste délibérée — une estimation ne se lit pas comme une donnée mesurée — mais elle ne coûte pas une couleur.
+
+Trois raisons de ne pas lui en donner une :
+
+1. Les six teintes portent un sens et un seul. En introduire une septième pour un badge, c'est commencer à diluer le système à l'endroit précis où on avait décidé de ne pas le faire.
+2. La règle de daltonisme interdit qu'une couleur porte seule une information. Un badge coloré aurait de toute façon eu besoin d'un second canal : autant n'avoir que celui-là.
+3. Un contour discontinu dit « valeur approximative » sans légende, dans les deux thèmes, et quel que soit le rendu des couleurs de l'écran.
 
 ---
 

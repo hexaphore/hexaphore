@@ -1,0 +1,91 @@
+# Catalogue de versions : la seule source de verite des versions du projet.
+#
+# Regle tenue par la revue et par la CI : aucun numero de version dans un
+# build.gradle.kts. Une montee de version se lit alors dans un diff de ce
+# fichier, et pas dans huit endroits qu'on oublie d'aligner.
+
+[versions]
+
+# --- Chaine de construction ---------------------------------------------------
+# AGP 8.7 est le dernier palier que comprend Android Studio Ladybug (2024.2.1),
+# l'IDE de la machine de developpement. Voir D15 dans docs/11-decisions.md pour
+# le raisonnement et le chemin de montee.
+agp = "8.7.3"
+kotlin = "2.0.21"
+ksp = "2.0.21-1.0.28"
+
+# --- Plateforme Android -------------------------------------------------------
+# minSdk 26 : docs/01-perimetre.md (java.time, Keystore, notifications).
+compileSdk = "35"
+minSdk = "26"
+targetSdk = "35"
+jvmToolchain = "17"
+
+# --- Identite de l'application ------------------------------------------------
+# applicationId verrouille a la premiere publication Play : docs/10-qualite-et-livraison.md.
+versionName = "0.1.0-dev"
+versionCode = "1"
+
+# --- Bibliotheques ------------------------------------------------------------
+androidxCore = "1.15.0"
+activityCompose = "1.9.3"
+lifecycle = "2.8.7"
+composeBom = "2024.10.01"
+coroutines = "1.9.0"
+hilt = "2.53.1"
+hiltNavigationCompose = "1.2.0"
+
+# --- Qualite ------------------------------------------------------------------
+detekt = "1.23.8"
+ktlintPlugin = "12.1.2"
+ktlint = "1.3.1"
+junit = "5.11.3"
+junitPlatform = "1.11.3"
+
+# --- Build inclus -------------------------------------------------------------
+# Version des regles detekt maison. Le build composite substitue le projet local
+# a cette coordonnee : le numero ne sert qu'a nommer la dependance.
+buildLogic = "1.0"
+
+[libraries]
+
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+
+# Le BOM Compose fixe les versions coherentes de tout le groupe androidx.compose :
+# les modules ci-dessous sont donc volontairement sans version.
+androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
+androidx-compose-material-icons-core = { module = "androidx.compose.material:material-icons-core" }
+androidx-compose-ui = { module = "androidx.compose.ui:ui" }
+androidx-compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
+androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+
+hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
+hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
+androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+
+detekt-api = { module = "io.gitlab.arturbosch.detekt:detekt-api", version.ref = "detekt" }
+detekt-test = { module = "io.gitlab.arturbosch.detekt:detekt-test", version.ref = "detekt" }
+detekt-test-utils = { module = "io.gitlab.arturbosch.detekt:detekt-test-utils", version.ref = "detekt" }
+hexaphore-detekt-rules = { module = "app.hexaphore.buildlogic:detekt-rules", version.ref = "buildLogic" }
+
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junitPlatform" }
+
+[plugins]
+
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintPlugin" }

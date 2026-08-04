@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Les seules couleurs du projet declarees en ressources Android.
+
+  Duplication assumee des jetons Kotlin : le systeme lit ces valeurs avant que
+  Compose n'existe — icone de lancement, fond de fenetre au demarrage. Les tenir
+  ici, dans le module qui possede la palette, evite au moins qu'elles derivent
+  depuis un module de fonctionnalite.
+-->
+<resources>
+    <color name="neon_background">#FF08080C</color>
+    <color name="neon_background_light">#FFFAFAFC</color>
+    <color name="neon_calories">#FF00E5FF</color>
+</resources>

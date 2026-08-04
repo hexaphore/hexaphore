@@ -1,0 +1,8 @@
+# Surcouche appliquee au seul module :core:designsystem.
+#
+# C'est le module qui definit les couleurs : y interdire d'en ecrire reviendrait
+# a interdire au dictionnaire de contenir des mots.
+
+hexaphore:
+  HardcodedColor:
+    active: false

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Un hexagone : six cotes, six compteurs. Le nom de l'application porte sa propre
+  justification, l'icone aussi.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M54,28 L76.5,41 L76.5,67 L54,80 L31.5,67 L31.5,41 Z"
+        android:strokeColor="@color/neon_calories"
+        android:strokeWidth="6"
+        android:strokeLineJoin="round" />
+</vector>

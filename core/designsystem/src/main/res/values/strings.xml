@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Libelles du design system.
+
+  Ils vivent ici et non dans les modules appelants : la phrase annoncee par
+  TalkBack fait partie du composant au meme titre que sa geometrie. Un composant
+  dont chaque appelant redige sa propre description finit par en avoir six
+  versions, dont cinq mauvaises.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+
+    <!-- Jauges : « Proteines, 87 grammes sur 144, 60 % ». Une phrase utile, et non
+         « barre de progression, 60 % ». -->
+    <string name="ds_gauge_description">%1$s, %2$d %3$s sur %4$d, %5$d %%</string>
+    <string name="ds_gauge_description_cap">%1$s, %2$d %3$s pour un plafond de %4$d, %5$d %%</string>
+
+    <!-- Valeur affichee a droite d'une barre : « 87 / 144 g ». -->
+    <string name="ds_gauge_value">%1$d / %2$d %3$s</string>
+
+    <string name="ds_unit_gram_short">g</string>
+    <string name="ds_unit_gram_spoken">grammes</string>
+    <string name="ds_unit_millilitre_short">ml</string>
+    <string name="ds_unit_millilitre_spoken">millilitres</string>
+    <string name="ds_unit_kcal_short">kcal</string>
+    <string name="ds_unit_kcal_spoken">kilocalories</string>
+
+    <!-- Provenance d'une valeur nutritionnelle. -->
+    <string name="ds_source_ciqual">CIQUAL</string>
+    <string name="ds_source_open_food_facts">Open Food Facts</string>
+    <string name="ds_source_custom">Personnel</string>
+    <string name="ds_source_ai_estimate">Estimation IA</string>
+    <string name="ds_source_manual">Saisie manuelle</string>
+    <!-- Le contour en pointillés et la vague ne se voient pas au lecteur d'écran :
+         c'est cette phrase qui porte l'information à leur place. -->
+    <string name="ds_source_estimate_a11y">%1$s, valeur estimée</string>
+
+</resources>

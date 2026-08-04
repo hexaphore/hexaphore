@@ -1,0 +1,9 @@
+# Surcouche appliquee au seul module :domain.
+#
+# L'absence de plugin Android empeche deja un import android.* de compiler ;
+# cette regle est la pour que le message dise pourquoi, et pas seulement que
+# la reference est introuvable.
+
+hexaphore:
+  AndroidImportInDomain:
+    active: true

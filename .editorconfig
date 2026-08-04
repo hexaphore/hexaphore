@@ -1,0 +1,31 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[*.{kt,kts}]
+# intellij_idea et non ktlint_official : c'est le style que produit le formatage
+# d'Android Studio. Avec ktlint_official, un Ctrl+Alt+L cree des violations, et
+# surtout `class Depot @Inject constructor(...)` se voit eclate sur quatre lignes
+# indentees - sur un projet ou presque chaque classe a un constructeur injecte,
+# c'est une taxe de lisibilite permanente.
+ktlint_code_style = intellij_idea
+max_line_length = 120
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+# Convention Compose : un composable qui emet de l'interface porte une majuscule.
+ktlint_function_naming_ignore_when_annotated_with = Composable
+
+[*.{yml,yaml,json,toml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[gradlew.bat]
+end_of_line = crlf

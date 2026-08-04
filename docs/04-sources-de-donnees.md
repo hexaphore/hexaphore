@@ -56,6 +56,8 @@ Le parseur est isolé (`CiqualValueParser`), et chacune de ces lignes est un cas
 
 Table `ciqual_fts` en FTS5, tokenizer `unicode61 remove_diacritics 2`. C'est ce réglage qui fait que « creme brulee » trouve « crème brûlée » — indispensable pour une saisie au clavier mobile, où personne ne tape les accents.
 
+La requête part dès le **2ᵉ caractère**, après 120 ms sans frappe ([02](02-parcours-et-ecrans.md#modale--recherche)). Deux caractères suffisent parce que la recherche est locale : le coût d'une requête inutile est une lecture SQLite, pas un aller-retour réseau.
+
 Classement : score BM25, puis remontée des aliments courts et déjà consommés par l'utilisateur. Sans ce second critère, « pomme » renvoie « pomme de terre à chair farineuse, crue » avant « pomme, pulpe et peau, crue ».
 
 ### Portions usuelles
@@ -89,7 +91,9 @@ GET https://world.openfoodfacts.org/api/v2/product/{barcode}.json
             serving_size,serving_quantity,nutriments,image_front_small_url
 ```
 
-**En-tête `User-Agent` obligatoire** : `Hexaphore/1.0 (github.com/<compte>/hexaphore)`. Open Food Facts bloque les clients anonymes, et c'est légitime. Cet en-tête est posé par un intercepteur OkHttp, pas au cas par cas.
+**En-tête `User-Agent` obligatoire** : `Hexaphore/<version> (github.com/hexaphore/hexaphore)`. Open Food Facts bloque les clients anonymes, et c'est légitime : l'en-tête est leur seul moyen de joindre l'auteur d'un client qui se comporte mal. Cet en-tête est posé par un intercepteur OkHttp, pas au cas par cas.
+
+L'adresse est figée sur l'organisation GitHub du projet, réservée pour cela ([D14](11-decisions.md#d14--domaine-et-publication-reportés-après-la-05--validée)) : elle survit à un changement de propriétaire, contrairement à un compte personnel. La version vient du `versionName`, pour qu'un rapport de la part d'Open Food Facts désigne un binaire précis.
 
 Pas de clé, pas de compte, pas de quota commercial. Limite de courtoisie : 100 requêtes par minute — hors d'atteinte pour un usage normal, mais l'intercepteur applique quand même un retrait exponentiel sur `429` et `5xx`, trois tentatives maximum.
 

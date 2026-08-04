@@ -54,6 +54,12 @@ Trois règles detekt personnalisées, qui encodent les décisions de cette docum
 2. **Pas d'import Android dans `:domain`** — doublon volontaire de la contrainte Gradle, avec un message d'erreur qui explique pourquoi.
 3. **Pas de `System.currentTimeMillis()` ni de `LocalDate.now()`** hors des implémentations de `Clock` — c'est ce qui garantit que le temps reste testable.
 
+Ces règles vivent dans `build-logic/detekt-rules` et sont couvertes par leurs propres tests unitaires : une règle qu'on croit active sans l'avoir éprouvée ne protège rien.
+
+**Après avoir modifié une règle, `./gradlew --stop`.** detekt s'exécute dans un worker dont le chargeur de classes est mis en cache par le démon Gradle, et le chemin du jar de règles ne change pas d'un build à l'autre : le démon continue donc d'appliquer l'ancienne version, sans rien signaler. Les tests du module, eux, voient toujours le code à jour — c'est ce décalage qui rend le piège coûteux. La CI n'est pas concernée, elle démarre sur un démon neuf.
+
+**Ce que l'outillage ne couvre pas.** La définition de « terminé » exige qu'aucune couleur, **durée ou dimension** ne soit codée en dur hors de `:core:designsystem`. Seules les couleurs sont vérifiées par une règle. Une règle sur les littéraux `.dp` et `.sp` a été écartée : en Compose, elle signale autant de faux positifs que de vrais, et une règle qu'on finit par désactiver est pire qu'une règle absente. Les durées et les dimensions restent donc tenues par la revue — c'est une faiblesse connue, écrite ici pour ne pas être découverte plus tard.
+
 ---
 
 ## Intégration continue
