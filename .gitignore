@@ -1,0 +1,63 @@
+# --- Secrets : rien de ce qui suit ne doit jamais partir sur le dépôt ---
+# Clé de signature release. Sa fuite permet à n'importe qui de publier une
+# fausse mise à jour signée comme la vraie.
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+# Clés API et identifiants Google (client OAuth Drive)
+local.properties
+google-services.json
+secrets.properties
+*.pem
+*.p12
+
+# --- Gradle ---
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# --- Android ---
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+out/
+release/
+captures/
+.externalNativeBuild/
+.cxx/
+lint/
+app/release/
+
+# --- Android Studio / IntelliJ ---
+*.iml
+.idea/
+!.idea/codeStyles/
+!.idea/inspectionProfiles/
+misc.xml
+navEditor.xml
+assetWizardSettings.xml
+
+# --- Kotlin ---
+.kotlin/
+
+# --- Tests ---
+*.hprof
+/build-reports/
+
+# --- Systeme ---
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+
+# --- Sources de donnees volumineuses ---
+# La base CIQUAL generee est versionnee (sans elle, un clone donne une app vide),
+# mais pas les fichiers intermediaires de conversion.
+tooling/ciqual/tmp/
+*.xlsx.tmp

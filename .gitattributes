@@ -1,0 +1,25 @@
+# Normalise les fins de ligne : LF dans le depot, quelle que soit la machine.
+# Sans ca, un aller-retour Windows / Linux produit des diffs entiers sur des
+# fichiers dont pas un caractere n'a change.
+* text=auto eol=lf
+
+# Scripts : leur fin de ligne est fonctionnelle, pas cosmetique.
+gradlew         text eol=lf
+*.sh            text eol=lf
+*.bat           text eol=crlf
+*.cmd           text eol=crlf
+
+# Binaires : ne jamais convertir.
+*.jar           binary
+*.keystore      binary
+*.jks           binary
+*.png           binary
+*.jpg           binary
+*.webp          binary
+*.ttf           binary
+*.otf           binary
+*.db            binary
+*.zip           binary
+
+# La base CIQUAL generee est un binaire volumineux : pas de diff utile.
+assets/ciqual.db binary linguist-generated=true
