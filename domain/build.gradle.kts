@@ -21,6 +21,9 @@ dependencies {
     // c'est la frontiere qui rend le metier testable en quelques millisecondes.
     implementation(libs.kotlinx.coroutines.core)
 
+    // Les fausses implementations des ports servent aux tests du domaine avant de
+    // servir aux ecrans. Elles restent hors du classpath de production.
+    testImplementation(projects.core.testing)
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
