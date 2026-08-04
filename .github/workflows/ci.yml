@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+# Une nouvelle poussee sur une branche annule la verification precedente : sans ca,
+# trois corrections d'affilee font tourner trois fois le meme travail obsolete.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verification:
+    name: Analyse statique et tests
+    runs-on: ubuntu-latest
+    # Cible du projet : moins de 8 minutes sur une pull request. Le plafond est
+    # pose plus haut pour ne pas transformer un cache froid en echec, mais un
+    # depassement durable de 8 minutes est un signal a traiter.
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Verification
+        # `check` couvre ktlint, detekt, Android Lint, les tests JVM du domaine et
+        # les tests des regles detekt maison. `assembleDebug` verifie en plus que
+        # l'application se construit reellement.
+        run: ./gradlew check assembleDebug --stacktrace
+
+      - name: Rapports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapports
+          path: |
+            **/build/reports/
+          retention-days: 7

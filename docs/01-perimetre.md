@@ -82,7 +82,7 @@ Formulés pour être vérifiables, pas pour faire joli.
 
 - Ajouter un aliment déjà connu depuis l'accueil prend **≤ 3 taps** et **≤ 5 secondes**.
 - Un scan de code-barres présent dans Open Food Facts affiche la fiche en **≤ 2 s** sur une connexion 4G correcte, et **instantanément** s'il a déjà été scanné.
-- La recherche par nom affiche des résultats en **≤ 150 ms**, hors-ligne, dès le 3ᵉ caractère.
+- La recherche par nom affiche des résultats en **≤ 150 ms**, hors-ligne, dès le **2ᵉ caractère**. Le délai se compte à partir de la fin de l'anti-rebond, pas de la frappe : les 120 ms d'attente de [02](02-parcours-et-ecrans.md#modale--recherche) sont un choix, pas une lenteur.
 - Une photo produit une proposition éditable en **≤ 10 s**.
 - Aucun écran ne perd de données saisies lors d'une rotation ou d'un passage en arrière-plan.
 - L'application démarre en **≤ 1 s** sur un appareil de milieu de gamme de 2021.

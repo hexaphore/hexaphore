@@ -33,13 +33,15 @@ La flèche du bas remonte : `:data` dépend de `:domain`, jamais l'inverse. Un `
 :app                        Application, graphe Hilt racine, navigation, variantes
 
 :core:model                 Modèles partagés, Kotlin pur
-:core:common                Result, dispatchers, Clock, extensions de formatage
+:core:common                Result, implémentations de Clock et DispatcherProvider,
+                            extensions de formatage
 :core:designsystem          Thème néon, tokens, composants Compose réutilisables
 :core:database              Room : entités, DAO, migrations, base CIQUAL embarquée
 :core:datastore             Préférences (DataStore) et stockage chiffré des clés
 :core:testing               Fakes, règles JUnit, jeux de données de test
 
-:domain                     Cas d'usage + ports. Aucune dépendance Android.
+:domain                     Cas d'usage + ports, dont Clock et DispatcherProvider.
+                            Aucune dépendance Android.
 
 :data:diary                 Journal : repas, entrées, favoris
 :data:food                  Catalogue d'aliments (CIQUAL + cache OFF + personnels)
@@ -59,6 +61,10 @@ La flèche du bas remonte : `:data` dépend de `:domain`, jamais l'inverse. Un `
 
 :tooling:ciqual-import      Tâche Gradle : XML ANSES → SQLite (hors APK)
 ```
+
+Un seizième artefact vit à côté de cette liste sans y figurer : `build-logic/detekt-rules`, qui contient les trois règles d'analyse statique de [10](10-qualite-et-livraison.md#analyse-statique). Ce n'est pas un module du projet mais un **build inclus** : son code tourne sur la JVM de Gradle, pas sur un téléphone, et il n'a rien à faire dans le graphe de dépendances de l'application ([D16](11-decisions.md#d16--les-règles-detekt-vivent-dans-un-build-inclus--par-défaut)).
+
+**Où vivent `Clock` et `DispatcherProvider`.** Les *interfaces* sont dans `:domain` : ce sont des ports, et un port appartient au métier qui l'exige. Les *implémentations* — celles qui lisent vraiment l'horloge de l'appareil — sont dans `:core:common`. La règle detekt qui interdit `LocalDate.now()` ailleurs nomme explicitement les fichiers autorisés.
 
 ### Pourquoi autant de modules
 

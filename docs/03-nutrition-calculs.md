@@ -66,7 +66,9 @@ L'interdiction pure et simple pousse les gens à mentir sur leur poids pour cont
 
 ## Répartition des macronutriments
 
-Calculée dans cet ordre : protéines d'abord (le besoin le plus contraint), lipides ensuite (un plancher physiologique), glucides en solde.
+Calculée dans cet ordre : protéines d'abord (le besoin le plus contraint), lipides ensuite (un plancher physiologique), **fibres** puis glucides en solde.
+
+Les fibres passent avant les glucides parce qu'elles **consomment de l'énergie** : 2 kcal/g au sens du règlement UE 1169/2011, et elles sont comptées séparément des glucides dans CIQUAL comme dans Open Food Facts. Les calculer après le solde reviendrait à distribuer deux fois les mêmes calories ([D24](11-decisions.md#d24--les-fibres-sont-déduites-du-solde-glucidique--validée)).
 
 ### Protéines
 
@@ -86,11 +88,19 @@ Bornes : minimum 0,8 g/kg (apport de sécurité), maximum 2,5 g/kg (au-delà, au
 - **Maintien et prise** : 30 %.
 - **Plancher** : 0,6 g/kg de poids corporel, quelle que soit la phase — en dessous, l'absorption des vitamines liposolubles et la production hormonale sont compromises. Ce plancher prime sur le pourcentage.
 
+### Fibres
+
+14 g pour 1 000 kcal (repère de l'Institute of Medicine), avec un plancher de 25 g et un plafond de 50 g.
+
 ### Glucides
 
-Le solde : `(kcal − 4 × protéines − 9 × lipides) / 4`.
+Le solde, **fibres déduites** :
 
-Si le solde tombe sous **100 g**, l'application rééquilibre en réduisant les lipides jusqu'à leur plancher, puis les protéines jusqu'à 1,4 g/kg. Si le solde reste insuffisant, c'est que l'objectif calorique est trop bas : un avertissement s'affiche.
+```
+glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
+```
+
+Si le solde tombe sous **100 g**, l'application rééquilibre en réduisant les lipides jusqu'à leur plancher, puis les protéines jusqu'à 1,4 g/kg. Les fibres ne sont jamais réduites pour dégager des glucides : leur plancher de 25 g est un besoin, pas une variable d'ajustement. Si le solde reste insuffisant, c'est que l'objectif calorique est trop bas : un avertissement s'affiche.
 
 ### Sucres
 
@@ -98,13 +108,26 @@ Si le solde tombe sous **100 g**, l'application rééquilibre en réduisant les 
 
 La distinction cible / plafond est portée jusqu'à l'interface : les cibles se remplissent, le plafond ne s'allume qu'au dépassement ([08](08-design-system.md)).
 
-### Fibres
+### Objectifs et limites
 
-14 g pour 1 000 kcal (repère de l'Institute of Medicine), avec un plancher de 25 g et un plafond de 50 g.
+Les six compteurs ne se lisent pas de la même façon, et l'application doit le dire — sans quoi remplir sa jauge de sucres ressemble à une réussite.
+
+| Compteur | Nature | Pourquoi |
+|---|---|---|
+| Calories | **objectif** | C'est la mesure de référence ; l'écran affiche le restant. |
+| Protéines | **objectif** | Sous-consommer en déficit coûte de la masse maigre. |
+| Fibres | **objectif** | Manquer de fibres se paie sur le transit et la satiété. |
+| Glucides | **limite** | Le solde du budget. Personne n'a besoin d'« atteindre ses glucides ». |
+| Sucres | **limite** | Plafond OMS. La limite la plus stricte des six. |
+| Lipides | **limite** | Le plancher physiologique est garanti par le calcul de l'objectif, pas par la saisie du jour. |
+
+Cette nature appartient au **domaine**, pas à l'interface : c'est une règle nutritionnelle, et la laisser à chaque écran garantit qu'un écran finira par se tromper. Sa traduction visuelle est décrite en [08](08-design-system.md#macrobar).
+
+Le cas des lipides mérite d'être explicité, parce qu'il est le moins évident. Il existe bien un plancher — 0,6 g/kg — mais il est appliqué **au moment du calcul de l'objectif**, une fois pour toutes. Au jour le jour, l'utilisateur n'a rien à atteindre : il a un budget à ne pas dépasser.
 
 ### Cohérence énergétique
 
-Les macros sont arrondies au gramme, ce qui introduit un écart de quelques kcal avec l'objectif calorique. Règle : **les calories font foi**, les macros sont des répartitions indicatives. L'écart n'est jamais affiché ni corrigé artificiellement.
+Une fois les fibres déduites du solde, la somme `4 P + 9 L + 2 F + 4 G` retombe sur l'objectif calorique à l'arrondi près — quelques kcal, jamais davantage. Règle : **les calories font foi**, les macros sont des répartitions indicatives. L'écart n'est jamais affiché ni corrigé artificiellement.
 
 Facteurs d'Atwater utilisés partout : **protéines 4 · glucides 4 · lipides 9 · fibres 2 kcal/g**. Les fibres à 2 kcal/g suivent le règlement UE 1169/2011, cohérent avec CIQUAL et Open Food Facts. L'alcool (7 kcal/g) n'est pas modélisé en v1 ; les boissons alcoolisées sont saisies via leur fiche produit, dont les calories sont déjà justes.
 
@@ -128,15 +151,17 @@ Garde-fous :
 
 Objectif calorique = 2 525 kcal
 
-Protéines = 1,8 × 80          = 144 g  → 576 kcal
-Lipides   = 25 % × 2 525 / 9  =  70 g  → 630 kcal
+Protéines = 1,8 × 80              = 144 g  → 576 kcal
+Lipides   = 25 % × 2 525 / 9      =  70 g  → 630 kcal
             plancher 0,6×88 = 52,8 g                      ✓
-Glucides  = (2525 − 576 − 630) / 4 = 330 g
-Sucres    ≤ 10 % × 2 525 / 4  =  63 g  (plafond)
-Fibres    = 14 × 2,525        =  35 g
+Fibres    = 14 × 2,525            =  35 g  →  70 kcal
+Glucides  = (2525 − 576 − 630 − 70) / 4 = 312 g → 1 248 kcal
+Sucres    ≤ 10 % × 2 525 / 4      =  63 g  (plafond)
+
+Contrôle : 576 + 630 + 70 + 1 248 = 2 524 kcal, soit 1 kcal d'arrondi.
 ```
 
-Ce cas sert de test de référence dans `:domain` (`GoalCalculatorTest`).
+Ce cas sert de test de référence dans `:domain` (`GoalCalculatorTest`). Le contrôle de cohérence en fait partie : c'est lui qui aurait attrapé les 70 kcal de fibres distribuées deux fois.
 
 ---
 

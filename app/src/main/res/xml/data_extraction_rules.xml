@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Rien ne sort par les mecanismes de sauvegarde d'Android.
+
+  `allowBackup="false"` couvre deja la sauvegarde cloud, mais pas le transfert
+  d'appareil a appareil, qui l'ignore. Les deux sections sont donc explicites.
+
+  La raison tient en une phrase : la sauvegarde systeme exfiltrerait les cles API
+  vers Google Drive sans que l'utilisateur en soit informe. L'application fournit
+  son propre mecanisme de sauvegarde, explicite et sans les cles.
+
+  Voir docs/09-donnees-et-sauvegarde.md.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>

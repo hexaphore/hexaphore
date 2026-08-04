@@ -1,0 +1,58 @@
+# Reglages communs a tous les modules, poses par-dessus la configuration par
+# defaut de detekt (buildUponDefaultConfig = true). On ne recopie donc que les
+# ecarts, et une montee de version de detekt apporte ses nouvelles regles au
+# lieu de les taire.
+
+build:
+  # Zero constat tolere. Un seuil superieur a zero se remplit toujours.
+  maxIssues: 0
+
+hexaphore:
+  active: true
+
+  HardcodedColor:
+    active: true
+    # Desactivee dans :core:designsystem, le seul module qui definit des couleurs.
+    # Voir config/detekt/detekt-designsystem.yml.
+
+  AndroidImportInDomain:
+    # Activee pour le seul module :domain. Voir config/detekt/detekt-domain.yml.
+    active: false
+
+  TimeOutsideClock:
+    active: true
+    allowedFileNames:
+      - 'SystemClock.kt'
+
+complexity:
+  LongParameterList:
+    # Un composable expose ses etats et ses evenements en parametres : c'est la
+    # forme normale d'un composant sans etat, pas un defaut de conception.
+    functionThreshold: 8
+    constructorThreshold: 8
+    ignoreDefaultParameters: true
+
+naming:
+  FunctionNaming:
+    # Convention Compose : un composable qui emet de l'interface porte une
+    # majuscule. Elle prime sur la convention Kotlin des fonctions.
+    ignoreAnnotated:
+      - 'Composable'
+
+style:
+  MagicNumber:
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    # Un apercu est un echantillon : ses valeurs sont des donnees de demonstration,
+    # pas des constantes de mise en page.
+    ignoreAnnotated:
+      - 'Preview'
+      - 'NeonPreviews'
+  MaxLineLength:
+    maxLineLength: 120
+  UnusedPrivateMember:
+    active: true
+    # Un apercu n'est appele par personne : c'est l'outillage qui l'invoque.
+    ignoreAnnotated:
+      - 'Preview'
+      - 'NeonPreviews'

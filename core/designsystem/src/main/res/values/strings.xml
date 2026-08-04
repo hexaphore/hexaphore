@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Libelles du design system.
+
+  Ils vivent ici et non dans les modules appelants : la phrase annoncee par
+  TalkBack fait partie du composant au meme titre que sa geometrie. Un composant
+  dont chaque appelant redige sa propre description finit par en avoir six
+  versions, dont cinq mauvaises.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+
+    <!-- Jauges : une phrase utile, et non « barre de progression, 60 % ». Les deux
+         formulations disent explicitement s'il s'agit d'atteindre ou de ne pas
+         dépasser : c'est la seule information que la forme de la barre ne peut pas
+         transmettre à un lecteur d'écran. -->
+    <string name="ds_gauge_description">%1$s, %2$d %3$s sur un objectif de %4$d, %5$d %%</string>
+    <string name="ds_gauge_description_cap">%1$s, %2$d %3$s sur une limite de %4$d, %5$d %%</string>
+
+    <!-- Valeur affichée à droite d'une barre. Le « max » d'une limite est le
+         signal le plus court qui existe, et il est lu par TalkBack. -->
+    <string name="ds_gauge_value">%1$d / %2$d %3$s</string>
+    <string name="ds_gauge_value_limit">%1$d / %2$d %3$s max</string>
+
+    <!-- Lu par TalkBack sur un bouton grisé qui reste tapable : sans cela, il
+         s'annonce comme n'importe quel bouton et l'appui semble sans effet. -->
+    <string name="ds_button_unavailable">indisponible</string>
+
+    <string name="ds_unit_gram_short">g</string>
+    <string name="ds_unit_gram_spoken">grammes</string>
+    <string name="ds_unit_millilitre_short">ml</string>
+    <string name="ds_unit_millilitre_spoken">millilitres</string>
+    <string name="ds_unit_kcal_short">kcal</string>
+    <string name="ds_unit_kcal_spoken">kilocalories</string>
+
+    <!-- Provenance d'une valeur nutritionnelle. -->
+    <string name="ds_source_ciqual">CIQUAL</string>
+    <string name="ds_source_open_food_facts">Open Food Facts</string>
+    <string name="ds_source_custom">Personnel</string>
+    <string name="ds_source_ai_estimate">Estimation IA</string>
+    <string name="ds_source_manual">Saisie manuelle</string>
+    <!-- Le contour en pointillés et la vague ne se voient pas au lecteur d'écran :
+         c'est cette phrase qui porte l'information à leur place. -->
+    <string name="ds_source_estimate_a11y">%1$s, valeur estimée</string>
+
+</resources>

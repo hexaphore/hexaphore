@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Theme de fenetre, distinct du theme Compose.
+
+  Il ne sert qu'a une chose : le fond affiche entre le lancement de l'activite et
+  la premiere image de Compose. Sans lui, l'application demarre sur un aplat blanc,
+  ce qui se voit beaucoup sur une interface sombre.
+-->
+<resources>
+    <style name="Theme.Hexaphore" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/neon_background_light</item>
+    </style>
+</resources>

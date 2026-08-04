@@ -4,7 +4,7 @@ Suivi alimentaire pour Android. Libre, gratuit, sans compte, sans publicité, sa
 
 On note ce qu'on mange en quelques secondes — scan d'un code-barres, photo de l'assiette, recherche dans une base de 3 500 aliments, ou simple phrase en français — et l'application tient à jour six compteurs : **calories, protéines, glucides, sucres, lipides, fibres**.
 
-> **Statut** : spécification. Aucun code écrit à ce jour. Ce dépôt contient pour l'instant la conception complète de l'application, dans `docs/`.
+> **Statut** : itération 0 — le socle. Le projet compile, s'installe et affiche une galerie de composants ; il ne suit encore aucun repas. La conception complète est dans `docs/`, le plan de construction dans [12](docs/12-plan-de-developpement.md).
 
 ---
 
@@ -26,7 +26,7 @@ Pas de compte utilisateur. Pas de serveur. Pas de suivi publicitaire. Pas d'abon
 
 ## Documentation
 
-La conception est découpée en onze documents. Lisez-les dans l'ordre pour comprendre le projet, ou piochez celui qui vous concerne.
+La conception est découpée en douze documents. Lisez-les dans l'ordre pour comprendre le projet, ou piochez celui qui vous concerne.
 
 | # | Document | Contenu |
 |---|---|---|
@@ -41,10 +41,34 @@ La conception est découpée en onze documents. Lisez-les dans l'ordre pour comp
 | 09 | [Données et sauvegarde](docs/09-donnees-et-sauvegarde.md) | Stockage local, Google Drive, export, confidentialité. |
 | 10 | [Qualité et livraison](docs/10-qualite-et-livraison.md) | Tests, CI, variantes de build, versions. |
 | 11 | [Journal des décisions](docs/11-decisions.md) | Les choix structurants et leur justification. |
+| 12 | [Plan de développement](docs/12-plan-de-developpement.md) | Dans quel ordre construire, et comment savoir qu'une étape est finie. |
 
 ## Technique en une ligne
 
 Kotlin · Jetpack Compose · Room · Hilt · CameraX + ML Kit · Retrofit · WorkManager · minSdk 26.
+
+## Construire
+
+JDK 17 et le SDK Android (plateforme 35). Aucune clé, aucun compte, aucun secret n'est nécessaire pour compiler.
+
+```
+./gradlew check          # ktlint, detekt, Android Lint, tests
+./gradlew assembleDebug  # APK de développement
+```
+
+Le projet est bâti sur Gradle 8.10 et AGP 8.7 ; le choix du palier et la marche à suivre pour en changer sont expliqués en [D15](docs/11-decisions.md#d15--chaîne-de-construction-alignée-sur-loutillage-installé--par-défaut). Toutes les versions vivent dans `gradle/libs.versions.toml` — aucune n'est écrite dans un `build.gradle.kts`.
+
+Trois règles [detekt](build-logic/detekt-rules) maison font échouer le build sur ce que la relecture laisse passer : une couleur écrite hors du design system, un import Android dans `:domain`, une lecture directe de l'horloge système.
+
+### Modules
+
+| Module | Rôle |
+|---|---|
+| `:app` | Application, graphe Hilt, galerie des composants |
+| `:domain` | Kotlin pur — modèles et ports. Aucune dépendance Android, et le build le vérifie. |
+| `:core:designsystem` | Palette néon, thème, animations, composants Compose |
+
+Les treize autres modules de [06](docs/06-architecture.md) naîtront quand ils auront un fichier à contenir.
 
 ## Licence
 
