@@ -13,6 +13,9 @@
     <string name="gallery_section_palette">Palette</string>
     <string name="gallery_section_ring">MacroRing</string>
     <string name="gallery_section_bar">MacroBar</string>
+    <string name="gallery_bar_targets">À atteindre</string>
+    <string name="gallery_bar_limits">À ne pas dépasser</string>
+    <string name="gallery_button_unavailable_reason">Aucune clé API configurée. Ce message prouve que l\'appui a bien été reçu.</string>
     <string name="gallery_section_button">NeonButton</string>
     <string name="gallery_section_badge">SourceBadge</string>
     <string name="gallery_section_typography">Typographie</string>

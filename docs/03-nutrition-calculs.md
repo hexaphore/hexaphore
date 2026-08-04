@@ -108,6 +108,23 @@ Si le solde tombe sous **100 g**, l'application rééquilibre en réduisant les 
 
 La distinction cible / plafond est portée jusqu'à l'interface : les cibles se remplissent, le plafond ne s'allume qu'au dépassement ([08](08-design-system.md)).
 
+### Objectifs et limites
+
+Les six compteurs ne se lisent pas de la même façon, et l'application doit le dire — sans quoi remplir sa jauge de sucres ressemble à une réussite.
+
+| Compteur | Nature | Pourquoi |
+|---|---|---|
+| Calories | **objectif** | C'est la mesure de référence ; l'écran affiche le restant. |
+| Protéines | **objectif** | Sous-consommer en déficit coûte de la masse maigre. |
+| Fibres | **objectif** | Manquer de fibres se paie sur le transit et la satiété. |
+| Glucides | **limite** | Le solde du budget. Personne n'a besoin d'« atteindre ses glucides ». |
+| Sucres | **limite** | Plafond OMS. La limite la plus stricte des six. |
+| Lipides | **limite** | Le plancher physiologique est garanti par le calcul de l'objectif, pas par la saisie du jour. |
+
+Cette nature appartient au **domaine**, pas à l'interface : c'est une règle nutritionnelle, et la laisser à chaque écran garantit qu'un écran finira par se tromper. Sa traduction visuelle est décrite en [08](08-design-system.md#macrobar).
+
+Le cas des lipides mérite d'être explicité, parce qu'il est le moins évident. Il existe bien un plancher — 0,6 g/kg — mais il est appliqué **au moment du calcul de l'objectif**, une fois pour toutes. Au jour le jour, l'utilisateur n'a rien à atteindre : il a un budget à ne pas dépasser.
+
 ### Cohérence énergétique
 
 Une fois les fibres déduites du solde, la somme `4 P + 9 L + 2 F + 4 G` retombe sur l'objectif calorique à l'arrondi près — quelques kcal, jamais davantage. Règle : **les calories font foi**, les macros sont des répartitions indicatives. L'écart n'est jamais affiché ni corrigé artificiellement.

@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -26,11 +27,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.hexaphore.R
 import app.hexaphore.core.designsystem.component.MacroBar
-import app.hexaphore.core.designsystem.component.MacroBarMode
 import app.hexaphore.core.designsystem.component.MacroRing
 import app.hexaphore.core.designsystem.component.MacroRingDefaults
 import app.hexaphore.core.designsystem.component.MacroUnit
 import app.hexaphore.core.designsystem.component.NeonButton
+import app.hexaphore.core.designsystem.component.NeonButtonAvailability
 import app.hexaphore.core.designsystem.component.NeonButtonStyle
 import app.hexaphore.core.designsystem.component.SourceBadge
 import app.hexaphore.core.designsystem.theme.NeonTheme
@@ -165,24 +166,17 @@ internal fun BarSection() = GallerySection(R.string.gallery_section_bar) {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
+        SubHeading(R.string.gallery_bar_targets)
         MacroBar(Macro.PROTEIN, stringResource(R.string.macro_protein), consumed = 87f, goal = 144f)
-        MacroBar(Macro.CARBS, stringResource(R.string.macro_carbs), consumed = 340f, goal = 330f)
-        MacroBar(
-            macro = Macro.SUGARS,
-            label = stringResource(R.string.macro_sugars),
-            consumed = 41f,
-            goal = 63f,
-            mode = MacroBarMode.CAP,
-        )
-        MacroBar(
-            macro = Macro.SUGARS,
-            label = stringResource(R.string.macro_sugars),
-            consumed = 78f,
-            goal = 63f,
-            mode = MacroBarMode.CAP,
-        )
-        MacroBar(Macro.FAT, stringResource(R.string.macro_fat), consumed = 52f, goal = 70f)
         MacroBar(Macro.FIBER, stringResource(R.string.macro_fiber), consumed = 12f, goal = 35f)
+
+        SubHeading(R.string.gallery_bar_limits)
+        MacroBar(Macro.CARBS, stringResource(R.string.macro_carbs), consumed = 240f, goal = 312f)
+        MacroBar(Macro.SUGARS, stringResource(R.string.macro_sugars), consumed = 41f, goal = 63f)
+        MacroBar(Macro.SUGARS, stringResource(R.string.macro_sugars), consumed = 78f, goal = 63f)
+        MacroBar(Macro.FAT, stringResource(R.string.macro_fat), consumed = 52f, goal = 70f)
+
+        SubHeading(R.string.gallery_bar_targets)
         MacroBar(
             macro = Macro.CALORIES,
             label = stringResource(R.string.macro_calories),
@@ -195,12 +189,45 @@ internal fun BarSection() = GallerySection(R.string.gallery_section_bar) {
 
 @Composable
 internal fun ButtonSection() = GallerySection(R.string.gallery_section_button) {
+    var explanation by remember { mutableStateOf(false) }
+
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         NeonButton(text = "Enregistrer", onClick = {}, style = NeonButtonStyle.FILLED)
         NeonButton(text = "Ajouter une ligne", onClick = {})
         NeonButton(text = "Créer cet aliment", onClick = {}, macro = Macro.FIBER)
-        NeonButton(text = "Analyser", onClick = {}, enabled = false)
+
+        // Indisponible mais tapable : c'est le cas de docs/02 pour les modes IA
+        // sans clé. L'appui doit se voir, puis expliquer.
+        NeonButton(
+            text = "Analyser",
+            onClick = { explanation = !explanation },
+            availability = NeonButtonAvailability.UNAVAILABLE,
+        )
+        if (explanation) {
+            Text(
+                text = stringResource(R.string.gallery_button_unavailable_reason),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        // Inerte : rien à expliquer, rien ne bouge.
+        NeonButton(
+            text = "Enregistrement…",
+            onClick = {},
+            availability = NeonButtonAvailability.DISABLED,
+        )
     }
+}
+
+/** Intertitre d'une section, pour séparer deux familles d'échantillons. */
+@Composable
+private fun SubHeading(@StringRes textRes: Int) {
+    Text(
+        text = stringResource(textRes),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable

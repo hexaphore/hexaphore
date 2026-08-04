@@ -34,16 +34,24 @@ import app.hexaphore.core.designsystem.theme.NeonTheme
 import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.core.designsystem.theme.saturate
 import app.hexaphore.domain.nutrition.Macro
+import app.hexaphore.domain.nutrition.MacroGoalKind
 import kotlin.math.roundToInt
 
 /**
- * La barre d'une macro : libellé à gauche, consommé sur objectif à droite, jauge
- * en dessous.
+ * La barre d'une macro : libellé à gauche, valeur à droite, jauge en dessous.
  *
- * Les deux modes ne sont pas deux styles, ils traduisent une différence réelle :
- * atteindre ses protéines est un objectif, atteindre son plafond de sucres n'en est
- * pas un. Une barre de plafond reste donc éteinte tant qu'on est en dessous, et ne
- * s'allume qu'au dépassement.
+ * Le comportement n'est pas choisi par l'appelant, il est **déduit de la macro**.
+ * Une jauge de sucres qui se remplirait comme une jauge de protéines ferait passer
+ * un dépassement pour une réussite ; laisser chaque écran trancher, c'est accepter
+ * que l'un d'eux se trompe un jour.
+ *
+ * Trois signaux distinguent une limite d'un objectif, et ils sont redondants
+ * exprès — l'un d'eux suffit à lever le doute :
+ *
+ * 1. la valeur porte un `max` (« 41 / 63 g max ») ;
+ * 2. la barre reste éteinte sous le seuil, avec un repère au niveau de la limite,
+ *    alors qu'un objectif se remplit et s'allume progressivement ;
+ * 3. TalkBack annonce « sur une limite de » au lieu de « sur un objectif de ».
  *
  * @see docs/03-nutrition-calculs.md
  * @see docs/08-design-system.md
@@ -55,12 +63,12 @@ fun MacroBar(
     consumed: Float,
     goal: Float,
     modifier: Modifier = Modifier,
-    mode: MacroBarMode = MacroBarMode.TARGET,
     unit: MacroUnit = MacroUnit.GRAM,
 ) {
     val palette = NeonTheme.macros[macro]
     val trackColor = MaterialTheme.colorScheme.outline
     val durationMillis = NeonTheme.motion.gaugeValueMillis
+    val isLimit = macro.goal == MacroGoalKind.LIMIT
 
     val ratio = if (goal > 0f) consumed / goal else 0f
     val animatedRatio by animateFloatAsState(
@@ -69,14 +77,9 @@ fun MacroBar(
         label = "remplissage de la barre",
     )
 
-    val descriptionTemplate =
-        when (mode) {
-            MacroBarMode.TARGET -> R.string.ds_gauge_description
-            MacroBarMode.CAP -> R.string.ds_gauge_description_cap
-        }
     val description =
         stringResource(
-            descriptionTemplate,
+            if (isLimit) R.string.ds_gauge_description_cap else R.string.ds_gauge_description,
             label,
             consumed.roundToInt(),
             stringResource(unit.spokenRes),
@@ -89,7 +92,7 @@ fun MacroBar(
         // pour une information qui tient en une phrase, c'est trois de trop.
         modifier = modifier.clearAndSetSemantics { contentDescription = description },
     ) {
-        MacroBarHeader(label = label, consumed = consumed, goal = goal, unit = unit)
+        MacroBarHeader(label = label, consumed = consumed, goal = goal, unit = unit, isLimit = isLimit)
         Canvas(
             modifier =
             Modifier
@@ -98,17 +101,18 @@ fun MacroBar(
                 .height(MacroBarDefaults.Height),
         ) {
             drawTrack(trackColor)
-            when (mode) {
-                MacroBarMode.TARGET -> drawTargetFill(palette, animatedRatio)
-                MacroBarMode.CAP -> drawCapFill(palette, trackColor, animatedRatio)
+            if (isLimit) {
+                drawLimitFill(palette, trackColor, animatedRatio)
+            } else {
+                drawTargetFill(palette, animatedRatio)
             }
         }
     }
 }
 
-/** Libellé à gauche, consommé sur objectif à droite. */
+/** Libellé à gauche, valeur à droite. Une limite se signale par son suffixe. */
 @Composable
-private fun MacroBarHeader(label: String, consumed: Float, goal: Float, unit: MacroUnit) {
+private fun MacroBarHeader(label: String, consumed: Float, goal: Float, unit: MacroUnit, isLimit: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = label,
@@ -119,7 +123,7 @@ private fun MacroBarHeader(label: String, consumed: Float, goal: Float, unit: Ma
         Text(
             text =
             stringResource(
-                R.string.ds_gauge_value,
+                if (isLimit) R.string.ds_gauge_value_limit else R.string.ds_gauge_value,
                 consumed.roundToInt(),
                 goal.roundToInt(),
                 stringResource(unit.shortRes),
@@ -128,15 +132,6 @@ private fun MacroBarHeader(label: String, consumed: Float, goal: Float, unit: Ma
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-}
-
-/** Cible ou plafond. La distinction est fonctionnelle, pas décorative. */
-enum class MacroBarMode {
-    /** Protéines, glucides, lipides, fibres : la barre se remplit. */
-    TARGET,
-
-    /** Sucres : la barre ne s'allume qu'au-delà du seuil. */
-    CAP,
 }
 
 /**
@@ -161,12 +156,12 @@ private const val OVERSHOOT_SATURATION = 0.30f
 private const val GLOW_HEIGHT_RATIO = 2.5f
 
 /**
- * Part de l'échelle occupée par le plafond.
+ * Part de l'échelle occupée par la limite.
  *
  * La barre va au-delà du seuil, sinon un dépassement n'aurait nulle part où
  * s'afficher et le repère se confondrait avec l'extrémité.
  */
-private const val CAP_SCALE = 1.25f
+private const val LIMIT_SCALE = 1.25f
 
 private fun DrawScope.drawTrack(color: Color) {
     drawRoundRect(color = color, cornerRadius = CornerRadius(size.height / 2f))
@@ -180,8 +175,8 @@ private fun DrawScope.drawTargetFill(palette: MacroPalette, ratio: Float) {
     drawFill(color, size.width * filled)
 }
 
-private fun DrawScope.drawCapFill(palette: MacroPalette, trackColor: Color, ratio: Float) {
-    val filled = (ratio / CAP_SCALE).coerceIn(0f, 1f)
+private fun DrawScope.drawLimitFill(palette: MacroPalette, trackColor: Color, ratio: Float) {
+    val filled = (ratio / LIMIT_SCALE).coerceIn(0f, 1f)
     val exceeded = ratio > 1f
 
     if (filled > 0f) {
@@ -189,9 +184,9 @@ private fun DrawScope.drawCapFill(palette: MacroPalette, trackColor: Color, rati
         drawFill(if (exceeded) palette.base else palette.muted, size.width * filled)
     }
 
-    // Repère du plafond. Il reste visible même barre éteinte : c'est lui qui dit
+    // Repère de la limite. Il reste visible même barre éteinte : c'est lui qui dit
     // où se situe le seuil.
-    val markerX = size.width / CAP_SCALE
+    val markerX = size.width / LIMIT_SCALE
     drawRect(
         color = trackColor,
         topLeft = Offset(markerX, 0f),
@@ -224,22 +219,13 @@ private fun DrawScope.drawGlow(palette: MacroPalette, width: Float, intensity: F
 @Composable
 private fun MacroBarPreview() {
     PreviewSurface {
-        MacroBar(macro = Macro.PROTEIN, label = "Proteines", consumed = 87f, goal = 144f)
-        MacroBar(macro = Macro.CARBS, label = "Glucides", consumed = 340f, goal = 330f)
-        MacroBar(
-            macro = Macro.SUGARS,
-            label = "Sucres",
-            consumed = 41f,
-            goal = 63f,
-            mode = MacroBarMode.CAP,
-        )
-        MacroBar(
-            macro = Macro.SUGARS,
-            label = "Sucres",
-            consumed = 78f,
-            goal = 63f,
-            mode = MacroBarMode.CAP,
-        )
+        // Objectifs : la barre se remplit, la lueur croît.
+        MacroBar(macro = Macro.PROTEIN, label = "Protéines", consumed = 87f, goal = 144f)
         MacroBar(macro = Macro.FIBER, label = "Fibres", consumed = 12f, goal = 35f)
+        // Limites : éteintes en dessous du seuil, allumées seulement au-delà.
+        MacroBar(macro = Macro.CARBS, label = "Glucides", consumed = 240f, goal = 312f)
+        MacroBar(macro = Macro.SUGARS, label = "Sucres", consumed = 41f, goal = 63f)
+        MacroBar(macro = Macro.SUGARS, label = "Sucres", consumed = 78f, goal = 63f)
+        MacroBar(macro = Macro.FAT, label = "Lipides", consumed = 52f, goal = 70f)
     }
 }

@@ -9,13 +9,21 @@
 -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
 
-    <!-- Jauges : « Proteines, 87 grammes sur 144, 60 % ». Une phrase utile, et non
-         « barre de progression, 60 % ». -->
-    <string name="ds_gauge_description">%1$s, %2$d %3$s sur %4$d, %5$d %%</string>
-    <string name="ds_gauge_description_cap">%1$s, %2$d %3$s pour un plafond de %4$d, %5$d %%</string>
+    <!-- Jauges : une phrase utile, et non « barre de progression, 60 % ». Les deux
+         formulations disent explicitement s'il s'agit d'atteindre ou de ne pas
+         dépasser : c'est la seule information que la forme de la barre ne peut pas
+         transmettre à un lecteur d'écran. -->
+    <string name="ds_gauge_description">%1$s, %2$d %3$s sur un objectif de %4$d, %5$d %%</string>
+    <string name="ds_gauge_description_cap">%1$s, %2$d %3$s sur une limite de %4$d, %5$d %%</string>
 
-    <!-- Valeur affichee a droite d'une barre : « 87 / 144 g ». -->
+    <!-- Valeur affichée à droite d'une barre. Le « max » d'une limite est le
+         signal le plus court qui existe, et il est lu par TalkBack. -->
     <string name="ds_gauge_value">%1$d / %2$d %3$s</string>
+    <string name="ds_gauge_value_limit">%1$d / %2$d %3$s max</string>
+
+    <!-- Lu par TalkBack sur un bouton grisé qui reste tapable : sans cela, il
+         s'annonce comme n'importe quel bouton et l'appui semble sans effet. -->
+    <string name="ds_button_unavailable">indisponible</string>
 
     <string name="ds_unit_gram_short">g</string>
     <string name="ds_unit_gram_spoken">grammes</string>
