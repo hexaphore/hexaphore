@@ -1,0 +1,11 @@
+# Surcouche appliquee au seul module :core:testing.
+#
+# Ce module ne contient que des jeux de donnees et des fausses implementations
+# des ports. Ses nombres sont des valeurs d'exemple, pas des constantes de
+# calcul : nommer PAIN_COMPLET_KCAL_POUR_100G ne dirait rien que la ligne ne
+# dise deja, et transformerait une table de dix aliments en cinquante
+# declarations.
+
+style:
+  MagicNumber:
+    active: false

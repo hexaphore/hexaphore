@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+
+    <string name="home_title">Aujourd\'hui</string>
+
+    <!-- Le chiffre affiché est le restant, pas le consommé : c'est l'information
+         dont on a besoin au moment de décider quoi manger. -->
+    <string name="home_remaining_label">restantes</string>
+    <string name="home_over_label">de trop</string>
+    <string name="home_consumed_of_goal">%1$d consommées sur %2$d</string>
+    <string name="home_ring_a11y">Calories, %1$d sur %2$d, %3$d %%</string>
+
+    <!-- Une liste vide dit quoi faire, pas seulement qu'elle est vide. -->
+    <string name="home_empty_title">Rien de noté aujourd\'hui</string>
+    <string name="home_empty_body">Les six compteurs se rempliront à la première saisie. La journée reste neutre tant qu\'elle est vide : elle ne compte pas comme une journée à zéro.</string>
+
+    <!-- D29 : un total amputé d'une valeur inconnue ne doit pas se lire comme exact. -->
+    <string name="home_incomplete_totals">Totaux minorés : certaines lignes n\'ont pas toutes leurs valeurs.</string>
+
+    <!-- Un plat : plusieurs aliments entrés en une fois, situés par leur heure. -->
+    <string name="home_dish_kcal">%1$d kcal</string>
+    <string name="home_entry_quantity">%1$s %2$s</string>
+    <string name="home_entry_kcal">%1$d kcal</string>
+
+    <!-- Apports du plat. L'initiale porte la même information que la couleur :
+         une couleur ne renseigne jamais seule. -->
+    <string name="home_macro_chip">%1$s %2$s</string>
+    <string name="home_macro_chip_partial">%1$s ≥ %2$s</string>
+    <string name="home_macro_grams">%1$s g</string>
+    <string name="home_macro_at_least">%1$s au moins %2$s</string>
+
+    <string name="macro_calories">Calories</string>
+    <string name="macro_protein">Protéines</string>
+    <string name="macro_carbs">Glucides</string>
+    <string name="macro_sugars">Sucres</string>
+    <string name="macro_fat">Lipides</string>
+    <string name="macro_fiber">Fibres</string>
+
+    <string name="macro_initial_calories">C</string>
+    <string name="macro_initial_protein">P</string>
+    <string name="macro_initial_carbs">G</string>
+    <string name="macro_initial_sugars">S</string>
+    <string name="macro_initial_fat">L</string>
+    <string name="macro_initial_fiber">F</string>
+
+</resources>

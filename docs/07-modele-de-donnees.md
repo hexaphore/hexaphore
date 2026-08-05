@@ -9,9 +9,9 @@ profile ──1:N── weight_entry
    │
    └──1:N── goal (versionné)
 
-meal ──1:N── food_entry ──N:1── food ──1:N── food_serving
+dish ──1:N── food_entry ──N:1── food ──1:N── food_serving
                                    │
-favorite_meal ──1:N── favorite_component ──N:1──┘
+favorite_dish ──1:N── favorite_component ──N:1──┘
 ```
 
 ## Conventions
@@ -135,24 +135,30 @@ Les colonnes `saturated_fat_100` et `salt_100` existent alors que la v1 ne les a
 | `grams` | REAL | |
 | `is_default` | INTEGER | |
 
-### `meal`
+### `dish`
+
+Un **plat** : plusieurs aliments, entrés en une fois. Pas de repas nommé, pas de catégorie à choisir avant d'enregistrer ([D31](11-decisions.md)).
 
 | Colonne | Type | Notes |
 |---|---|---|
 | `id` | TEXT PK | |
-| `date` | TEXT | |
-| `type` | TEXT | `BREAKFAST` · `LUNCH` · `DINNER` · `SNACK` · `CUSTOM` |
-| `custom_name` | TEXT NULL | |
-| `sort_index` | INTEGER | |
+| `date` | TEXT | journée locale à laquelle le plat est rattaché |
+| `source` | TEXT | `MANUAL` · `SEARCH` · `BARCODE` · `PHOTO_AI` · `TEXT_AI` · `FAVORITE` |
+| `logged_at` | INTEGER | ordonne les plats de la journée |
+| `created_at`, `updated_at` | INTEGER | |
 
-Index unique sur `(date, type, custom_name)`. Un repas est créé paresseusement, à la première entrée : une journée sans saisie ne produit aucune ligne, ce qui permet de distinguer « rien mangé de noté » de « journée à zéro » ([02](02-parcours-et-ecrans.md#calendrier-étendu)).
+Index sur `(date, logged_at)` : c'est l'ordre d'affichage de l'accueil.
+
+**`source` n'est jamais réécrite.** Un plat reste éditable à la main indéfiniment ; son origine est un fait historique, pas un état. Corriger une quantité sur une proposition de l'IA ne doit pas la faire passer pour une saisie manuelle — ce serait perdre la seule trace de ce qui a été deviné ([D32](11-decisions.md)).
+
+Une journée sans saisie ne produit aucune ligne, ce qui permet de distinguer « rien mangé de noté » de « journée à zéro » ([02](02-parcours-et-ecrans.md#calendrier-étendu)).
 
 ### `food_entry`
 
 | Colonne | Type | Notes |
 |---|---|---|
 | `id` | TEXT PK | |
-| `meal_id` | TEXT FK → `meal.id`, CASCADE | |
+| `dish_id` | TEXT FK → `dish.id`, CASCADE | |
 | `food_id` | TEXT NULL FK → `food.id`, SET NULL | provenance, pas source de calcul |
 | `display_name` | TEXT | figé — survit à la suppression de l'aliment |
 | `quantity` | REAL | |
@@ -160,20 +166,19 @@ Index unique sur `(date, type, custom_name)`. Un repas est créé paresseusement
 | `grams` | REAL | quantité convertie, base de tout calcul |
 | `kcal` | REAL | **figé** |
 | `protein_g`, `carb_g`, `sugar_g`, `fat_g`, `fiber_g` | REAL NULL | **figés** |
-| `entry_source` | TEXT | `BARCODE` · `PHOTO_AI` · `TEXT_AI` · `SEARCH` · `MANUAL` · `FAVORITE` |
-| `nutrition_source` | TEXT | `CIQUAL` · `OFF` · `CUSTOM` · `AI_ESTIMATE` · `MANUAL` |
 | `ai_confidence` | REAL NULL | |
 | `is_manually_edited` | INTEGER | verrouille tout recalcul |
-| `logged_at` | INTEGER | |
 | `created_at`, `updated_at` | INTEGER | |
 
-Index sur `meal_id`, et index couvrant `(meal_id, logged_at)` pour l'affichage du jour.
+Index sur `dish_id`.
 
-`entry_source` et `nutrition_source` sont bien deux choses distinctes : une ligne peut venir d'une photo (`PHOTO_AI`) tout en tirant ses macros de CIQUAL (`CIQUAL`). Les confondre rendrait impossible de savoir quelles lignes reposent sur une estimation.
+**Aucune source ici.** Elle appartient au plat : une ligne n'entre jamais dans le journal toute seule. La distinction « ce chiffre vient de CIQUAL » contre « ce chiffre est une estimation » reste nécessaire — [05](05-ia.md) prévoit qu'un plat photographié résolve certaines lignes dans les bases et estime les autres — mais elle arrive **en tranche 6**, avec le résolveur qui la produit, sous la forme minimale d'un marqueur `is_estimated`. Une colonne que rien ne remplit n'est pas une préparation, c'est du bruit.
 
-### `favorite_meal` et `favorite_component`
+### `favorite_dish` et `favorite_component`
 
-| `favorite_meal` | Type |
+Un plat enregistré pour être rejoué. C'est le seul endroit où un nom est demandé : un favori sans nom serait introuvable.
+
+| `favorite_dish` | Type |
 |---|---|
 | `id` | TEXT PK |
 | `name` | TEXT |
@@ -187,7 +192,7 @@ Index sur `meal_id`, et index couvrant `(meal_id, logged_at)` pour l'affichage d
 | `food_id` | TEXT FK |
 | `quantity`, `unit`, `grams` | REAL / TEXT / REAL |
 
-Un favori référence des aliments **vivants** : « mon petit-déjeuner » doit refléter la fiche courante quand on le rejoue. Il produit ensuite des `food_entry` qui, eux, figent leurs valeurs. La différence de traitement est intentionnelle — un modèle réutilisable d'un côté, un registre d'événements de l'autre.
+Un favori référence des aliments **vivants** : « mes flocons du matin » doit refléter la fiche courante quand on le rejoue. Il produit ensuite des `food_entry` qui, eux, figent leurs valeurs. La différence de traitement est intentionnelle — un modèle réutilisable d'un côté, un registre d'événements de l'autre.
 
 ### `app_state`
 
@@ -226,17 +231,19 @@ Un aliment CIQUAL est **copié** dans `food` la première fois qu'il est réelle
 **Résumé d'un jour** — la requête la plus fréquente de l'application, appelée à chaque défilement du calendrier :
 
 ```sql
-SELECT m.id, m.type, m.custom_name,
+SELECT d.id, d.source, d.logged_at,
        SUM(e.kcal)      AS kcal,
        SUM(e.protein_g) AS protein,
        SUM(e.carb_g)    AS carb,
        SUM(e.sugar_g)   AS sugar,
        SUM(e.fat_g)     AS fat,
        SUM(e.fiber_g)   AS fiber
-FROM meal m LEFT JOIN food_entry e ON e.meal_id = m.id
-WHERE m.date = :date
-GROUP BY m.id ORDER BY m.sort_index;
+FROM dish d LEFT JOIN food_entry e ON e.dish_id = d.id
+WHERE d.date = :date
+GROUP BY d.id ORDER BY d.logged_at;
 ```
+
+⚠️ `SUM` traite `NULL` comme absent, ce qui est correct, mais **perd l'information qu'une valeur manquait**. Le domaine remonte donc les lignes et agrège lui-même, en retenant quels totaux sont minorés ([D29](11-decisions.md)). Cette requête sert au calendrier, où seul l'ordre de grandeur compte.
 
 **Objectif actif à une date** :
 

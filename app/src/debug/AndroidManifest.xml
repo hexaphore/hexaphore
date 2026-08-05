@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Ajouts de la seule variante debug. Rien de ce qui suit n'existe en release :
+  ce n'est pas masque a l'execution, c'est absent du binaire.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <activity
+            android:name=".gallery.GalleryActivity"
+            android:exported="true"
+            android:label="@string/gallery_launcher_label"
+            android:theme="@style/Theme.Hexaphore">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

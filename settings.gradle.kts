@@ -40,3 +40,13 @@ rootProject.name = "hexaphore"
 include(":app")
 include(":domain")
 include(":core:designsystem")
+
+// Tranche 1. Les implementations en memoire qui vivent ici ne sont pas des
+// bequilles de test : ce sont les premieres implementations des ports, celles
+// contre lesquelles l'ecran est ecrit avant que Room n'existe.
+include(":core:testing")
+
+// :core:common naît maintenant qu'il a de quoi exister : les implementations de
+// Clock et DispatcherProvider, qui vivaient dans :app faute de mieux (D19).
+include(":core:common")
+include(":feature:home")

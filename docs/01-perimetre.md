@@ -9,7 +9,7 @@ Tout le reste découle de là. Chaque décision de conception se juge à une que
 Conséquences concrètes, visibles partout dans le reste de la documentation :
 
 - Le chemin le plus court est toujours disponible depuis l'écran d'accueil, sans navigation.
-- Les aliments récents et les repas favoris passent avant la recherche.
+- Les aliments récents et les plats favoris passent avant la recherche.
 - L'IA propose, elle ne décide pas : un écran de validation, éditable, précède tout enregistrement — mais il est pré-rempli, donc valider coûte un tap.
 - Une donnée absente n'est jamais bloquante. Un produit sans valeur de fibres s'enregistre quand même, avec le trou visible.
 
@@ -35,12 +35,12 @@ Adulte en bonne santé qui suit son alimentation pour une raison personnelle : p
 - **Recherche** — 3 500 aliments CIQUAL + produits déjà scannés + aliments personnels, recherche insensible aux accents, résultats instantanés hors-ligne.
 - **Texte libre** — « deux œufs, une tranche de pain et un verre de jus d'orange ».
 - **Récents et favoris** — ré-ajout en un tap, quelle que soit l'origine de la saisie initiale.
-- **Repas composés** — enregistrer un ensemble de lignes sous un nom, le rejouer plus tard.
+- **Plats favoris** — enregistrer un plat sous un nom, le rejouer plus tard.
 - Édition manuelle intégrale de toute ligne enregistrée.
 - Création d'un aliment personnel de toutes pièces.
 
 ### Consultation
-- Écran du jour : restant sur les six compteurs, repas et sous-totaux.
+- Écran du jour : restant sur les six compteurs, plats et leurs apports.
 - Bande calendrier horizontale, coloration selon l'atteinte, extensible en vue mensuelle.
 - Consultation et modification de n'importe quelle journée passée.
 

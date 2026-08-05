@@ -5,6 +5,7 @@
 
     <!-- Galerie des composants. Ecran de verification, pas de production : il
          disparaitra quand l'accueil reel prendra sa place. -->
+    <string name="gallery_launcher_label">Hexaphore — galerie</string>
     <string name="gallery_title">Galerie des composants</string>
     <string name="gallery_subtitle">Itération 0 — le socle. Aucune donnée réelle : ces valeurs sont des échantillons.</string>
     <string name="gallery_today">Horloge injectée : %1$s</string>

@@ -57,15 +57,15 @@ La seule itération qui ne livre aucune fonctionnalité. Son contenu est précis
 
 **Contenu**
 
-- `:core:database` : Room avec les tables `meal`, `food_entry`, `food`. Migrations actives dès la version 1, schémas exportés et versionnés.
-- `:domain` : les modèles `Macros`, `FoodEntry`, `Meal`, `DaySummary` ; le port `DiaryRepository` ; le cas d'usage `GetDaySummary` ; les abstractions `Clock` et `DispatcherProvider`.
+- `:core:database` : Room avec les tables `dish`, `food_entry`, `food`. Migrations actives dès la version 1, schémas exportés et versionnés.
+- `:domain` : les modèles `Macros`, `MacroTotals`, `FoodEntry`, `Dish`, `DaySummary` ; le port `DiaryRepository` ; le cas d'usage `GetDaySummary` ; les abstractions `Clock` et `DispatcherProvider`.
 - `:feature:home` : l'écran d'accueil réel, avec l'anneau de calories et les cinq barres.
 - Deux implémentations du port : `InMemoryDiaryRepository` d'abord, `RoomDiaryRepository` ensuite.
 - Un objectif **codé en dur** (2 000 kcal et sa répartition), remplacé en tranche 4. C'est une dette assumée, et elle est écrite ici.
 
 **Terminé quand**
 
-- L'accueil affiche les six compteurs alimentés par Room.
+- L'accueil affiche les six compteurs alimentés par Room, et chaque plat expose ses six apports — pas seulement ses calories.
 - Basculer entre l'implémentation en mémoire et Room ne change **qu'une ligne** dans le module Hilt.
 - `GetDaySummary` est testé avec une horloge figée.
 - Un test de migration existe, même trivial, pour que le mécanisme soit en place.

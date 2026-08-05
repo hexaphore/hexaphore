@@ -70,7 +70,13 @@ kotlin {
 
 dependencies {
     implementation(projects.domain)
+    implementation(projects.core.common)
     implementation(projects.core.designsystem)
+    implementation(projects.feature.home)
+
+    // Temporaire, tranche 1 : l'implementation en memoire du journal alimente
+    // l'accueil en attendant Room. Cette ligne disparait avec :data:diary.
+    implementation(projects.core.testing)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

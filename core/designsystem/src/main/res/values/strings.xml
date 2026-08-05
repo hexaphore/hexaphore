@@ -32,14 +32,15 @@
     <string name="ds_unit_kcal_short">kcal</string>
     <string name="ds_unit_kcal_spoken">kilocalories</string>
 
-    <!-- Provenance d'une valeur nutritionnelle. -->
-    <string name="ds_source_ciqual">CIQUAL</string>
-    <string name="ds_source_open_food_facts">Open Food Facts</string>
-    <string name="ds_source_custom">Personnel</string>
-    <string name="ds_source_ai_estimate">Estimation IA</string>
+    <!-- Origine d'un plat. Un plat, une source. -->
     <string name="ds_source_manual">Saisie manuelle</string>
+    <string name="ds_source_search">Recherche</string>
+    <string name="ds_source_barcode">Code-barres</string>
+    <string name="ds_source_photo">Photo</string>
+    <string name="ds_source_text">Description</string>
+    <string name="ds_source_favorite">Favori</string>
     <!-- Le contour en pointillés et la vague ne se voient pas au lecteur d'écran :
          c'est cette phrase qui porte l'information à leur place. -->
-    <string name="ds_source_estimate_a11y">%1$s, valeur estimée</string>
+    <string name="ds_source_proposed_a11y">%1$s, contenu proposé à vérifier</string>
 
 </resources>

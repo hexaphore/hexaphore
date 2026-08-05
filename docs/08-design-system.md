@@ -126,9 +126,17 @@ Pastille du bandeau calendrier. 44 dp, `MacroRing` segmenté en couronne, jour d
 
 ### `EntryRow`
 
-Ligne du journal. Nom, quantité, calories, pastille de source. Balayage vers la gauche pour supprimer, avec un fond magenta qui se révèle progressivement.
+Ligne d'aliment dans un plat. Nom, quantité, calories. Balayage vers la gauche pour supprimer, avec un fond magenta qui se révèle progressivement.
 
-La pastille de source est une icône monochrome de 16 dp, pas une couleur — les six couleurs sont réservées aux macros, et les diluer ailleurs casserait le système.
+**Aucune pastille de source ici** : elle appartient au plat et se pose une fois en tête ([D32](11-decisions.md)). Cinq pastilles voisines ne distinguaient plus rien.
+
+### Apports d'un plat
+
+Sous les lignes d'un plat, ses cinq autres apports : `P 52 g · G 61 g · S 4,8 g · L 7,9 g · F 1,4 g`.
+
+L'initiale et la teinte portent la même information — une couleur ne renseigne jamais seule — et la teinte est celle de la macro, donc celle des barres du haut : la correspondance se fait sans légende.
+
+Un total amputé d'une valeur inconnue s'écrit `F ≥ 1,4 g`. Le symbole n'est pas décoratif : il dit que la vraie quantité est supérieure, ce qu'une valeur nue laisserait croire exact.
 
 ### `NeonButton`
 
@@ -150,9 +158,11 @@ Un écran, un bouton plein : cette règle empêche l'inflation visuelle.
 
 ### `SourceBadge`
 
-Étiquette de provenance sur l'écran de validation. Toutes les sources sont **neutres** : fond `surfaceVariant`, texte `onSurfaceVariant`, contour `outline`.
+Étiquette d'origine d'un **plat** — un plat, une source, posée une fois en tête. Toutes les sources sont **neutres** : fond `surfaceVariant`, texte et contour `onSurfaceVariant`.
 
-`Estimation IA` se distingue par la **forme**, jamais par la teinte : contour en pointillés, et un glyphe en vague de 16 dp devant le libellé. La distinction reste délibérée — une estimation ne se lit pas comme une donnée mesurée — mais elle ne coûte pas une couleur.
+Un contenu **proposé** par un modèle — photo ou description — se distingue par la **forme**, jamais par la teinte : contour en pointillés, et un glyphe en vague de 16 dp devant le libellé. Une recherche, un code-barres ou une saisie manuelle portent un contour plein et discret.
+
+**Les tirets se mesurent en dp, pas en pixels.** Six unités de tiret font deux millimètres sur une dalle à densité 1 et un quart de millimètre sur une dalle à densité 4 : à ce stade, le pointillé est un trait plein. C'est le défaut qui a rendu le badge indistinguable sur un téléphone récent. Le tracé est en outre encarté d'une demi-épaisseur, faute de quoi sa moitié extérieure sort des limites du composant et se fait rogner.
 
 Trois raisons de ne pas lui en donner une :
 
