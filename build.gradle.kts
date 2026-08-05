@@ -68,6 +68,7 @@ fun Project.moduleDetektConfig(): ConfigurableFileCollection {
         when (path) {
             ":domain" -> "config/detekt/detekt-domain.yml"
             ":core:designsystem" -> "config/detekt/detekt-designsystem.yml"
+            ":core:testing" -> "config/detekt/detekt-testing.yml"
             else -> null
         }
     return rootProject.files(listOfNotNull(overlay))

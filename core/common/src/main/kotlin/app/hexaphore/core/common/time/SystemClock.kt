@@ -1,4 +1,4 @@
-package app.hexaphore.platform
+package app.hexaphore.core.common.time
 
 import app.hexaphore.domain.time.Clock
 import java.time.Instant
@@ -14,9 +14,6 @@ import javax.inject.Inject
  * fichier suppose de mettre à jour `allowedFileNames` dans
  * `config/detekt/detekt.yml` : la liste est courte à dessein, pour que l'ajout
  * d'une entrée soit une décision visible en revue.
- *
- * Sa place définitive est `:core:common` (docs/06-architecture.md). Il vit dans
- * `:app` tant que ce module n'existe pas, faute d'avoir autre chose à y mettre.
  */
 class SystemClock @Inject constructor() : Clock {
     override fun now(): Instant = Instant.now()
