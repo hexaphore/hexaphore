@@ -80,7 +80,7 @@ C'est le vrai premier jalon : à la fin de cette tranche, **l'application est ut
 
 **Contenu**
 
-- `:feature:entry` : l'**écran de validation** décrit en [02](02-parcours-et-ecrans.md#écran-de-validation-dentrée). Lignes éditables, quantité, macros dépliables, repas de destination, date.
+- `:feature:entry` : l'**écran de validation** décrit en [02](02-parcours-et-ecrans.md#écran-de-validation-dentrée). Lignes éditables, quantité, macros dépliables, date. Pas de repas de destination : les lignes forment un plat ([D31](11-decisions.md)).
 - `EntryDraft` : le modèle d'entrée de cet écran, **indépendant de la source**.
 - Cas d'usage `LogFoodEntry`, `UpdateFoodEntry`, `DeleteFoodEntry`.
 - Le port `CustomFoodStore` et le formulaire de création d'un aliment personnel.

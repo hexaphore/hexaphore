@@ -4,7 +4,9 @@ Les choix structurants, leur raison, et ce qu'ils coûtent. Une décision sans c
 
 Format : contexte, choix, alternatives écartées, conséquences. Court. Une décision future ajoute une entrée, elle ne réécrit pas les anciennes — savoir ce qu'on croyait à l'époque a de la valeur.
 
-**Statut des entrées** : `✓ validée` par l'auteur du projet · `~ par défaut` retenue faute de contre-indication, ouverte à révision.
+**Statut des entrées** : `✓ validée` par l'auteur du projet · `~ par défaut` retenue faute de contre-indication, ouverte à révision · `⊘ remplacée par Dxx` révisée depuis, texte conservé.
+
+Une entrée remplacée n'est **jamais** supprimée ni réécrite. Savoir ce qu'on croyait à l'époque, et pourquoi le raisonnement a cédé, est ce qui permet de rejuger la question sur autre chose qu'une impression le jour où elle revient. Le marqueur dans le titre suffit à ne pas s'y tromper en lisant.
 
 ---
 
@@ -68,7 +70,7 @@ Format : contexte, choix, alternatives écartées, conséquences. Court. Une dé
 
 ---
 
-## D06 — Repas nommés plutôt que liste chronologique · ✓ validée
+## D06 — Repas nommés plutôt que liste chronologique · ⊘ remplacée par D31
 
 **Choix.** Petit-déjeuner, déjeuner, dîner, collation, avec sous-totaux, renommables et extensibles.
 
@@ -212,7 +214,7 @@ Cette décision conditionne toutes les autres. Toute fonctionnalité qui exigera
 
 ---
 
-## D18 — Deux ambiguïtés du design system, tranchées · ~ par défaut
+## D18 — Deux ambiguïtés du design system, tranchées · ⊘ en partie remplacée par D25
 
 Le document [08](08-design-system.md) se contredit sur deux points mineurs. Les deux sont tranchées en faveur de la règle la plus structurante.
 
@@ -306,7 +308,7 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 
 ## D25 — L'estimation IA se signale par une forme, pas par une couleur · ✓ validée
 
-**Contexte.** [08](08-design-system.md) demandait un badge « Estimation IA » en ambre, tout en réservant les six teintes aux macros. [D18](#d18--deux-ambiguïtés-du-design-system-tranchées--par-défaut) avait proposé une septième couleur dédiée.
+**Contexte.** [08](08-design-system.md) demandait un badge « Estimation IA » en ambre, tout en réservant les six teintes aux macros. **D18** avait proposé une septième couleur dédiée.
 
 **Choix.** Aucune couleur. Tous les `SourceBadge` sont neutres. `Estimation IA` porte un **contour en pointillés** et un **glyphe en vague** de 16 dp.
 
@@ -382,7 +384,7 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 
 ## D31 — Un plat, pas un repas nommé · ✓ validée
 
-**Contexte.** [D06](#d06--repas-nommés-plutôt-que-liste-chronologique--validée) avait retenu quatre repas nommés — petit-déjeuner, déjeuner, dîner, collation. Vérifié sur l'accueil réel, le choix ne tient pas : la catégorie doit être fixée **avant** d'enregistrer, pour répondre à une question que personne ne se pose. Ce qui compte est ce qu'on a mangé aujourd'hui, pas à quel repas.
+**Contexte.** **D06** avait retenu quatre repas nommés — petit-déjeuner, déjeuner, dîner, collation. Vérifié sur l'accueil réel, le choix ne tient pas : la catégorie doit être fixée **avant** d'enregistrer, pour répondre à une question que personne ne se pose. Ce qui compte est ce qu'on a mangé aujourd'hui, pas à quel repas.
 
 **Choix.** L'unité de saisie est le **plat** : plusieurs aliments, entrés en une fois. Aucune catégorie, aucun nom obligatoire. Les plats s'affichent dans l'ordre où ils ont été notés, et l'heure les situe.
 

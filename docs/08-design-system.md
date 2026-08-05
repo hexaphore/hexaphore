@@ -82,7 +82,7 @@ Une seule famille : **Inter**, variable, embarquée (aucun appel réseau à un s
 |---|---|---|
 | `display` | 48 / 700 | Le grand chiffre de calories restantes |
 | `headline` | 28 / 600 | Titres d'écran |
-| `title` | 20 / 600 | Titres de repas |
+| `title` | 20 / 600 | Titres de section, en-têtes de plat |
 | `body` | 16 / 400 | Texte courant |
 | `label` | 14 / 500 | Étiquettes de jauge |
 | `caption` | 12 / 400 | Sources, dates, mentions |
@@ -180,7 +180,7 @@ Diamètre de référence 180 dp.
 - Progression : dégradé de `base` vers `base` éclairci de 20 %, extrémités arrondies.
 - Lueur : `glow`, flou 16 dp, opacité proportionnelle à l'avancement — l'anneau s'allume à mesure qu'on approche de l'objectif. C'est la seule récompense visuelle de l'application, et elle suffit.
 - Dépassement : un second arc se superpose, teinte `base` saturée, épaisseur 4 dp.
-- Centre : chiffre restant en `display`, libellé en `caption`.
+- Centre : emplacement libre, laissé à l'appelant — le numéro du jour dans une pastille de calendrier.
 
 ### `MacroBar`
 
@@ -204,6 +204,8 @@ Sans cela, une jauge de sucres se lit comme une jauge de protéines, et la rempl
 ### `DayPill`
 
 Pastille du bandeau calendrier. 44 dp, `MacroRing` segmenté en couronne, jour de la semaine au-dessus, numéro au centre.
+
+**Le calendrier garde l'anneau.** L'hexagone est réservé au récapitulatif d'une journée — accueil et écran Journée. À 44 dp, et plus encore à 28 dp en vue mensuelle, six quartiers ne se distingueraient plus les uns des autres ; un anneau segmenté reste lisible parce que ses segments sont concentriques et non adjacents.
 
 États : sélectionné (contour cyan + lueur), aujourd'hui (numéro en cyan), journalisé (anneaux colorés), non journalisé (anneau `outline` uniquement, sans remplissage — surtout pas un anneau à zéro), futur (opacité 40 %).
 
@@ -243,15 +245,9 @@ Un écran, un bouton plein : cette règle empêche l'inflation visuelle.
 
 Étiquette d'origine d'un **plat** — un plat, une source, posée une fois en tête. Toutes les sources sont **neutres** : fond `surfaceVariant`, texte et contour `onSurfaceVariant`.
 
-Un contenu **proposé** par un modèle — photo ou description — se distingue par la **forme**, jamais par la teinte : contour en pointillés, et un glyphe en vague de 16 dp devant le libellé. Une recherche, un code-barres ou une saisie manuelle portent un contour plein et discret.
+Un contenu **proposé** par un modèle — photo ou description — se distingue par la **forme**, jamais par la teinte : contour en pointillés, et un glyphe en vague de 16 dp devant le libellé. Une recherche, un code-barres ou une saisie manuelle portent un contour plein et discret. Le raisonnement qui écarte une septième couleur est en [D25](11-decisions.md).
 
 **Les tirets se mesurent en dp, pas en pixels.** Six unités de tiret font deux millimètres sur une dalle à densité 1 et un quart de millimètre sur une dalle à densité 4 : à ce stade, le pointillé est un trait plein. C'est le défaut qui a rendu le badge indistinguable sur un téléphone récent. Le tracé est en outre encarté d'une demi-épaisseur, faute de quoi sa moitié extérieure sort des limites du composant et se fait rogner.
-
-Trois raisons de ne pas lui en donner une :
-
-1. Les six teintes portent un sens et un seul. En introduire une septième pour un badge, c'est commencer à diluer le système à l'endroit précis où on avait décidé de ne pas le faire.
-2. La règle de daltonisme interdit qu'une couleur porte seule une information. Un badge coloré aurait de toute façon eu besoin d'un second canal : autant n'avoir que celui-là.
-3. Un contour discontinu dit « valeur approximative » sans légende, dans les deux thèmes, et quel que soit le rendu des couleurs de l'écran.
 
 ---
 
@@ -288,7 +284,7 @@ Le reste du temps, une lueur qui pulse en permanence consomme de la batterie et 
 
 - **Contraste** : AA minimum partout, AAA sur les compteurs principaux.
 - **TalkBack** : chaque jauge annonce une phrase utile — « Protéines, 87 grammes sur 144, 60 % » — et non « barre de progression, 60 % ».
-- **Ordre de lecture** : chiffres du jour, puis repas dans l'ordre chronologique.
+- **Ordre de lecture** : chiffres du jour, puis plats dans l'ordre chronologique.
 - **Taille de police** : la mise en page tient jusqu'à 200 % (`sp` partout pour le texte, aucune hauteur fixe sur un conteneur de texte).
 - **Groupement** : une ligne de journal est un seul nœud d'accessibilité, avec ses actions personnalisées (modifier, supprimer) — plutôt que six nœuds à traverser.
 - **Icônes seules** : toutes ont une `contentDescription`. Les décoratives sont explicitement marquées `null` pour ne pas polluer la lecture.

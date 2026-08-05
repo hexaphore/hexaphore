@@ -31,7 +31,7 @@ Un JSON unique, compressé en gzip. Lisible, inspectable, réparable à la main 
   "profile":   { },
   "goals":     [ ],
   "weights":   [ ],
-  "meals":     [ ],
+  "dishes":    [ ],
   "entries":   [ ],
   "foods":     [ ],
   "favorites": [ ],
