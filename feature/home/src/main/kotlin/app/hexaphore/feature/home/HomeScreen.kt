@@ -19,7 +19,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.hexaphore.core.designsystem.component.MacroBar
-import app.hexaphore.core.designsystem.component.MacroRing
+import app.hexaphore.core.designsystem.component.MacroHexagon
+import app.hexaphore.core.designsystem.component.MacroQuarter
 import app.hexaphore.core.designsystem.component.MacroUnit
 import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.domain.diary.DaySummary
@@ -81,57 +82,58 @@ private fun DayContent(summary: DaySummary) {
 }
 
 /**
- * L'anneau de calories et le grand chiffre.
+ * L'hexagone des macros, puis le grand chiffre.
  *
- * Le chiffre est le **restant**, pas le consommé : c'est l'information dont on a
+ * Le chiffre est sous la figure et non en son centre : les six quartiers prennent
+ * naissance au centre, un texte y serait recouvert dès la première bouchée.
+ *
+ * C'est le **restant** qui s'affiche, pas le consommé — l'information dont on a
  * besoin au moment de décider quoi manger. Un dépassement l'affiche en négatif,
- * sans rouge d'alerte ni message — c'est une donnée, pas un jugement.
+ * sans rouge d'alerte ni message : c'est une donnée, pas un jugement.
  */
 @Composable
 private fun RemainingBlock(summary: DaySummary) {
     val consumed = summary.totals[Macro.CALORIES].value
     val goal = summary.goal.kcal
     val remaining = goal - consumed
-    val ratio = if (goal > 0.0) (consumed / goal) else 0.0
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        MacroRing(
-            macro = Macro.CALORIES,
-            progress = ratio.toFloat(),
-            contentDescription =
-            stringResource(
-                R.string.home_ring_a11y,
-                consumed.roundToInt(),
-                goal.roundToInt(),
-                (ratio * PERCENT).roundToInt(),
-            ),
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = abs(remaining).roundToInt().toString(),
-                    style = MaterialTheme.typography.displayLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text =
-                    stringResource(
-                        if (remaining < 0) R.string.home_over_label else R.string.home_remaining_label,
-                    ),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+        MacroHexagon(quarters = summary.quarters())
+        Text(
+            text = abs(remaining).roundToInt().toString(),
+            style = MaterialTheme.typography.displayLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = stringResource(if (remaining < 0) R.string.home_over_label else R.string.home_remaining_label),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Text(
             text = stringResource(R.string.home_consumed_of_goal, consumed.roundToInt(), goal.roundToInt()),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+/**
+ * Les six quartiers, dérivés des totaux et de l'objectif du jour.
+ *
+ * Un objectif nul rendrait un ratio infini : le quartier est alors vide, ce qui est
+ * la seule lecture honnête d'une cible qui n'existe pas.
+ */
+private fun DaySummary.quarters(): Map<Macro, MacroQuarter> = Macro.entries.associateWith { macro ->
+    val total = totals[macro]
+    val target = goal[macro]
+    MacroQuarter(
+        ratio = if (target > 0.0) (total.value / target).toFloat() else 0f,
+        complete = total.complete,
+    )
 }
 
 @Composable
@@ -178,8 +180,12 @@ private fun EmptyDay() {
     }
 }
 
-/** Les cinq barres, dans l'ordre de docs/02. Les calories ont l'anneau. */
+/**
+ * Les cinq barres, dans l'**ordre angulaire des quartiers**.
+ *
+ * Les calories n'en ont pas : elles ont le quartier du haut et le grand chiffre.
+ * L'ordre suit celui de l'hexagone pour que l'œil passe de l'un à l'autre sans
+ * traduction — deux ordres différents rendraient la couleur seule porteuse du lien.
+ */
 private val BAR_MACROS =
-    listOf(Macro.PROTEIN, Macro.CARBS, Macro.SUGARS, Macro.FAT, Macro.FIBER)
-
-private const val PERCENT = 100.0
+    listOf(Macro.PROTEIN, Macro.FIBER, Macro.CARBS, Macro.SUGARS, Macro.FAT)
