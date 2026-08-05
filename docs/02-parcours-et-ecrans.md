@@ -71,11 +71,17 @@ En cas de dépassement, le chiffre devient négatif et l'anneau se poursuit en s
 
 Les sucres se lisent différemment : leur barre est une sous-graduation à l'intérieur de celle des glucides, en violet clair, avec un repère au niveau du plafond.
 
-### Liste des repas
+### Liste des plats
 
-Petit-déjeuner, Déjeuner, Dîner, Collation — dans cet ordre, renommables et extensibles dans les réglages. Un repas vide affiche une ligne discrète « Rien pour l'instant » avec un bouton d'ajout direct qui pré-sélectionne ce repas.
+Les plats de la journée, du plus ancien au plus récent. Un **plat** est ce qu'on a saisi en une fois : plusieurs aliments, une seule origine.
 
-Chaque ligne d'aliment montre : nom, quantité, calories, et une pastille de source (code-barres, IA, base, manuel). Sous-total par repas à droite de son titre.
+Pas de petit-déjeuner, de déjeuner ni de dîner. Ces catégories obligeraient à ranger chaque saisie dans une case avant de l'enregistrer, pour répondre à une question qu'on ne se pose pas : ce qui compte est ce qu'on a mangé aujourd'hui, et l'heure situe déjà chaque plat ([D31](11-decisions.md)).
+
+**En tête de plat** : sa pastille d'origine, son heure, son total de calories.
+
+**En pied de plat** : ses cinq autres apports. Un plat qui ne se lit que par son énergie ne dit pas d'où viennent les protéines ni ce qui a fait grimper les sucres — or c'est exactement la question qu'on se pose en relisant sa journée.
+
+Chaque ligne d'aliment montre nom, quantité, calories. **Pas de pastille par ligne** : la source appartient au plat ([D32](11-decisions.md)).
 
 - **Tap** → ouvre l'écran de validation de cette ligne, en édition.
 - **Balayage vers la gauche** → supprimer, avec `Snackbar` d'annulation (5 s). Aucune suppression n'est immédiatement définitive.
@@ -176,14 +182,13 @@ Le point de convergence. Une ou plusieurs lignes, chacune éditable, un bouton d
 
 Chaque ligne présente :
 
-- **Nom de l'aliment**, et sous lui la **source** : `CIQUAL`, `Open Food Facts`, `Estimation IA`, `Personnel`. Une estimation IA porte un badge distinct — l'utilisateur doit savoir quand un chiffre est une supposition.
+- **Nom de l'aliment**. Pas de source par ligne : elle appartient au plat, et le badge se pose une fois en tête d'écran ([D32](11-decisions.md)). À partir de la tranche 6, une ligne dont les chiffres sont une **estimation** plutôt qu'une correspondance porte un marqueur — l'utilisateur doit savoir quand un chiffre est une supposition, mais c'est une propriété de la valeur, pas une seconde source.
 - **Quantité** : champ numérique + sélecteur d'unité (g, ml, et les portions nommées disponibles pour cet aliment : « 1 tranche », « 1 verre »). Les macros se recalculent en direct.
 - **Confiance IA**, sur les lignes issues d'une analyse : une correspondance faible est visuellement signalée et propose jusqu'à 3 aliments alternatifs, sans obliger à choisir.
 - **Macros dépliables** : les six valeurs, chacune éditable. Une valeur modifiée à la main est marquée et ne sera plus jamais recalculée automatiquement pour cette ligne.
-- **Repas de destination** : pré-sélectionné selon l'heure (avant 11 h → petit-déjeuner, 11–15 h → déjeuner, 18–22 h → dîner, sinon collation), changeable en un tap.
-- **Date** : aujourd'hui par défaut, ou la date consultée si on vient d'un jour passé.
+- **Date** : aujourd'hui par défaut, ou la date consultée si on vient d'un jour passé. Il n'y a **pas** de repas de destination à choisir : les lignes de cet écran forment un plat, et le plat se range tout seul à son heure.
 
-En bas : total de la saisie, et son impact sur les compteurs du jour (« il vous restera 780 kcal »). Actions : **Enregistrer**, **Ajouter une ligne**, **Supprimer une ligne** (balayage), **Enregistrer comme repas favori**.
+En bas : total de la saisie, et son impact sur les compteurs du jour (« il vous restera 780 kcal »). Actions : **Enregistrer**, **Ajouter une ligne**, **Supprimer une ligne** (balayage), **Enregistrer comme plat favori**.
 
 Cet écran est aussi celui qu'on obtient en tapant sur une ligne déjà enregistrée : même composant, en mode édition. Les macros affichées sont alors celles **figées à l'enregistrement**, pas celles recalculées depuis la source — un produit reformulé par son fabricant ne doit pas réécrire le passé.
 
@@ -231,7 +236,7 @@ Si l'algorithme a une suggestion d'ajustement en attente, une carte apparaît en
 
 **Sauvegarde** — connexion Google Drive, dernière sauvegarde, bascule automatique, « Sauvegarder maintenant », « Restaurer », « Exporter dans un fichier », « Importer un fichier ».
 
-**Apparence** — thème (sombre / clair / système), langue, unités (métrique / impérial), repas (renommer, ajouter, supprimer), animations réduites.
+**Apparence** — thème (sombre / clair / système), langue, unités (métrique / impérial), animations réduites.
 
 **À propos** — version, lien du dépôt, licence, attributions CIQUAL et Open Food Facts, avertissement médical, lien de don *(variante hors Play Store uniquement, voir [10](10-qualite-et-livraison.md#variantes-de-build))*.
 

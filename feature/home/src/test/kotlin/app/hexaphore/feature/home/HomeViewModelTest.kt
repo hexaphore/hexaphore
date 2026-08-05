@@ -4,6 +4,7 @@ import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryDiaryRepository
 import app.hexaphore.core.testing.SampleDiary
 import app.hexaphore.domain.concurrency.DispatcherProvider
+import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.usecase.GetDaySummary
 import kotlinx.coroutines.CoroutineDispatcher
@@ -51,8 +52,23 @@ class HomeViewModelTest {
         val state = viewModel(diary, clock).uiState.filterIsInstance<HomeUiState.Content>().first()
 
         assertEquals(jour, state.summary.date)
-        assertEquals(2, state.summary.meals.size)
+        assertEquals(3, state.summary.dishes.size)
         assertTrue(state.summary.logged)
+    }
+
+    @Test
+    fun `chaque plat porte ses six apports`() = runTest(dispatcher) {
+        val clock = FixedClock.atNoon(jour)
+        val diary = InMemoryDiaryRepository(SampleDiary.day(jour))
+
+        val state = viewModel(diary, clock).uiState.filterIsInstance<HomeUiState.Content>().first()
+
+        val premier = state.summary.dishes.first()
+        assertTrue(
+            premier.totals[Macro.PROTEIN].value > 0.0,
+            "un plat doit exposer ses proteines, pas seulement ses calories",
+        )
+        assertEquals(EntrySource.SEARCH, premier.dish.source)
     }
 
     @Test

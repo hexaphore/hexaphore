@@ -4,14 +4,6 @@ import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
 /**
- * Un repas et les lignes qu'il contient.
- *
- * Regroupés ici parce qu'ils sont toujours lus ensemble : l'accueil affiche des
- * repas, jamais des lignes en vrac.
- */
-data class LoggedMeal(val meal: Meal, val entries: List<FoodEntry>)
-
-/**
  * Lecture du journal alimentaire.
  *
  * Port au sens de [docs/06][archi] : le domaine déclare ce dont il a besoin, et un
@@ -29,11 +21,11 @@ data class LoggedMeal(val meal: Meal, val entries: List<FoodEntry>)
  */
 interface DiaryRepository {
     /**
-     * Les repas d'une journée, dans l'ordre d'affichage.
+     * Les plats d'une journée, du plus ancien au plus récent.
      *
-     * Une journée sans aucune saisie rend une **liste vide**, et non des repas à
+     * Une journée sans aucune saisie rend une **liste vide**, et non des plats à
      * zéro. Confondre les deux fausserait le calendrier et l'adaptation
      * hebdomadaire, qui doivent distinguer « rien noté » de « rien mangé ».
      */
-    fun observeDay(date: LocalDate): Flow<List<LoggedMeal>>
+    fun observeDay(date: LocalDate): Flow<List<Dish>>
 }

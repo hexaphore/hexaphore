@@ -74,7 +74,7 @@ private fun DayContent(summary: DaySummary) {
     RemainingBlock(summary)
     MacroBars(summary)
     if (summary.logged) {
-        MealList(summary.meals)
+        DishList(summary.dishes, summary.zone)
     } else {
         EmptyDay()
     }

@@ -37,8 +37,8 @@ import app.hexaphore.core.designsystem.component.SourceBadge
 import app.hexaphore.core.designsystem.theme.NeonTheme
 import app.hexaphore.core.designsystem.theme.Radius
 import app.hexaphore.core.designsystem.theme.Spacing
+import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.nutrition.Macro
-import app.hexaphore.domain.nutrition.NutritionSource
 
 // Les sections de la galerie. Les libellés y sont écrits en clair, contrairement au
 // reste de l'application : ce sont des échantillons de démonstration, et les faire
@@ -233,7 +233,7 @@ private fun SubHeading(@StringRes textRes: Int) {
 @Composable
 internal fun BadgeSection() = GallerySection(R.string.gallery_section_badge) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        NutritionSource.entries.forEach { source -> SourceBadge(source = source) }
+        EntrySource.entries.forEach { source -> SourceBadge(source = source) }
     }
 }
 

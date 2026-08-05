@@ -1,7 +1,7 @@
 package app.hexaphore.core.testing
 
 import app.hexaphore.domain.diary.DiaryRepository
-import app.hexaphore.domain.diary.LoggedMeal
+import app.hexaphore.domain.diary.Dish
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,17 +21,17 @@ import java.time.LocalDate
  *
  * @see docs/12-plan-de-developpement.md
  */
-class InMemoryDiaryRepository(initial: List<LoggedMeal> = emptyList()) : DiaryRepository {
+class InMemoryDiaryRepository(initial: List<Dish> = emptyList()) : DiaryRepository {
     private val state = MutableStateFlow(initial)
 
-    override fun observeDay(date: LocalDate): Flow<List<LoggedMeal>> = state.asStateFlow().map { meals ->
-        meals
-            .filter { it.meal.date == date }
-            .sortedBy { it.meal.sortIndex }
+    override fun observeDay(date: LocalDate): Flow<List<Dish>> = state.asStateFlow().map { dishes ->
+        dishes
+            .filter { it.date == date }
+            .sortedBy { it.loggedAt }
     }
 
     /** Remplace tout le contenu. Les observateurs reçoivent immédiatement la suite. */
-    fun setContent(meals: List<LoggedMeal>) {
-        state.value = meals
+    fun setContent(dishes: List<Dish>) {
+        state.value = dishes
     }
 }

@@ -2,15 +2,13 @@ package app.hexaphore.domain.usecase
 
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryDiaryRepository
+import app.hexaphore.domain.diary.Dish
+import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.diary.EntryId
+import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.diary.FoodEntry
-import app.hexaphore.domain.diary.LoggedMeal
-import app.hexaphore.domain.diary.Meal
-import app.hexaphore.domain.diary.MealId
-import app.hexaphore.domain.diary.MealType
 import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.nutrition.Macros
-import app.hexaphore.domain.nutrition.NutritionSource
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -26,11 +24,11 @@ class GetDaySummaryTest {
     private val jour = LocalDate.of(2026, 3, 15)
 
     @Test
-    fun `additionne les lignes de tous les repas`() = runBlocking {
+    fun `additionne les lignes de tous les plats`() = runBlocking {
         val summary =
             summaryOf(
-                repas(MealType.BREAKFAST, macros(kcal = 320.0, protein = 12.0, fiber = 4.0)),
-                repas(MealType.LUNCH, macros(kcal = 780.0, protein = 41.0, fiber = 9.0)),
+                plat(macros(kcal = 320.0, protein = 12.0, fiber = 4.0)),
+                plat(macros(kcal = 780.0, protein = 41.0, fiber = 9.0)),
             )
 
         assertEquals(1100.0, summary.totals[Macro.CALORIES].value)
@@ -42,8 +40,7 @@ class GetDaySummaryTest {
     fun `une valeur inconnue n'est pas un zero`() = runBlocking {
         val summary =
             summaryOf(
-                repas(
-                    MealType.BREAKFAST,
+                plat(
                     macros(kcal = 320.0, fiber = 4.0),
                     // Produit sans valeur de fibres : le cas courant chez
                     // Open Food Facts, et la porte d'entree du bug.
@@ -75,8 +72,8 @@ class GetDaySummaryTest {
         val diary =
             InMemoryDiaryRepository(
                 listOf(
-                    repas(MealType.DINNER, macros(kcal = 900.0), date = veille),
-                    repas(MealType.LUNCH, macros(kcal = 700.0), date = jour),
+                    plat(macros(kcal = 900.0), date = veille),
+                    plat(macros(kcal = 700.0), date = jour),
                 ),
             )
 
@@ -92,7 +89,7 @@ class GetDaySummaryTest {
         // qui raisonnerait en UTC donnerait deja le 15, mais le meme calcul une
         // heure plus tard basculerait au 16 alors qu'il est 00 h 59 a Paris.
         val minuitMoinsUne = Instant.parse("2026-03-15T22:59:00Z")
-        val diary = InMemoryDiaryRepository(listOf(repas(MealType.SNACK, macros(kcal = 150.0))))
+        val diary = InMemoryDiaryRepository(listOf(plat(macros(kcal = 150.0))))
 
         val summary = GetDaySummary(diary, FixedClock(minuitMoinsUne, paris))().first()
 
@@ -101,43 +98,53 @@ class GetDaySummaryTest {
     }
 
     @Test
-    fun `chaque repas porte son propre sous-total`() = runBlocking {
+    fun `chaque plat porte ses six apports, et pas seulement ses calories`() = runBlocking {
         val summary =
             summaryOf(
-                repas(MealType.BREAKFAST, macros(kcal = 320.0)),
-                repas(MealType.LUNCH, macros(kcal = 780.0)),
+                plat(macros(kcal = 320.0, protein = 12.0, fat = 8.0)),
+                plat(macros(kcal = 780.0, protein = 41.0, fat = 21.0)),
             )
 
-        assertEquals(2, summary.meals.size)
-        assertEquals(320.0, summary.meals[0].totals[Macro.CALORIES].value)
-        assertEquals(780.0, summary.meals[1].totals[Macro.CALORIES].value)
+        assertEquals(2, summary.dishes.size)
+        assertEquals(320.0, summary.dishes[0].totals[Macro.CALORIES].value)
+        assertEquals(12.0, summary.dishes[0].totals[Macro.PROTEIN].value)
+        assertEquals(21.0, summary.dishes[1].totals[Macro.FAT].value)
+    }
+
+    @Test
+    fun `la source du plat traverse le resume sans etre reecrite`() = runBlocking {
+        val summary = summaryOf(plat(macros(kcal = 320.0), source = EntrySource.PHOTO_AI))
+
+        assertEquals(EntrySource.PHOTO_AI, summary.dishes.single().dish.source)
+        assertTrue(summary.dishes.single().dish.source.proposed)
     }
 
     // --- Decor ---------------------------------------------------------------
 
-    private suspend fun summaryOf(vararg meals: LoggedMeal) =
-        GetDaySummary(InMemoryDiaryRepository(meals.toList()), FixedClock.atNoon(jour, paris))()
+    private suspend fun summaryOf(vararg dishes: Dish) =
+        GetDaySummary(InMemoryDiaryRepository(dishes.toList()), FixedClock.atNoon(jour, paris))()
             .first()
 
     private var nextIndex = 0
 
-    private fun repas(type: MealType, vararg lignes: Macros, date: LocalDate = jour): LoggedMeal {
+    private fun plat(vararg lignes: Macros, date: LocalDate = jour, source: EntrySource = EntrySource.MANUAL): Dish {
         val index = nextIndex++
-        val mealId = MealId("repas-$index")
-        return LoggedMeal(
-            meal = Meal(id = mealId, date = date, type = type, customName = null, sortIndex = index),
+        val dishId = DishId("plat-$index")
+        return Dish(
+            id = dishId,
+            date = date,
+            source = source,
+            loggedAt = Instant.parse("2026-03-15T11:00:00Z").plusSeconds(index.toLong()),
             entries =
             lignes.mapIndexed { position, macros ->
                 FoodEntry(
                     id = EntryId("ligne-$index-$position"),
-                    mealId = mealId,
+                    dishId = dishId,
                     displayName = "Aliment $position",
                     quantity = 100.0,
                     unit = "g",
                     grams = 100.0,
                     macros = macros,
-                    nutritionSource = NutritionSource.CIQUAL,
-                    loggedAt = Instant.parse("2026-03-15T11:00:00Z"),
                 )
             },
         )
