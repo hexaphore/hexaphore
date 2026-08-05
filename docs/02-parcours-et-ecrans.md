@@ -71,6 +71,12 @@ En cas de dépassement, le chiffre devient négatif et l'anneau se poursuit en s
 
 Les sucres se lisent différemment : leur barre est une sous-graduation à l'intérieur de celle des glucides, en violet clair, avec un repère au niveau du plafond.
 
+### Bloc du jour
+
+En tête d'écran, l'**hexagone des macros** : six quartiers, un par compteur, remplis depuis le centre, le contour marquant l'objectif du jour ([08](08-design-system.md#macrohexagon)). C'est la figure qui donne son nom à l'application, et elle répond à une seule question — comment va ma journée.
+
+Sous l'hexagone, le **restant en calories** en grand chiffre, puis les **six barres** dans le même ordre angulaire que les quartiers. Elles répondent à l'autre question : combien exactement. L'hexagone ne peut dire ni « 87 / 144 g », ni le `max` d'une limite, ni le `≥` d'un total minoré.
+
 ### Liste des plats
 
 Les plats de la journée, du plus ancien au plus récent. Un **plat** est ce qu'on a saisi en une fois : plusieurs aliments, une seule origine.

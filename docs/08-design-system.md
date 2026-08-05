@@ -62,7 +62,11 @@ Magenta et violet sont proches en deutéranopie, cyan et vert aussi en protanopi
 
 > **La couleur ne porte jamais seule une information.** Chaque jauge, chaque segment, chaque légende porte un libellé ou une icône.
 
-Les anneaux du calendrier — trop petits pour un libellé — respectent un **ordre angulaire fixe** (calories, protéines, glucides, lipides, fibres, sucres, dans le sens horaire depuis midi). La position devient le second canal d'information.
+Là où un libellé ne tient pas, c'est la **position** qui sert de second canal. L'ordre angulaire est donc unique dans toute l'application, et il est celui de l'hexagone :
+
+> **calories, protéines, fibres, glucides, sucres, lipides — dans le sens horaire depuis le haut.**
+
+Une figure qui adopterait un autre ordre annulerait tout le bénéfice : la position ne renseigne que si elle est la même partout. C'est cet ordre que suivent l'hexagone, les pastilles du calendrier et les barres de l'accueil.
 
 ### Thème clair
 
@@ -89,9 +93,88 @@ Une seule famille : **Inter**, variable, embarquée (aucun appel réseau à un s
 
 ## Composants
 
+### `MacroHexagon`
+
+La figure principale de l'accueil, et celle qui donne son nom au projet : six macros, six quartiers.
+
+#### Géométrie
+
+Hexagone régulier **à sommet plat** — deux arêtes horizontales, en haut et en bas. Angles mesurés depuis l'est, sens antihoraire ; en coordonnées écran l'ordonnée descend, donc un point d'angle θ et de rayon r se trouve en `(cx + r·cos θ, cy − r·sin θ)`.
+
+- **Sommets** à 0°, 60°, 120°, 180°, 240°, 300°.
+- **Arêtes** centrées sur 30°, 90°, 150°, 210°, 270°, 330°.
+
+Chaque macro occupe le quartier d'un axe, dans le **sens horaire depuis le haut** :
+
+| Macro | Axe | Arête |
+|---|---|---|
+| Calories | 90° | haut |
+| Protéines | 30° | haut-droite |
+| Fibres | 330° | bas-droite |
+| Glucides | 270° | bas |
+| Sucres | 210° | bas-gauche |
+| Lipides | 150° | haut-gauche |
+
+Un quartier est le triangle `centre → sommet à (axe − 30°) → sommet à (axe + 30°)`. À 100 %, il coïncide exactement avec l'arête ; le contour de l'hexagone **est** l'objectif.
+
+#### Remplissage
+
+Le quartier d'une macro à un ratio *r* est le même triangle, homothétique de rapport *r* depuis le centre. Le remplissage part donc du milieu, sans trou central : six pointes qui convergent restent lisibles à 220 dp, et un anneau intérieur contredirait « en partant du milieu ».
+
+**Le rayon est proportionnel à la valeur, pas la surface.** Un quartier à 50 % occupe donc le quart de l'aire de sa part. C'est la même convention que l'anneau et les barres — la longueur, pas l'aire — et l'incohérence serait de changer de règle d'un composant à l'autre. À écrire ici parce qu'un lecteur pressé conclura l'inverse.
+
+#### Objectifs et limites
+
+La distinction de [03](03-nutrition-calculs.md#objectifs-et-limites) vaut ici comme ailleurs, sans quoi un quartier de sucres bien rempli se lirait comme une réussite.
+
+- **Objectif** — calories, protéines, fibres : quartier en teinte `base`, lueur croissante avec le remplissage.
+- **Limite** — glucides, sucres, lipides : quartier en teinte `muted` tant que *r* ≤ 1. Au-delà, le quartier entier passe en `base` avec sa lueur, et la part qui sort du contour est saturée de 30 %.
+
+Une journée bien tenue montre donc **trois quartiers vifs et trois quartiers sourds**. Ne pas allumer une limite, c'est déjà réussir.
+
+#### Mise à l'échelle
+
+Le contour de l'objectif n'est pas la limite du dessin : un quartier peut le dépasser. Pour que rien ne sorte de la zone allouée :
+
+```
+rPlafonné(m) = min(ratio(m), 2.0)
+ajustement   = 1 / max(1, max des rPlafonné)
+Rcible       = Rzone × ajustement
+```
+
+Quand rien ne dépasse, l'hexagone cible remplit la zone. Quand une macro atteint 200 %, la cible se réduit de moitié et le quartier débordant touche le bord. **Le rétrécissement de l'hexagone cible est lui-même le signal** : on voit qu'on a débordé avant même d'avoir lu quelle macro.
+
+`Rzone = min(largeur / 2, hauteur / √3)` — un hexagone à sommet plat de circumrayon R mesure 2R de large et √3·R de haut.
+
+**Plafond à 200 %.** Au-delà, le quartier s'arrête là et son arête extérieure est tracée **en dents de scie**, la convention de rupture d'échelle des graphiques. Sans ce plafond, une saisie erronée à 2 000 % réduirait l'hexagone cible à un point et rendrait toute la figure illisible pour corriger l'erreur — c'est-à-dire au pire moment.
+
+#### Totaux minorés
+
+Un quartier dont le total est amputé d'une valeur inconnue ([D29](11-decisions.md)) voit son arête extérieure **s'estomper** sur les six derniers dp, au lieu d'être nette. On ne sait pas où ça s'arrête, la figure ne prétend donc pas le savoir. Aucune légende n'est nécessaire ; la mention chiffrée reste sous les barres.
+
+#### Repères
+
+Le contour de l'objectif est tracé **par-dessus** les quartiers, en `outline`, 2 dp. Il ne doit jamais être masqué : c'est la référence à laquelle tout le reste se compare.
+
+L'initiale de chaque macro est posée **à l'extérieur** du contour, au milieu de son arête, dans la teinte de la macro. Six lettres suffisent, tiennent à 200 % de police, et donnent le second canal exigé par la règle de daltonisme — la position en donne déjà un.
+
+#### Accessibilité
+
+L'hexagone est **exclu de l'arbre d'accessibilité**. Ce n'est pas un oubli : les mêmes six valeurs sont juste en dessous, dans les barres, sous une forme qui se lit bien mieux à la voix — une phrase par macro, avec son objectif et son pourcentage. Faire annoncer six clauses par une figure dupliquerait l'information et rallongerait la traversée de l'écran.
+
+**Cette exclusion tient tant que les barres restent.** Si elles disparaissaient un jour, l'hexagone devrait reprendre l'annonce.
+
+#### Animation
+
+Le facteur d'ajustement et les six ratios s'animent ensemble, à la durée et à la courbe des jauges (400 ms, `FastOutSlowIn`). Ils tombent à zéro comme le reste quand l'appareil demande moins d'animations.
+
+---
+
 ### `MacroRing`
 
-L'anneau de calories. Diamètre 180 dp sur l'accueil, 44 dp dans le calendrier, 28 dp en vue mensuelle.
+L'anneau d'une macro. **Il n'est plus la figure de tête de l'accueil** — `MacroHexagon` l'a remplacé ([D33](11-decisions.md)) — mais il reste le composant des petites échelles : 44 dp dans le bandeau calendrier, 28 dp en vue mensuelle, et partout où une seule macro doit se lire d'un coup d'œil.
+
+Diamètre de référence 180 dp.
 
 - Piste : `outline`, 8 dp.
 - Progression : dégradé de `base` vers `base` éclairci de 20 %, extrémités arrondies.

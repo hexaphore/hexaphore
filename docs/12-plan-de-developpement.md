@@ -40,7 +40,7 @@ La seule itération qui ne livre aucune fonctionnalité. Son contenu est précis
 - `:domain` déclaré en module **Kotlin/JVM**, sans le plugin Android.
 - Hilt câblé de bout en bout, avec un seul point d'injection pour prouver que ça marche.
 - ktlint, detekt et les trois règles personnalisées du doc [10](10-qualite-et-livraison.md#analyse-statique), plus le workflow GitHub Actions.
-- Design system complet : `MacroColors`, `NeonTheme`, `Motion`, puis `MacroRing`, `MacroBar`, `NeonButton`, `SourceBadge`.
+- Design system complet : `MacroColors`, `NeonTheme`, `Motion`, puis `MacroRing`, `MacroBar`, `NeonButton`, `SourceBadge`. `MacroHexagon` s'y ajoute en tranche 1, quand il a des chiffres réels à montrer.
 
 **Terminé quand**
 
@@ -59,7 +59,7 @@ La seule itération qui ne livre aucune fonctionnalité. Son contenu est précis
 
 - `:core:database` : Room avec les tables `dish`, `food_entry`, `food`. Migrations actives dès la version 1, schémas exportés et versionnés.
 - `:domain` : les modèles `Macros`, `MacroTotals`, `FoodEntry`, `Dish`, `DaySummary` ; le port `DiaryRepository` ; le cas d'usage `GetDaySummary` ; les abstractions `Clock` et `DispatcherProvider`.
-- `:feature:home` : l'écran d'accueil réel, avec l'anneau de calories et les cinq barres.
+- `:feature:home` : l'écran d'accueil réel, avec l'hexagone des macros ([D33](11-decisions.md)) et les barres chiffrées.
 - Deux implémentations du port : `InMemoryDiaryRepository` d'abord, `RoomDiaryRepository` ensuite.
 - Un objectif **codé en dur** (2 000 kcal et sa répartition), remplacé en tranche 4. C'est une dette assumée, et elle est écrite ici.
 
