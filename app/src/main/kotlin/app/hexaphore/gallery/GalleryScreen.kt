@@ -71,6 +71,7 @@ fun GalleryScreen(today: LocalDate, darkTheme: Boolean, onToggleTheme: () -> Uni
         ) {
             GalleryHeader(today = today, darkTheme = darkTheme, onToggleTheme = onToggleTheme)
             PaletteSection()
+            HexagonSection()
             RingSection()
             BarSection()
             ButtonSection()
