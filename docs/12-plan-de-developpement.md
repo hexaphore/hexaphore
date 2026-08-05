@@ -57,7 +57,7 @@ La seule itération qui ne livre aucune fonctionnalité. Son contenu est précis
 
 **Contenu**
 
-- `:core:database` : Room avec les tables `dish`, `food_entry`, `food`. Migrations actives dès la version 1, schémas exportés et versionnés.
+- `:core:database` : Room avec les tables `dish` et `food_entry`. Migrations actives dès la version 1, schémas exportés et versionnés. La table `food` attend la tranche 3, qui est la première à la remplir ([D34](11-decisions.md)).
 - `:domain` : les modèles `Macros`, `MacroTotals`, `FoodEntry`, `Dish`, `DaySummary` ; le port `DiaryRepository` ; le cas d'usage `GetDaySummary` ; les abstractions `Clock` et `DispatcherProvider`.
 - `:feature:home` : l'écran d'accueil réel, avec l'hexagone des macros ([D33](11-decisions.md)) et les barres chiffrées.
 - Deux implémentations du port : `InMemoryDiaryRepository` d'abord, `RoomDiaryRepository` ensuite.
