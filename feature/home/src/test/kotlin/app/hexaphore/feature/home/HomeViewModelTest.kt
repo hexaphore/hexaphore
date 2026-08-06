@@ -97,6 +97,36 @@ class HomeViewModelTest {
         assertEquals(0.0, state.summary.totals[Macro.CALORIES].value)
     }
 
+    @Test
+    fun `une lecture qui echoue ne se lit pas comme une journee vide`() = runTest(dispatcher) {
+        val diary = InMemoryDiaryRepository(SampleDiary.day(jour))
+        diary.failure = IllegalStateException("base illisible")
+
+        val state = viewModel(diary, FixedClock.atNoon(jour)).uiState
+            .filterIsInstance<HomeUiState.Error>()
+            .first()
+
+        assertEquals(
+            HomeUiState.Error,
+            state,
+            "un echec de lecture doit se dire, pas s'afficher comme une journee sans saisie",
+        )
+    }
+
+    @Test
+    fun `reessayer relit le journal`() = runTest(dispatcher) {
+        val diary = InMemoryDiaryRepository(SampleDiary.day(jour))
+        diary.failure = IllegalStateException("base illisible")
+        val viewModel = viewModel(diary, FixedClock.atNoon(jour))
+        viewModel.uiState.filterIsInstance<HomeUiState.Error>().first()
+
+        diary.failure = null
+        viewModel.retry()
+
+        val state = viewModel.uiState.filterIsInstance<HomeUiState.Content>().first()
+        assertEquals(3, state.summary.dishes.size)
+    }
+
     private fun viewModel(diary: InMemoryDiaryRepository, clock: FixedClock) =
         HomeViewModel(GetDaySummary(diary, clock), TestDispatchers(dispatcher))
 

@@ -22,6 +22,7 @@ import app.hexaphore.core.designsystem.component.MacroBar
 import app.hexaphore.core.designsystem.component.MacroHexagon
 import app.hexaphore.core.designsystem.component.MacroQuarter
 import app.hexaphore.core.designsystem.component.MacroUnit
+import app.hexaphore.core.designsystem.component.NeonButton
 import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.domain.diary.DaySummary
 import app.hexaphore.domain.nutrition.Macro
@@ -32,7 +33,7 @@ import kotlin.math.roundToInt
 @Composable
 fun HomeRoute(viewModel: HomeViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    HomeScreen(state = state)
+    HomeScreen(state = state, onRetry = viewModel::retry)
 }
 
 /**
@@ -45,7 +46,7 @@ fun HomeRoute(viewModel: HomeViewModel = hiltViewModel()) {
  * @see docs/02-parcours-et-ecrans.md
  */
 @Composable
-fun HomeScreen(state: HomeUiState, modifier: Modifier = Modifier) {
+fun HomeScreen(state: HomeUiState, onRetry: () -> Unit, modifier: Modifier = Modifier) {
     Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Column(
             modifier =
@@ -65,6 +66,7 @@ fun HomeScreen(state: HomeUiState, modifier: Modifier = Modifier) {
             when (state) {
                 HomeUiState.Loading -> Unit
                 is HomeUiState.Content -> DayContent(state.summary)
+                HomeUiState.Error -> UnreadableDay(onRetry)
             }
         }
     }
@@ -161,6 +163,34 @@ private fun MacroBars(summary: DaySummary) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+/**
+ * L'écran qui dit « je n'ai pas pu lire », plutôt que de montrer zéro.
+ *
+ * Sans lui, un échec de lecture s'afficherait comme une journée vide — et une
+ * journée vide est une affirmation, pas une absence de réponse. C'est exactement
+ * le genre de mensonge que le reste de l'application s'interdit sur les valeurs
+ * inconnues ; il n'y a aucune raison de se l'autoriser sur la journée entière.
+ *
+ * Encart inline et non dialogue : rien n'est détruit, rien n'est irréversible, et
+ * un dialogue bloquerait un écran qu'il suffit de relire.
+ */
+@Composable
+private fun UnreadableDay(onRetry: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        Text(
+            text = stringResource(R.string.home_error_title),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.error,
+        )
+        Text(
+            text = stringResource(R.string.home_error_body),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        NeonButton(text = stringResource(R.string.home_error_retry), onClick = onRetry)
     }
 }
 

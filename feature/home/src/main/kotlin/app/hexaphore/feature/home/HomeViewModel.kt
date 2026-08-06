@@ -5,11 +5,16 @@ import androidx.lifecycle.viewModelScope
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.usecase.GetDaySummary
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 
 /**
@@ -25,11 +30,31 @@ import javax.inject.Inject
  *
  * @see docs/06-architecture.md
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(getDaySummary: GetDaySummary, dispatchers: DispatcherProvider) : ViewModel() {
+    /**
+     * Le déclencheur de relecture.
+     *
+     * Un flux qui a émis une exception est terminé : le relancer demande un nouvel
+     * abonnement, pas un simple `retry` d'appel. Chaque valeur poussée ici en
+     * fabrique un, et `flatMapLatest` abandonne le précédent.
+     */
+    private val attempts = MutableStateFlow(0)
+
     val uiState: StateFlow<HomeUiState> =
-        getDaySummary()
-            .map<_, HomeUiState> { HomeUiState.Content(it) }
+        attempts
+            .flatMapLatest {
+                getDaySummary()
+                    .map<_, HomeUiState> { HomeUiState.Content(it) }
+                    // `catch` **dans** le flatMapLatest, et c'est ce qui rend le
+                    // bouton Reessayer utile. Un flux qui a rattrape une exception
+                    // est termine : place a l'exterieur, il ferait terminer la
+                    // source de `stateIn`, qui resterait alors bloquee sur Error
+                    // quoi qu'on pousse dans `attempts`. Ici, seul le flux interne
+                    // se termine ; celui des tentatives, lui, ne finit jamais.
+                    .catch { emit(HomeUiState.Error) }
+            }
             .flowOn(dispatchers.default)
             .stateIn(
                 scope = viewModelScope,
@@ -39,6 +64,11 @@ class HomeViewModel @Inject constructor(getDaySummary: GetDaySummary, dispatcher
                 started = SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MILLIS),
                 initialValue = HomeUiState.Loading,
             )
+
+    /** Relit le journal après un échec. */
+    fun retry() {
+        attempts.update { it + 1 }
+    }
 
     private companion object {
         const val SUBSCRIPTION_TIMEOUT_MILLIS = 5_000L

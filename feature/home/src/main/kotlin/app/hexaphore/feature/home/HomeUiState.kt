@@ -9,11 +9,6 @@ import app.hexaphore.domain.diary.DaySummary
  * `error`) : les combinaisons impossibles — chargement *et* contenu — cessent de
  * compiler au lieu d'être évitées à la main.
  *
- * Pas de cas d'erreur pour l'instant : la lecture du journal ne peut pas échouer
- * tant qu'elle vient de la mémoire. Il apparaîtra avec Room, quand il aura quelque
- * chose à décrire — une variante d'erreur qu'aucun code ne peut produire est une
- * branche morte que les écrans doivent quand même traiter.
- *
  * @see docs/06-architecture.md
  */
 sealed interface HomeUiState {
@@ -21,4 +16,19 @@ sealed interface HomeUiState {
     data object Loading : HomeUiState
 
     data class Content(val summary: DaySummary) : HomeUiState
+
+    /**
+     * La lecture du journal a échoué.
+     *
+     * Il n'y a rien de plus à dire, et c'est délibéré : une base illisible, un
+     * disque plein et un fichier corrompu appellent le même geste — réessayer — et
+     * un message plus précis ne servirait qu'à inquiéter avec des mots que
+     * personne ne peut utiliser.
+     *
+     * Ce qui compte est que ce cas **existe**. Tant qu'il n'existait pas, un échec
+     * de lecture se serait affiché comme une journée vide : c'est-à-dire comme un
+     * mensonge, dans une application dont tout le propos est de dire la vérité sur
+     * ce qu'on a mangé, y compris quand la donnée manque.
+     */
+    data object Error : HomeUiState
 }
