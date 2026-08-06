@@ -93,6 +93,19 @@ class EntryFormTest {
         assertEquals(QuantityUnit.MILLILITRE, relu.unit)
     }
 
+    @Test
+    fun `un champ numerique accepte un separateur, pas deux`() {
+        // « 12,5,3 » ne se convertit en aucun nombre : la ligne deviendrait
+        // inenregistrable sans que rien ne dise pourquoi. Le champ refuse la frappe.
+        assertTrue("12".isNumberField())
+        assertTrue("12,5".isNumberField())
+        assertTrue("12.5".isNumberField())
+        assertTrue("".isNumberField(), "un champ vide se saisit forcement en passant")
+        assertFalse("12,5,3".isNumberField())
+        assertFalse("12a".isNumberField())
+        assertFalse("-5".isNumberField(), "une quantite negative n'a pas de sens dans un journal")
+    }
+
     private fun ligne(
         name: String = "Riz",
         quantity: String = "150",

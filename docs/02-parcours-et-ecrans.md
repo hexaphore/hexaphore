@@ -190,7 +190,9 @@ Chaque ligne présente :
 - **Macros dépliables** : les six valeurs, chacune éditable. Une valeur modifiée à la main est marquée et ne sera plus jamais recalculée automatiquement pour cette ligne.
 - **Date** : aujourd'hui par défaut, ou la date consultée si on vient d'un jour passé. Il n'y a **pas** de repas de destination à choisir : les lignes de cet écran forment un plat, et le plat se range tout seul à son heure.
 
-En bas : total de la saisie, et son impact sur les compteurs du jour (« il vous restera 780 kcal »). Actions : **Enregistrer**, **Ajouter une ligne**, **Supprimer une ligne** (balayage), **Enregistrer comme plat favori**.
+En bas : total de la saisie, et son impact sur les compteurs du jour (« il vous restera 780 kcal »). Actions : **Enregistrer**, **Ajouter une ligne**, **Supprimer une ligne**, **Enregistrer comme plat favori**.
+
+**Deux chemins pour supprimer une ligne**, et les deux sont nécessaires : une corbeille visible à droite du nom, et le balayage. Un geste sans représentation visible est introuvable pour qui ne le connaît pas, hors d'atteinte au lecteur d'écran, et difficile pour une main qui tient mal le téléphone. Le balayage reste le raccourci de celui qui le connaît, jamais le seul chemin vers une action destructrice.
 
 Cet écran est aussi celui qu'on obtient en tapant sur une ligne déjà enregistrée : même composant, en mode édition. Les macros affichées sont alors celles **figées à l'enregistrement**, pas celles recalculées depuis la source — un produit reformulé par son fabricant ne doit pas réécrire le passé.
 

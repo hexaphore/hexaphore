@@ -33,6 +33,7 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
 
                 "implementation"(platform(catalogPlatform("androidx-compose-bom")))
                 "implementation"(catalogLibrary("androidx-compose-material3"))
+                "implementation"(catalogLibrary("androidx-compose-material-icons-core"))
                 "implementation"(catalogLibrary("androidx-compose-ui"))
                 "implementation"(catalogLibrary("androidx-compose-ui-tooling-preview"))
                 "implementation"(catalogLibrary("androidx-lifecycle-runtime-compose"))

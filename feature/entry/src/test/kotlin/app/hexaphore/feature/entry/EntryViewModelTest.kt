@@ -4,7 +4,6 @@ import androidx.lifecycle.SavedStateHandle
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryDiaryRepository
 import app.hexaphore.core.testing.SequentialIdGenerator
-import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.diary.DraftLineId
@@ -19,7 +18,6 @@ import app.hexaphore.domain.usecase.GetDaySummary
 import app.hexaphore.domain.usecase.GetDishDraft
 import app.hexaphore.domain.usecase.LogDish
 import app.hexaphore.domain.usecase.UpdateDish
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.filterIsInstance
@@ -243,13 +241,5 @@ class EntryViewModelTest {
         createDraft = CreateDraft(clock, ids),
         logDish = LogDish(diary, clock, ids),
         updateDish = UpdateDish(diary, ids),
-        dispatchers = TestDispatchers(dispatcher),
     )
-
-    /** Tout sur le dispatcher de test : aucun vrai pool de threads dans un test. */
-    private class TestDispatchers(private val dispatcher: CoroutineDispatcher) : DispatcherProvider {
-        override val main: CoroutineDispatcher = dispatcher
-        override val default: CoroutineDispatcher = dispatcher
-        override val io: CoroutineDispatcher = dispatcher
-    }
 }

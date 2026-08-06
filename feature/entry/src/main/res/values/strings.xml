@@ -25,6 +25,10 @@
 
     <string name="entry_add_line">Ajouter une ligne</string>
     <string name="entry_remove_line">Supprimer</string>
+    <!-- Le balayage n'est pas le seul chemin : un geste sans représentation visible
+         est introuvable pour qui ne le connaît pas, et hors d'atteinte au lecteur
+         d'écran. Le nom est repris pour que « Supprimer » désigne quelque chose. -->
+    <string name="entry_remove_line_a11y">Supprimer la ligne %1$s</string>
 
     <string name="entry_total_label">Total de la saisie</string>
     <string name="entry_kcal">%1$d kcal</string>

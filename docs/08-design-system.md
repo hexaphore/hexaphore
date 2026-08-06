@@ -132,6 +132,20 @@ La distinction de [03](03-nutrition-calculs.md#objectifs-et-limites) vaut ici co
 
 Une journée bien tenue montre donc **trois quartiers vifs et trois quartiers sourds**. Ne pas allumer une limite, c'est déjà réussir.
 
+#### La lueur
+
+Elle est tracée **en contour sur les trois arêtes du quartier**, en trois passes de plus en plus larges et de moins en moins opaques — la technique du `NeonButton`, faute d'un flou disponible partout (`BlurMaskFilter` n'est pas accéléré matériellement et imposerait un rendu logiciel à chaque image animée).
+
+Trois pièges, tous rencontrés sur appareil et tous évités par cette forme :
+
+- **Une silhouette élargie ne luit que d'un côté.** Un second triangle un peu plus grand, posé derrière le quartier, ne dépasse visiblement que sur l'arête extérieure : les deux arêtes latérales sont mitoyennes, et le quartier voisin recouvre ce qui dépasse de son côté.
+- **Une lueur pleine a un bord franc.** Un triangle plein s'arrête là où il s'arrête. Une lueur qui s'arrête net n'est pas une lueur.
+- **Elle doit avoir la place de déborder.** Le rayon de la zone réserve la lueur, un intervalle, puis la lettre. Sans cette réserve, la lueur du quartier le plus rempli sort de la zone et se fait rogner au ras du bord.
+
+Les six lueurs sont dessinées **après** les six quartiers, en une seconde passe. Dessinées quartier par quartier, chacune se ferait recouvrir par le remplissage du suivant.
+
+Un quartier dont le total est minoré voit sa lueur s'estomper comme son remplissage : le même dégradé s'applique aux deux, sans quoi une arête volontairement floue se retrouverait soulignée d'un trait de néon parfaitement net.
+
 #### Mise à l'échelle
 
 Le contour de l'objectif n'est pas la limite du dessin : un quartier peut le dépasser. Pour que rien ne sorte de la zone allouée :
@@ -144,7 +158,7 @@ Rcible       = Rzone × ajustement
 
 Quand rien ne dépasse, l'hexagone cible remplit la zone. Quand une macro atteint 200 %, la cible se réduit de moitié et le quartier débordant touche le bord. **Le rétrécissement de l'hexagone cible est lui-même le signal** : on voit qu'on a débordé avant même d'avoir lu quelle macro.
 
-`Rzone = min(largeur / 2, hauteur / √3)` — un hexagone à sommet plat de circumrayon R mesure 2R de large et √3·R de haut.
+`Rzone = min(largeur / 2, hauteur / √3) − réserve` — un hexagone à sommet plat de circumrayon R mesure 2R de large et √3·R de haut. La **réserve** est ce qui vit hors de la zone : la lueur, un intervalle, puis la lettre. Elle est déduite du rayon plutôt qu'ajoutée à la boîte, faute de quoi la lueur du quartier le plus rempli se ferait rogner par le bord du dessin.
 
 **Plafond à 200 %.** Au-delà, le quartier s'arrête là et son arête extérieure est tracée **en dents de scie**, la convention de rupture d'échelle des graphiques. Sans ce plafond, une saisie erronée à 2 000 % réduirait l'hexagone cible à un point et rendrait toute la figure illisible pour corriger l'erreur — c'est-à-dire au pire moment.
 
@@ -156,7 +170,11 @@ Un quartier dont le total est amputé d'une valeur inconnue ([D29](11-decisions.
 
 Le contour de l'objectif est tracé **par-dessus** les quartiers, en `outline`, 2 dp. Il ne doit jamais être masqué : c'est la référence à laquelle tout le reste se compare.
 
-L'initiale de chaque macro est posée **à l'extérieur** du contour, au milieu de son arête, dans la teinte de la macro. Six lettres suffisent, tiennent à 200 % de police, et donnent le second canal exigé par la règle de daltonisme — la position en donne déjà un.
+L'initiale de chaque macro est posée **à l'extérieur** de la zone, sur l'axe de son quartier, dans la teinte de la macro. Six lettres suffisent, tiennent à 200 % de police, et donnent le second canal exigé par la règle de daltonisme — la position en donne déjà un.
+
+**Elles sont écrites en `title`, en gras.** Ce n'est pas un choix esthétique : un second canal qu'il faut chercher des yeux n'en est pas un. En taille de légende, ces lettres se lisaient à peine sur le fond, et la règle de daltonisme reposait alors sur la seule position.
+
+Leur rayon est celui de la **zone** et non du contour : elles ne bougent pas quand l'hexagone cible rétrécit sous l'effet d'un dépassement. Six repères qui se déplaceraient à chaque saisie ne seraient plus des repères.
 
 #### Accessibilité
 

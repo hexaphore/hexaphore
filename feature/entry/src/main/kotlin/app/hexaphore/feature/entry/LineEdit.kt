@@ -35,17 +35,26 @@ internal sealed interface LineEdit {
  */
 internal fun EntryFormLine.apply(edit: LineEdit): EntryFormLine = when (edit) {
     is LineEdit.Name -> copy(name = edit.value)
-    is LineEdit.Quantity -> copy(quantity = edit.value.asNumberField())
+    is LineEdit.Quantity -> copy(quantity = edit.value)
     is LineEdit.Measurement -> copy(unit = edit.value)
-    is LineEdit.MacroValue -> copy(macros = macros + (edit.macro to edit.value.asNumberField()))
+    is LineEdit.MacroValue -> copy(macros = macros + (edit.macro to edit.value))
     LineEdit.ToggleDetails -> copy(expanded = !expanded)
 }
 
 /**
- * Ce qu'un champ numérique accepte.
+ * Ce qu'un champ numérique laisse entrer.
  *
- * Le clavier décimal d'Android laisse passer plus que des chiffres selon les
- * fabricants, et un caractère parasite rendrait la ligne silencieusement
- * inenregistrable — le bouton resterait éteint sans que rien ne dise pourquoi.
+ * Des chiffres et **au plus un** séparateur décimal, virgule ou point. Le clavier
+ * décimal d'Android laisse passer plus que ça selon les fabricants, et « 12,5,3 »
+ * ne se convertit en aucun nombre : la ligne deviendrait inenregistrable sans que
+ * rien ne dise pourquoi.
+ *
+ * Le champ **refuse** la frappe plutôt que de l'accepter puis de la nettoyer. Une
+ * frappe refusée ne change rien, ni à l'écran ni dans le brouillon ; une frappe
+ * nettoyée obligerait à réécrire le texte affiché, donc à repositionner le curseur
+ * — exactement ce que [DraftTextField][app.hexaphore.feature.entry] évite.
  */
-private fun String.asNumberField(): String = filter { it.isDigit() || it == ',' || it == '.' }
+internal fun String.isNumberField(): Boolean =
+    all { it.isDigit() || it in DECIMAL_SEPARATORS } && count { it in DECIMAL_SEPARATORS } <= 1
+
+private const val DECIMAL_SEPARATORS = ",."

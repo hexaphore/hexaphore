@@ -3,7 +3,6 @@ package app.hexaphore.feature.entry
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.diary.DaySummary
 import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.diary.DraftLineId
@@ -25,7 +24,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -51,7 +49,6 @@ internal class EntryViewModel @Inject constructor(
     private val createDraft: CreateDraft,
     private val logDish: LogDish,
     private val updateDish: UpdateDish,
-    dispatchers: DispatcherProvider,
 ) : ViewModel() {
     private val dishId: DishId? = savedStateHandle.get<String>(EntryDestination.DISH_ID)?.let(::DishId)
 
@@ -96,7 +93,12 @@ internal class EntryViewModel @Inject constructor(
                     saving = status == Status.SAVING,
                 )
             }
-        }.flowOn(dispatchers.default)
+        }
+            // Aucun `flowOn` ici, contrairement a l'accueil, et c'est deliberé.
+            // Ce que produit ce flux a chaque frappe tient en une conversion de
+            // quelques lignes et deux additions ; le passer sur un autre
+            // dispatcher n'economise rien et coute une image de latence. Cette
+            // image, c'est le curseur du champ qui la paie.
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MILLIS),
