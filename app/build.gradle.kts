@@ -1,29 +1,16 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.hilt)
+    id("hexaphore.android.application")
+    id("hexaphore.android.hilt")
 }
 
 android {
     namespace = "app.hexaphore"
-    compileSdk =
-        libs.versions.compileSdk
-            .get()
-            .toInt()
 
     defaultConfig {
         // Verrouille des la premiere publication sur le Play Store : le changer
         // ensuite cree une application entierement nouvelle, sans ses installations
         // ni ses mises a jour. Voir docs/10-qualite-et-livraison.md.
         applicationId = "app.hexaphore"
-        minSdk =
-            libs.versions.minSdk
-                .get()
-                .toInt()
         targetSdk =
             libs.versions.targetSdk
                 .get()
@@ -51,21 +38,6 @@ android {
             )
         }
     }
-
-    buildFeatures {
-        compose = true
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
-    }
 }
 
 dependencies {
@@ -85,9 +57,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
 
-    implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.navigation.compose)
-    ksp(libs.hilt.compiler)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
