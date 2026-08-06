@@ -185,7 +185,7 @@ Le point de convergence. Une ou plusieurs lignes, chacune éditable, un bouton d
 Chaque ligne présente :
 
 - **Nom de l'aliment**. Pas de source par ligne : elle appartient au plat, et le badge se pose une fois en tête d'écran ([D32](11-decisions.md)). À partir de la tranche 6, une ligne dont les chiffres sont une **estimation** plutôt qu'une correspondance porte un marqueur — l'utilisateur doit savoir quand un chiffre est une supposition, mais c'est une propriété de la valeur, pas une seconde source.
-- **Quantité** : champ numérique + sélecteur d'unité (g, ml, et les portions nommées disponibles pour cet aliment : « 1 tranche », « 1 verre »). Les macros se recalculent en direct.
+- **Quantité** : champ numérique + sélecteur d'unité (g, ml, et les portions nommées disponibles pour cet aliment : « 1 tranche », « 1 verre »). Les macros se recalculent en direct. *Ces deux points supposent une fiche d'aliment : les portions nommées lui appartiennent, et le recalcul part de ses valeurs pour 100 g. Une ligne saisie à la main n'en a pas — elle porte les valeurs telles qu'elles ont été tapées, en grammes ou en millilitres ([D42](11-decisions.md)).*
 - **Confiance IA**, sur les lignes issues d'une analyse : une correspondance faible est visuellement signalée et propose jusqu'à 3 aliments alternatifs, sans obliger à choisir.
 - **Macros dépliables** : les six valeurs, chacune éditable. Une valeur modifiée à la main est marquée et ne sera plus jamais recalculée automatiquement pour cette ligne.
 - **Date** : aujourd'hui par défaut, ou la date consultée si on vient d'un jour passé. Il n'y a **pas** de repas de destination à choisir : les lignes de cet écran forment un plat, et le plat se range tout seul à son heure.

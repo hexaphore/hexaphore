@@ -45,6 +45,7 @@ dependencies {
     implementation(projects.core.common)
     implementation(projects.core.designsystem)
     implementation(projects.feature.home)
+    implementation(projects.feature.entry)
     implementation(projects.data.diary)
 
     implementation(libs.androidx.core.ktx)
@@ -58,6 +59,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
 
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.navigation.compose)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

@@ -82,15 +82,17 @@ C'est le vrai premier jalon : à la fin de cette tranche, **l'application est ut
 
 - `:feature:entry` : l'**écran de validation** décrit en [02](02-parcours-et-ecrans.md#écran-de-validation-dentrée). Lignes éditables, quantité, macros dépliables, date. Pas de repas de destination : les lignes forment un plat ([D31](11-decisions.md)).
 - `EntryDraft` : le modèle d'entrée de cet écran, **indépendant de la source**.
-- Cas d'usage `LogFoodEntry`, `UpdateFoodEntry`, `DeleteFoodEntry`.
-- Le port `CustomFoodStore` et le formulaire de création d'un aliment personnel.
+- Cas d'usage `LogDish`, `UpdateDish`, `DeleteEntry`, `RestoreDish`, `GetDishDraft`, `CreateDraft` — le plat est l'unité de saisie, la ligne l'unité de suppression ([D43](11-decisions.md)).
+- Navigation Compose à routes typées : l'accueil et la validation deviennent deux destinations.
 - Suppression par balayage, avec annulation par `Snackbar`.
+
+~~Le port `CustomFoodStore` et le formulaire de création d'un aliment personnel.~~ Reporté en tranche 3, avec la table `food` qui lui donne un sens et la recherche qui le rend utile ([D40](11-decisions.md)).
 
 **Terminé quand**
 
 - On ajoute, modifie et supprime une ligne, et les totaux suivent immédiatement.
 - L'écran de validation ne contient **aucune** référence à un mode de saisie particulier.
-- Un test prouve que modifier un aliment ne change pas les entrées déjà enregistrées ([D05](11-decisions.md)).
+- Un test prouve que modifier un aliment ne change pas les entrées déjà enregistrées ([D05](11-decisions.md)). *Sans table `food`, la forme éprouvable de cette règle est celle-ci : rouvrir un plat rend les valeurs **figées à l'enregistrement**, et corriger une ligne n'en réécrit aucune autre. La version complète arrive en tranche 3, quand un aliment existera pour être modifié.*
 
 **Le piège central du projet est ici.** Cet écran est le point de convergence des quatre modes de saisie. Écrit « pour la saisie manuelle », il faudra le généraliser trois fois. Il doit accepter dès maintenant *n* lignes venant de *n'importe quelle* source.
 

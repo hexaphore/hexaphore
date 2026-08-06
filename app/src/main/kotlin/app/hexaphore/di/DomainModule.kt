@@ -1,8 +1,15 @@
 package app.hexaphore.di
 
 import app.hexaphore.domain.diary.DiaryRepository
+import app.hexaphore.domain.identity.IdGenerator
 import app.hexaphore.domain.time.Clock
+import app.hexaphore.domain.usecase.CreateDraft
+import app.hexaphore.domain.usecase.DeleteEntry
 import app.hexaphore.domain.usecase.GetDaySummary
+import app.hexaphore.domain.usecase.GetDishDraft
+import app.hexaphore.domain.usecase.LogDish
+import app.hexaphore.domain.usecase.RestoreDish
+import app.hexaphore.domain.usecase.UpdateDish
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,4 +30,22 @@ import dagger.hilt.components.SingletonComponent
 object DomainModule {
     @Provides
     fun getDaySummary(diary: DiaryRepository, clock: Clock): GetDaySummary = GetDaySummary(diary, clock)
+
+    @Provides
+    fun getDishDraft(diary: DiaryRepository, ids: IdGenerator): GetDishDraft = GetDishDraft(diary, ids)
+
+    @Provides
+    fun createDraft(clock: Clock, ids: IdGenerator): CreateDraft = CreateDraft(clock, ids)
+
+    @Provides
+    fun logDish(diary: DiaryRepository, clock: Clock, ids: IdGenerator): LogDish = LogDish(diary, clock, ids)
+
+    @Provides
+    fun updateDish(diary: DiaryRepository, ids: IdGenerator): UpdateDish = UpdateDish(diary, ids)
+
+    @Provides
+    fun deleteEntry(diary: DiaryRepository): DeleteEntry = DeleteEntry(diary)
+
+    @Provides
+    fun restoreDish(diary: DiaryRepository): RestoreDish = RestoreDish(diary)
 }

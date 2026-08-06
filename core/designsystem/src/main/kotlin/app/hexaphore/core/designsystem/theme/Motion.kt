@@ -75,6 +75,25 @@ data class Motion(
 }
 
 /**
+ * Les délais qui ne sont pas des animations.
+ *
+ * Séparés de [Motion] pour une raison précise : `Motion.None` ramène toutes ses
+ * durées à zéro quand l'appareil demande moins de mouvement. Une fenêtre
+ * d'annulation à zéro seconde ne serait pas une animation plus sobre, ce serait une
+ * suppression définitive sans recours. Ces délais-là ne dépendent d'aucun réglage.
+ */
+object Timing {
+    /**
+     * Le temps laissé pour annuler une suppression.
+     *
+     * Cinq secondes : assez pour lire le message et revenir sur un geste involontaire,
+     * trop peu pour que la barre gêne la suite. `SnackbarDuration.Short` en vaut
+     * quatre et `Long` dix ; ni l'un ni l'autre n'est ce que demande docs/02.
+     */
+    const val UNDO_WINDOW_MILLIS: Long = 5_000L
+}
+
+/**
  * Le jeu de durées à appliquer, compte tenu des réglages de l'appareil.
  *
  * Lit `ANIMATOR_DURATION_SCALE` : c'est le réglage système que l'utilisateur met à

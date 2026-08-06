@@ -1,6 +1,7 @@
 package app.hexaphore.data.diary
 
 import app.hexaphore.core.database.dao.DishWithEntries
+import app.hexaphore.core.database.entity.DishEntity
 import app.hexaphore.core.database.entity.FoodEntryEntity
 import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.DishId
@@ -62,3 +63,39 @@ private fun FoodEntryEntity.toDomain(dishId: DishId) = FoodEntry(
  */
 private fun String.toEntrySource(): EntrySource =
     EntrySource.entries.firstOrNull { it.name == this } ?: EntrySource.MANUAL
+
+/**
+ * Le chemin inverse : du domaine vers les tables.
+ *
+ * [now] sert de date de création **et** de modification. Le DAO écrase la première
+ * par celle qui existe déjà, le cas échéant : c'est lui qui sait si le plat est
+ * nouveau, et la correspondance n'a aucune raison de poser la question.
+ */
+internal fun Dish.toEntity(now: Long) = DishEntity(
+    id = id.value,
+    date = date.toString(),
+    source = source.name,
+    loggedAt = loggedAt.toEpochMilli(),
+    createdAt = now,
+    updatedAt = now,
+)
+
+internal fun FoodEntry.toEntity(now: Long) = FoodEntryEntity(
+    id = id.value,
+    dishId = dishId.value,
+    displayName = displayName,
+    quantity = quantity,
+    unit = unit,
+    grams = grams,
+    kcal = macros.kcal,
+    // Les cinq valeurs nullables descendent telles quelles. Un `?: 0.0` ici serait
+    // la derniere occasion de perdre la distinction entre inconnu et zero, et la
+    // seule ou plus rien ensuite ne pourrait la retrouver.
+    proteinG = macros.protein,
+    carbG = macros.carbs,
+    sugarG = macros.sugars,
+    fatG = macros.fat,
+    fiberG = macros.fiber,
+    createdAt = now,
+    updatedAt = now,
+)

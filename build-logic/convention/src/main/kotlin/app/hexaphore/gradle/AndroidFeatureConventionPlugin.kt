@@ -22,6 +22,10 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
         with(target) {
             pluginManager.apply("hexaphore.android.library.compose")
             pluginManager.apply("hexaphore.android.hilt")
+            // Chaque :feature declare sa propre destination, sous la forme d'une
+            // data class @Serializable. C'est ce plugin qui lui fabrique un
+            // serialiseur, donc ce qui rend la route typee plutot qu'une chaine.
+            pluginManager.apply("org.jetbrains.kotlin.plugin.serialization")
 
             dependencies {
                 "implementation"(project(":domain"))
@@ -34,6 +38,12 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
                 "implementation"(catalogLibrary("androidx-lifecycle-runtime-compose"))
                 "implementation"(catalogLibrary("androidx-lifecycle-viewmodel-compose"))
                 "implementation"(catalogLibrary("androidx-hilt-navigation-compose"))
+                "implementation"(catalogLibrary("androidx-navigation-compose"))
+                // Declaree explicitement : la navigation l'embarque, mais c'est
+                // notre code qui porte @Serializable, et dependre d'une transitive
+                // pour une annotation qu'on ecrit soi-meme est une dette qui se
+                // paie au premier changement de version de la navigation.
+                "implementation"(catalogLibrary("kotlinx-serialization-core"))
 
                 "debugImplementation"(catalogLibrary("androidx-compose-ui-tooling"))
 

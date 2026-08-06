@@ -33,8 +33,8 @@ La flèche du bas remonte : `:data` dépend de `:domain`, jamais l'inverse. Un `
 :app                        Application, graphe Hilt racine, navigation, variantes
 
 :core:model                 Modèles partagés, Kotlin pur
-:core:common                Result, implémentations de Clock et DispatcherProvider,
-                            extensions de formatage
+:core:common                Result, implémentations de Clock, DispatcherProvider et
+                            IdGenerator, extensions de formatage
 :core:designsystem          Thème néon, tokens, composants Compose réutilisables
 :core:database              Room : entités, DAO, migrations, base CIQUAL embarquée
 :core:datastore             Préférences (DataStore) et stockage chiffré des clés
@@ -189,7 +189,9 @@ class SuggestGoalAdjustment(
 
 Le `Clock` injecté n'est pas un excès de zèle : sans lui, la moitié de la logique de cette application — jours, semaines, tendances — serait intestable ou testée avec des `Thread.sleep`.
 
-Liste des cas d'usage prévus : `LogFoodEntry`, `UpdateFoodEntry`, `DeleteFoodEntry`, `GetDaySummary`, `GetDateRangeSummary`, `SearchFoods`, `LookupBarcode`, `RecognizeFood`, `ResolveNutrition`, `CalculateDailyGoal`, `OverrideGoal`, `SuggestGoalAdjustment`, `RecordWeight`, `GetWeightTrend`, `SaveFavoriteMeal`, `ApplyFavoriteMeal`, `CreateBackup`, `RestoreBackup`, `ExportData`, `ImportData`.
+Liste des cas d'usage prévus : `LogDish`, `UpdateDish`, `DeleteEntry`, `RestoreDish`, `GetDishDraft`, `CreateDraft`, `GetDaySummary`, `GetDateRangeSummary`, `SearchFoods`, `LookupBarcode`, `RecognizeFood`, `ResolveNutrition`, `CalculateDailyGoal`, `OverrideGoal`, `SuggestGoalAdjustment`, `RecordWeight`, `GetWeightTrend`, `SaveFavoriteMeal`, `ApplyFavoriteMeal`, `CreateBackup`, `RestoreBackup`, `ExportData`, `ImportData`.
+
+Les six premiers portent le vocabulaire du **plat** et non de la ligne : une ligne n'entre jamais seule dans le journal, elle appartient à un plat qui porte la source et l'heure. Un `LogFoodEntry` aurait laissé croire le contraire ([D43](11-decisions.md)).
 
 ---
 

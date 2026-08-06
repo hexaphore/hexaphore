@@ -6,7 +6,9 @@ import app.hexaphore.core.testing.SampleDiary
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.nutrition.Macro
+import app.hexaphore.domain.usecase.DeleteEntry
 import app.hexaphore.domain.usecase.GetDaySummary
+import app.hexaphore.domain.usecase.RestoreDish
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -19,6 +21,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -127,8 +130,56 @@ class HomeViewModelTest {
         assertEquals(3, state.summary.dishes.size)
     }
 
-    private fun viewModel(diary: InMemoryDiaryRepository, clock: FixedClock) =
-        HomeViewModel(GetDaySummary(diary, clock), TestDispatchers(dispatcher))
+    @Test
+    fun `supprimer une ligne la retire des totaux`() = runTest(dispatcher) {
+        val diary = InMemoryDiaryRepository(SampleDiary.day(jour))
+        val viewModel = viewModel(diary, FixedClock.atNoon(jour))
+        val avant = viewModel.uiState.filterIsInstance<HomeUiState.Content>().first().summary
+        val plat = avant.dishes.first().dish
+
+        viewModel.onDeleteEntry(plat, plat.entries.first().id)
+
+        val apres = viewModel.uiState.filterIsInstance<HomeUiState.Content>().first().summary
+        assertTrue(
+            apres.totals[Macro.CALORIES].value < avant.totals[Macro.CALORIES].value,
+            "les totaux doivent suivre immediatement",
+        )
+    }
+
+    @Test
+    fun `annuler une suppression remet la journee comme avant`() = runTest(dispatcher) {
+        val diary = InMemoryDiaryRepository(SampleDiary.day(jour))
+        val viewModel = viewModel(diary, FixedClock.atNoon(jour))
+        val avant = viewModel.uiState.filterIsInstance<HomeUiState.Content>().first().summary
+        val plat = avant.dishes.first().dish
+
+        viewModel.onDeleteEntry(plat, plat.entries.first().id)
+        viewModel.onUndo()
+
+        val apres = viewModel.uiState.filterIsInstance<HomeUiState.Content>().first().summary
+        assertEquals(avant.totals, apres.totals)
+        assertEquals(avant.dishes.size, apres.dishes.size)
+    }
+
+    @Test
+    fun `un echec de suppression ne propose pas d annulation`() = runTest(dispatcher) {
+        // Rien n'a ete supprime : proposer d'annuler laisserait croire le contraire.
+        val diary = InMemoryDiaryRepository(SampleDiary.day(jour))
+        val viewModel = viewModel(diary, FixedClock.atNoon(jour))
+        val plat = viewModel.uiState.filterIsInstance<HomeUiState.Content>().first().summary.dishes.first().dish
+        diary.failure = IllegalStateException("base illisible")
+
+        viewModel.onDeleteEntry(plat, plat.entries.first().id)
+
+        assertNull(viewModel.pendingUndo.value)
+    }
+
+    private fun viewModel(diary: InMemoryDiaryRepository, clock: FixedClock) = HomeViewModel(
+        getDaySummary = GetDaySummary(diary, clock),
+        dispatchers = TestDispatchers(dispatcher),
+        deleteEntry = DeleteEntry(diary),
+        restoreDish = RestoreDish(diary),
+    )
 
     /** Tout sur le dispatcher de test : aucun vrai pool de threads dans un test. */
     private class TestDispatchers(private val dispatcher: CoroutineDispatcher) : DispatcherProvider {

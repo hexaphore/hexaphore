@@ -63,3 +63,7 @@ include(":core:common")
 include(":core:database")
 include(":data:diary")
 include(":feature:home")
+
+// Tranche 2. L'ecran de validation : le point de convergence des quatre modes de
+// saisie, ecrit pour n lignes des le premier jour.
+include(":feature:entry")

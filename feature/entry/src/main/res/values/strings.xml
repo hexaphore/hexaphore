@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+
+    <!-- Aucune chaîne ne mentionne un mode de saisie. C'est la même règle que dans
+         le code : cet écran est le point de convergence des quatre modes, et un
+         texte qui dirait « saisie manuelle » serait la première chose à réécrire
+         quand la recherche puis l'IA arriveront. -->
+    <string name="entry_title_new">Nouvelle saisie</string>
+    <string name="entry_title_edit">Modifier le plat</string>
+
+    <string name="entry_field_name">Aliment</string>
+    <string name="entry_field_quantity">Quantité</string>
+
+    <!-- Chaque champ porte son unité : sans elle, « Protéines 12 » se lit aussi bien
+         comme des grammes que comme un pourcentage. -->
+    <string name="entry_field_calories">Calories (kcal)</string>
+    <string name="entry_field_protein">Protéines (g)</string>
+    <string name="entry_field_carbs">Glucides (g)</string>
+    <string name="entry_field_sugars">Sucres (g)</string>
+    <string name="entry_field_fat">Lipides (g)</string>
+    <string name="entry_field_fiber">Fibres (g)</string>
+
+    <string name="entry_show_macros">Détailler les valeurs nutritionnelles</string>
+    <string name="entry_hide_macros">Replier les valeurs nutritionnelles</string>
+
+    <string name="entry_add_line">Ajouter une ligne</string>
+    <string name="entry_remove_line">Supprimer</string>
+
+    <string name="entry_total_label">Total de la saisie</string>
+    <string name="entry_kcal">%1$d kcal</string>
+    <string name="entry_remaining">Il vous restera %1$d kcal aujourd\'hui</string>
+    <string name="entry_over">Vous dépasserez de %1$d kcal aujourd\'hui</string>
+
+    <string name="entry_save">Enregistrer</string>
+    <string name="entry_saving">Enregistrement…</string>
+    <!-- Le bouton indisponible répond à l'appui ; cette phrase est ce qu'il répond. -->
+    <string name="entry_incomplete_hint">Chaque ligne demande un aliment, une quantité et des calories. Les cinq autres valeurs restent facultatives : un champ laissé vide veut dire « inconnu », pas « zéro ».</string>
+
+    <string name="entry_close">Fermer</string>
+
+    <string name="entry_unavailable_title">Plat inaccessible</string>
+    <string name="entry_unavailable_body">Ce plat n\'a pas pu être rouvert. Il a peut-être été supprimé depuis un autre écran.</string>
+
+    <string name="entry_error_title">Enregistrement impossible</string>
+    <string name="entry_error_body">L\'écriture n\'a pas abouti. Votre saisie est conservée telle quelle.</string>
+    <string name="entry_error_retry">Réessayer</string>
+
+</resources>

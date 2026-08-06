@@ -17,6 +17,7 @@ dependencies {
     // servir aux ecrans. Elles restent hors du classpath de production.
     testImplementation(projects.core.testing)
     testImplementation(libs.junit.jupiter)
+    testImplementation(libs.kotlinx.coroutines.test)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
