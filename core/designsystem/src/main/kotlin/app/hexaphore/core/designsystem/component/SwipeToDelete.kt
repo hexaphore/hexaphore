@@ -50,7 +50,13 @@ fun SwipeToDelete(
     val background = NeonTheme.macros[Macro.PROTEIN]
 
     LaunchedEffect(state.currentValue) {
-        if (state.currentValue == SwipeToDismissBoxValue.EndToStart) onDelete()
+        if (state.currentValue != SwipeToDismissBoxValue.EndToStart) return@LaunchedEffect
+        onDelete()
+        // Le contenu revient en place si l'appelant ne l'a pas retire. Quand il le
+        // retire, cette ligne ne s'execute jamais -- l'effet part avec lui. Sans
+        // elle, un echec de suppression laisserait une ligne invisible mais
+        // toujours presente, ce qui est la pire des deux facons de se tromper.
+        state.reset()
     }
 
     SwipeToDismissBox(
