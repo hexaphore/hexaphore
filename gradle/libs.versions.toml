@@ -32,6 +32,7 @@ activityCompose = "1.9.3"
 lifecycle = "2.8.7"
 composeBom = "2024.10.01"
 coroutines = "1.9.0"
+room = "2.6.1"
 hilt = "2.53.1"
 hiltNavigationCompose = "1.2.0"
 
@@ -41,6 +42,12 @@ ktlintPlugin = "12.1.2"
 ktlint = "1.3.1"
 junit = "5.11.3"
 junitPlatform = "1.11.3"
+# JUnit 4 n'est pas un retour en arriere : MigrationTestHelper de Room est une
+# regle JUnit 4, et le moteur vintage la fait tourner sous la plateforme JUnit 5
+# deja en place. Deux moteurs, une seule commande.
+junit4 = "4.13.2"
+robolectric = "4.14"
+androidxTest = "1.6.1"
 
 # --- Build inclus -------------------------------------------------------------
 # Version des regles detekt maison. Le build composite substitue le projet local
@@ -68,6 +75,11 @@ androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+androidx-room-testing = { module = "androidx.room:room-testing", version.ref = "room" }
+
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
 androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
@@ -79,6 +91,10 @@ hexaphore-detekt-rules = { module = "app.hexaphore.buildlogic:detekt-rules", ver
 
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junitPlatform" }
+junit4 = { module = "junit:junit", version.ref = "junit4" }
+junit-vintage-engine = { module = "org.junit.vintage:junit-vintage-engine", version.ref = "junit" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+androidx-test-core = { module = "androidx.test:core", version.ref = "androidxTest" }
 
 [plugins]
 

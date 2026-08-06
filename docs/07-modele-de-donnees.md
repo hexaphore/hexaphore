@@ -97,6 +97,8 @@ Index sur `date DESC` : toutes les lectures sont des fenêtres récentes.
 
 ### `food`
 
+> **Créée en tranche 3**, avec l'import CIQUAL qui la remplit. Rien ne l'écrit ni ne la lit avant : une entrée de journal fige ses macros et n'a pas besoin de la fiche d'origine pour s'afficher. La colonne `food_entry.food_id` arrive avec elle ([D34](11-decisions.md)).
+
 Catalogue unifié : CIQUAL importé à la demande, produits Open Food Facts mis en cache, aliments personnels.
 
 | Colonne | Type | Notes |

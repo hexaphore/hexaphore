@@ -49,4 +49,6 @@ include(":core:testing")
 // :core:common naît maintenant qu'il a de quoi exister : les implementations de
 // Clock et DispatcherProvider, qui vivaient dans :app faute de mieux (D19).
 include(":core:common")
+include(":core:database")
+include(":data:diary")
 include(":feature:home")

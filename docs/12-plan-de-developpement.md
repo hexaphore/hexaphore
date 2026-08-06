@@ -40,7 +40,7 @@ La seule itération qui ne livre aucune fonctionnalité. Son contenu est précis
 - `:domain` déclaré en module **Kotlin/JVM**, sans le plugin Android.
 - Hilt câblé de bout en bout, avec un seul point d'injection pour prouver que ça marche.
 - ktlint, detekt et les trois règles personnalisées du doc [10](10-qualite-et-livraison.md#analyse-statique), plus le workflow GitHub Actions.
-- Design system complet : `MacroColors`, `NeonTheme`, `Motion`, puis `MacroRing`, `MacroBar`, `NeonButton`, `SourceBadge`.
+- Design system complet : `MacroColors`, `NeonTheme`, `Motion`, puis `MacroRing`, `MacroBar`, `NeonButton`, `SourceBadge`. `MacroHexagon` s'y ajoute en tranche 1, quand il a des chiffres réels à montrer.
 
 **Terminé quand**
 
@@ -57,9 +57,9 @@ La seule itération qui ne livre aucune fonctionnalité. Son contenu est précis
 
 **Contenu**
 
-- `:core:database` : Room avec les tables `dish`, `food_entry`, `food`. Migrations actives dès la version 1, schémas exportés et versionnés.
+- `:core:database` : Room avec les tables `dish` et `food_entry`. Migrations actives dès la version 1, schémas exportés et versionnés. La table `food` attend la tranche 3, qui est la première à la remplir ([D34](11-decisions.md)).
 - `:domain` : les modèles `Macros`, `MacroTotals`, `FoodEntry`, `Dish`, `DaySummary` ; le port `DiaryRepository` ; le cas d'usage `GetDaySummary` ; les abstractions `Clock` et `DispatcherProvider`.
-- `:feature:home` : l'écran d'accueil réel, avec l'anneau de calories et les cinq barres.
+- `:feature:home` : l'écran d'accueil réel, avec l'hexagone des macros ([D33](11-decisions.md)) et les barres chiffrées.
 - Deux implémentations du port : `InMemoryDiaryRepository` d'abord, `RoomDiaryRepository` ensuite.
 - Un objectif **codé en dur** (2 000 kcal et sa répartition), remplacé en tranche 4. C'est une dette assumée, et elle est écrite ici.
 
@@ -80,7 +80,7 @@ C'est le vrai premier jalon : à la fin de cette tranche, **l'application est ut
 
 **Contenu**
 
-- `:feature:entry` : l'**écran de validation** décrit en [02](02-parcours-et-ecrans.md#écran-de-validation-dentrée). Lignes éditables, quantité, macros dépliables, repas de destination, date.
+- `:feature:entry` : l'**écran de validation** décrit en [02](02-parcours-et-ecrans.md#écran-de-validation-dentrée). Lignes éditables, quantité, macros dépliables, date. Pas de repas de destination : les lignes forment un plat ([D31](11-decisions.md)).
 - `EntryDraft` : le modèle d'entrée de cet écran, **indépendant de la source**.
 - Cas d'usage `LogFoodEntry`, `UpdateFoodEntry`, `DeleteFoodEntry`.
 - Le port `CustomFoodStore` et le formulaire de création d'un aliment personnel.

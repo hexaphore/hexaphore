@@ -45,7 +45,7 @@ import app.hexaphore.domain.nutrition.Macro
 // passer par des ressources reviendrait à les donner à traduire.
 
 @Composable
-private fun GallerySection(@StringRes titleRes: Int, content: @Composable () -> Unit) {
+internal fun GallerySection(@StringRes titleRes: Int, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Text(
             text = stringResource(titleRes),

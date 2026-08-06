@@ -43,7 +43,7 @@ La flèche du bas remonte : `:data` dépend de `:domain`, jamais l'inverse. Un `
 :domain                     Cas d'usage + ports, dont Clock et DispatcherProvider.
                             Aucune dépendance Android.
 
-:data:diary                 Journal : repas, entrées, favoris
+:data:diary                 Journal : plats, entrées, favoris
 :data:food                  Catalogue d'aliments (CIQUAL + cache OFF + personnels)
 :data:profile               Profil, objectifs, poids
 :data:backup                Instantané, sérialisation, planification

@@ -55,7 +55,9 @@ L'écran par défaut, celui qu'on ouvre dix fois par jour. Il tient en un défil
 
 Sept pastilles de jour, défilement horizontal vers le passé (chargement paginé, pas de limite), le jour courant à droite et sélectionné par défaut.
 
-Chaque pastille porte le jour de la semaine, le numéro, et un **anneau segmenté** reprenant les six couleurs de macro. Un segment se remplit à mesure que l'objectif du jour est atteint ; il passe en mode « dépassement » (trait plus épais, teinte saturée) au-delà. La couleur des sucres, qui est un plafond et non une cible, s'allume seulement en dépassement.
+Chaque pastille porte le jour de la semaine, le numéro, et un **anneau segmenté** reprenant les six couleurs de macro, dans l'ordre angulaire commun à toute l'application ([08](08-design-system.md#daltonisme)). Le calendrier garde l'anneau : à 44 dp, les six quartiers d'un hexagone ne se distingueraient plus.
+
+Un segment se remplit à mesure que l'objectif du jour est atteint ; il passe en mode « dépassement » (trait plus épais, teinte saturée) au-delà. Les trois **limites** — glucides, sucres, lipides — restent éteintes sous leur seuil et ne s'allument qu'au dépassement, comme partout ailleurs ([D27](11-decisions.md)).
 
 Le jour de départ d'un objectif porte un liseré : on voit où une nouvelle phase a commencé.
 
@@ -63,13 +65,13 @@ Tap sur une pastille → écran **Journée**. Tap sur l'en-tête du mois → **C
 
 ### Bloc « Reste aujourd'hui »
 
-Le cœur de l'écran. Un grand anneau de calories au centre, cinq barres de macro dessous.
+Le cœur de l'écran, et la figure qui donne son nom à l'application : l'**hexagone des macros**. Six quartiers, un par compteur, remplis depuis le centre, le contour marquant l'objectif du jour ([08](08-design-system.md#macrohexagon)). Il répond à une seule question — comment va ma journée.
 
-Le chiffre affiché est le **restant**, pas le consommé — c'est l'information dont on a besoin au moment de décider quoi manger. Le consommé et l'objectif sont écrits en dessous, plus petits.
+Sous l'hexagone, le **restant en calories** en grand chiffre. Le restant et non le consommé : c'est l'information dont on a besoin au moment de décider quoi manger. Le consommé et l'objectif sont écrits en dessous, plus petits. En cas de dépassement, le chiffre devient négatif. Aucun message moralisateur, aucun rouge d'alerte : c'est une donnée, pas un jugement.
 
-En cas de dépassement, le chiffre devient négatif et l'anneau se poursuit en surcouche d'une teinte plus vive. Aucun message moralisateur, aucun rouge d'alerte : c'est une donnée, pas un jugement.
+Puis les **six barres**, dans le même ordre angulaire que les quartiers. Elles répondent à l'autre question : combien exactement. L'hexagone ne peut dire ni « 87 / 144 g », ni le `max` d'une limite, ni le `≥` d'un total minoré ; les barres ne peuvent pas montrer une journée d'un coup d'œil. Les deux ne se concurrencent pas.
 
-Les sucres se lisent différemment : leur barre est une sous-graduation à l'intérieur de celle des glucides, en violet clair, avec un repère au niveau du plafond.
+Ce bloc est le même sur l'accueil et sur l'écran **Journée** d'un jour passé : c'est le même récapitulatif, seule la date change.
 
 ### Liste des plats
 
@@ -85,7 +87,7 @@ Chaque ligne d'aliment montre nom, quantité, calories. **Pas de pastille par li
 
 - **Tap** → ouvre l'écran de validation de cette ligne, en édition.
 - **Balayage vers la gauche** → supprimer, avec `Snackbar` d'annulation (5 s). Aucune suppression n'est immédiatement définitive.
-- **Appui long** → menu : dupliquer, déplacer vers un autre repas, enregistrer comme favori.
+- **Appui long** → menu : dupliquer, déplacer vers un autre plat, enregistrer le plat comme favori.
 
 ### Bouton d'ajout
 
@@ -146,7 +148,7 @@ Feuille modale qui monte aux deux tiers, champ de recherche focalisé et clavier
 **À l'ouverture, avant toute frappe** — c'est l'écran le plus utilisé de l'application :
 
 - **Récents** : les 20 derniers aliments distincts, tous modes de saisie confondus, triés par date de dernière utilisation.
-- **Favoris** : aliments et repas composés épinglés, en tête.
+- **Favoris** : aliments et plats épinglés, en tête.
 
 **Pendant la frappe** : résultats à partir du **2ᵉ caractère**, une fois écoulées **120 ms sans nouvelle frappe**. La requête n'est jamais lancée à chaque touche : on attend que la saisie se stabilise, et une frappe qui arrive avant l'échéance annule la précédente. Sans cela, taper « chocolat » déclenche sept recherches dont six sont jetées, et les résultats clignotent pendant qu'on écrit.
 
@@ -253,4 +255,4 @@ Si l'algorithme a une suggestion d'ajustement en attente, une carte apparaît en
 
 **Retour arrière.** Une modale se ferme sur retour. Une modale contenant une saisie non enregistrée demande confirmation avant de se fermer — une fois, sans insister.
 
-**Premier lancement à vide.** Chaque liste vide dit quoi faire, pas seulement qu'elle est vide : « Aucun repas pour l'instant. Scannez un produit ou décrivez ce que vous avez mangé. »
+**Premier lancement à vide.** Chaque liste vide dit quoi faire, pas seulement qu'elle est vide : « Rien de noté aujourd'hui. Scannez un produit ou décrivez ce que vous avez mangé. »
