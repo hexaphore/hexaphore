@@ -7,15 +7,16 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 /**
- * Le point d'injection unique de l'itération 0.
+ * L'horloge de la galerie.
  *
- * Sa seule raison d'être est de prouver que la chaîne Hilt tient de bout en bout :
- * `HexaphoreApplication` construit le graphe, `PlatformModule` lie le port à son
- * implémentation, et cette date affichée à l'écran ne peut venir que de là.
+ * Elle a d'abord servi à prouver que la chaîne Hilt tenait de bout en bout, quand
+ * la galerie était le seul écran. Elle reste utile pour une raison différente : la
+ * date affichée ne peut venir que du port, donc une injection cassée se voit à
+ * l'ouverture de l'écran plutôt qu'au premier plantage.
  *
  * Il expose une valeur simple plutôt qu'un `StateFlow<UiState>` : rien ici n'est
- * asynchrone et ne le sera. La forme décrite dans docs/06-architecture.md arrivera
- * avec le premier écran qui a un état, en tranche 1.
+ * asynchrone et ne le sera. La forme décrite dans docs/06-architecture.md est celle
+ * des écrans réels, qui ont un état ; celui-ci n'en a pas.
  */
 @HiltViewModel
 class GalleryViewModel @Inject constructor(clock: Clock) : ViewModel() {

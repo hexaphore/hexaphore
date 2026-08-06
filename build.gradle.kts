@@ -56,6 +56,17 @@ subprojects {
 
     tasks.withType<Detekt>().configureEach {
         jvmTarget = rootProject.libs.versions.jvmToolchain.get()
+
+        // La tache detekt par defaut ne regarde que src/main et src/test. Verifie
+        // sur ce projet : un `Color(0x...)` ecrit en src/debug passait l'analyse
+        // sans un mot. Ce n'est pas une hypothese de configuration, c'est la
+        // difference entre un jeu de sources analyse et un jeu de sources qui ne
+        // l'est pas -- et deplacer du code d'un repertoire a l'autre ne doit pas
+        // le faire sortir de la revue automatique.
+        setSource(files("src"))
+        include("**/*.kt", "**/*.kts")
+        exclude("**/build/**")
+
         reports {
             html.required.set(true)
             sarif.required.set(true)
