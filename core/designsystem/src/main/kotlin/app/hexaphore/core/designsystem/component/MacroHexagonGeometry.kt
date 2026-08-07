@@ -27,8 +27,21 @@ internal const val HALF_SECTOR = SECTOR_DEGREES / 2f
  *
  * Sans lui, une quantité saisie à 2 000 % réduirait l'hexagone cible à un point,
  * précisément au moment où il faut le lire pour corriger l'erreur.
+ *
+ * À 150 %, l'hexagone cible garde les deux tiers de sa taille. À 200 %, il n'en
+ * gardait que la moitié — assez pour que les six lettres se retrouvent loin d'une
+ * figure devenue petite, alors qu'un dépassement de moitié suffit largement à se
+ * voir.
  */
-internal const val RATIO_CAP = 2f
+internal const val RATIO_CAP = 1.5f
+
+/**
+ * Du centre au milieu d'une arête, pour un circumrayon de 1.
+ *
+ * Les sommets sont à 1, l'arête à `√3/2`. La différence compte dès qu'on veut
+ * qu'un effet suive une arête plutôt qu'un cercle.
+ */
+internal const val APOTHEM_RATIO = SQRT_THREE / 2f
 
 /**
  * L'axe de chaque macro, en degrés depuis l'est, sens antihoraire.

@@ -1,6 +1,14 @@
 @file:Suppress("UnstableApiUsage")
 
 pluginManagement {
+    // Les regles detekt maison et les plugins de convention sont un build inclus,
+    // pas un module du projet : ils s'executent sur la JVM de Gradle et n'ont rien
+    // a faire dans le graphe de dependances de l'application. Voir D16 dans
+    // docs/11-decisions.md.
+    //
+    // Ici, c'est ce qui rend les plugins `hexaphore.*` resolubles par identifiant.
+    includeBuild("build-logic")
+
     repositories {
         google {
             content {
@@ -24,9 +32,12 @@ dependencyResolutionManagement {
     }
 }
 
-// Les regles detekt maison sont un build inclus, pas un module du projet :
-// elles s'executent sur la JVM de Gradle et n'ont rien a faire dans le graphe
-// de dependances de l'application. Voir D16 dans docs/11-decisions.md.
+// Le meme build, declare une seconde fois hors de pluginManagement, et ce n'est pas
+// une redite : les deux declarations ne font pas la meme chose. Celle de
+// pluginManagement resout les identifiants de plugin ; celle-ci substitue le projet
+// local a la coordonnee `app.hexaphore.buildlogic:detekt-rules` que le build racine
+// declare en detektPlugins. Sans elle, Gradle va chercher cette coordonnee sur Maven
+// Central, ou elle n'existe evidemment pas.
 includeBuild("build-logic")
 
 // Permet d'ecrire projects.core.designsystem plutot que project(":core:designsystem") :
@@ -52,3 +63,7 @@ include(":core:common")
 include(":core:database")
 include(":data:diary")
 include(":feature:home")
+
+// Tranche 2. L'ecran de validation : le point de convergence des quatre modes de
+// saisie, ecrit pour n lignes des le premier jour.
+include(":feature:entry")

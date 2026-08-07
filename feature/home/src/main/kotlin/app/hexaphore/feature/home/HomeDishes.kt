@@ -1,12 +1,14 @@
 package app.hexaphore.feature.home
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -17,7 +19,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import app.hexaphore.core.designsystem.component.SourceBadge
+import app.hexaphore.core.designsystem.component.SwipeToDelete
 import app.hexaphore.core.designsystem.theme.NeonTheme
 import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.domain.diary.DishSummary
@@ -35,16 +39,16 @@ import kotlin.math.roundToInt
  * Pas de repas nommés : un plat est une saisie, et l'heure suffit à le situer.
  */
 @Composable
-internal fun DishList(dishes: List<DishSummary>, zone: ZoneId) {
+internal fun DishList(dishes: List<DishSummary>, zone: ZoneId, actions: HomeActions) {
     val timeFormatter = remember { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT) }
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
-        dishes.forEach { dish -> DishBlock(dish, zone, timeFormatter) }
+        dishes.forEach { dish -> DishBlock(dish, zone, timeFormatter, actions) }
     }
 }
 
 @Composable
-private fun DishBlock(summary: DishSummary, zone: ZoneId, timeFormatter: DateTimeFormatter) {
+private fun DishBlock(summary: DishSummary, zone: ZoneId, timeFormatter: DateTimeFormatter, actions: HomeActions) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -65,7 +69,14 @@ private fun DishBlock(summary: DishSummary, zone: ZoneId, timeFormatter: DateTim
             )
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        summary.entries.forEach { entry -> EntryRow(entry) }
+        summary.entries.forEach { entry ->
+            SwipeToDelete(
+                label = stringResource(R.string.home_entry_delete),
+                onDelete = { actions.onDeleteEntry(summary.dish, entry.id) },
+            ) {
+                EntryRow(entry = entry, onClick = { actions.onEditDish(summary.dish.id) })
+            }
+        }
         DishMacros(summary)
     }
 }
@@ -122,10 +133,33 @@ private fun MacroChip(macro: Macro, total: MacroTotal) {
     )
 }
 
+/**
+ * Une ligne d'aliment.
+ *
+ * Un tap ouvre la validation du **plat** entier, et non de la seule ligne : les
+ * lignes d'un plat ont été saisies ensemble, et les corriger séparément
+ * obligerait à ressortir et rentrer autant de fois qu'il y a d'aliments.
+ *
+ * La ligne est un **seul** nœud d'accessibilité, avec son action de suppression :
+ * trois nœuds à traverser pour une information qui tient en une phrase, c'est trois
+ * de trop.
+ */
 @Composable
-private fun EntryRow(entry: FoodEntry) {
+private fun EntryRow(entry: FoodEntry, onClick: () -> Unit) {
+    val description = stringResource(
+        R.string.home_entry_a11y,
+        entry.displayName,
+        formatGrams(entry.quantity),
+        entry.unit,
+        entry.macros.kcal.roundToInt(),
+    )
+
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = description }
+            .padding(vertical = Spacing.xs),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {

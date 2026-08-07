@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import app.hexaphore.core.designsystem.theme.NeonTheme
-import app.hexaphore.feature.home.HomeRoute
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -22,7 +21,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             NeonTheme {
-                HomeRoute()
+                HexaphoreNavHost()
             }
         }
     }

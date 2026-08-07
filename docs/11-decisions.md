@@ -260,6 +260,8 @@ Trois éléments décrits ailleurs dans la documentation sont volontairement abs
 | Tests d'image et rapport de couverture en CI | [10](10-qualite-et-livraison.md#intégration-continue) les prévoit dans le pipeline. Il n'y a rien à couvrir ni à figer : `:domain` ne contient que des interfaces. | Tranche 1 |
 | Les plugins de convention Gradle | Trois modules ne justifient pas une couche d'indirection pour dix lignes de configuration partagée. Elle est posée dans le `build.gradle.kts` racine. | Vers le sixième module |
 
+> **Échéance atteinte.** Les deux premières lignes restent d'actualité. La troisième est réglée par [D37](#d37--plugins-de-convention-gradle--validée) : le projet compte huit modules, et le bloc partagé était recopié cinq fois.
+
 ---
 
 ## D22 — Style ktlint : `intellij_idea`, pas `ktlint_official` · ~ par défaut
@@ -330,7 +332,7 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 
 ---
 
-## D27 — Objectif ou limite : la nature appartient à la macro · ✓ validée
+## D27 — Objectif ou limite : la nature appartient à la macro · ⊘ en partie remplacée par D47
 
 **Contexte.** Constaté sur appareil : les six jauges se ressemblent trop. [08](08-design-system.md) ne distinguait qu'un seul plafond, les sucres, et le reste se remplissait de la même façon. Une jauge de sucres qui monte ressemble alors à une réussite — le contresens exact que la distinction était censée empêcher.
 
@@ -341,6 +343,8 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 **Pourquoi les lipides du côté des limites.** Ils ont bien un plancher physiologique de 0,6 g/kg, mais il est appliqué **au calcul de l'objectif**, une fois pour toutes. Au jour le jour, l'utilisateur n'a rien à atteindre : il a un budget à ne pas dépasser.
 
 **Conséquences.** Trois signaux redondants distinguent les deux familles : le suffixe `max` sur la valeur, le comportement de la jauge, et la phrase annoncée par TalkBack — « sur un objectif de » contre « sur une limite de ». Le paramètre `mode` de `MacroBar` disparaît de l'API publique : il n'y avait aucune raison légitime de le forcer.
+
+> **Le second signal est remplacé par [D47](#d47--les-six-macros-brillent--validée).** La nature reste portée par la macro, et c'est l'essentiel de cette entrée. Ce qui cède est l'**extinction** de la jauge sous le seuil : constaté sur appareil, trois macros allumées et trois éteintes se lisent comme un défaut d'affichage. Le repère de seuil et l'échelle élargie restent.
 
 ---
 
@@ -420,7 +424,7 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 
 **Écarté.** *Remplacer aussi les barres* : il aurait fallu réintroduire les chiffres en étiquettes autour de la figure, ce qui ne tient pas à 200 % de police. *Ajouter l'hexagone au-dessus de l'anneau* : la même information dite trois fois.
 
-**Le dépassement rétrécit la figure.** Le contour de l'objectif n'est pas la limite du dessin ; c'est le dessin entier qui se met à l'échelle pour que le plus grand débordement tienne. L'hexagone cible qui rapetisse **est** le signal. Plafonné à 200 % — sans quoi une saisie erronée à 2 000 % réduirait la cible à un point, précisément au moment où il faut la lire pour corriger.
+**Le dépassement rétrécit la figure.** Le contour de l'objectif n'est pas la limite du dessin ; c'est le dessin entier qui se met à l'échelle pour que le plus grand débordement tienne. L'hexagone cible qui rapetisse **est** le signal. Plafonné à 200 % — sans quoi une saisie erronée à 2 000 % réduirait la cible à un point, précisément au moment où il faut la lire pour corriger. *(Plafond ramené à 150 % par [D47](#d47--les-six-macros-brillent--validée) : à 200 % la cible tombait à la moitié de sa taille, et un dépassement de moitié se voit déjà largement.)*
 
 **Conséquence structurante : un seul ordre angulaire.** [08](08-design-system.md#daltonisme) fixait pour les pastilles du calendrier un ordre différent de celui demandé ici. Deux ordres pour les mêmes six macros annuleraient le bénéfice recherché : la position ne renseigne que si elle est la même partout. L'ordre de l'hexagone devient donc celui de toute l'application — **calories, protéines, fibres, glucides, sucres, lipides, sens horaire depuis le haut** — et les barres de l'accueil s'y alignent.
 
@@ -463,6 +467,181 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 **Raison.** Afficher des plats que l'utilisateur n'a pas notés serait mentir sur l'état de son journal — dans une application dont tout le propos est de dire la vérité sur ce qu'on a mangé, y compris quand la donnée manque. La journée vide est le comportement exact tant que la tranche 2 n'a pas apporté la saisie, et l'état vide de l'accueil est écrit pour ça.
 
 **Ce que ça coûte.** L'hexagone ne se vérifie plus avec des données depuis l'accueil. Il se vérifie depuis la **galerie**, qui en montre trois cas dont un dépassement au plafond — c'est-à-dire mieux qu'un seul jeu figé.
+
+---
+
+## D37 — Plugins de convention Gradle · ✓ validée
+
+**Contexte.** [D21](#d21--ce-que-litération-0-ne-construit-pas--par-défaut) reportait la question « vers le sixième module ». Il y en a huit. Le bloc `android { compileSdk / minSdk / compileOptions }` et `kotlin { jvmTarget }` était recopié **à l'identique dans cinq** `build.gradle.kts`, et le module suivant en aurait produit un sixième exemplaire.
+
+Ce n'est pas la répétition qui coûte, c'est ce qu'elle rend possible : une divergence entre deux copies ne se voit qu'en compilant celle qui a divergé. Un module resté en `compileSdk 34` compile parfaitement — jusqu'à ce qu'un autre utilise une API de 35.
+
+**Choix.** Six plugins dans `build-logic/convention` : `hexaphore.jvm.library`, `hexaphore.android.library`, `hexaphore.android.library.compose`, `hexaphore.android.application`, `hexaphore.android.hilt`, `hexaphore.android.feature`. `compileSdk` et `jvmTarget` n'apparaissent plus qu'une fois chacun, dans `Conventions.kt`. Les versions restent lues dans `gradle/libs.versions.toml` — aucun numéro n'est écrit dans `build-logic`.
+
+**Des classes, pas des scripts précompilés.** Un fichier `hexaphore.android.library.gradle.kts` se lit mieux, et c'est ce qui a été écrit d'abord. Il ne fonctionne pas ici : un script précompilé résout les identifiants de son propre bloc `plugins { }` sur **son** chemin de classes d'exécution, ce qui obligerait à embarquer AGP dans `build-logic` en `implementation`. On se retrouve alors avec deux AGP — celui du build racine et celui du build inclus — et Gradle échoue sur `com.android.build.gradle.BaseExtension` sans dire lequel des deux il cherchait. Une classe applique par identifiant, résolu sur le chemin du module cible : un seul AGP, et `compileOnly` suffit à compiler contre son API.
+
+**Ce que le build racine garde.** Les sept `alias(...) apply false` restent, et ils ne sont pas décoratifs : c'est eux qui posent AGP et Kotlin sur le chemin de classes du build racine — le seul que voient detekt et ktlint, appliqués par cross-configuration. Sans eux, ktlint cherche `BaseExtension` dans un chargeur de classes qui ne l'a pas.
+
+**Deux `includeBuild` pour un seul build inclus.** Celui de `pluginManagement` résout les identifiants `hexaphore.*`. Celui de la racine substitue le projet local à la coordonnée `app.hexaphore.buildlogic:detekt-rules`. Contrairement à ce qu'on pourrait croire, le premier ne fait pas le second : sans la seconde ligne, Gradle va chercher les règles detekt maison sur Maven Central.
+
+**L'analyse statique reste en cross-configuration.** Un plugin `hexaphore.quality` serait plus idiomatique — c'est même exactement ce que les plugins de convention sont censés remplacer. Il s'appliquerait module par module, donc **oublier de l'appliquer désactiverait detekt sur un module entier sans qu'aucun build n'échoue**. Le `subprojects { }` rend l'oubli impossible. La cohérence perd, la garantie gagne.
+
+**Conséquences.** `feature/home/build.gradle.kts` passe de 60 lignes à 7. Le prochain `:feature` en coûtera autant. En contrepartie, ce qu'un module reçoit ne se lit plus dans son propre fichier : il faut ouvrir la convention. C'est le prix, et il est payé une fois pour toutes les huit.
+
+---
+
+## D38 — La galerie vit dans `src/debug`, et detekt l'y suit · ✓ validée
+
+**Contexte.** La galerie des composants était dans `src/main` de `:app` alors que seule `GalleryActivity`, déclarée par la variante `debug`, l'utilise. R8 la supprimait de la release parce que rien ne la référençait — mais c'est une élimination qu'il fallait espérer, pas une garantie. Du code que la release n'atteint jamais n'a rien à faire dans son jeu de sources.
+
+**Choix.** Les quatre fichiers et leurs chaînes passent en `src/debug`. `app/src/main/res/values/strings.xml` ne contient plus que `app_name`.
+
+**Ce que le déplacement a révélé.** La tâche `detekt` par défaut n'analyse que `src/main` et `src/test`. Vérifié sur ce projet plutôt que supposé : un `Color(0xFF123456)` écrit dans `src/debug` passait l'analyse **sans un mot**, alors que la règle `HardcodedColor` est active. Déplacer 500 lignes les aurait donc sorties de la revue automatique, en silence et sans qu'aucun build ne change de couleur.
+
+`Detekt.setSource(files("src"))` corrige le point pour tous les modules à la fois. La même sonde échoue désormais, avec le message de la règle.
+
+**Conséquences.** Le jeu de sources d'un module n'a plus d'incidence sur ce qui est analysé. C'est ce qu'on croyait déjà, et c'est maintenant vrai. Le coût est nul : detekt lisait déjà tous les fichiers Kotlin du module, il en ignorait simplement une partie sur un critère de répertoire.
+
+---
+
+## D39 — Un échec de lecture se dit · ✓ validée
+
+**Contexte.** `HomeUiState` n'avait que `Loading` et `Content`, et son KDoc l'assumait : « la lecture du journal ne peut pas échouer tant qu'elle vient de la mémoire ». Room a changé cette phrase sans que l'état d'écran suive. Un `SQLiteException` remontait donc dans un flux qui n'avait aucun moyen de le représenter.
+
+**Ce que ça produisait.** Une journée vide. Or une journée vide n'est pas une absence de réponse, c'est une **affirmation** : « vous n'avez rien noté aujourd'hui ». Une application qui refuse de confondre `null` avec zéro sur une valeur de fibres ne peut pas confondre « je n'ai pas pu lire » avec « il n'y a rien » sur une journée entière.
+
+**Choix.** `HomeUiState.Error`, sans détail. Une base illisible, un disque plein et un fichier corrompu appellent le même geste — réessayer — et un message plus précis n'apporterait que des mots dont personne ne peut rien faire. Un encart inline avec un bouton *Réessayer*, pas un dialogue : rien n'est détruit, rien n'est irréversible.
+
+**Le point technique qui rend le bouton utile.** `catch` est placé **à l'intérieur** du `flatMapLatest`. Un flux qui a rattrapé une exception est terminé ; à l'extérieur, il ferait terminer la source de `stateIn`, qui resterait figée sur `Error` quoi qu'on pousse dans le déclencheur de relecture. Le bouton aurait alors existé sans rien faire — pire qu'absent, parce qu'il aurait promis quelque chose.
+
+**Conséquences.** `InMemoryDiaryRepository` gagne un champ `failure`. Ce n'est pas du décor de test : sans lui, la seule façon d'éprouver ce cas serait de corrompre une vraie base. Deux tests couvrent l'échec et la reprise.
+
+---
+
+## D40 — Ce que la tranche 2 ne construit pas · ✓ validée
+
+Trois éléments décrits ailleurs sont volontairement absents. Listés ici pour cesser d'être des oublis, comme [D21](#d21--ce-que-litération-0-ne-construit-pas--par-défaut) l'avait fait pour le socle.
+
+| Absent | Raison | Quand |
+|---|---|---|
+| Le port `CustomFoodStore` et le formulaire d'aliment personnel | [D34](#d34--la-table-food-attend-la-tranche-qui-la-remplit--par-défaut) a reporté la table `food` en tranche 3. Un aliment personnel n'a de sens que réutilisable, donc trouvable : sans recherche, il serait écrit dans une table que rien ne lit, derrière un port à une seule implémentation. C'est exactement l'abstraction préventive que le projet refuse. | Tranche 3, avec `food` et la recherche |
+| Le choix de la date sur l'écran de validation | La saisie est possible aujourd'hui et dans le passé, mais **aucun écran ne mène à un jour passé** avant la tranche 7. Un sélecteur de date servirait à corriger un champ que rien ne peut encore mal remplir. La date est affichée, et vient de l'horloge. | Tranche 7, avec l'écran Journée |
+| La survie d'une saisie à la mort du processus | Le `ViewModel` couvre la rotation et le passage en arrière-plan, qui sont les cas fréquents. Persister le formulaire demande une représentation sérialisable des types du domaine, dans **chaque** écran de saisie — c'est un mécanisme transverse, pas une ligne à ajouter ici. Le construire pour un seul écran, c'est le construire deux fois. | Avec le deuxième écran qui a une saisie longue |
+
+**Ce que ça ne coûte pas.** `docs/12` annonçait `CustomFoodStore` en tranche 2 ; la capacité annoncée par la tranche — « j'ajoute un aliment à la main » — reste entière. On saisit un nom, une quantité et des valeurs, et le plat entre au journal. Ce qui manque est la **réutilisation** de cet aliment, qui est le sujet de la tranche 3.
+
+---
+
+## D41 — `IdGenerator`, port comme l'horloge · ✓ validée
+
+**Contexte.** Les identifiants sont des UUIDv4 générés côté application ([07](07-modele-de-donnees.md)). Un `UUID.randomUUID()` écrit au milieu de `LogDish` aurait été le chemin court.
+
+**Choix.** Un port `IdGenerator` dans `:domain`, `UuidGenerator` dans `:core:common`, une génération séquentielle dans `:core:testing`.
+
+**Raison.** Exactement celle de `Clock` : une entrée non déclarée rend le résultat invérifiable. Sans le port, un test de `LogDish` ne peut affirmer que « un plat a été enregistré » ; avec lui, il affirme « ce plat-là, avec ces lignes-là, rattachées à ce plat-là ». Le lien entre un plat et ses lignes est précisément ce qu'une erreur d'écriture casserait en silence.
+
+**Ce qui écarte le soupçon d'abstraction préventive.** Deux implémentations existent le jour où le port naît, et la seconde n'est pas un décor : elle est ce qui rend les quatre tests d'écriture possibles.
+
+**Écarté.** *Générer les identifiants dans l'adaptateur Room*, comme une base attribuerait une clé. Défendable, mais le domaine ne pourrait alors plus construire un `Dish` complet, et `LogDish` rendrait un identifiant qu'il n'a pas choisi — la logique « ce que devient un brouillon » se serait déplacée dans la couche de persistance.
+
+---
+
+## D42 — Une ligne de brouillon porte des valeurs absolues · ~ par défaut
+
+**Contexte.** [02](02-parcours-et-ecrans.md#écran-de-validation-dentrée) demande que « les macros se recalculent en direct » quand la quantité change. Ce recalcul suppose une **référence pour 100 g**, celle d'une fiche d'aliment. La saisie à la main n'en a aucune : il n'existe pas de fiche derrière une ligne tapée au clavier.
+
+**Choix.** `DraftLine` porte les six valeurs **telles qu'elles ont été saisies**, pour la quantité indiquée. Changer la quantité ne les recalcule pas.
+
+**Raison.** La seule référence disponible serait celle que l'utilisateur vient de taper, et s'en servir pour réécrire ses propres chiffres reviendrait à inventer une règle qu'il n'a pas demandée : « 200 g, 300 kcal » deviendrait « 400 g, 600 kcal » alors qu'il corrigeait peut-être une erreur de pesée. Le recalcul arrive avec ce qui le justifie — une fiche d'aliment et ses valeurs pour 100 g, en tranche 3.
+
+**Deux unités seulement, g et ml.** Les portions nommées — « 1 tranche », « 1 verre » — appartiennent à une fiche. Un millilitre vaut un gramme, ce qui est la densité par défaut de [04](04-sources-de-donnees.md) et la seule dont on dispose ; la conversion est isolée dans `QuantityUnit` pour qu'il n'y ait qu'un endroit à corriger.
+
+**Un champ vide vaut inconnu, jamais zéro.** C'est la règle du projet, appliquée là où elle est le plus facile à trahir : il aurait suffi de lire un champ vide comme `0` pour éviter tout traitement du cas nul, et le journal aurait porté des zéros que personne n'a saisis. Seule l'énergie est obligatoire — une fiche sans énergie n'est pas exploitable. Trois tests couvrent le point.
+
+---
+
+## D43 — Les cas d'usage d'écriture parlent de plats · ✓ validée
+
+**Contexte.** [06](06-architecture.md#cas-dusage) et [12](12-plan-de-developpement.md) nomment `LogFoodEntry`, `UpdateFoodEntry`, `DeleteFoodEntry`. Ces noms datent d'avant [D31](#d31--un-plat-pas-un-repas-nommé--validée), qui a fait du **plat** l'unité de saisie.
+
+**Choix.** `LogDish`, `UpdateDish`, `DeleteEntry`, `RestoreDish`, `GetDishDraft`, `CreateDraft`. On enregistre un plat, on modifie un plat ; on supprime en revanche une **ligne**, parce que c'est bien une ligne qu'on balaie dans le journal.
+
+**Pourquoi ça compte plus qu'un nom.** `LogFoodEntry` laisserait croire qu'une ligne entre seule dans le journal. Elle ne le peut pas : elle appartient à un plat, qui porte la source et l'heure. Le nom qui ment ici est celui par lequel on finirait par écrire une ligne orpheline.
+
+**Une conséquence, tirée du même raisonnement.** `DeleteEntry` supprime le plat quand il perd sa dernière ligne. Un plat vide s'afficherait avec son heure et sa pastille de source, à zéro calorie, indiscernable d'une saisie réelle qui n'aurait rien apporté.
+
+---
+
+## D44 — La lueur de l'hexagone est un contour, pas une silhouette · ✓ validée
+
+**Contexte.** Constaté sur appareil : le néon de l'hexagone ne se voyait que sur l'arête extérieure des quartiers, avec un bord franc, et se faisait rogner quand un quartier remplissait la zone.
+
+**La cause.** La lueur était un **second triangle un peu plus grand**, en teinte `glow`, posé derrière le quartier. Trois défauts en découlaient, et ils étaient tous inévitables avec cette forme :
+
+- elle ne dépassait visiblement que d'un côté — les deux arêtes latérales sont mitoyennes, et le remplissage du quartier voisin recouvrait ce qui dépassait de son côté ;
+- un triangle plein s'arrête où il s'arrête : le bord était net, et **une lueur qui s'arrête net n'est pas une lueur** ;
+- son rayon valait 106 % de celui du quartier, or le quartier le plus rempli atteint déjà le bord de la zone. Les 6 % de trop sortaient du dessin et se faisaient couper au ras.
+
+**Choix.** La lueur est un **tracé en contour sur les trois arêtes**, en trois passes de plus en plus larges et de moins en moins opaques — la technique déjà employée par `NeonButton`. Le tracé étant centré sur le chemin, chaque couche déborde de part et d'autre, et les six lueurs se rejoignent au centre où les six pointes se touchent.
+
+Deux conséquences de forme, sans lesquelles le remède serait incomplet :
+
+- **Deux passes de dessin.** Les six quartiers d'abord, les six lueurs ensuite. Dessinée quartier par quartier, chaque lueur latérale se ferait recouvrir par le remplissage du suivant — c'est-à-dire exactement le défaut d'origine, sous une autre forme.
+- **Une réserve dans le rayon.** La zone déduit désormais la lueur, un intervalle et la lettre. Rien ne peut plus être rogné par le bord.
+
+**Écarté.** *Un vrai flou* (`BlurMaskFilter`) : ce serait le rendu juste, mais il n'est pas accéléré matériellement et imposerait un rendu logiciel à chaque image d'une figure animée à 400 ms. Trois couches suffisent à ce que l'œil ne distingue plus les paliers.
+
+**Conséquences.** Environ cinquante tracés par image contre six, tous sur des chemins triangulaires simples. Le dégradé des totaux minorés s'applique désormais à la lueur comme au remplissage, sans quoi une arête volontairement floue se serait retrouvée soulignée d'un trait de néon parfaitement net.
+
+---
+
+## D45 — Un champ de saisie tient son texte lui-même · ✓ validée
+
+**Contexte.** Constaté sur appareil : taper vite dans un champ de l'écran de validation mélangeait les lettres. « Bolognaise » donnait « Boognaseil » — le curseur reculait de deux caractères en cours de frappe.
+
+**La cause.** La forme habituelle, `value = état.texte` et `onValueChange = { viewModel.change(it) }`, suppose que l'état revienne avant la frappe suivante. Il ne revenait pas : entre la frappe et le nouvel état, il y avait un `MutableStateFlow`, un `combine`, un `flowOn(default)` et une recomposition. Une frappe arrivée avant la fin du trajet trouvait un champ réaffiché avec un texte d'il y a deux caractères, et la position du curseur repartait avec lui.
+
+**Choix.** Le texte affiché vit dans le champ, en `TextFieldValue` local. Chaque frappe s'y applique immédiatement ; le `ViewModel` est prévenu ensuite et ne renvoie rien. **Il n'y a plus qu'un seul écrivain, donc plus de course.**
+
+Le `flowOn(dispatchers.default)` disparaît aussi de cet écran. Ce qu'il produisait à chaque frappe tient en une conversion de quelques lignes et deux additions : le passer sur un autre dispatcher n'économisait rien et coûtait une image de latence.
+
+**Ce que ça ne casse pas.** La valeur initiale n'est lue qu'à la première composition, et c'est suffisant : une ligne est identifiée par son `DraftLineId` dans la liste, donc rouvrir un plat ou replier les valeurs reconstruit le champ avec le bon texte. Rien d'autre ne réécrit ce que l'utilisateur tape.
+
+**Une règle qui suit.** Le champ **refuse** une frappe non numérique au lieu de l'accepter puis de la nettoyer. Nettoyer obligerait à réécrire le texte affiché, donc à repositionner le curseur — le défaut qu'on vient de corriger. Le filtrage disparaît en conséquence de `LineEdit` : deux règles pour la même chose divergent le jour où l'une accepte ce que l'autre supprime.
+
+**Portée.** Cette décision vaut pour tout champ de saisie du projet, pas seulement pour celui-ci. Elle contredit en apparence la forme de [06](06-architecture.md#présentation) — « un `StateFlow<UiState>` unique » — mais seulement en apparence : l'état d'écran reste unique et reste un flux ; c'est le **texte en cours de frappe** qui n'y transite plus, parce qu'il n'a pas le temps.
+
+---
+
+## D46 — Une action destructrice ne s'atteint jamais par le seul balayage · ✓ validée
+
+**Contexte.** L'écran de validation ne proposait le retrait d'une ligne que par balayage.
+
+**Choix.** Une corbeille visible à droite du nom, **en plus** du balayage.
+
+**Raison.** Un geste sans représentation visible est introuvable pour qui ne le connaît pas, hors d'atteinte au lecteur d'écran, et difficile pour une main qui tient mal le téléphone. Le balayage reste ce qu'il doit être : le raccourci de celui qui le connaît.
+
+**Ce qui reste ouvert.** L'accueil n'a, lui, que le balayage sur ses lignes de journal, et la même critique s'y applique. La différence est qu'il y existe déjà un appui long prévu par [02](02-parcours-et-ecrans.md#liste-des-plats) — dupliquer, déplacer, mettre en favori — et que la suppression y a sa place. À traiter avec ce menu, pas avant : deux chemins ajoutés séparément en feraient trois.
+
+---
+
+## D47 — Les six macros brillent · ✓ validée
+
+**Contexte.** Constaté sur appareil : trois macros allumées et trois éteintes ne se lisent pas comme une information mais comme un défaut d'affichage. L'utilisateur ne voit pas une règle nutritionnelle, il voit un rendu qui marche à moitié.
+
+**Ce que disait la règle précédente.** [D27](#d27--objectif-ou-limite--la-nature-appartient-à-la-macro--en-partie-remplacée-par-d47) : une limite reste sourde sous son seuil et ne s'allume qu'au dépassement. « Ne pas allumer une limite, c'est déjà réussir. » L'idée est juste ; ce qui ne tient pas est de la porter par l'**absence** d'un effet. Une absence ne se distingue pas d'une panne.
+
+**Choix.** Les six macros prennent leur teinte vive et leur lueur, à tout niveau, dans l'hexagone comme dans les barres. La distinction objectif / limite reste portée par `Macro` dans le domaine — c'est le cœur de D27 et il ne bouge pas — mais elle s'exprime désormais par ce qui est **écrit**, pas par ce qui est éteint : le suffixe `max` sur la valeur, le repère de seuil, l'échelle élargie à 125 %, et la phrase annoncée par TalkBack.
+
+**Ce qui est perdu, et qui est réel.** Une journée bien tenue ne se reconnaît plus d'un coup d'œil à ses trois quartiers sourds. Il faut lire les valeurs. C'est le prix d'une figure qui ne ressemble plus à un rendu incomplet, et il est assumé.
+
+**Trois corrections qui accompagnent.**
+
+- **Plafond ramené de 200 % à 150 %.** À 200 %, la cible tombait à la moitié de sa taille et les six lettres se retrouvaient loin d'une figure devenue petite. Un dépassement de moitié se voit largement.
+- **Le dégradé d'un total minoré devient linéaire**, le long de l'axe du quartier. Radial, il suivait un cercle : les deux sommets — à `R` du centre — disparaissaient entièrement pendant que le milieu de l'arête — à `√3/2 · R` — restait presque opaque. Le quartier paraissait rongé par les coins au lieu d'être estompé sur son bord.
+- **La lueur cesse de grandir sous 12 % du rayon.** Sa largeur est fixe, celle du quartier ne l'est pas : sur un quartier presque vide, elle était plus grande que lui et tachait le centre.
+
+**Reste ouvert.** Sur les barres, le repère de seuil et l'échelle à 125 % subsistent — ce ne sont pas des effets de néon et ils portent la seule distinction visuelle restante. Les retirer aussi rendrait une limite strictement indiscernable d'une cible hors du texte.
 
 ---
 

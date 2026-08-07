@@ -3,13 +3,16 @@ package app.hexaphore.data.diary
 import app.hexaphore.core.database.dao.DiaryDao
 import app.hexaphore.domain.diary.DiaryRepository
 import app.hexaphore.domain.diary.Dish
+import app.hexaphore.domain.diary.DishId
+import app.hexaphore.domain.diary.EntryId
+import app.hexaphore.domain.time.Clock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import javax.inject.Inject
 
 /**
- * Le journal, lu depuis Room.
+ * Le journal, lu et écrit dans Room.
  *
  * Seconde implémentation du port `DiaryRepository`, après celle en mémoire. Le
  * passage de l'une à l'autre n'a demandé qu'une ligne dans le module Hilt de
@@ -20,10 +23,26 @@ import javax.inject.Inject
  * Un `SUM` en SQL traiterait `NULL` comme absent, ce qui est arithmétiquement juste
  * mais perdrait l'information qu'une valeur manquait.
  *
+ * L'horloge sert aux seules colonnes techniques — `created_at`, `updated_at` — que
+ * le domaine ne porte pas et n'a aucune raison de porter : ce sont des faits sur
+ * l'écriture, pas sur le repas. Elle reste injectée pour la même raison qu'ailleurs,
+ * et parce qu'une règle detekt l'exige.
+ *
  * @see docs/06-architecture.md
  * @see docs/11-decisions.md — D29
  */
-class RoomDiaryRepository @Inject constructor(private val dao: DiaryDao) : DiaryRepository {
+class RoomDiaryRepository @Inject constructor(private val dao: DiaryDao, private val clock: Clock) : DiaryRepository {
     override fun observeDay(date: LocalDate): Flow<List<Dish>> =
         dao.observeDay(date.toString()).map { dishes -> dishes.map { it.toDomain() } }
+
+    override suspend fun dish(id: DishId): Dish? = dao.dish(id.value)?.toDomain()
+
+    override suspend fun save(dish: Dish) {
+        val now = clock.now().toEpochMilli()
+        dao.saveDish(dish.toEntity(now), dish.entries.map { it.toEntity(now) })
+    }
+
+    override suspend fun deleteEntry(id: EntryId) = dao.deleteEntry(id.value)
+
+    override suspend fun deleteDish(id: DishId) = dao.deleteDish(id.value)
 }

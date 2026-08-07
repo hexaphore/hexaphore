@@ -14,13 +14,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -31,7 +34,6 @@ import app.hexaphore.core.designsystem.theme.Motion
 import app.hexaphore.core.designsystem.theme.NeonTheme
 import app.hexaphore.core.designsystem.theme.saturate
 import app.hexaphore.domain.nutrition.Macro
-import app.hexaphore.domain.nutrition.MacroGoalKind
 import kotlin.math.min
 
 /**
@@ -45,9 +47,11 @@ import kotlin.math.min
  * dans le sens horaire.
  *
  * **Le contour est l'objectif**, et un quartier peut le dépasser. Pour que rien ne
- * sorte de la zone, le dessin entier se met à l'échelle : quand une macro atteint
- * le plafond de 200 %, l'hexagone cible se réduit de moitié. Ce rétrécissement est
+ * sorte de la zone, le dessin entier se met à l'échelle : au plafond de 150 %,
+ * l'hexagone cible garde les deux tiers de sa taille. Ce rétrécissement est
  * lui-même le signal — on voit qu'on a débordé avant d'avoir lu quelle macro.
+ *
+ * **Les six quartiers brillent**, quel que soit leur niveau. Voir [drawQuarter].
  *
  * Le rayon est proportionnel à la valeur, **pas la surface**. Même convention que
  * l'anneau et les barres ; l'incohérence serait d'en changer d'un composant à
@@ -61,7 +65,10 @@ fun MacroHexagon(quarters: Map<Macro, MacroQuarter>, modifier: Modifier = Modifi
     val palettes = Macro.entries.associateWith { NeonTheme.macros[it] }
     val outline = MaterialTheme.colorScheme.outline
     val measurer = rememberTextMeasurer()
-    val initialStyle = MaterialTheme.typography.labelSmall
+    // Grasse et de la taille d'un titre : ces six lettres sont le second canal
+    // exige par la regle de daltonisme, et un second canal qu'il faut chercher des
+    // yeux n'en est pas un. En labelSmall, elles se lisaient a peine sur le fond.
+    val initialStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
     val spec = tween<Float>(durationMillis = NeonTheme.motion.gaugeValueMillis, easing = Motion.GaugeEasing)
 
     // L'ajustement s'anime comme les quartiers : sans cela, la figure sauterait de
@@ -86,17 +93,42 @@ fun MacroHexagon(quarters: Map<Macro, MacroQuarter>, modifier: Modifier = Modifi
     ) {
         Canvas(Modifier.fillMaxWidth().aspectRatio(HEXAGON_ASPECT)) {
             val centre = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width / 2f, size.height / SQRT_THREE) - LabelMargin.toPx()
+
+            // Ce qu'il faut reserver hors de l'hexagone cible : la lueur, un
+            // intervalle, puis la lettre. Sans cette reserve, la lueur du quartier
+            // le plus rempli sortait de la zone et se faisait rogner net -- un neon
+            // coupe au couteau, ce qu'aucun neon ne fait.
+            val labelExtent = measurer.measure(Macro.CALORIES.initial, initialStyle).size.let {
+                maxOf(it.width, it.height) / 2f
+            }
+            val labelRadius0 = GlowRoom.toPx() + LabelGap.toPx() + labelExtent
+            val radius = min(size.width / 2f, size.height / SQRT_THREE) - labelRadius0 - labelExtent
             val target = radius * fit
 
+            // Deux passes, et l'ordre compte. Les quartiers d'abord, tous ; les
+            // lueurs ensuite, par-dessus. Dessinee quartier par quartier, la lueur
+            // d'une arete laterale se faisait recouvrir par le remplissage du
+            // quartier voisin, et il ne restait de neon que sur l'arete exterieure.
             Macro.entries.forEach { macro ->
                 drawQuarter(
                     centre = centre,
                     radius = target * ratios.getValue(macro),
                     axis = macro.axisDegrees,
                     palette = palettes.getValue(macro),
-                    isLimit = macro.goal == MacroGoalKind.LIMIT,
                     ratio = ratios.getValue(macro),
+                    complete = quarters[macro]?.complete ?: true,
+                )
+            }
+
+            Macro.entries.forEach { macro ->
+                val ratio = ratios.getValue(macro)
+                if (ratio <= 0f) return@forEach
+                drawQuarterGlow(
+                    centre = centre,
+                    radius = target * ratio,
+                    axis = macro.axisDegrees,
+                    palette = palettes.getValue(macro),
+                    intensity = ratio.coerceAtMost(1f),
                     complete = quarters[macro]?.complete ?: true,
                 )
             }
@@ -105,64 +137,140 @@ fun MacroHexagon(quarters: Map<Macro, MacroQuarter>, modifier: Modifier = Modifi
             // tout se compare, elle ne doit jamais etre masquee.
             drawPath(hexagonPath(centre, target), outline, style = Stroke(width = OutlineWidth.toPx()))
 
-            drawInitials(centre, radius, measurer, initialStyle, palettes)
+            drawInitials(centre, radius + labelRadius0, measurer, initialStyle, palettes)
         }
     }
 }
 
-private const val GLOW_SPREAD = 1.06f
 private const val OVERSHOOT_SATURATION = 0.30f
-private const val FADE_START = 0.85f
 private const val ZIGZAG_TEETH = 7
 private const val ZIGZAG_DEPTH = 0.05f
 
-private val OutlineWidth: Dp = 2.dp
-private val LabelMargin: Dp = 18.dp
+/**
+ * Le nombre de couches de lueur.
+ *
+ * Même technique que `NeonButton` : des contours de plus en plus larges et de moins
+ * en moins opaques, faute d'un flou disponible partout — `BlurMaskFilter` n'est pas
+ * accéléré matériellement et imposerait un rendu logiciel à chaque image animée.
+ * Trois couches suffisent à ce que l'œil ne distingue plus les paliers.
+ */
+private const val GLOW_LAYERS = 3
 
+private val OutlineWidth: Dp = 2.dp
+
+/** Ce que la lueur déborde vers l'extérieur, et qu'il faut donc réserver. */
+private val GlowRoom: Dp = 12.dp
+
+/** Entre la lueur et la lettre, pour que la seconde ne baigne pas dans la première. */
+private val LabelGap: Dp = 6.dp
+
+private val GlowSpread: Dp = GlowRoom / GLOW_LAYERS
+
+/** L'épaisseur sur laquelle l'arête d'un total minoré s'estompe. */
+private val FadeDepth: Dp = 8.dp
+
+/**
+ * Part du rayon au-delà de laquelle la lueur cesse de grandir.
+ *
+ * Sa largeur est fixe, celle du quartier ne l'est pas : sur un quartier presque
+ * vide, une lueur de pleine largeur serait plus grande que lui, tacherait le centre
+ * et empiéterait sur ses voisins.
+ */
+private const val GLOW_MAX_FRACTION = 0.12f
+
+/**
+ * Un quartier.
+ *
+ * **Les six brillent, quel que soit le niveau.** Les limites ne restent plus
+ * sourdes sous leur seuil : une figure où trois macros sur six s'allument et trois
+ * non se lit comme un défaut d'affichage plutôt que comme une information. Ce que
+ * la distinction objectif/limite perd ici, elle le garde dans les barres — le
+ * suffixe `max` sur la valeur et la phrase annoncée par TalkBack ([D47][decisions]).
+ *
+ * [decisions]: docs/11-decisions.md
+ */
 private fun DrawScope.drawQuarter(
     centre: Offset,
     radius: Float,
     axis: Float,
     palette: MacroPalette,
-    isLimit: Boolean,
     ratio: Float,
     complete: Boolean,
 ) {
     if (ratio <= 0f) return
-    val exceeded = ratio > 1f
+    val colour = if (ratio > 1f) palette.base.saturate(OVERSHOOT_SATURATION) else palette.base
 
-    // Une limite reste eteinte sous son seuil : ne pas l'allumer, c'est deja
-    // reussir. Elle ne prend la teinte vive qu'au depassement.
-    val colour = when {
-        isLimit && !exceeded -> palette.muted
-        exceeded -> palette.base.saturate(OVERSHOOT_SATURATION)
-        else -> palette.base
-    }
-
-    if (palette.glow.alpha > 0f && (!isLimit || exceeded)) {
-        drawPath(
-            path = quarterPath(centre, radius * GLOW_SPREAD, axis),
-            color = palette.glow.copy(alpha = palette.glow.alpha * ratio.coerceAtMost(1f)),
-        )
-    }
-
-    if (complete) {
-        drawPath(quarterPath(centre, radius, axis), colour)
-    } else {
-        // Degrade radial : le quartier s'estompe au lieu de s'arreter net.
-        drawPath(
-            path = quarterPath(centre, radius, axis),
-            brush = Brush.radialGradient(
-                colorStops = arrayOf(0f to colour, FADE_START to colour, 1f to Color.Transparent),
-                center = centre,
-                radius = radius,
-            ),
-        )
-    }
+    drawPath(quarterPath(centre, radius, axis), brush = fillBrush(colour, centre, radius, axis, complete))
 
     if (ratio >= RATIO_CAP) {
         drawTruncation(centre, radius, axis, colour)
     }
+}
+
+/**
+ * La lueur d'un quartier, tracée **sur ses trois arêtes**.
+ *
+ * Un contour et non une silhouette élargie, et c'est toute la différence. La
+ * silhouette — un second triangle un peu plus grand, posé derrière — ne se voyait
+ * que là où elle dépassait, c'est-à-dire sur la seule arête extérieure : les deux
+ * arêtes latérales sont mitoyennes, et le quartier voisin recouvrait ce qui
+ * dépassait de son côté. Elle avait en outre un bord franc, puisqu'un triangle
+ * plein s'arrête là où il s'arrête. Une lueur qui s'arrête net n'est pas une lueur.
+ *
+ * Le tracé est centré sur le chemin : chaque couche déborde donc de part et
+ * d'autre, à l'intérieur du quartier comme au-dehors, et les six lueurs se
+ * rejoignent au centre où les six pointes se touchent.
+ */
+private fun DrawScope.drawQuarterGlow(
+    centre: Offset,
+    radius: Float,
+    axis: Float,
+    palette: MacroPalette,
+    intensity: Float,
+    complete: Boolean,
+) {
+    if (palette.glow.alpha == 0f) return
+    val path = quarterPath(centre, radius, axis)
+    val spread = minOf(GlowSpread.toPx(), radius * GLOW_MAX_FRACTION)
+
+    repeat(GLOW_LAYERS) { layer ->
+        val colour = palette.glow.copy(
+            alpha = palette.glow.alpha * intensity / (GLOW_LAYERS * (layer + 1)),
+        )
+        drawPath(
+            path = path,
+            brush = fillBrush(colour, centre, radius, axis, complete),
+            style = Stroke(width = spread * (layer + 1) * 2f, join = StrokeJoin.Round, cap = StrokeCap.Round),
+        )
+    }
+}
+
+/**
+ * De quoi peindre un quartier, ou sa lueur.
+ *
+ * Un total amputé d'une valeur inconnue s'estompe au lieu de s'arrêter net : on ne
+ * sait pas où il s'arrête, la figure ne prétend donc pas le savoir. Le dégradé
+ * s'applique au remplissage **et** à la lueur, sans quoi l'arête floue du quartier
+ * aurait été soulignée d'un trait de néon parfaitement net.
+ *
+ * **Le dégradé est linéaire, le long de l'axe du quartier, et non radial.** Un
+ * dégradé radial suit un cercle : ses lignes d'égale opacité coupent le triangle en
+ * arcs, si bien que les deux sommets — qui sont à `radius` du centre — disparaissent
+ * complètement pendant que le milieu de l'arête — qui n'est qu'à `√3/2 · radius` —
+ * reste presque opaque. Le quartier semblait alors rongé par les coins plutôt
+ * qu'estompé sur son bord. Le long de l'axe, les lignes d'égale opacité sont
+ * parallèles à l'arête, et les trois points du bord s'effacent ensemble.
+ */
+private fun DrawScope.fillBrush(colour: Color, centre: Offset, radius: Float, axis: Float, complete: Boolean): Brush {
+    if (complete) return SolidColor(colour)
+
+    val apothem = radius * APOTHEM_RATIO
+    val start = (1f - FadeDepth.toPx() / apothem).coerceIn(0f, 1f)
+    return Brush.linearGradient(
+        colorStops = arrayOf(0f to colour, start to colour, 1f to Color.Transparent),
+        start = centre,
+        end = pointAt(centre, apothem, axis),
+    )
 }
 
 /**
@@ -184,11 +292,18 @@ private fun DrawScope.drawTruncation(centre: Offset, radius: Float, axis: Float,
 }
 
 /**
- * Les six initiales, posées à l'extérieur du contour.
+ * Les six initiales, posées à l'extérieur de la zone.
  *
  * Second canal exigé par la règle de daltonisme : la couleur ne renseigne jamais
  * seule. Une lettre tient là où un libellé complet ne tiendrait pas, même à 200 %
- * de police.
+ * de police — à condition qu'elle se voie, d'où une graisse et une taille de titre
+ * plutôt que la légende de 12 points qu'elles portaient d'abord.
+ *
+ * Leur rayon est celui de la **zone** et non du contour : elles ne bougent pas
+ * quand l'hexagone cible rétrécit sous l'effet d'un dépassement. Six repères qui se
+ * déplaceraient à chaque saisie ne seraient plus des repères.
+ *
+ * @param radius le rayon auquel poser le centre des lettres, lueur déjà déduite.
  */
 private fun DrawScope.drawInitials(
     centre: Offset,
@@ -199,7 +314,7 @@ private fun DrawScope.drawInitials(
 ) {
     Macro.entries.forEach { macro ->
         val layout = measurer.measure(macro.initial, style)
-        val anchor = pointAt(centre, radius + LabelMargin.toPx() / 2f, macro.axisDegrees)
+        val anchor = pointAt(centre, radius, macro.axisDegrees)
         drawText(
             textLayoutResult = layout,
             color = palettes.getValue(macro).base,

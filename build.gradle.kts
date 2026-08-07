@@ -4,21 +4,31 @@ import org.jlleitschuh.gradle.ktlint.KtlintExtension
 
 plugins {
     base
+    // Aucun de ces quatre n'est applique par un module directement : ce sont les
+    // plugins de convention de build-logic qui s'en chargent. Ils restent declares
+    // ici parce que `apply false` fait une chose de plus que rien -- il les pose
+    // sur le chemin de classes du build racine, le seul que voient detekt et
+    // ktlint, appliques ci-dessous par cross-configuration. Sans cette ligne,
+    // ktlint cherche `com.android.build.gradle.BaseExtension` dans un chargeur de
+    // classes qui ne l'a pas, et le build echoue sur un nom de classe sans dire
+    // d'ou il vient.
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.compose) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
 }
 
-// Configuration de l'analyse statique posee ici plutot que dupliquee dans chaque
-// module. Trois modules ne justifient pas encore des plugins de convention : ce
-// serait une couche d'indirection pour dix lignes. Elle deviendra necessaire vers
-// le sixieme module, et c'est a ce moment-la qu'il faudra la creer.
+// L'analyse statique reste posee par cross-configuration, et c'est un choix.
+// Un plugin `hexaphore.quality` serait plus idiomatique, mais il s'appliquerait
+// module par module : oublier de l'appeler desactiverait silencieusement detekt
+// sur un module entier, sans qu'aucun build n'echoue pour le signaler. Ici,
+// l'oubli est impossible. Voir D37 dans docs/11-decisions.md.
 subprojects {
     apply(plugin = rootProject.libs.plugins.detekt.get().pluginId)
     apply(plugin = rootProject.libs.plugins.ktlint.get().pluginId)
@@ -47,6 +57,17 @@ subprojects {
 
     tasks.withType<Detekt>().configureEach {
         jvmTarget = rootProject.libs.versions.jvmToolchain.get()
+
+        // La tache detekt par defaut ne regarde que src/main et src/test. Verifie
+        // sur ce projet : un `Color(0x...)` ecrit en src/debug passait l'analyse
+        // sans un mot. Ce n'est pas une hypothese de configuration, c'est la
+        // difference entre un jeu de sources analyse et un jeu de sources qui ne
+        // l'est pas -- et deplacer du code d'un repertoire a l'autre ne doit pas
+        // le faire sortir de la revue automatique.
+        setSource(files("src"))
+        include("**/*.kt", "**/*.kts")
+        exclude("**/build/**")
+
         reports {
             html.required.set(true)
             sarif.required.set(true)
@@ -74,9 +95,11 @@ fun Project.moduleDetektConfig(): ConfigurableFileCollection {
     return rootProject.files(listOfNotNull(overlay))
 }
 
-// Les regles detekt maison vivent dans un build inclus : sans ce lien explicite,
-// leurs tests ne tourneraient jamais. Une regle non testee est une regle qu'on
-// croit active.
+// build-logic est un build inclus : sans ces liens explicites, sa verification ne
+// tournerait jamais. Une regle detekt non testee est une regle qu'on croit active,
+// et un plugin de convention non verifie est une regle de build qu'on croit
+// appliquee.
 tasks.named("check") {
     dependsOn(gradle.includedBuild("build-logic").task(":detekt-rules:check"))
+    dependsOn(gradle.includedBuild("build-logic").task(":convention:check"))
 }

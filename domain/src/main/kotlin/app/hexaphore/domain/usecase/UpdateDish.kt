@@ -1,0 +1,45 @@
+package app.hexaphore.domain.usecase
+
+import app.hexaphore.domain.diary.DiaryRepository
+import app.hexaphore.domain.diary.EntryDraft
+import app.hexaphore.domain.diary.toEntries
+import app.hexaphore.domain.identity.IdGenerator
+
+/**
+ * Réécrit le contenu d'un plat déjà enregistré.
+ *
+ * **La source et l'heure du plat existant sont conservées, et ce n'est pas un
+ * oubli.** L'origine d'un plat est un fait historique, pas un état : corriger une
+ * quantité sur une proposition de l'IA ne doit pas la faire passer pour une saisie
+ * manuelle, sans quoi on perd la seule trace de ce qui a été deviné. Le cas d'usage
+ * ne lit donc jamais `draft.source`, ce qui rend l'erreur impossible plutôt que
+ * simplement déconseillée ([D32][decisions]).
+ *
+ * L'heure suit le même raisonnement : elle dit quand le plat a été mangé, pas quand
+ * il a été corrigé. La remettre à jour ferait sauter le plat en bas de la journée à
+ * chaque relecture.
+ *
+ * [decisions]: docs/11-decisions.md
+ *
+ * @see docs/06-architecture.md
+ */
+class UpdateDish(private val diary: DiaryRepository, private val ids: IdGenerator) {
+    /**
+     * @throws IllegalArgumentException si le brouillon est incomplet ou ne désigne
+     *   aucun plat.
+     * @throws IllegalStateException si le plat désigné n'existe plus — supprimé
+     *   depuis un autre écran pendant l'édition.
+     */
+    suspend operator fun invoke(draft: EntryDraft) {
+        require(draft.saveable) { "Brouillon incomplet : chaque ligne demande un nom, une quantite et une energie." }
+        val id = requireNotNull(draft.dishId) { "Brouillon sans plat d'origine : utiliser LogDish." }
+
+        val existing = checkNotNull(diary.dish(id)) { "Plat introuvable : ${id.value}" }
+        diary.save(
+            existing.copy(
+                date = draft.date,
+                entries = draft.toEntries(id, ids),
+            ),
+        )
+    }
+}

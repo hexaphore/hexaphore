@@ -5,15 +5,7 @@ plugins {
     // Module Kotlin/JVM, sans plugin Android. C'est structurel : personne ne peut
     // importer android.* par distraction, Gradle ne met tout simplement pas ces
     // classes sur le classpath. Voir docs/06-architecture.md.
-    alias(libs.plugins.kotlin.jvm)
-}
-
-kotlin {
-    jvmToolchain(
-        libs.versions.jvmToolchain
-            .get()
-            .toInt(),
-    )
+    id("hexaphore.jvm.library")
 }
 
 dependencies {
@@ -25,11 +17,8 @@ dependencies {
     // servir aux ecrans. Elles restent hors du classpath de production.
     testImplementation(projects.core.testing)
     testImplementation(libs.junit.jupiter)
+    testImplementation(libs.kotlinx.coroutines.test)
     testRuntimeOnly(libs.junit.platform.launcher)
-}
-
-tasks.test {
-    useJUnitPlatform()
 }
 
 // --- Purete du domaine -------------------------------------------------------

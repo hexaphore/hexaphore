@@ -1,15 +1,7 @@
 plugins {
     // Kotlin/JVM comme :domain : les fausses implementations n'ont aucune raison
     // d'avoir besoin d'Android, et le verifier ici coute zero.
-    alias(libs.plugins.kotlin.jvm)
-}
-
-kotlin {
-    jvmToolchain(
-        libs.versions.jvmToolchain
-            .get()
-            .toInt(),
-    )
+    id("hexaphore.jvm.library")
 }
 
 dependencies {

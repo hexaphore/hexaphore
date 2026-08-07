@@ -5,14 +5,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -22,38 +28,89 @@ import app.hexaphore.core.designsystem.component.MacroBar
 import app.hexaphore.core.designsystem.component.MacroHexagon
 import app.hexaphore.core.designsystem.component.MacroQuarter
 import app.hexaphore.core.designsystem.component.MacroUnit
+import app.hexaphore.core.designsystem.component.NeonButton
 import app.hexaphore.core.designsystem.theme.Spacing
+import app.hexaphore.core.designsystem.theme.Timing
 import app.hexaphore.domain.diary.DaySummary
+import app.hexaphore.domain.diary.Dish
+import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.nutrition.Macro
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /** L'accueil, branché sur le graphe d'injection. */
 @Composable
-fun HomeRoute(viewModel: HomeViewModel = hiltViewModel()) {
+fun HomeRoute(onAddDish: () -> Unit, onEditDish: (DishId) -> Unit) {
+    val viewModel: HomeViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    HomeScreen(state = state)
+    val pendingUndo by viewModel.pendingUndo.collectAsStateWithLifecycle()
+
+    HomeScreen(
+        state = state,
+        pendingUndo = pendingUndo,
+        actions = remember(viewModel, onAddDish, onEditDish) {
+            HomeActions(
+                onAddDish = onAddDish,
+                onEditDish = onEditDish,
+                onDeleteEntry = viewModel::onDeleteEntry,
+                onUndo = viewModel::onUndo,
+                onUndoExpired = viewModel::onUndoExpired,
+                onRetry = viewModel::retry,
+            )
+        },
+    )
 }
 
 /**
  * L'accueil, sans état.
  *
- * Tout tient en un défilement vertical : le bloc de la journée, puis les repas.
- * Le bandeau calendrier et le bouton d'ajout arrivent avec les tranches qui leur
- * donnent une destination — un bouton qui n'ouvre rien n'est pas une avance.
+ * Tout tient en un défilement vertical : le bloc de la journée, puis les plats.
+ * Le bandeau calendrier arrive avec la tranche qui lui donne une destination — un
+ * bandeau qui n'ouvre rien n'est pas une avance.
  *
  * @see docs/02-parcours-et-ecrans.md
  */
 @Composable
-fun HomeScreen(state: HomeUiState, modifier: Modifier = Modifier) {
-    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
+fun HomeScreen(state: HomeUiState, pendingUndo: Dish?, actions: HomeActions, modifier: Modifier = Modifier) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val deleted = stringResource(R.string.home_entry_deleted)
+    val undo = stringResource(R.string.home_entry_undo)
+
+    // La barre reste affichee cinq secondes, ni quatre ni dix : SnackbarDuration
+    // n'offre que ces deux-la, donc la fenetre est tenue par le delai et la barre
+    // par un affichage indefini. Voir Timing dans :core:designsystem.
+    LaunchedEffect(pendingUndo) {
+        if (pendingUndo == null) return@LaunchedEffect
+        val result = withTimeoutOrNull(Timing.UNDO_WINDOW_MILLIS) {
+            snackbarHostState.showSnackbar(
+                message = deleted,
+                actionLabel = undo,
+                duration = SnackbarDuration.Indefinite,
+            )
+        }
+        if (result == SnackbarResult.ActionPerformed) actions.onUndo() else actions.onUndoExpired()
+    }
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            // Un seul bouton et non l'arc de quatre actions de docs/02 : trois des
+            // quatre modes n'existent pas encore, et un bouton qui n'ouvre rien
+            // n'est pas une avance.
+            ExtendedFloatingActionButton(onClick = actions.onAddDish) {
+                Text(text = stringResource(R.string.home_add_dish))
+            }
+        },
+    ) { padding ->
         Column(
-            modifier =
-            Modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .safeDrawingPadding()
-                .padding(Spacing.screenMargin),
+                .padding(padding)
+                .padding(horizontal = Spacing.screenMargin),
             verticalArrangement = Arrangement.spacedBy(Spacing.xl),
         ) {
             Text(
@@ -64,18 +121,19 @@ fun HomeScreen(state: HomeUiState, modifier: Modifier = Modifier) {
 
             when (state) {
                 HomeUiState.Loading -> Unit
-                is HomeUiState.Content -> DayContent(state.summary)
+                is HomeUiState.Content -> DayContent(state.summary, actions)
+                HomeUiState.Error -> UnreadableDay(actions.onRetry)
             }
         }
     }
 }
 
 @Composable
-private fun DayContent(summary: DaySummary) {
+private fun DayContent(summary: DaySummary, actions: HomeActions) {
     RemainingBlock(summary)
     MacroBars(summary)
     if (summary.logged) {
-        DishList(summary.dishes, summary.zone)
+        DishList(dishes = summary.dishes, zone = summary.zone, actions = actions)
     } else {
         EmptyDay()
     }
@@ -102,7 +160,9 @@ private fun RemainingBlock(summary: DaySummary) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        MacroHexagon(quarters = summary.quarters())
+        // Un intervalle de plus sous la figure : les six lettres touchent le bas de
+        // sa zone, et le « G » des glucides venait buter contre le grand chiffre.
+        MacroHexagon(quarters = summary.quarters(), modifier = Modifier.padding(bottom = Spacing.md))
         Text(
             text = abs(remaining).roundToInt().toString(),
             style = MaterialTheme.typography.displayLarge,
@@ -161,6 +221,34 @@ private fun MacroBars(summary: DaySummary) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+/**
+ * L'écran qui dit « je n'ai pas pu lire », plutôt que de montrer zéro.
+ *
+ * Sans lui, un échec de lecture s'afficherait comme une journée vide — et une
+ * journée vide est une affirmation, pas une absence de réponse. C'est exactement
+ * le genre de mensonge que le reste de l'application s'interdit sur les valeurs
+ * inconnues ; il n'y a aucune raison de se l'autoriser sur la journée entière.
+ *
+ * Encart inline et non dialogue : rien n'est détruit, rien n'est irréversible, et
+ * un dialogue bloquerait un écran qu'il suffit de relire.
+ */
+@Composable
+private fun UnreadableDay(onRetry: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        Text(
+            text = stringResource(R.string.home_error_title),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.error,
+        )
+        Text(
+            text = stringResource(R.string.home_error_body),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        NeonButton(text = stringResource(R.string.home_error_retry), onClick = onRetry)
     }
 }
 

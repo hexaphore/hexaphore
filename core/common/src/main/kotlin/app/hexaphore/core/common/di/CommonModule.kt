@@ -1,8 +1,10 @@
 package app.hexaphore.core.common.di
 
 import app.hexaphore.core.common.concurrency.DefaultDispatcherProvider
+import app.hexaphore.core.common.identity.UuidGenerator
 import app.hexaphore.core.common.time.SystemClock
 import app.hexaphore.domain.concurrency.DispatcherProvider
+import app.hexaphore.domain.identity.IdGenerator
 import app.hexaphore.domain.time.Clock
 import dagger.Binds
 import dagger.Module
@@ -28,4 +30,8 @@ abstract class CommonModule {
     @Binds
     @Singleton
     abstract fun dispatcherProvider(implementation: DefaultDispatcherProvider): DispatcherProvider
+
+    @Binds
+    @Singleton
+    abstract fun idGenerator(implementation: UuidGenerator): IdGenerator
 }
