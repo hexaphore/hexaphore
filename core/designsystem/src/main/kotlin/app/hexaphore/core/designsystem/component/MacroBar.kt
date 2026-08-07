@@ -40,22 +40,19 @@ import kotlin.math.roundToInt
 /**
  * La barre d'une macro : libellé à gauche, valeur à droite, jauge en dessous.
  *
- * Le comportement n'est pas choisi par l'appelant, il est **déduit de la macro**.
- * Une jauge de sucres qui se remplirait comme une jauge de protéines ferait passer
- * un dépassement pour une réussite ; laisser chaque écran trancher, c'est accepter
- * que l'un d'eux se trompe un jour.
+ * La barre pleine vaut l'objectif, et rien d'autre. Tant qu'il n'est pas atteint,
+ * l'échelle ne bouge pas et il n'y a aucune graduation à interpréter : le
+ * remplissage se lit seul.
  *
- * Trois signaux distinguent une limite d'un objectif, et ils sont redondants
- * exprès — l'un d'eux suffit à lever le doute :
+ * **Le dépassement rétrécit la barre**, comme il rétrécit l'hexagone. Au-delà de
+ * l'objectif, l'échelle suit la valeur et le remplissage recule ; un repère
+ * apparaît là où l'objectif se situe désormais. Ce repère n'existe donc que
+ * lorsqu'il a quelque chose à dire ([D48][decisions]).
  *
- * 1. la valeur porte un `max` (« 41 / 63 g max ») ;
- * 2. la barre porte un repère au niveau de la limite, et son échelle va au-delà
- *    pour qu'un dépassement ait où s'afficher ;
- * 3. TalkBack annonce « sur une limite de » au lieu de « sur un objectif de ».
- *
- * La barre ne reste plus **éteinte** sous le seuil. C'était le quatrième signal, et
- * il coûtait trop cher : une interface où trois macros sur six brillent et trois
- * non se lit comme un défaut d'affichage ([D47][decisions]).
+ * Ce que la macro décide encore, et que l'appelant ne choisit pas : le suffixe
+ * `max` d'une limite, et la phrase annoncée par TalkBack — « sur une limite de »
+ * au lieu de « sur un objectif de ». La distinction est portée par le texte, seul
+ * canal où elle ne peut pas se confondre avec un état de remplissage.
  *
  * [decisions]: docs/11-decisions.md
  *
@@ -73,6 +70,9 @@ fun MacroBar(
 ) {
     val palette = NeonTheme.macros[macro]
     val trackColor = MaterialTheme.colorScheme.outline
+    // Le repere se pose sur le remplissage, jamais sur la piste : c'est le fond
+    // qui lui donne du contraste contre un neon sature, dans les deux themes.
+    val markerColor = MaterialTheme.colorScheme.background
     val durationMillis = NeonTheme.motion.gaugeValueMillis
     val isLimit = macro.goal == MacroGoalKind.LIMIT
 
@@ -106,9 +106,10 @@ fun MacroBar(
                 .fillMaxWidth()
                 .height(MacroBarDefaults.Height),
         ) {
+            val scale = displayScale(animatedRatio)
             drawTrack(trackColor)
-            drawGauge(palette, animatedRatio, if (isLimit) LIMIT_SCALE else 1f)
-            if (isLimit) drawLimitMarker(trackColor)
+            drawGauge(palette, animatedRatio, scale)
+            if (scale > 1f) drawGoalMarker(markerColor, scale)
         }
     }
 }
@@ -158,13 +159,23 @@ private const val PERCENT = 100f
 private const val OVERSHOOT_SATURATION = 0.30f
 private const val GLOW_HEIGHT_RATIO = 2.5f
 
+/** Largeur du repère d'objectif, en part de la hauteur de la barre. */
+private const val MARKER_WIDTH_RATIO = 0.5f
+
 /**
- * Part de l'échelle occupée par la limite.
+ * Ce que représente la barre pleine, en part de l'objectif.
  *
- * La barre va au-delà du seuil, sinon un dépassement n'aurait nulle part où
- * s'afficher et le repère se confondrait avec l'extrémité.
+ * Vaut 1 tant que l'objectif n'est pas atteint : la barre pleine est l'objectif, et
+ * une échelle élargie par avance serait une graduation à interpréter avant qu'il y
+ * ait quoi que ce soit à y lire.
+ *
+ * Au-delà, l'échelle suit la valeur — donc le remplissage recule à mesure que la
+ * quantité monte, et l'objectif se met à occuper moins que la totalité. C'est le
+ * même mécanisme que celui de l'hexagone, et il emprunte son plafond : sans lui,
+ * une saisie erronée à 2 000 % tasserait tout contre l'origine, précisément au
+ * moment où il faut lire la barre pour corriger.
  */
-private const val LIMIT_SCALE = 1.25f
+private fun displayScale(ratio: Float): Float = ratio.coerceIn(1f, RATIO_CAP)
 
 private fun DrawScope.drawTrack(color: Color) {
     drawRoundRect(color = color, cornerRadius = CornerRadius(size.height / 2f))
@@ -173,38 +184,42 @@ private fun DrawScope.drawTrack(color: Color) {
 /**
  * Le remplissage, identique pour une cible et pour une limite.
  *
- * **Les six barres s'allument de la même façon**, quel que soit le niveau. Une
- * limite ne reste plus éteinte sous son seuil : une interface où trois macros sur
- * six brillent et trois non se lit comme un défaut d'affichage plutôt que comme une
- * information ([D47][decisions]). Ce que la distinction perd ici, elle le garde là
- * où elle se lit sans ambiguïté — le suffixe `max` sur la valeur, et la phrase
- * annoncée par TalkBack.
+ * **Les six barres s'allument de la même façon**, quel que soit le niveau et quelle
+ * que soit la nature de la macro ([D47][decisions]). Ce que la distinction perd
+ * ici, elle le garde là où elle se lit sans ambiguïté — le suffixe `max` sur la
+ * valeur, et la phrase annoncée par TalkBack.
  *
  * [decisions]: docs/11-decisions.md
  *
- * @param scale la part de l'échelle occupée par l'objectif. Une limite en occupe
- *   moins que la totalité, pour qu'un dépassement ait où s'afficher.
+ * @param scale ce que représente la barre pleine, en part de l'objectif.
  */
 private fun DrawScope.drawGauge(palette: MacroPalette, ratio: Float, scale: Float) {
     val filled = (ratio / scale).coerceIn(0f, 1f)
     if (filled == 0f) return
     val color = if (ratio > 1f) palette.base.saturate(OVERSHOOT_SATURATION) else palette.base
-    drawGlow(palette, width = size.width * filled, intensity = filled)
+    drawGlow(palette, width = size.width * filled)
     drawFill(color, size.width * filled)
 }
 
 /**
- * Le repère du seuil, sur une limite.
+ * Où l'objectif se situe, une fois qu'il est dépassé.
  *
- * En teinte de piste et non de macro : ce n'est pas une valeur, c'est une
- * graduation. Il dit où se situe le plafond sur une barre qui va au-delà, et c'est
- * le seul signal visuel qui reste pour distinguer une limite d'une cible.
+ * Il n'apparaît qu'au dépassement, parce qu'avant il tomberait sur l'extrémité de
+ * la barre et ne dirait rien que la barre ne dise déjà. Une fois l'échelle élargie,
+ * il redevient la seule chose qui permette de lire *de combien* : sans lui, une
+ * barre aux trois quarts pleine à 133 % ressemble à une barre aux trois quarts
+ * pleine à 75 %.
+ *
+ * Il est **creusé dans le remplissage**, à la teinte du fond, et non posé sur la
+ * piste : au-delà de l'objectif le remplissage le recouvre toujours, donc une
+ * teinte de piste s'y perdrait.
  */
-private fun DrawScope.drawLimitMarker(trackColor: Color) {
+private fun DrawScope.drawGoalMarker(color: Color, scale: Float) {
+    val width = size.height * MARKER_WIDTH_RATIO
     drawRect(
-        color = trackColor,
-        topLeft = Offset(size.width / LIMIT_SCALE, 0f),
-        size = Size(width = size.height / 2f, height = size.height),
+        color = color,
+        topLeft = Offset(size.width / scale - width / 2f, 0f),
+        size = Size(width = width, height = size.height),
     )
 }
 
@@ -216,11 +231,25 @@ private fun DrawScope.drawFill(color: Color, width: Float) {
     )
 }
 
-private fun DrawScope.drawGlow(palette: MacroPalette, width: Float, intensity: Float) {
+/**
+ * La lueur portée, **à pleine intensité quel que soit le niveau**.
+ *
+ * Elle était auparavant atténuée proportionnellement au remplissage. C'était la
+ * dernière condition posée sur le néon, et elle produisait le défaut que
+ * [D47][decisions] avait déjà corrigé ailleurs : une barre peu remplie paraissait
+ * mal rendue plutôt que basse. La quantité se lit au remplissage et au chiffre ;
+ * la lueur n'a pas à la redire ([D48][decisions]).
+ *
+ * Le retrait en thème clair n'est pas une condition de la barre mais une propriété
+ * de la palette — un halo sur fond blanc ressemble à un défaut d'affichage.
+ *
+ * [decisions]: docs/11-decisions.md
+ */
+private fun DrawScope.drawGlow(palette: MacroPalette, width: Float) {
     if (palette.glow.alpha == 0f) return
     val glowHeight = size.height * GLOW_HEIGHT_RATIO
     drawRoundRect(
-        color = palette.glow.copy(alpha = palette.glow.alpha * intensity),
+        color = palette.glow,
         topLeft = Offset(0f, (size.height - glowHeight) / 2f),
         size = Size(width = width, height = glowHeight),
         cornerRadius = CornerRadius(glowHeight / 2f),
@@ -233,13 +262,15 @@ private fun DrawScope.drawGlow(palette: MacroPalette, width: Float, intensity: F
 @Composable
 private fun MacroBarPreview() {
     PreviewSurface {
-        // Objectifs : la barre se remplit, la lueur croît.
+        // Sous l'objectif : pleine lueur des le premier gramme, aucun repere.
+        MacroBar(macro = Macro.FIBER, label = "Fibres", consumed = 3f, goal = 35f)
         MacroBar(macro = Macro.PROTEIN, label = "Protéines", consumed = 87f, goal = 144f)
-        MacroBar(macro = Macro.FIBER, label = "Fibres", consumed = 12f, goal = 35f)
-        // Limites : éteintes en dessous du seuil, allumées seulement au-delà.
         MacroBar(macro = Macro.CARBS, label = "Glucides", consumed = 240f, goal = 312f)
-        MacroBar(macro = Macro.SUGARS, label = "Sucres", consumed = 41f, goal = 63f)
+        // Au-dela : l'echelle suit, le remplissage recule, le repere apparait.
+        // Une cible depassee se comporte exactement comme une limite depassee.
         MacroBar(macro = Macro.SUGARS, label = "Sucres", consumed = 78f, goal = 63f)
-        MacroBar(macro = Macro.FAT, label = "Lipides", consumed = 52f, goal = 70f)
+        MacroBar(macro = Macro.PROTEIN, label = "Protéines", consumed = 190f, goal = 144f)
+        // Au plafond : l'objectif tient les deux tiers de la barre, et n'en bouge plus.
+        MacroBar(macro = Macro.FAT, label = "Lipides", consumed = 210f, goal = 70f)
     }
 }

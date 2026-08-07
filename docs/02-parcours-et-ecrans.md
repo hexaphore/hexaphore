@@ -85,7 +85,7 @@ Pas de petit-déjeuner, de déjeuner ni de dîner. Ces catégories obligeraient 
 
 Chaque ligne d'aliment montre nom, quantité, calories. **Pas de pastille par ligne** : la source appartient au plat ([D32](11-decisions.md)).
 
-- **Tap** → ouvre l'écran de validation de cette ligne, en édition.
+- **Tap** → ouvre l'écran de validation du plat, en édition. La cible tactile est le plat **entier** — pastille, heure, total et apports compris, pas seulement ses lignes d'aliment ([D48](11-decisions.md)).
 - **Balayage vers la gauche** → supprimer, avec `Snackbar` d'annulation (5 s). Aucune suppression n'est immédiatement définitive.
 - **Appui long** → menu : dupliquer, déplacer vers un autre plat, enregistrer le plat comme favori.
 
@@ -190,7 +190,7 @@ Chaque ligne présente :
 - **Macros dépliables** : les six valeurs, chacune éditable. Une valeur modifiée à la main est marquée et ne sera plus jamais recalculée automatiquement pour cette ligne.
 - **Date** : aujourd'hui par défaut, ou la date consultée si on vient d'un jour passé. Il n'y a **pas** de repas de destination à choisir : les lignes de cet écran forment un plat, et le plat se range tout seul à son heure.
 
-En bas : total de la saisie, et son impact sur les compteurs du jour (« il vous restera 780 kcal »). Actions : **Enregistrer**, **Ajouter une ligne**, **Supprimer une ligne**, **Enregistrer comme plat favori**.
+En bas du défilement : total de la saisie, et son impact sur les compteurs du jour (« il vous restera 780 kcal »), avec **Ajouter une ligne**. **Enregistrer** et **Annuler** n'y sont pas : ils flottent au-dessus de la liste, côte à côte et toujours à l'image, parce qu'en pied de défilement ils s'éloignaient à mesure que le plat grossissait ([D48](11-decisions.md)). Les autres actions — **Supprimer une ligne**, **Enregistrer comme plat favori** — restent auprès de ce sur quoi elles portent.
 
 **Deux chemins pour supprimer une ligne**, et les deux sont nécessaires : une corbeille visible à droite du nom, et le balayage. Un geste sans représentation visible est introuvable pour qui ne le connaît pas, hors d'atteinte au lecteur d'écran, et difficile pour une main qui tient mal le téléphone. Le balayage reste le raccourci de celui qui le connaît, jamais le seul chemin vers une action destructrice.
 

@@ -38,6 +38,9 @@
 
     <!-- Un plat : plusieurs aliments entrés en une fois, situés par leur heure. -->
     <string name="home_dish_kcal">%1$d kcal</string>
+    <!-- Le plat entier est tapable. Ce libellé est ce que TalkBack annonce après
+         « appuyer deux fois pour » : sans lui, il dirait « activer ». -->
+    <string name="home_dish_edit">modifier ce plat</string>
     <string name="home_entry_quantity">%1$s %2$s</string>
     <string name="home_entry_kcal">%1$d kcal</string>
 

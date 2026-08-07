@@ -37,6 +37,10 @@
 
     <string name="entry_save">Enregistrer</string>
     <string name="entry_saving">Enregistrement…</string>
+    <!-- Le pendant d'Enregistrer, et le double du retour arrière. Pas « Fermer » :
+         cette paire de boutons se lit ensemble, et « Annuler » dit ce qu'il advient
+         de la saisie là où « Fermer » ne dit que ce qu'il advient de l'écran. -->
+    <string name="entry_cancel">Annuler</string>
     <!-- Le bouton indisponible répond à l'appui ; cette phrase est ce qu'il répond. -->
     <string name="entry_incomplete_hint">Chaque ligne demande un aliment, une quantité et des calories. Les cinq autres valeurs restent facultatives : un champ laissé vide veut dire « inconnu », pas « zéro ».</string>
 

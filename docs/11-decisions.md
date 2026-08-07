@@ -344,7 +344,7 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 
 **Conséquences.** Trois signaux redondants distinguent les deux familles : le suffixe `max` sur la valeur, le comportement de la jauge, et la phrase annoncée par TalkBack — « sur un objectif de » contre « sur une limite de ». Le paramètre `mode` de `MacroBar` disparaît de l'API publique : il n'y avait aucune raison légitime de le forcer.
 
-> **Le second signal est remplacé par [D47](#d47--les-six-macros-brillent--validée).** La nature reste portée par la macro, et c'est l'essentiel de cette entrée. Ce qui cède est l'**extinction** de la jauge sous le seuil : constaté sur appareil, trois macros allumées et trois éteintes se lisent comme un défaut d'affichage. Le repère de seuil et l'échelle élargie restent.
+> **Le second signal est remplacé par [D47](#d47--les-six-macros-brillent--en-partie-remplacée-par-d48).** La nature reste portée par la macro, et c'est l'essentiel de cette entrée. Ce qui cède est l'**extinction** de la jauge sous le seuil : constaté sur appareil, trois macros allumées et trois éteintes se lisent comme un défaut d'affichage. Le repère de seuil et l'échelle élargie restent.
 
 ---
 
@@ -424,7 +424,7 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 
 **Écarté.** *Remplacer aussi les barres* : il aurait fallu réintroduire les chiffres en étiquettes autour de la figure, ce qui ne tient pas à 200 % de police. *Ajouter l'hexagone au-dessus de l'anneau* : la même information dite trois fois.
 
-**Le dépassement rétrécit la figure.** Le contour de l'objectif n'est pas la limite du dessin ; c'est le dessin entier qui se met à l'échelle pour que le plus grand débordement tienne. L'hexagone cible qui rapetisse **est** le signal. Plafonné à 200 % — sans quoi une saisie erronée à 2 000 % réduirait la cible à un point, précisément au moment où il faut la lire pour corriger. *(Plafond ramené à 150 % par [D47](#d47--les-six-macros-brillent--validée) : à 200 % la cible tombait à la moitié de sa taille, et un dépassement de moitié se voit déjà largement.)*
+**Le dépassement rétrécit la figure.** Le contour de l'objectif n'est pas la limite du dessin ; c'est le dessin entier qui se met à l'échelle pour que le plus grand débordement tienne. L'hexagone cible qui rapetisse **est** le signal. Plafonné à 200 % — sans quoi une saisie erronée à 2 000 % réduirait la cible à un point, précisément au moment où il faut la lire pour corriger. *(Plafond ramené à 150 % par [D47](#d47--les-six-macros-brillent--en-partie-remplacée-par-d48) : à 200 % la cible tombait à la moitié de sa taille, et un dépassement de moitié se voit déjà largement.)*
 
 **Conséquence structurante : un seul ordre angulaire.** [08](08-design-system.md#daltonisme) fixait pour les pastilles du calendrier un ordre différent de celui demandé ici. Deux ordres pour les mêmes six macros annuleraient le bénéfice recherché : la position ne renseigne que si elle est la même partout. L'ordre de l'hexagone devient donc celui de toute l'application — **calories, protéines, fibres, glucides, sucres, lipides, sens horaire depuis le haut** — et les barres de l'accueil s'y alignent.
 
@@ -625,7 +625,7 @@ Le `flowOn(dispatchers.default)` disparaît aussi de cet écran. Ce qu'il produi
 
 ---
 
-## D47 — Les six macros brillent · ✓ validée
+## D47 — Les six macros brillent · ⊘ en partie remplacée par D48
 
 **Contexte.** Constaté sur appareil : trois macros allumées et trois éteintes ne se lisent pas comme une information mais comme un défaut d'affichage. L'utilisateur ne voit pas une règle nutritionnelle, il voit un rendu qui marche à moitié.
 
@@ -642,6 +642,29 @@ Le `flowOn(dispatchers.default)` disparaît aussi de cet écran. Ce qu'il produi
 - **La lueur cesse de grandir sous 12 % du rayon.** Sa largeur est fixe, celle du quartier ne l'est pas : sur un quartier presque vide, elle était plus grande que lui et tachait le centre.
 
 **Reste ouvert.** Sur les barres, le repère de seuil et l'échelle à 125 % subsistent — ce ne sont pas des effets de néon et ils portent la seule distinction visuelle restante. Les retirer aussi rendrait une limite strictement indiscernable d'une cible hors du texte.
+
+> **Ce dernier point est remplacé par [D48](#d48--la-barre-pleine-vaut-lobjectif--validée).** L'échelle permanente à 125 % cède, et avec elle la dernière distinction visuelle entre une cible et une limite. Tout le reste de cette entrée — les six macros brillent, le plafond à 150 %, le dégradé linéaire, la lueur qui cesse de grandir — tient toujours.
+
+---
+
+## D48 — La barre pleine vaut l'objectif · ✓ validée
+
+**Contexte.** [D47](#d47--les-six-macros-brillent--en-partie-remplacée-par-d48) avait laissé aux barres deux signaux visuels : une échelle élargie à 125 % sur les limites, et un repère planté au seuil. Ces deux-là étaient permanents — donc présents à zéro, alors qu'ils ne parlent que du dépassement.
+
+**Ce que ça produisait.** Une barre dont le remplissage ne se lisait pas seul. À 100 %, la jauge de sucres était aux quatre cinquièmes, et il fallait avoir compris le repère pour savoir que c'était le plafond et non 80 % de celui-ci. Le signal censé lever un doute en créait un.
+
+**Choix.** La barre pleine vaut l'objectif, pour les six macros. Au-delà, **l'échelle suit la valeur** : le remplissage recule à mesure que la quantité monte, et un repère apparaît là où l'objectif se situe désormais. En dessous, il n'y a rien à interpréter.
+
+**C'est le mécanisme de l'hexagone**, et il emprunte son plafond de 150 % pour la même raison — une saisie erronée à 2 000 % tasserait tout contre l'origine, précisément au moment où il faut lire la barre pour corriger ([D33](#d33--un-hexagone-en-tête-daccueil-et-un-seul-ordre-angulaire--validée)). Les deux composants disent désormais le dépassement de la même façon, ce qui est une raison de plus : ils sont l'un au-dessus de l'autre sur l'accueil.
+
+**Ce qui est perdu, et qui est réel.** Plus rien de visuel ne distingue une limite d'une cible. C'est exactement ce que D47 refusait de céder. Restent le suffixe `max` sur la valeur et la phrase de TalkBack — deux canaux textuels, dont un seul est visible à l'œil. Un dépassement de sucres se voit désormais parce que la barre a rétréci, pas parce que c'était une limite.
+
+**La lueur perd sa dernière condition.** Elle était atténuée proportionnellement au remplissage ; elle est désormais pleine à tout niveau. C'était le même défaut que celui traité par D47, sous une forme continue plutôt que binaire : une barre peu remplie paraissait mal rendue plutôt que basse. La transparence en thème clair reste, mais c'est une propriété de la palette et non une condition de la barre.
+
+**Deux corrections d'atteinte, prises au même moment.**
+
+- **Le plat entier est la cible tactile de l'accueil.** Seules les lignes d'aliment l'étaient ; l'heure, la pastille, le total et les apports — la moitié de la surface — ne répondaient pas, sans que rien ne dise pourquoi. Le plat est l'unité de saisie ([D31](#d31--un-plat-pas-un-repas-nommé--validée)), donc l'unité de correction. Conséquence assumée : une cible tactile fusionne les nœuds d'accessibilité qu'elle contient, et un plat devient un seul arrêt de TalkBack au lieu de *n* + 4. La phrase de chaque ligne est ce qui rend cette annonce lisible, et c'est pour ça qu'elle reste.
+- **Enregistrer et Annuler flottent au-dessus de la liste.** En pied de défilement, ils s'éloignaient à mesure que le plat grossissait : à cinq lignes dépliées, enregistrer demandait de faire défiler un écran entier. La réserve laissée sous la liste est **mesurée** et non déclarée — une hauteur écrite en dur ferait passer le dernier champ sous les boutons à 200 % de police. L'explication de ce qui manque quitte l'affichage permanent pour redevenir la **réponse** du bouton indisponible à un appui, ce que [D28](#d28--un-bouton-indisponible-réagit-quand-même--validée) demandait déjà : épinglée, elle occuperait quatre lignes à chaque saisie neuve pour dire ce que les champs vides disent déjà.
 
 ---
 
