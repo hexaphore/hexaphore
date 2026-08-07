@@ -49,9 +49,15 @@ import kotlin.math.roundToInt
  * exprès — l'un d'eux suffit à lever le doute :
  *
  * 1. la valeur porte un `max` (« 41 / 63 g max ») ;
- * 2. la barre reste éteinte sous le seuil, avec un repère au niveau de la limite,
- *    alors qu'un objectif se remplit et s'allume progressivement ;
+ * 2. la barre porte un repère au niveau de la limite, et son échelle va au-delà
+ *    pour qu'un dépassement ait où s'afficher ;
  * 3. TalkBack annonce « sur une limite de » au lieu de « sur un objectif de ».
+ *
+ * La barre ne reste plus **éteinte** sous le seuil. C'était le quatrième signal, et
+ * il coûtait trop cher : une interface où trois macros sur six brillent et trois
+ * non se lit comme un défaut d'affichage ([D47][decisions]).
+ *
+ * [decisions]: docs/11-decisions.md
  *
  * @see docs/03-nutrition-calculs.md
  * @see docs/08-design-system.md
@@ -101,11 +107,8 @@ fun MacroBar(
                 .height(MacroBarDefaults.Height),
         ) {
             drawTrack(trackColor)
-            if (isLimit) {
-                drawLimitFill(palette, trackColor, animatedRatio)
-            } else {
-                drawTargetFill(palette, animatedRatio)
-            }
+            drawGauge(palette, animatedRatio, if (isLimit) LIMIT_SCALE else 1f)
+            if (isLimit) drawLimitMarker(trackColor)
         }
     }
 }
@@ -167,29 +170,40 @@ private fun DrawScope.drawTrack(color: Color) {
     drawRoundRect(color = color, cornerRadius = CornerRadius(size.height / 2f))
 }
 
-private fun DrawScope.drawTargetFill(palette: MacroPalette, ratio: Float) {
-    val filled = ratio.coerceIn(0f, 1f)
+/**
+ * Le remplissage, identique pour une cible et pour une limite.
+ *
+ * **Les six barres s'allument de la même façon**, quel que soit le niveau. Une
+ * limite ne reste plus éteinte sous son seuil : une interface où trois macros sur
+ * six brillent et trois non se lit comme un défaut d'affichage plutôt que comme une
+ * information ([D47][decisions]). Ce que la distinction perd ici, elle le garde là
+ * où elle se lit sans ambiguïté — le suffixe `max` sur la valeur, et la phrase
+ * annoncée par TalkBack.
+ *
+ * [decisions]: docs/11-decisions.md
+ *
+ * @param scale la part de l'échelle occupée par l'objectif. Une limite en occupe
+ *   moins que la totalité, pour qu'un dépassement ait où s'afficher.
+ */
+private fun DrawScope.drawGauge(palette: MacroPalette, ratio: Float, scale: Float) {
+    val filled = (ratio / scale).coerceIn(0f, 1f)
     if (filled == 0f) return
     val color = if (ratio > 1f) palette.base.saturate(OVERSHOOT_SATURATION) else palette.base
     drawGlow(palette, width = size.width * filled, intensity = filled)
     drawFill(color, size.width * filled)
 }
 
-private fun DrawScope.drawLimitFill(palette: MacroPalette, trackColor: Color, ratio: Float) {
-    val filled = (ratio / LIMIT_SCALE).coerceIn(0f, 1f)
-    val exceeded = ratio > 1f
-
-    if (filled > 0f) {
-        if (exceeded) drawGlow(palette, width = size.width * filled, intensity = filled)
-        drawFill(if (exceeded) palette.base else palette.muted, size.width * filled)
-    }
-
-    // Repère de la limite. Il reste visible même barre éteinte : c'est lui qui dit
-    // où se situe le seuil.
-    val markerX = size.width / LIMIT_SCALE
+/**
+ * Le repère du seuil, sur une limite.
+ *
+ * En teinte de piste et non de macro : ce n'est pas une valeur, c'est une
+ * graduation. Il dit où se situe le plafond sur une barre qui va au-delà, et c'est
+ * le seul signal visuel qui reste pour distinguer une limite d'une cible.
+ */
+private fun DrawScope.drawLimitMarker(trackColor: Color) {
     drawRect(
         color = trackColor,
-        topLeft = Offset(markerX, 0f),
+        topLeft = Offset(size.width / LIMIT_SCALE, 0f),
         size = Size(width = size.height / 2f, height = size.height),
     )
 }

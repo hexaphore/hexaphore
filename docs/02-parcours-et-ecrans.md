@@ -57,7 +57,7 @@ Sept pastilles de jour, défilement horizontal vers le passé (chargement pagin�
 
 Chaque pastille porte le jour de la semaine, le numéro, et un **anneau segmenté** reprenant les six couleurs de macro, dans l'ordre angulaire commun à toute l'application ([08](08-design-system.md#daltonisme)). Le calendrier garde l'anneau : à 44 dp, les six quartiers d'un hexagone ne se distingueraient plus.
 
-Un segment se remplit à mesure que l'objectif du jour est atteint ; il passe en mode « dépassement » (trait plus épais, teinte saturée) au-delà. Les trois **limites** — glucides, sucres, lipides — restent éteintes sous leur seuil et ne s'allument qu'au dépassement, comme partout ailleurs ([D27](11-decisions.md)).
+Un segment se remplit à mesure que l'objectif du jour est atteint ; il passe en mode « dépassement » (trait plus épais, teinte saturée) au-delà. Les six segments s'allument de la même façon, limites comprises ([D47](11-decisions.md)).
 
 Le jour de départ d'un objectif porte un liseré : on voit où une nouvelle phase a commencé.
 

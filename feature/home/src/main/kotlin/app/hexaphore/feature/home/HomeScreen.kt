@@ -160,7 +160,9 @@ private fun RemainingBlock(summary: DaySummary) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        MacroHexagon(quarters = summary.quarters())
+        // Un intervalle de plus sous la figure : les six lettres touchent le bas de
+        // sa zone, et le « G » des glucides venait buter contre le grand chiffre.
+        MacroHexagon(quarters = summary.quarters(), modifier = Modifier.padding(bottom = Spacing.md))
         Text(
             text = abs(remaining).roundToInt().toString(),
             style = MaterialTheme.typography.displayLarge,

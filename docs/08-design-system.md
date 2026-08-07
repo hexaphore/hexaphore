@@ -127,10 +127,9 @@ Le quartier d'une macro à un ratio *r* est le même triangle, homothétique de 
 
 La distinction de [03](03-nutrition-calculs.md#objectifs-et-limites) vaut ici comme ailleurs, sans quoi un quartier de sucres bien rempli se lirait comme une réussite.
 
-- **Objectif** — calories, protéines, fibres : quartier en teinte `base`, lueur croissante avec le remplissage.
-- **Limite** — glucides, sucres, lipides : quartier en teinte `muted` tant que *r* ≤ 1. Au-delà, le quartier entier passe en `base` avec sa lueur, et la part qui sort du contour est saturée de 30 %.
+Les six quartiers sont traités **de la même façon** : teinte `base`, lueur croissante avec le remplissage, saturation de 30 % au-delà de l'objectif. Une limite ne reste pas sourde sous son seuil ([D47](11-decisions.md)) : une figure où trois macros sur six s'allument et trois non se lit comme un défaut d'affichage plutôt que comme une information.
 
-Une journée bien tenue montre donc **trois quartiers vifs et trois quartiers sourds**. Ne pas allumer une limite, c'est déjà réussir.
+La distinction objectif / limite ne se joue donc plus ici. Elle se lit sur les barres, qui portent la valeur et peuvent l'écrire.
 
 #### La lueur
 
@@ -156,15 +155,17 @@ ajustement   = 1 / max(1, max des rPlafonné)
 Rcible       = Rzone × ajustement
 ```
 
-Quand rien ne dépasse, l'hexagone cible remplit la zone. Quand une macro atteint 200 %, la cible se réduit de moitié et le quartier débordant touche le bord. **Le rétrécissement de l'hexagone cible est lui-même le signal** : on voit qu'on a débordé avant même d'avoir lu quelle macro.
+Quand rien ne dépasse, l'hexagone cible remplit la zone. Au plafond, la cible garde les deux tiers de sa taille et le quartier débordant touche le bord. **Le rétrécissement de l'hexagone cible est lui-même le signal** : on voit qu'on a débordé avant même d'avoir lu quelle macro.
 
 `Rzone = min(largeur / 2, hauteur / √3) − réserve` — un hexagone à sommet plat de circumrayon R mesure 2R de large et √3·R de haut. La **réserve** est ce qui vit hors de la zone : la lueur, un intervalle, puis la lettre. Elle est déduite du rayon plutôt qu'ajoutée à la boîte, faute de quoi la lueur du quartier le plus rempli se ferait rogner par le bord du dessin.
 
-**Plafond à 200 %.** Au-delà, le quartier s'arrête là et son arête extérieure est tracée **en dents de scie**, la convention de rupture d'échelle des graphiques. Sans ce plafond, une saisie erronée à 2 000 % réduirait l'hexagone cible à un point et rendrait toute la figure illisible pour corriger l'erreur — c'est-à-dire au pire moment.
+**Plafond à 150 %.** Au-delà, le quartier s'arrête là et son arête extérieure est tracée **en dents de scie**, la convention de rupture d'échelle des graphiques. Sans ce plafond, une saisie erronée à 2 000 % réduirait l'hexagone cible à un point et rendrait toute la figure illisible pour corriger l'erreur — c'est-à-dire au pire moment. À 200 %, la cible tombait à la moitié de sa taille et les six lettres se retrouvaient loin d'une figure devenue petite ; un dépassement de moitié se voit déjà largement.
 
 #### Totaux minorés
 
-Un quartier dont le total est amputé d'une valeur inconnue ([D29](11-decisions.md)) voit son arête extérieure **s'estomper** sur les six derniers dp, au lieu d'être nette. On ne sait pas où ça s'arrête, la figure ne prétend donc pas le savoir. Aucune légende n'est nécessaire ; la mention chiffrée reste sous les barres.
+Un quartier dont le total est amputé d'une valeur inconnue ([D29](11-decisions.md)) voit son arête extérieure **s'estomper** sur ses huit derniers dp, au lieu d'être nette. On ne sait pas où ça s'arrête, la figure ne prétend donc pas le savoir. Aucune légende n'est nécessaire ; la mention chiffrée reste sous les barres.
+
+Le dégradé est **linéaire, le long de l'axe du quartier**, et non radial. Un dégradé radial suit un cercle : ses lignes d'égale opacité coupent le triangle en arcs, donc les deux sommets — à `R` du centre — disparaissent entièrement pendant que le milieu de l'arête — à `√3/2 · R` seulement — reste presque opaque. Le quartier paraissait rongé par les coins plutôt qu'estompé sur son bord. Le long de l'axe, les lignes d'égale opacité sont parallèles à l'arête, et les trois points du bord s'effacent ensemble.
 
 #### Repères
 
@@ -204,20 +205,17 @@ Diamètre de référence 180 dp.
 
 Barre horizontale, hauteur 6 dp, coins arrondis. Étiquette à gauche, `consommé / objectif` à droite.
 
-Deux comportements, et la distinction est fonctionnelle. Elle n'est **pas** choisie par l'écran appelant : elle est portée par la macro elle-même ([03](03-nutrition-calculs.md#objectifs-et-limites)), pour qu'aucun écran ne puisse en décider autrement.
+**Les six barres se remplissent et s'allument de la même façon.** La distinction objectif / limite reste fonctionnelle et reste portée par la macro elle-même ([03](03-nutrition-calculs.md#objectifs-et-limites)), pour qu'aucun écran n'en décide autrement — mais elle ne passe plus par l'extinction de la jauge ([D47](11-decisions.md)).
 
-- **Objectif** — calories, protéines, fibres : la barre se remplit, la lueur croît avec l'avancement.
-- **Limite** — glucides, sucres, lipides : la barre reste éteinte sous le seuil, avec un repère marquant la limite. Elle ne s'allume qu'au dépassement.
-
-Trois signaux séparent les deux, et ils sont redondants à dessein — l'un d'eux suffit à lever le doute, quel que soit le canal disponible :
+Trois signaux la portent, redondants à dessein — l'un d'eux suffit à lever le doute, quel que soit le canal disponible :
 
 | | Objectif | Limite |
 |---|---|---|
 | Valeur affichée | `87 / 144 g` | `41 / 63 g max` |
-| Jauge | se remplit, s'allume | éteinte sous le seuil, repère à la limite |
+| Jauge | échelle jusqu'à l'objectif | repère au seuil, échelle jusqu'à 125 % |
 | TalkBack | « sur un objectif de 144 » | « sur une limite de 63 » |
 
-Sans cela, une jauge de sucres se lit comme une jauge de protéines, et la remplir ressemble à une réussite alors que c'en est exactement le contraire. Ne pas allumer une limite, c'est déjà réussir.
+Sans eux, une jauge de sucres se lit comme une jauge de protéines, et la remplir ressemble à une réussite alors que c'en est exactement le contraire.
 
 ### `DayPill`
 

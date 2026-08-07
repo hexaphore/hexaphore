@@ -34,7 +34,6 @@ import app.hexaphore.core.designsystem.theme.Motion
 import app.hexaphore.core.designsystem.theme.NeonTheme
 import app.hexaphore.core.designsystem.theme.saturate
 import app.hexaphore.domain.nutrition.Macro
-import app.hexaphore.domain.nutrition.MacroGoalKind
 import kotlin.math.min
 
 /**
@@ -48,9 +47,11 @@ import kotlin.math.min
  * dans le sens horaire.
  *
  * **Le contour est l'objectif**, et un quartier peut le dépasser. Pour que rien ne
- * sorte de la zone, le dessin entier se met à l'échelle : quand une macro atteint
- * le plafond de 200 %, l'hexagone cible se réduit de moitié. Ce rétrécissement est
+ * sorte de la zone, le dessin entier se met à l'échelle : au plafond de 150 %,
+ * l'hexagone cible garde les deux tiers de sa taille. Ce rétrécissement est
  * lui-même le signal — on voit qu'on a débordé avant d'avoir lu quelle macro.
+ *
+ * **Les six quartiers brillent**, quel que soit leur niveau. Voir [drawQuarter].
  *
  * Le rayon est proportionnel à la valeur, **pas la surface**. Même convention que
  * l'anneau et les barres ; l'incohérence serait d'en changer d'un composant à
@@ -114,7 +115,6 @@ fun MacroHexagon(quarters: Map<Macro, MacroQuarter>, modifier: Modifier = Modifi
                     radius = target * ratios.getValue(macro),
                     axis = macro.axisDegrees,
                     palette = palettes.getValue(macro),
-                    isLimit = macro.goal == MacroGoalKind.LIMIT,
                     ratio = ratios.getValue(macro),
                     complete = quarters[macro]?.complete ?: true,
                 )
@@ -122,7 +122,7 @@ fun MacroHexagon(quarters: Map<Macro, MacroQuarter>, modifier: Modifier = Modifi
 
             Macro.entries.forEach { macro ->
                 val ratio = ratios.getValue(macro)
-                if (!macro.glows(ratio)) return@forEach
+                if (ratio <= 0f) return@forEach
                 drawQuarterGlow(
                     centre = centre,
                     radius = target * ratio,
@@ -143,7 +143,6 @@ fun MacroHexagon(quarters: Map<Macro, MacroQuarter>, modifier: Modifier = Modifi
 }
 
 private const val OVERSHOOT_SATURATION = 0.30f
-private const val FADE_START = 0.85f
 private const val ZIGZAG_TEETH = 7
 private const val ZIGZAG_DEPTH = 0.05f
 
@@ -167,35 +166,41 @@ private val LabelGap: Dp = 6.dp
 
 private val GlowSpread: Dp = GlowRoom / GLOW_LAYERS
 
-/**
- * `true` quand ce quartier doit luire.
- *
- * Une limite reste éteinte sous son seuil : ne pas l'allumer, c'est déjà réussir.
- * Une journée bien tenue montre donc trois quartiers vifs et trois quartiers sourds.
- */
-private fun Macro.glows(ratio: Float): Boolean = ratio > 0f && (goal != MacroGoalKind.LIMIT || ratio > 1f)
+/** L'épaisseur sur laquelle l'arête d'un total minoré s'estompe. */
+private val FadeDepth: Dp = 8.dp
 
+/**
+ * Part du rayon au-delà de laquelle la lueur cesse de grandir.
+ *
+ * Sa largeur est fixe, celle du quartier ne l'est pas : sur un quartier presque
+ * vide, une lueur de pleine largeur serait plus grande que lui, tacherait le centre
+ * et empiéterait sur ses voisins.
+ */
+private const val GLOW_MAX_FRACTION = 0.12f
+
+/**
+ * Un quartier.
+ *
+ * **Les six brillent, quel que soit le niveau.** Les limites ne restent plus
+ * sourdes sous leur seuil : une figure où trois macros sur six s'allument et trois
+ * non se lit comme un défaut d'affichage plutôt que comme une information. Ce que
+ * la distinction objectif/limite perd ici, elle le garde dans les barres — le
+ * suffixe `max` sur la valeur et la phrase annoncée par TalkBack ([D47][decisions]).
+ *
+ * [decisions]: docs/11-decisions.md
+ */
 private fun DrawScope.drawQuarter(
     centre: Offset,
     radius: Float,
     axis: Float,
     palette: MacroPalette,
-    isLimit: Boolean,
     ratio: Float,
     complete: Boolean,
 ) {
     if (ratio <= 0f) return
-    val exceeded = ratio > 1f
+    val colour = if (ratio > 1f) palette.base.saturate(OVERSHOOT_SATURATION) else palette.base
 
-    // Une limite reste eteinte sous son seuil : ne pas l'allumer, c'est deja
-    // reussir. Elle ne prend la teinte vive qu'au depassement.
-    val colour = when {
-        isLimit && !exceeded -> palette.muted
-        exceeded -> palette.base.saturate(OVERSHOOT_SATURATION)
-        else -> palette.base
-    }
-
-    drawPath(quarterPath(centre, radius, axis), brush = fillBrush(colour, centre, radius, complete))
+    drawPath(quarterPath(centre, radius, axis), brush = fillBrush(colour, centre, radius, axis, complete))
 
     if (ratio >= RATIO_CAP) {
         drawTruncation(centre, radius, axis, colour)
@@ -226,7 +231,7 @@ private fun DrawScope.drawQuarterGlow(
 ) {
     if (palette.glow.alpha == 0f) return
     val path = quarterPath(centre, radius, axis)
-    val spread = GlowSpread.toPx()
+    val spread = minOf(GlowSpread.toPx(), radius * GLOW_MAX_FRACTION)
 
     repeat(GLOW_LAYERS) { layer ->
         val colour = palette.glow.copy(
@@ -234,7 +239,7 @@ private fun DrawScope.drawQuarterGlow(
         )
         drawPath(
             path = path,
-            brush = fillBrush(colour, centre, radius, complete),
+            brush = fillBrush(colour, centre, radius, axis, complete),
             style = Stroke(width = spread * (layer + 1) * 2f, join = StrokeJoin.Round, cap = StrokeCap.Round),
         )
     }
@@ -247,13 +252,24 @@ private fun DrawScope.drawQuarterGlow(
  * sait pas où il s'arrête, la figure ne prétend donc pas le savoir. Le dégradé
  * s'applique au remplissage **et** à la lueur, sans quoi l'arête floue du quartier
  * aurait été soulignée d'un trait de néon parfaitement net.
+ *
+ * **Le dégradé est linéaire, le long de l'axe du quartier, et non radial.** Un
+ * dégradé radial suit un cercle : ses lignes d'égale opacité coupent le triangle en
+ * arcs, si bien que les deux sommets — qui sont à `radius` du centre — disparaissent
+ * complètement pendant que le milieu de l'arête — qui n'est qu'à `√3/2 · radius` —
+ * reste presque opaque. Le quartier semblait alors rongé par les coins plutôt
+ * qu'estompé sur son bord. Le long de l'axe, les lignes d'égale opacité sont
+ * parallèles à l'arête, et les trois points du bord s'effacent ensemble.
  */
-private fun fillBrush(colour: Color, centre: Offset, radius: Float, complete: Boolean): Brush = when {
-    complete -> SolidColor(colour)
-    else -> Brush.radialGradient(
-        colorStops = arrayOf(0f to colour, FADE_START to colour, 1f to Color.Transparent),
-        center = centre,
-        radius = radius,
+private fun DrawScope.fillBrush(colour: Color, centre: Offset, radius: Float, axis: Float, complete: Boolean): Brush {
+    if (complete) return SolidColor(colour)
+
+    val apothem = radius * APOTHEM_RATIO
+    val start = (1f - FadeDepth.toPx() / apothem).coerceIn(0f, 1f)
+    return Brush.linearGradient(
+        colorStops = arrayOf(0f to colour, start to colour, 1f to Color.Transparent),
+        start = centre,
+        end = pointAt(centre, apothem, axis),
     )
 }
 
