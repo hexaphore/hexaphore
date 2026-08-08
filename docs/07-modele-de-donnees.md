@@ -210,19 +210,24 @@ Les préférences utilisateur vont dans DataStore, pas ici. Cette table ne conti
 
 ```sql
 CREATE TABLE ciqual_food (
-    code TEXT PRIMARY KEY, name TEXT NOT NULL, group_name TEXT,
+    rowid INTEGER PRIMARY KEY, code TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL, name_search TEXT NOT NULL, group_name TEXT,
     kcal_100 REAL, protein_100 REAL, carb_100 REAL,
     sugar_100 REAL, fat_100 REAL, fiber_100 REAL,
-    saturated_fat_100 REAL, salt_100 REAL, density REAL
+    saturated_fat_100 REAL, salt_100 REAL
 );
-CREATE VIRTUAL TABLE ciqual_fts USING fts5(
-    name, content='ciqual_food', content_rowid='rowid',
-    tokenize='unicode61 remove_diacritics 2'
-);
+CREATE VIRTUAL TABLE ciqual_fts USING fts4(name_search, content="", tokenize=simple);
 CREATE TABLE ciqual_serving (
-    code TEXT, label TEXT, grams REAL, is_default INTEGER
+    code TEXT NOT NULL, label TEXT NOT NULL, grams REAL NOT NULL, is_default INTEGER NOT NULL
 );
+CREATE INDEX index_ciqual_serving_code ON ciqual_serving(code);
 ```
+
+Trois écarts avec ce qui était prévu, tous documentés en [D49](11-decisions.md) :
+
+- **FTS4 et non FTS5**, tokenizer `simple` et non `unicode61 remove_diacritics 2`. Aucun des deux ne tient sous `minSdk 26`. Le travail est fait à l'import, dans `name_search`, et la même normalisation s'applique à la saisie.
+- **L'index est sans contenu.** On n'en attend qu'un `docid`, que `rowid` relie au catalogue. Le `rowid` est donc attribué explicitement des deux côtés : le laisser à SQTLite marcherait par coïncidence.
+- **Pas de colonne `density`.** CIQUAL ne la publie pas, et rien ne la calcule avant le résolveur de la tranche 6. Une colonne que rien ne remplit n'est pas une préparation. Cette base n'étant jamais migrée mais remplacée en bloc, l'ajouter le jour venu ne coûte rien.
 
 Un aliment CIQUAL est **copié** dans `food` la première fois qu'il est réellement consommé. Copier les 3 484 lignes à l'installation gonflerait la base, les sauvegardes et la recherche avec 99 % de contenu jamais utilisé.
 

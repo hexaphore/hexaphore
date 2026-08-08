@@ -55,6 +55,11 @@ junit4 = "4.13.2"
 robolectric = "4.14"
 androidxTest = "1.6.1"
 
+# --- Outillage hors APK -------------------------------------------------------
+# Pilote SQLite pour la JVM de developpement : il embarque sa propre compilation de
+# SQLite, celle qui ecrit ciqual.db. Il n'entre dans aucun APK.
+sqliteJdbc = "3.47.1.0"
+
 # --- Build inclus -------------------------------------------------------------
 # Version des regles detekt maison. Le build composite substitue le projet local
 # a cette coordonnee : le numero ne sert qu'a nommer la dependance.
@@ -114,6 +119,8 @@ junit4 = { module = "junit:junit", version.ref = "junit4" }
 junit-vintage-engine = { module = "org.junit.vintage:junit-vintage-engine", version.ref = "junit" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 androidx-test-core = { module = "androidx.test:core", version.ref = "androidxTest" }
+
+sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqliteJdbc" }
 
 [plugins]
 

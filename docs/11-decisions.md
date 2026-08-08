@@ -668,6 +668,30 @@ Le `flowOn(dispatchers.default)` disparaît aussi de cet écran. Ce qu'il produi
 
 ---
 
+## D49 — La recherche normalise à l'import, pas au tokenizer · ✓ validée
+
+**Contexte.** [04](04-sources-de-donnees.md) et [07](07-modele-de-donnees.md) demandaient une table FTS5 avec `unicode61 remove_diacritics 2`, et c'est ce réglage qui devait faire que « creme brulee » trouve « crème brûlée ». Vérifié avant d'écrire la première ligne : il ne tient pas sous `minSdk 26`, et pour deux raisons indépendantes.
+
+**Ce qui ne tient pas.** FTS5 n'est compilé dans le SQLite embarqué d'**aucune** version d'Android — c'est précisément pourquoi Room n'expose que `@Fts3` et `@Fts4`, et pourquoi il existe des bibliothèques dont le seul objet est d'embarquer un SQLite qui l'a. Et `remove_diacritics 2` demande SQLite 3.27, donc l'API 29 : les API 26 à 28 échoueraient même si FTS5 était là. Un défaut de ce genre ne se voit pas ici : il se voit chez l'utilisateur, sous la forme d'une recherche qui ne rend jamais rien.
+
+**Choix.** La colonne indexée est un nom **déjà normalisé au build** — décomposition Unicode, marques diacritiques retirées, ligatures défaites, minuscules, ponctuation devenue coupure de mot. L'index est une table FTS4 sans contenu, tokenizer `simple`. La même fonction est appliquée à la saisie, et c'est la seule règle qui compte : un nom indexé sans elle, ou une saisie comparée sans elle, ne se rencontrent jamais.
+
+**Écarté.** *Embarquer SQLite* (requery, `androidx.sqlite` bundled) : garderait la lettre de la spécification, au prix de 4 à 5 Mo d'APK, d'une dépendance native, et d'une fabrique d'ouverture à rebrancher — ce qui toucherait aussi `hexaphore.db`. *Remonter `minSdk` à 29* : ne réglerait que la moitié du problème, celle qui n'était pas la plus grave.
+
+**Ce que ça gagne, en plus de fonctionner.** La normalisation est faite une fois, au build, par la JVM, dont la couverture Unicode dépasse largement le latin-1 auquel `remove_diacritics 2` se limite. Elle se teste en JVM pure. Et `œ` — l'un des trois exemples de [D23](#d23--recherche-dès-le-2ᵉ-caractère-après-une-pause-de-frappe--validée) — est traité, ce qu'aucun réglage de tokenizer n'aurait fait : `NFD` sépare une lettre de son accent, mais `œ` n'est pas un `o` accenté.
+
+**Ce que ça coûte.** `bm25()` est une fonction de FTS5 : le classement est calculé côté Kotlin. Le coût est faible parce que [04](04-sources-de-donnees.md) exigeait déjà un second critère par-dessus BM25 — remontée des aliments courts et déjà consommés — et que c'est lui qui départage vraiment 3 484 libellés courts. `tokenize=simple` plutôt qu'`unicode61` pour la même raison que le reste : `name_search` est de l'ASCII minuscule séparé par des espaces, les deux tokenizers y font le même découpage, et `simple` est le seul dont la présence ne se discute pas.
+
+**Trois autres points tranchés dans la même passe.**
+
+- **Une écriture de teneur inconnue arrête l'import.** Le parseur a trois issues et non deux : la valeur, l'inconnu déclaré, et ce qu'il ne sait pas lire. Ranger la troisième avec l'inconnu effacerait une colonne entière en silence le jour où l'ANSES change de convention ; la ranger avec zéro en inventerait une. Les deux replis sont aussi graves, et aucun ne se voit avant des mois de journal faussé.
+- **Le seuil de `<` est quelconque.** [04](04-sources-de-donnees.md) ne citait que `< 0,5`. Dépouillement du fichier réel : 250 seuils distincts, de `< 0,0001` à `< 700`, pour 16 000 valeurs. La règle est `< n → n / 2`, et l'exemple n'était qu'un exemple.
+- **Le code de constituant fait foi, l'intitulé le vérifie.** Désigner une colonne par son libellé accentué ferait dépendre l'import d'une chaîne qui bouge ; ne se fier qu'au code laisserait une renumérotation remplir les lipides avec autre chose. Les deux sont déclarés, et l'import échoue si l'un dément l'autre. C'est la seule vérification qui protège d'une erreur qu'aucun test ne verrait : la base se génère, l'application se lance, et les chiffres sont faux.
+
+**Un constat qui a changé une intention.** 143 aliments sur 3 484 n'ont pas d'énergie déterminée. L'intention était de les écarter — [D42](#d42--une-ligne-de-brouillon-porte-des-valeurs-absolues--par-défaut) dit qu'une fiche sans énergie n'est pas exploitable. Regardés de près, ce sont la feta, les câpres, la canneberge, le pruneau cuit, l'estragon frais. Les écarter aurait retiré des aliments courants du catalogue pour appliquer une règle écrite à propos d'une ligne tapée à la main. Ils restent, avec leur trou visible : c'est exactement le comportement que le projet demande partout ailleurs.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

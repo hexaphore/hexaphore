@@ -1,0 +1,20 @@
+# Empreintes de la source CIQUAL.
+#
+# Le module :tooling:ciqual-import verifie la premiere ligne avant de lire quoi que
+# ce soit. Une archive corrompue, tronquee ou remplacee echoue donc bruyamment, au
+# lieu de produire une base plus courte que personne ne remarque.
+#
+# L'archive est une agregation locale des quatre fichiers publies separement par
+# l'ANSES : c'est pour ca que les empreintes des membres sont listees aussi. Ce sont
+# elles, et non celle de l'archive, qui se verifient contre un telechargement neuf.
+#
+# Provenance : Table de composition nutritionnelle des aliments Ciqual 2025, ANSES,
+# publiee le 19 novembre 2025 sur l'entrepot Recherche Data Gouv, doi 10.57745/RDMHWY.
+# Licence Ouverte Etalab 2.0. Voir docs/04-sources-de-donnees.md.
+
+092a338391e6a12f947adeb4a2806c0255437d1175cb9d694df87f17ab48076f  ciqual-2025-11-03-xml.zip
+
+e0b1de25b3039028205e9d54a96892e403e1b313c2efeb41180fabe132627478  alim_2025_11_03.xml
+e216928be1001aed15ba1b120405b70a98145da2a1a76026d6e33542bd5e39dc  alim_grp_2025_11_03.xml
+8c46a9032ece4eab4ffccc9dfcb0c490ec2f416aa664cc1ee013b241c6bdd4af  compo_2025_11_03.xml
+3a231ea3e9836e4ac0b6ff94511e010210b2523d1b8b486c6b29e211066ba3f3  const_2025_11_03.xml

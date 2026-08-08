@@ -31,9 +31,13 @@ Colonnes utilisées, sous leur intitulé exact dans le fichier source :
 
 ### Import au build
 
-Un script Gradle (`:tooling:ciqual-import`) transforme le XML de l'ANSES en base SQLite pré-construite, livrée dans `assets/ciqual.db` (~4 Mo).
+Une tâche Gradle (`:tooling:ciqual-import:importCiqual`) transforme le XML de l'ANSES en base SQLite pré-construite, livrée dans `core/database/src/main/assets/ciqual.db` — **824 Ko**, et non les 4 Mo estimés ici : sur les 74 constituants publiés, huit sont retenus.
 
-Le fichier source brut est versionné dans le dépôt sous `tooling/ciqual/`, et la base générée l'est aussi : sans elle, un `git clone` suivi d'un build donnerait une application vide. Le script vérifie une empreinte SHA-256 pour détecter une regénération non intentionnelle.
+Le fichier source brut est versionné dans le dépôt sous `tooling/ciqual/`, et la base générée l'est aussi : sans elle, un `git clone` suivi d'un build donnerait une application vide. Les quatre fichiers de l'ANSES y sont sous forme d'archive, lue sans être décompressée sur disque : `compo.xml` pèse 69 Mo pour 257 816 enregistrements, et 2 Mo compressés.
+
+L'empreinte SHA-256 vérifiée est celle de la **source**, avant lecture. Une base SQLite n'est pas garantie octet pour octet d'une exécution à l'autre, donc un contrôle sur la sortie produirait de fausses alertes — et de fausses alertes finissent par se désactiver. `tooling/ciqual/SOURCE.sha256` porte aussi les empreintes des quatre fichiers publiés, qui sont celles qu'on vérifie contre un téléchargement neuf.
+
+La tâche n'est branchée sur aucun cycle de vie de Gradle : la regénérer à chaque compilation produirait un binaire modifié dans chaque diff. On la lance quand l'ANSES publie.
 
 ### Le piège des valeurs textuelles
 
@@ -43,22 +47,31 @@ CIQUAL n'est pas un fichier de nombres. Les valeurs arrivent sous forme de chaî
 |---|---|---|
 | `12,5` | `12.5` | Virgule décimale française |
 | `traces` | `0.0` | Présence négligeable |
-| `< 0,5` | `0.25` | Milieu de l'intervalle, sans biaiser vers le haut |
+| `< n` | `n / 2` | Milieu de l'intervalle, sans biaiser vers le haut |
 | `-` | `null` | Non déterminé — **différent de zéro** |
 | `NC` | `null` | Non communiqué |
 | chaîne vide | `null` | Idem |
+| autre chose | **échec** | Voir ci-dessous |
 
 `null` et `0` ne sont pas interchangeables. Un aliment dont les fibres sont inconnues ne doit pas faire croire à zéro fibre : l'interface affiche « — » et le total de la journée signale que des lignes sont incomplètes.
+
+**Le seuil de `<` est quelconque.** Cette ligne disait `< 0,5 → 0.25` ; c'est un exemple et non la convention. L'édition 2025 compte 250 seuils distincts, de `< 0,0001` à `< 700`, pour 16 000 valeurs — un parseur qui n'aurait reconnu que l'exemple cité aurait perdu ou inventé toutes les autres. Dépouillé sur le fichier, pas déduit du document.
+
+**`NC` et la chaîne vide n'apparaissent pas dans le XML 2025** ; elles apparaissent dans l'export XLS de la même table. Elles sont traitées quand même : deux lignes de code contre le jour où l'une de ces écritures arrive par un chemin auquel on n'avait pas pensé.
+
+**Une écriture inconnue arrête l'import.** C'est la dernière ligne du tableau et la plus importante. Un parseur a trois issues et non deux : la valeur, l'inconnu déclaré, et ce qu'il ne sait pas lire. Ranger la troisième avec l'inconnu effacerait une colonne entière en silence le jour où l'ANSES change de convention ; la ranger avec zéro en inventerait une. `CiqualValueParser` la nomme `Unrecognised`, et la tâche d'import échoue en listant les cas ([D49](11-decisions.md)).
 
 Le parseur est isolé (`CiqualValueParser`), et chacune de ces lignes est un cas de test.
 
 ### Recherche
 
-Table `ciqual_fts` en FTS5, tokenizer `unicode61 remove_diacritics 2`. C'est ce réglage qui fait que « creme brulee » trouve « crème brûlée » — indispensable pour une saisie au clavier mobile, où personne ne tape les accents.
+Table `ciqual_fts` en **FTS4**, tokenizer `simple`, sur une colonne `name_search` **déjà normalisée à l'import** — décomposition Unicode, marques diacritiques retirées, ligatures défaites, minuscules, ponctuation devenue coupure de mot. C'est cette normalisation qui fait que « creme brulee » trouve « crème brûlée » — indispensable pour une saisie au clavier mobile, où personne ne tape les accents.
+
+Ce paragraphe demandait FTS5 avec `unicode61 remove_diacritics 2`. Ni l'un ni l'autre ne tient sous `minSdk 26` : FTS5 n'est compilé dans le SQLite embarqué d'aucune version d'Android, et `remove_diacritics 2` exige SQLite 3.27, soit l'API 29. Le travail est donc fait par la JVM au build, une fois, avec une couverture Unicode plus large que celle qu'on attendait de SQLite ([D49](11-decisions.md)). **La seule règle qui compte : la même normalisation est appliquée au nom indexé et à la saisie.**
 
 La requête part dès le **2ᵉ caractère**, après 120 ms sans frappe ([02](02-parcours-et-ecrans.md#modale--recherche)). Deux caractères suffisent parce que la recherche est locale : le coût d'une requête inutile est une lecture SQLite, pas un aller-retour réseau.
 
-Classement : score BM25, puis remontée des aliments courts et déjà consommés par l'utilisateur. Sans ce second critère, « pomme » renvoie « pomme de terre à chair farineuse, crue » avant « pomme, pulpe et peau, crue ».
+Classement : remontée des aliments courts et déjà consommés par l'utilisateur. Sans ce critère, « pomme » renvoie « pomme de terre à chair farineuse, crue » avant « pomme, chair et peau, crue ». BM25 n'est pas disponible — c'est une fonction de FTS5 — et son absence coûte peu ici : sur 3 484 libellés courts, la pondération par fréquence départage mal, alors que la longueur du nom et l'usage réel départagent bien. C'était déjà le critère décisif quand BM25 était prévu.
 
 ### Portions usuelles
 
@@ -75,7 +88,9 @@ code_ciqual,libelle,grammes,par_defaut
 18066,1 verre,200,true
 ```
 
-Environ 250 entrées pour les aliments les plus fréquents. C'est peu de travail et c'est ce qui fait la différence entre une application utilisable et une balance de cuisine obligatoire. Cette table est explicitement ouverte aux contributions : c'est le point d'entrée idéal pour quelqu'un qui veut aider sans écrire de Kotlin.
+**67 portions à ce jour**, pas les 250 annoncées ici. Chaque ligne a été vérifiée contre un code CIQUAL réel : une portion rattachée au mauvais aliment fausse une saisie sans que rien ne le dise, et 250 lignes écrites de mémoire en produiraient. La table grandit par contributions, et c'est le point d'entrée idéal pour quelqu'un qui veut aider sans écrire de Kotlin.
+
+Le lecteur est sévère pour cette raison : code inexistant, poids nul, colonne manquante ou deuxième portion par défaut pour un même aliment arrêtent l'import en nommant le numéro de ligne. Une contribution mal formée doit échouer à la relecture, pas disparaître en silence.
 
 Un aliment sans portion déclarée propose 100 g par défaut.
 
