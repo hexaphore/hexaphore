@@ -2,7 +2,9 @@ package app.hexaphore.core.database.di
 
 import android.content.Context
 import app.hexaphore.core.database.HexaphoreDatabase
+import app.hexaphore.core.database.ciqual.CiqualDatabase
 import app.hexaphore.core.database.dao.DiaryDao
+import app.hexaphore.core.database.dao.FoodDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,4 +31,15 @@ object DatabaseModule {
 
     @Provides
     fun diaryDao(database: HexaphoreDatabase): DiaryDao = database.diaryDao()
+
+    @Provides
+    fun foodDao(database: HexaphoreDatabase): FoodDao = database.foodDao()
+
+    /**
+     * Singleton, comme la base applicative : l'ouverture recopie l'asset au premier
+     * appel, et *n* instances feraient *n* copies concurrentes du même fichier.
+     */
+    @Provides
+    @Singleton
+    fun ciqualDatabase(@ApplicationContext context: Context): CiqualDatabase = CiqualDatabase(context)
 }

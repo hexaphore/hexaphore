@@ -2,6 +2,7 @@ package app.hexaphore.domain.diary
 
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryDiaryRepository
+import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.usecase.GetDaySummary
@@ -15,10 +16,11 @@ import org.junit.jupiter.api.Test
 
 class DraftImpactTest {
     private val diary = InMemoryDiaryRepository()
+    private val catalogue = InMemoryFoodCatalog()
     private val clock = FixedClock.atNoon(JOUR)
     private val ids = SequentialIdGenerator()
 
-    private val logDish = LogDish(diary, clock, ids)
+    private val logDish = LogDish(diary, catalogue, clock, ids)
     private val getDaySummary = GetDaySummary(diary, clock)
 
     @Test

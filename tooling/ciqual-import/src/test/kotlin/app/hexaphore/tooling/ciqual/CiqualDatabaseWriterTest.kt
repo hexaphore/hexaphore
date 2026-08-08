@@ -1,5 +1,6 @@
 package app.hexaphore.tooling.ciqual
 
+import app.hexaphore.domain.food.SearchText
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue

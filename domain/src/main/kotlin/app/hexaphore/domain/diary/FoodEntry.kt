@@ -1,5 +1,6 @@
 package app.hexaphore.domain.diary
 
+import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.nutrition.Macros
 
 /** Identifiant d'une ligne de journal. UUIDv4 généré côté application. */
@@ -25,6 +26,15 @@ value class EntryId(val value: String)
 data class FoodEntry(
     val id: EntryId,
     val dishId: DishId,
+    /**
+     * La fiche d'où vient cette ligne, ou `null` si elle a été tapée à la main.
+     *
+     * **Provenance, pas source de calcul.** Il sert à ré-ajouter la même chose et à
+     * alimenter « Récents » ; les six macros ci-dessous sont figées et ne se
+     * relisent jamais depuis la fiche. Supprimer l'aliment le met à `null` et laisse
+     * la ligne intacte.
+     */
+    val foodId: FoodId? = null,
     val displayName: String,
     /** Quantité telle que saisie, dans l'unité choisie par l'utilisateur. */
     val quantity: Double,

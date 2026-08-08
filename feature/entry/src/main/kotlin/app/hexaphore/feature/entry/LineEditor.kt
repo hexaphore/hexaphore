@@ -3,6 +3,8 @@ package app.hexaphore.feature.entry
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -32,7 +34,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import app.hexaphore.core.designsystem.theme.NeonTheme
 import app.hexaphore.core.designsystem.theme.Spacing
-import app.hexaphore.domain.diary.QuantityUnit
 import app.hexaphore.domain.nutrition.Macro
 
 /**
@@ -107,26 +108,37 @@ private fun NameRow(line: EntryFormLine, actions: EntryActions) {
     }
 }
 
+/**
+ * La quantité et son unité.
+ *
+ * Les unités proposées dépendent de la ligne : les grammes et les millilitres
+ * toujours, plus les portions que la fiche d'origine déclare — « 1 pomme moyenne »,
+ * « 1 tranche ». Une ligne tapée à la main n'en a aucune, faute de fiche pour dire
+ * ce que pèse une tranche.
+ *
+ * Les pastilles passent à la ligne quand elles ne tiennent pas : un aliment peut en
+ * proposer trois, et un libellé de portion est long.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun QuantityRow(line: EntryFormLine, actions: EntryActions) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         DraftTextField(
             initial = line.quantity,
             onValueChange = { actions.onLineEdit(line.id, LineEdit.Quantity(it)) },
             label = stringResource(R.string.entry_field_quantity),
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxWidth(),
             keyboardType = KeyboardType.Decimal,
             accept = String::isNumberField,
         )
-        QuantityUnit.entries.forEach { unit ->
-            FilterChip(
-                selected = line.unit == unit,
-                onClick = { actions.onLineEdit(line.id, LineEdit.Measurement(unit)) },
-                label = { Text(unit.code) },
-            )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            line.units.forEach { unit ->
+                FilterChip(
+                    selected = line.unit == unit,
+                    onClick = { actions.onLineEdit(line.id, LineEdit.Measurement(unit)) },
+                    label = { Text(unit.code) },
+                )
+            }
         }
     }
 }

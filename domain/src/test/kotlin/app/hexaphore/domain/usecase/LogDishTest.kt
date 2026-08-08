@@ -2,6 +2,7 @@ package app.hexaphore.domain.usecase
 
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryDiaryRepository
+import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.diary.JOUR
@@ -16,10 +17,11 @@ import org.junit.jupiter.api.assertThrows
 
 class LogDishTest {
     private val diary = InMemoryDiaryRepository()
+    private val catalogue = InMemoryFoodCatalog()
     private val clock = FixedClock.atNoon(JOUR)
     private val ids = SequentialIdGenerator()
 
-    private val logDish = LogDish(diary, clock, ids)
+    private val logDish = LogDish(diary, catalogue, clock, ids)
 
     @Test
     fun `enregistre les lignes du brouillon`() = runTest {

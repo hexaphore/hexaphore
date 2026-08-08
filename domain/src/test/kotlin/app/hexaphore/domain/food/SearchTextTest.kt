@@ -1,4 +1,4 @@
-package app.hexaphore.tooling.ciqual
+package app.hexaphore.domain.food
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

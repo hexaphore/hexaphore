@@ -7,8 +7,9 @@ import app.hexaphore.domain.diary.EntryDraft
 import app.hexaphore.domain.diary.EntryId
 import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.diary.QuantityUnit
+import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.nutrition.Macro
-import app.hexaphore.domain.nutrition.Macros
+import app.hexaphore.domain.nutrition.NutrientValues
 import java.time.LocalDate
 
 /**
@@ -65,29 +66,39 @@ internal data class EntryForm(
 internal data class EntryFormLine(
     val id: DraftLineId,
     val entryId: EntryId? = null,
+    val foodId: FoodId? = null,
     val name: String = "",
     val quantity: String = "",
-    val unit: QuantityUnit = QuantityUnit.GRAM,
+    val unit: QuantityUnit = QuantityUnit.Gram,
     val macros: Map<Macro, String> = emptyMap(),
+    /** Les portions que propose la fiche d'origine. Vide pour une ligne tapée à la main. */
+    val servings: List<QuantityUnit.Serving> = emptyList(),
     /** Les cinq macros hors calories sont repliées par défaut : elles sont facultatives. */
     val expanded: Boolean = false,
 ) {
+    /** Les unités proposées : les deux universelles, puis celles de la fiche. */
+    val units: List<QuantityUnit> get() = QuantityUnit.universal + servings
+
     fun toDraftLine(): DraftLine = DraftLine(
         id = id,
         entryId = entryId,
+        foodId = foodId,
         name = name,
         quantity = number(quantity),
         unit = unit,
-        macros = number(macros[Macro.CALORIES].orEmpty())?.let { kcal ->
-            Macros(
-                kcal = kcal,
-                protein = macroValue(Macro.PROTEIN),
-                carbs = macroValue(Macro.CARBS),
-                sugars = macroValue(Macro.SUGARS),
-                fat = macroValue(Macro.FAT),
-                fiber = macroValue(Macro.FIBER),
-            )
-        },
+        // Les six champs descendent independamment les uns des autres. Un champ
+        // d'energie vide n'emporte plus les cinq autres : c'est ce qui permet a un
+        // aliment sans energie determinee -- la feta, les capres -- d'arriver avec
+        // ses proteines et ses lipides, l'energie seule restant a completer.
+        values = NutrientValues(
+            kcal = macroValue(Macro.CALORIES),
+            protein = macroValue(Macro.PROTEIN),
+            carbs = macroValue(Macro.CARBS),
+            sugars = macroValue(Macro.SUGARS),
+            fat = macroValue(Macro.FAT),
+            fiber = macroValue(Macro.FIBER),
+        ),
+        servings = servings,
     )
 
     private fun macroValue(macro: Macro): Double? = number(macros[macro].orEmpty())
@@ -96,13 +107,15 @@ internal data class EntryFormLine(
         fun of(line: DraftLine): EntryFormLine = EntryFormLine(
             id = line.id,
             entryId = line.entryId,
+            foodId = line.foodId,
             name = line.name,
             quantity = line.quantity.asField(),
             unit = line.unit,
-            macros = Macro.entries.associateWith { line.macros?.get(it).asField() },
+            macros = Macro.entries.associateWith { line.values[it].asField() },
+            servings = line.servings,
             // Une ligne relue montre ses valeurs : les replier obligerait a deplier
             // chaque ligne pour verifier qu'on modifie la bonne.
-            expanded = line.macros != null,
+            expanded = !line.values.empty,
         )
     }
 }

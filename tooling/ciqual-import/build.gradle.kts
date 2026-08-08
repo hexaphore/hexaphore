@@ -7,6 +7,11 @@ plugins {
 }
 
 dependencies {
+    // Pour SearchText, et pour elle seule. La normalisation doit etre exactement la
+    // meme a l'ecriture de l'index et a la lecture d'une saisie : deux copies d'une
+    // meme regle divergent le jour ou l'une apprend les ligatures et l'autre non.
+    implementation(projects.domain)
+
     // Le pilote embarque sa propre compilation de SQLite. C'est elle qui ecrit la
     // base ; celle d'Android ne fait que la lire.
     implementation(libs.sqlite.jdbc)

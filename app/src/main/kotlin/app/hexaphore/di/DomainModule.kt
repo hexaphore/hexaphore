@@ -1,6 +1,7 @@
 package app.hexaphore.di
 
 import app.hexaphore.domain.diary.DiaryRepository
+import app.hexaphore.domain.food.FoodUsage
 import app.hexaphore.domain.identity.IdGenerator
 import app.hexaphore.domain.time.Clock
 import app.hexaphore.domain.usecase.CreateDraft
@@ -38,7 +39,8 @@ object DomainModule {
     fun createDraft(clock: Clock, ids: IdGenerator): CreateDraft = CreateDraft(clock, ids)
 
     @Provides
-    fun logDish(diary: DiaryRepository, clock: Clock, ids: IdGenerator): LogDish = LogDish(diary, clock, ids)
+    fun logDish(diary: DiaryRepository, foods: FoodUsage, clock: Clock, ids: IdGenerator): LogDish =
+        LogDish(diary, foods, clock, ids)
 
     @Provides
     fun updateDish(diary: DiaryRepository, ids: IdGenerator): UpdateDish = UpdateDish(diary, ids)

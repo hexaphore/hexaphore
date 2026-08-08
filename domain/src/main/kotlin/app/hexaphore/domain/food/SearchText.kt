@@ -1,4 +1,4 @@
-package app.hexaphore.tooling.ciqual
+package app.hexaphore.domain.food
 
 import java.text.Normalizer
 import java.util.Locale
@@ -21,6 +21,9 @@ import java.util.Locale
  *
  * **La seule règle qui compte** : cette fonction est appliquée aux deux bouts. Un
  * nom indexé sans elle, ou une saisie comparée sans elle, ne se rencontrent jamais.
+ * C'est ce qui la place dans `:domain` plutôt que dans le module d'import : les
+ * deux bouts sont dans deux modules différents, et deux copies d'une même règle
+ * divergent le jour où l'une apprend les ligatures et l'autre non.
  *
  * [sources]: docs/04-sources-de-donnees.md
  * [modele]: docs/07-modele-de-donnees.md

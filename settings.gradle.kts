@@ -76,3 +76,4 @@ include(":feature:entry")
 // projet -- une valeur inconnue n'est pas un zero -- et qu'une regle du projet se
 // teste avec `./gradlew check`.
 include(":tooling:ciqual-import")
+include(":data:food")

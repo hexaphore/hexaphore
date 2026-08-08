@@ -1,6 +1,7 @@
 package app.hexaphore.domain.diary
 
-import app.hexaphore.domain.nutrition.Macros
+import app.hexaphore.domain.food.FoodId
+import app.hexaphore.domain.nutrition.NutrientValues
 import java.time.LocalDate
 
 /** Le 15 mars 2026, la journée de référence de tous les tests du journal. */
@@ -17,19 +18,19 @@ internal fun ligne(
     id: String,
     nom: String = "Riz",
     quantite: Double? = 150.0,
-    unite: QuantityUnit = QuantityUnit.GRAM,
+    unite: QuantityUnit = QuantityUnit.Gram,
     entryId: EntryId? = null,
+    foodId: FoodId? = null,
     kcal: Double? = 195.0,
     fibres: Double? = 1.2,
 ) = DraftLine(
     id = DraftLineId(id),
     entryId = entryId,
+    foodId = foodId,
     name = nom,
     quantity = quantite,
     unit = unite,
-    macros = kcal?.let {
-        Macros(kcal = it, protein = 4.0, carbs = 42.0, sugars = 0.2, fat = 0.5, fiber = fibres)
-    },
+    values = NutrientValues(kcal = kcal, protein = 4.0, carbs = 42.0, sugars = 0.2, fat = 0.5, fiber = fibres),
 )
 
 internal fun brouillon(

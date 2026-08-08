@@ -36,8 +36,17 @@ import androidx.room.PrimaryKey
             // aucune existence dans le domaine.
             onDelete = ForeignKey.CASCADE,
         ),
+        ForeignKey(
+            entity = FoodEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["food_id"],
+            // SET NULL et surtout pas CASCADE : supprimer un aliment personnel ne
+            // doit pas amputer l'historique. La ligne survit avec ses macros figees
+            // et son nom d'affichage ; c'est le lien de provenance qui se defait.
+            onDelete = ForeignKey.SET_NULL,
+        ),
     ],
-    indices = [Index(value = ["dish_id"])],
+    indices = [Index(value = ["dish_id"]), Index(value = ["food_id"])],
 )
 data class FoodEntryEntity(
     @PrimaryKey
@@ -45,6 +54,15 @@ data class FoodEntryEntity(
     val id: String,
     @ColumnInfo(name = "dish_id")
     val dishId: String,
+    /**
+     * L'aliment d'où vient cette ligne, ou `null` si elle a été tapée à la main.
+     *
+     * **Provenance, pas source de calcul.** Il sert à ré-ajouter la même chose et à
+     * compter les usages ; les six macros, elles, sont figées dans cette ligne et
+     * ne se relisent jamais d'ici.
+     */
+    @ColumnInfo(name = "food_id")
+    val foodId: String?,
     @ColumnInfo(name = "display_name")
     val displayName: String,
     @ColumnInfo(name = "quantity")
