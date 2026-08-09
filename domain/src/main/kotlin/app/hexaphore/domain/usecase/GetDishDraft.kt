@@ -7,6 +7,7 @@ import app.hexaphore.domain.diary.DraftLineId
 import app.hexaphore.domain.diary.EntryDraft
 import app.hexaphore.domain.diary.QuantityUnit
 import app.hexaphore.domain.identity.IdGenerator
+import app.hexaphore.domain.nutrition.NutrientValues
 
 /**
  * Rouvre un plat enregistré sous la forme que l'écran de validation manipule.
@@ -35,10 +36,15 @@ class GetDishDraft(private val diary: DiaryRepository, private val ids: IdGenera
                 DraftLine(
                     id = DraftLineId(ids.next()),
                     entryId = entry.id,
+                    foodId = entry.foodId,
                     name = entry.displayName,
                     quantity = entry.quantity,
-                    unit = QuantityUnit.fromCode(entry.unit),
-                    macros = entry.macros,
+                    // La portion nommee se reconstruit depuis ce qui a ete ecrit,
+                    // sans relire la fiche : elle a pu etre supprimee depuis, et un
+                    // plat de l'an dernier doit rester relisible tel qu'il a ete
+                    // enregistre.
+                    unit = QuantityUnit.of(entry.unit, entry.grams, entry.quantity),
+                    values = NutrientValues.of(entry.macros),
                 )
             },
         )

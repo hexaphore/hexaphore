@@ -205,17 +205,19 @@ Diamètre de référence 180 dp.
 
 Barre horizontale, hauteur 6 dp, coins arrondis. Étiquette à gauche, `consommé / objectif` à droite.
 
-**Les six barres se remplissent et s'allument de la même façon.** La distinction objectif / limite reste fonctionnelle et reste portée par la macro elle-même ([03](03-nutrition-calculs.md#objectifs-et-limites)), pour qu'aucun écran n'en décide autrement — mais elle ne passe plus par l'extinction de la jauge ([D47](11-decisions.md)).
+**La barre pleine vaut l'objectif**, et la lueur est à pleine intensité dès le premier gramme. Rien dans le remplissage ne dépend du niveau ni de la nature de la macro : sous l'objectif, il n'y a aucune graduation à interpréter ([D47](11-decisions.md), [D48](11-decisions.md)).
 
-Trois signaux la portent, redondants à dessein — l'un d'eux suffit à lever le doute, quel que soit le canal disponible :
+**Le dépassement rétrécit la barre**, exactement comme il rétrécit l'hexagone posé juste au-dessus. Au-delà de l'objectif, l'échelle suit la valeur — le remplissage recule à mesure que la quantité monte — et un repère de la teinte du fond se creuse dans le néon, là où l'objectif se situe désormais. Même plafond que l'hexagone : **150 %**.
+
+La distinction objectif / limite reste fonctionnelle et reste portée par la macro elle-même ([03](03-nutrition-calculs.md#objectifs-et-limites)), pour qu'aucun écran n'en décide autrement. Elle ne se voit plus que dans le texte :
 
 | | Objectif | Limite |
 |---|---|---|
 | Valeur affichée | `87 / 144 g` | `41 / 63 g max` |
-| Jauge | échelle jusqu'à l'objectif | repère au seuil, échelle jusqu'à 125 % |
+| Jauge | identique | identique |
 | TalkBack | « sur un objectif de 144 » | « sur une limite de 63 » |
 
-Sans eux, une jauge de sucres se lit comme une jauge de protéines, et la remplir ressemble à une réussite alors que c'en est exactement le contraire.
+C'est un canal de moins qu'avant, et [D48](11-decisions.md) l'assume : un dépassement de sucres se voit désormais parce que la barre a rétréci, pas parce que c'était une limite.
 
 ### `DayPill`
 
@@ -230,6 +232,8 @@ Pastille du bandeau calendrier. 44 dp, `MacroRing` segmenté en couronne, jour d
 Ligne d'aliment dans un plat. Nom, quantité, calories. Balayage vers la gauche pour supprimer, avec un fond magenta qui se révèle progressivement.
 
 **Aucune pastille de source ici** : elle appartient au plat et se pose une fois en tête ([D32](11-decisions.md)). Cinq pastilles voisines ne distinguaient plus rien.
+
+**Aucun clic non plus.** La cible tactile est le plat entier, y compris son heure, sa pastille, son total et ses apports ([D48](11-decisions.md)). Ce que la ligne garde est sa phrase d'accessibilité — nom, quantité, calories en une fois — et c'est elle qui rend l'annonce du plat lisible une fois les nœuds fusionnés.
 
 ### Apports d'un plat
 

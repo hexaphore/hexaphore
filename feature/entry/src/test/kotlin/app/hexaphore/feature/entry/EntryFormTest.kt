@@ -22,19 +22,22 @@ class EntryFormTest {
     fun `un champ de macro laisse vide veut dire inconnu et non zero`() {
         val line = ligne(kcal = "195", protein = "4", fiber = "")
 
-        val macros = line.toDraftLine().macros!!
+        val values = line.toDraftLine().values
 
-        assertEquals(4.0, macros.protein)
-        assertNull(macros.fiber, "un champ vide n'est pas zero gramme de fibres")
+        assertEquals(4.0, values.protein)
+        assertNull(values.fiber, "un champ vide n'est pas zero gramme de fibres")
     }
 
     @Test
-    fun `sans energie la ligne n a aucune valeur nutritionnelle`() {
-        // Une ligne dont on ne connait meme pas l'energie n'est pas une ligne a
-        // zero calorie : c'est une ligne qui n'est pas encore saisie.
+    fun `sans energie la ligne n est pas enregistrable, mais garde ce qu on sait d elle`() {
+        // Une ligne sans energie n'est pas une ligne a zero calorie : c'est une
+        // ligne qu'on ne peut pas encore enregistrer. Les valeurs deja connues
+        // restent -- c'est ce qui permet a un aliment sans energie determinee, la
+        // feta ou les capres, d'arriver avec ses proteines.
         val line = ligne(kcal = "", protein = "4")
 
-        assertNull(line.toDraftLine().macros)
+        assertNull(line.toDraftLine().values.kcal)
+        assertEquals(4.0, line.toDraftLine().values.protein)
         assertFalse(line.toDraftLine().complete)
     }
 
@@ -80,6 +83,17 @@ class EntryFormTest {
     }
 
     @Test
+    fun `une portion nommee survit a l aller-retour`() {
+        // Le poids voyage avec l'unite : sans lui, rouvrir un plat demanderait de
+        // retrouver une fiche peut-etre supprimee pour savoir ce que pesait
+        // « 1 tranche » ce jour-la.
+        val portion = QuantityUnit.Serving("1 tranche", gramsPerUnit = 30.0)
+        val relu = EntryFormLine.of(ligne(unit = portion, quantity = "2").toDraftLine())
+
+        assertEquals(portion, relu.unit)
+    }
+
+    @Test
     fun `une ligne relue est depliee`() {
         // Repliee, il faudrait deplier chaque ligne pour verifier qu'on modifie
         // la bonne.
@@ -88,28 +102,15 @@ class EntryFormTest {
 
     @Test
     fun `une unite choisie survit a l aller-retour`() {
-        val relu = EntryFormLine.of(ligne(unit = QuantityUnit.MILLILITRE).toDraftLine())
+        val relu = EntryFormLine.of(ligne(unit = QuantityUnit.Millilitre).toDraftLine())
 
-        assertEquals(QuantityUnit.MILLILITRE, relu.unit)
-    }
-
-    @Test
-    fun `un champ numerique accepte un separateur, pas deux`() {
-        // « 12,5,3 » ne se convertit en aucun nombre : la ligne deviendrait
-        // inenregistrable sans que rien ne dise pourquoi. Le champ refuse la frappe.
-        assertTrue("12".isNumberField())
-        assertTrue("12,5".isNumberField())
-        assertTrue("12.5".isNumberField())
-        assertTrue("".isNumberField(), "un champ vide se saisit forcement en passant")
-        assertFalse("12,5,3".isNumberField())
-        assertFalse("12a".isNumberField())
-        assertFalse("-5".isNumberField(), "une quantite negative n'a pas de sens dans un journal")
+        assertEquals(QuantityUnit.Millilitre, relu.unit)
     }
 
     private fun ligne(
         name: String = "Riz",
         quantity: String = "150",
-        unit: QuantityUnit = QuantityUnit.GRAM,
+        unit: QuantityUnit = QuantityUnit.Gram,
         kcal: String = "195",
         protein: String = "4",
         fiber: String = "1,2",

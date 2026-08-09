@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+
+    <string name="search_field_label">Chercher un aliment</string>
+
+    <!-- Avant toute frappe : ce qu'on mange souvent, et ce qu'on a épinglé. -->
+    <string name="search_recent">Récents</string>
+    <string name="search_favorites">Favoris</string>
+
+    <!-- Une liste vide dit quoi faire, pas seulement qu'elle est vide. -->
+    <string name="search_first_title">Rien encore</string>
+    <string name="search_first_body">Tapez deux lettres pour chercher parmi 3 484 aliments, hors-ligne. Ce que vous enregistrerez reviendra ici.</string>
+
+    <!-- « — » et non « 0 kcal » : une énergie non déterminée n'est pas zéro. -->
+    <string name="search_kcal_per_100g">%1$d kcal / 100 g</string>
+    <string name="search_unknown_energy">— kcal / 100 g</string>
+
+    <string name="search_pin">Épingler %1$s</string>
+    <string name="search_unpin">Retirer %1$s des favoris</string>
+
+    <!-- Rien trouvé : on propose de créer, avec le nom déjà tapé. -->
+    <string name="search_no_result">Aucun aliment ne correspond à « %1$s ».</string>
+    <string name="search_create">Créer « %1$s »</string>
+
+    <string name="search_error_title">Recherche impossible</string>
+    <string name="search_error_body">La lecture du catalogue n\'a pas abouti. Rien n\'a été modifié.</string>
+    <string name="search_close">Fermer</string>
+
+    <!-- Formulaire d'aliment personnel. -->
+    <string name="custom_title">Nouvel aliment</string>
+    <string name="custom_field_name">Nom</string>
+    <string name="custom_field_brand">Marque (facultatif)</string>
+    <string name="custom_field_serving">Portion habituelle en grammes (facultatif)</string>
+    <string name="custom_per_100g">Valeurs pour 100 g</string>
+    <!-- Chaque champ porte son unité : sans elle, « Protéines 12 » se lit aussi bien
+         comme des grammes que comme un pourcentage. -->
+    <string name="custom_field_calories">Calories (kcal)</string>
+    <string name="custom_field_protein">Protéines (g)</string>
+    <string name="custom_field_carbs">Glucides (g)</string>
+    <string name="custom_field_sugars">Sucres (g)</string>
+    <string name="custom_field_fat">Lipides (g)</string>
+    <string name="custom_field_fiber">Fibres (g)</string>
+    <string name="custom_save">Enregistrer l\'aliment</string>
+    <string name="custom_cancel">Annuler</string>
+    <!-- Le bouton indisponible répond à l'appui ; cette phrase est ce qu'il répond. -->
+    <string name="custom_incomplete_hint">Un aliment demande un nom et des calories pour 100 g. Les cinq autres valeurs restent facultatives : un champ laissé vide veut dire « inconnu », pas « zéro ».</string>
+
+    <string name="custom_error_title">Enregistrement impossible</string>
+    <string name="custom_error_body">L\'écriture n\'a pas abouti. Votre saisie est conservée telle quelle.</string>
+    <string name="custom_error_retry">Réessayer</string>
+
+</resources>

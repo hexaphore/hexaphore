@@ -1,7 +1,9 @@
 package app.hexaphore.feature.entry
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,9 +18,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -88,33 +95,63 @@ internal fun EntryScreen(state: EntryUiState, actions: EntryActions, modifier: M
     }
 }
 
+/**
+ * Le brouillon : son en-tête, ses lignes, et la barre d'actions qui ne défile pas.
+ *
+ * **Enregistrer et Annuler flottent au-dessus de la liste.** Placés en pied de
+ * défilement, ils s'éloignaient à mesure que le plat grossissait : à cinq lignes
+ * dépliées, enregistrer demandait de faire défiler un écran entier, et rien à
+ * l'image ne disait que le bouton existait encore ([D48][decisions]).
+ *
+ * La réserve laissée sous la liste est **mesurée**, pas déclarée : la barre grandit
+ * avec la taille de police, et une hauteur écrite en dur ferait passer le dernier
+ * champ sous les boutons à 200 %.
+ *
+ * [decisions]: docs/11-decisions.md
+ */
 @Composable
 private fun DraftEditor(state: EntryUiState.Content, actions: EntryActions) {
     val dateFormatter = remember { DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL) }
+    val density = LocalDensity.current
+    var actionsHeightPx by remember { mutableIntStateOf(0) }
 
-    LazyColumn(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .safeDrawingPadding()
-            .padding(horizontal = Spacing.screenMargin),
-        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+            .safeDrawingPadding(),
     ) {
-        item(key = "en-tete") {
-            DraftHeader(state, dateFormatter)
-        }
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = Spacing.screenMargin),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+            contentPadding = PaddingValues(bottom = with(density) { actionsHeightPx.toDp() }),
+        ) {
+            item(key = "en-tete") {
+                DraftHeader(state, dateFormatter)
+            }
 
-        items(items = state.form.lines, key = { it.id.value }) { line ->
-            SwipeToDelete(
-                label = stringResource(R.string.entry_remove_line),
-                onDelete = { actions.onRemoveLine(line.id) },
-            ) {
-                LineEditor(line = line, actions = actions)
+            items(items = state.form.lines, key = { it.id.value }) { line ->
+                SwipeToDelete(
+                    label = stringResource(R.string.entry_remove_line),
+                    onDelete = { actions.onRemoveLine(line.id) },
+                ) {
+                    LineEditor(line = line, actions = actions)
+                }
+            }
+
+            item(key = "pied") {
+                DraftFooter(state, actions)
             }
         }
 
-        item(key = "pied") {
-            DraftFooter(state, actions)
-        }
+        DraftActions(
+            state = state,
+            actions = actions,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .onSizeChanged { actionsHeightPx = it.height },
+        )
     }
 }
 
@@ -142,6 +179,7 @@ private fun DraftHeader(state: EntryUiState.Content, dateFormatter: DateTimeForm
     }
 }
 
+/** Ce qui reste dans le défilement : ajouter une ligne, et le poids de la saisie. */
 @Composable
 private fun DraftFooter(state: EntryUiState.Content, actions: EntryActions) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
@@ -154,28 +192,67 @@ private fun DraftFooter(state: EntryUiState.Content, actions: EntryActions) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         state.impact?.let { Totals(it) }
+    }
+}
 
-        NeonButton(
-            text = stringResource(if (state.saving) R.string.entry_saving else R.string.entry_save),
-            onClick = actions.onSave,
-            modifier = Modifier.fillMaxWidth(),
-            style = NeonButtonStyle.FILLED,
-            availability = when {
-                // Pendant l'ecriture, il n'y a rien a expliquer : le bouton est
-                // inerte et TalkBack l'annonce desactive.
-                state.saving -> NeonButtonAvailability.DISABLED
-                // Incomplet : grise, mais il repond, et son appui dit ce qui manque.
-                !state.saveable -> NeonButtonAvailability.UNAVAILABLE
-                else -> NeonButtonAvailability.AVAILABLE
-            },
-        )
+/**
+ * Les deux issues de l'écran, côte à côte et toujours à l'image.
+ *
+ * L'explication de ce qui manque n'est plus affichée en permanence : elle est la
+ * **réponse** du bouton indisponible à un appui, ce que [D28][decisions] demandait
+ * déjà. Épinglée en bas, elle occuperait quatre lignes à chaque saisie neuve — où
+ * tous les champs sont vides — pour dire ce que les champs vides disent déjà.
+ *
+ * Annuler ne demande pas confirmation : il fait exactement ce que fait le retour
+ * arrière, qui est là de toute façon. Un garde-fou sur l'un des deux chemins et pas
+ * sur l'autre ne protège rien.
+ *
+ * [decisions]: docs/11-decisions.md
+ */
+@Composable
+private fun DraftActions(state: EntryUiState.Content, actions: EntryActions, modifier: Modifier = Modifier) {
+    var explaining by remember { mutableStateOf(false) }
+    LaunchedEffect(state.saveable) { if (state.saveable) explaining = false }
 
-        if (!state.saveable && !state.saving) {
-            Text(
-                text = stringResource(R.string.entry_incomplete_hint),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+    Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(horizontal = Spacing.screenMargin, vertical = Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            if (explaining && !state.saving) {
+                Text(
+                    text = stringResource(R.string.entry_incomplete_hint),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                NeonButton(
+                    text = stringResource(R.string.entry_cancel),
+                    onClick = actions.onClose,
+                    modifier = Modifier.weight(1f),
+                    availability = if (state.saving) {
+                        NeonButtonAvailability.DISABLED
+                    } else {
+                        NeonButtonAvailability.AVAILABLE
+                    },
+                )
+                NeonButton(
+                    text = stringResource(if (state.saving) R.string.entry_saving else R.string.entry_save),
+                    onClick = { if (state.saveable) actions.onSave() else explaining = true },
+                    modifier = Modifier.weight(1f),
+                    style = NeonButtonStyle.FILLED,
+                    availability = when {
+                        // Pendant l'ecriture, il n'y a rien a expliquer : le bouton
+                        // est inerte et TalkBack l'annonce desactive.
+                        state.saving -> NeonButtonAvailability.DISABLED
+                        // Incomplet : grise, mais il repond, et son appui dit ce
+                        // qui manque.
+                        !state.saveable -> NeonButtonAvailability.UNAVAILABLE
+                        else -> NeonButtonAvailability.AVAILABLE
+                    },
+                )
+            }
         }
     }
 }

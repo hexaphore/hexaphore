@@ -103,18 +103,22 @@ C'est le vrai premier jalon : à la fin de cette tranche, **l'application est ut
 **Contenu**
 
 - `:tooling:ciqual-import` : tâche Gradle qui convertit le XML de l'ANSES en `ciqual.db`.
-- `CiqualValueParser` et ses tests : `traces`, `< 0,5`, `-`, `NC`, virgule décimale, chaîne vide.
-- Table FTS5 avec `unicode61 remove_diacritics 2`.
+- `CiqualValueParser` et ses tests : `traces`, `< n`, `-`, `NC`, virgule décimale, chaîne vide, **et l'écriture inconnue**, qui arrête l'import.
+- ~~Table FTS5 avec `unicode61 remove_diacritics 2`.~~ FTS4 sur un nom normalisé à l'import : ni l'un ni l'autre ne tient sous `minSdk 26` ([D49](11-decisions.md)).
 - `servings.csv`, la table des portions usuelles.
-- Modale de recherche, récents, favoris. Ports `FoodSearch` et `RecentFoods`.
+- Table `food`, migration 1 → 2, colonne `food_entry.food_id` — les dettes échues de [D40](11-decisions.md).
+- Modale de recherche, récents, favoris, formulaire d'aliment personnel. Ports `FoodSearch`, `FoodLookup`, `RecentFoods`, `FavoriteFoods`, `CustomFoodStore`, `FoodUsage`.
 
 **Terminé quand**
 
 - Des résultats apparaissent en moins de 150 ms, hors-ligne, dès le deuxième caractère et 120 ms après la dernière frappe ([D23](11-decisions.md)).
 - « creme brulee » trouve « crème brûlée ».
 - Chaque convention d'écriture de CIQUAL a son cas de test, et `null` ne se confond jamais avec `0`.
+- Un test prouve que modifier un aliment ne change pas les entrées déjà enregistrées ([D05](11-decisions.md)) — la forme complète, que la tranche 2 ne pouvait pas écrire.
 
 **Piège** : traiter une valeur inconnue comme un zéro. C'est l'erreur la plus facile à commettre et la plus difficile à repérer — elle fausse des mois de journal en silence.
+
+> **Livrée.** 3 484 aliments et 67 portions en 824 Ko, `creme brulee` vérifié sur les données livrées. Ce que la tranche ne construit pas est écrit en [D50](11-decisions.md).
 
 ---
 

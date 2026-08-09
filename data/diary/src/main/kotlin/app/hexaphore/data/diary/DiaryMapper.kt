@@ -8,6 +8,7 @@ import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.diary.EntryId
 import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.diary.FoodEntry
+import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.nutrition.Macros
 import java.time.Instant
 import java.time.LocalDate
@@ -36,6 +37,7 @@ internal fun DishWithEntries.toDomain(): Dish {
 private fun FoodEntryEntity.toDomain(dishId: DishId) = FoodEntry(
     id = EntryId(id),
     dishId = dishId,
+    foodId = foodId?.let(::FoodId),
     displayName = displayName,
     quantity = quantity,
     unit = unit,
@@ -83,6 +85,7 @@ internal fun Dish.toEntity(now: Long) = DishEntity(
 internal fun FoodEntry.toEntity(now: Long) = FoodEntryEntity(
     id = id.value,
     dishId = dishId.value,
+    foodId = foodId?.value,
     displayName = displayName,
     quantity = quantity,
     unit = unit,

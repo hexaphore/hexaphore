@@ -3,6 +3,7 @@ package app.hexaphore.feature.entry
 import androidx.lifecycle.SavedStateHandle
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryDiaryRepository
+import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.DishId
@@ -41,6 +42,7 @@ class EntryViewModelTest {
     private val jour = LocalDate.of(2026, 3, 15)
     private val clock = FixedClock.atNoon(jour)
     private val diary = InMemoryDiaryRepository()
+    private val catalogue = InMemoryFoodCatalog()
     private val ids = SequentialIdGenerator()
 
     @BeforeEach
@@ -239,7 +241,8 @@ class EntryViewModelTest {
         getDishDraft = GetDishDraft(diary, ids),
         getDaySummary = GetDaySummary(diary, clock),
         createDraft = CreateDraft(clock, ids),
-        logDish = LogDish(diary, clock, ids),
+        foodLookup = catalogue,
+        logDish = LogDish(diary, catalogue, clock, ids),
         updateDish = UpdateDish(diary, ids),
     )
 }

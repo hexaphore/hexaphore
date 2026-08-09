@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -47,9 +48,34 @@ internal fun DishList(dishes: List<DishSummary>, zone: ZoneId, actions: HomeActi
     }
 }
 
+/**
+ * Un plat, du badge de source à ses apports.
+ *
+ * **Le plat entier est la cible tactile.** Il l'est parce qu'il est l'unité de
+ * saisie ([D31][decisions]) : ses lignes ont été entrées ensemble et se corrigent
+ * ensemble. Restreindre le tap aux seules lignes d'aliment laissait l'heure, la
+ * pastille, le total et les apports inertes — c'est-à-dire la moitié de la surface
+ * du plat, sans que rien ne dise pourquoi elle ne répond pas ([D48][decisions]).
+ *
+ * Le balayage de suppression continue de fonctionner : il est capté plus bas dans
+ * l'arbre, et un tap n'est pas un glissement.
+ *
+ * [decisions]: docs/11-decisions.md
+ */
 @Composable
 private fun DishBlock(summary: DishSummary, zone: ZoneId, timeFormatter: DateTimeFormatter, actions: HomeActions) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            // Rognage avant le clic : sans lui l'ondulation deborde en rectangle
+            // franc sur un ecran qui n'en compte aucun autre.
+            .clip(MaterialTheme.shapes.medium)
+            .clickable(
+                onClickLabel = stringResource(R.string.home_dish_edit),
+                onClick = { actions.onEditDish(summary.dish.id) },
+            ),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -74,7 +100,7 @@ private fun DishBlock(summary: DishSummary, zone: ZoneId, timeFormatter: DateTim
                 label = stringResource(R.string.home_entry_delete),
                 onDelete = { actions.onDeleteEntry(summary.dish, entry.id) },
             ) {
-                EntryRow(entry = entry, onClick = { actions.onEditDish(summary.dish.id) })
+                EntryRow(entry = entry)
             }
         }
         DishMacros(summary)
@@ -136,16 +162,14 @@ private fun MacroChip(macro: Macro, total: MacroTotal) {
 /**
  * Une ligne d'aliment.
  *
- * Un tap ouvre la validation du **plat** entier, et non de la seule ligne : les
- * lignes d'un plat ont été saisies ensemble, et les corriger séparément
- * obligerait à ressortir et rentrer autant de fois qu'il y a d'aliments.
- *
- * La ligne est un **seul** nœud d'accessibilité, avec son action de suppression :
- * trois nœuds à traverser pour une information qui tient en une phrase, c'est trois
- * de trop.
+ * Elle ne porte pas le clic : c'est le plat qui l'a, et il l'a en entier. Ce qu'elle
+ * garde est sa **phrase** — nom, quantité, calories en une fois plutôt qu'en trois
+ * arrêts. Le plat étant devenu une cible tactile, il fusionne les nœuds qu'il
+ * contient ; cette phrase est ce qui rend l'annonce du plat lisible au lieu d'être
+ * une suite de fragments.
  */
 @Composable
-private fun EntryRow(entry: FoodEntry, onClick: () -> Unit) {
+private fun EntryRow(entry: FoodEntry) {
     val description = stringResource(
         R.string.home_entry_a11y,
         entry.displayName,
@@ -157,7 +181,6 @@ private fun EntryRow(entry: FoodEntry, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
             .semantics(mergeDescendants = true) { contentDescription = description }
             .padding(vertical = Spacing.xs),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),

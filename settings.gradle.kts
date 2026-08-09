@@ -67,3 +67,14 @@ include(":feature:home")
 // Tranche 2. L'ecran de validation : le point de convergence des quatre modes de
 // saisie, ecrit pour n lignes des le premier jour.
 include(":feature:entry")
+
+// Tranche 3. La recherche.
+//
+// :tooling:ciqual-import est le seul module qui n'entre dans aucun APK : il
+// convertit le XML de l'ANSES en base SQLite, sur la machine de developpement.
+// Il est ici et non dans build-logic parce que son parseur porte une regle du
+// projet -- une valeur inconnue n'est pas un zero -- et qu'une regle du projet se
+// teste avec `./gradlew check`.
+include(":tooling:ciqual-import")
+include(":data:food")
+include(":feature:search")

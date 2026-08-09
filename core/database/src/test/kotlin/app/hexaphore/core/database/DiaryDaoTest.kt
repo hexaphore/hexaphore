@@ -126,6 +126,9 @@ class DiaryDaoTest {
     private fun entry(nom: String, fiberG: Double? = 2.0, id: String = "ligne-${suivant++}") = FoodEntryEntity(
         id = id,
         dishId = DISH_ID,
+        // Une ligne tapee a la main ne vient d'aucune fiche, et c'est le cas de
+        // toutes celles de ce test.
+        foodId = null,
         displayName = nom,
         quantity = 100.0,
         unit = "g",

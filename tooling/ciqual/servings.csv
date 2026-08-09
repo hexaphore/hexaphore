@@ -1,0 +1,108 @@
+# Portions usuelles, associees a un code CIQUAL.
+#
+# CIQUAL ne donne que des valeurs pour 100 g. Personne ne pese une pomme : c'est
+# cette table qui fait la difference entre une application utilisable et une
+# balance de cuisine obligatoire.
+#
+# Ce fichier est le point d'entree ideal pour contribuer sans ecrire de Kotlin.
+# Une ligne mal formee -- code inexistant, poids nul, deuxieme portion par defaut
+# pour un meme aliment -- arrete l'import en nommant son numero de ligne. C'est
+# voulu : une portion silencieusement absente, ou rattachee au mauvais aliment,
+# fausse une saisie sans que rien ne le dise.
+#
+# Le libelle est affiche tel quel dans l'application : il porte ses accents, la
+# ou le reste de ce fichier est en ASCII. Un aliment sans portion declaree propose
+# 100 g.
+#
+# Les poids sont ceux de la partie comestible, parce que c'est ce que CIQUAL
+# mesure : une pomme de 150 g est une pomme entiere d'environ 170 g.
+code_ciqual,libelle,grammes,par_defaut
+
+# --- Fruits -------------------------------------------------------------------
+13039,1 pomme moyenne,150,true
+13005,1 banane moyenne,120,true
+13034,1 orange moyenne,130,true
+13024,1 clémentine,70,true
+13037,1 poire moyenne,150,true
+13043,1 pêche,130,true
+13000,1 abricot,40,true
+13021,1 kiwi,75,true
+13014,1 fraise,12,false
+13014,1 barquette,250,true
+13044,1 grain,5,false
+13044,1 grappe,150,true
+13004,1 demi-avocat,75,true
+13004,1 avocat,150,false
+
+# --- Oeufs --------------------------------------------------------------------
+22000,1 oeuf,50,true
+22000,1 gros oeuf,60,false
+
+# --- Pains et cereales --------------------------------------------------------
+7001,1 tranche,30,true
+7001,1 demi-baguette,125,false
+7001,1 baguette,250,false
+7300,1 biscotte,10,true
+32140,1 bol,40,true
+32140,1 cuillère à soupe,10,false
+32004,1 bol,50,true
+9104,1 portion,150,true
+9683,1 portion,150,true
+
+# --- Produits laitiers --------------------------------------------------------
+19033,1 verre,200,true
+19033,1 bol,250,false
+19600,1 pot,125,true
+12115,1 portion,30,true
+12001,1 portion,30,true
+16400,1 noisette,10,true
+16400,1 plaquette,250,false
+
+# --- Matieres grasses ---------------------------------------------------------
+17270,1 cuillère à soupe,10,true
+17270,1 cuillère à café,5,false
+17440,1 cuillère à soupe,10,true
+17440,1 cuillère à café,5,false
+15202,1 cuillère à soupe,15,true
+
+# --- Legumes ------------------------------------------------------------------
+20009,1 carotte moyenne,100,true
+20019,1 concombre,300,false
+20019,1 portion,80,true
+20031,1 portion,50,true
+20037,1 portion,120,true
+20041,1 poivron,150,true
+4003,1 pomme de terre moyenne,150,true
+
+# --- Legumineuses et substituts -----------------------------------------------
+20360,1 portion,150,true
+20507,1 portion,150,true
+20904,1 portion,100,true
+
+# --- Viandes et poissons ------------------------------------------------------
+6251,1 steak,100,true
+36306,1 escalope,120,true
+26025,1 filet,130,true
+26039,1 boîte égouttée,100,true
+10007,1 crevette,8,true
+
+# --- Fruits a coque -----------------------------------------------------------
+15000,1 amande,1.2,false
+15000,1 poignée,30,true
+15004,1 noisette,1.5,false
+15004,1 poignée,30,true
+15005,1 cerneau,5,false
+15005,1 poignée,30,true
+
+# --- Sucre ---------------------------------------------------------------------
+31008,1 cuillère à café,8,true
+31008,1 cuillère à soupe,20,false
+31005,1 carré,6,true
+31005,1 tablette,100,false
+
+# --- Boissons -----------------------------------------------------------------
+2013,1 verre,200,true
+18071,1 tasse,30,true
+5000,1 demi,250,true
+5000,1 canette,330,false
+5214,1 verre,125,true

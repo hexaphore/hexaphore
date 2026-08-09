@@ -2,6 +2,7 @@ package app.hexaphore.domain.usecase
 
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryDiaryRepository
+import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.domain.diary.JOUR
 import app.hexaphore.domain.diary.brouillon
@@ -13,9 +14,10 @@ import org.junit.jupiter.api.Test
 
 class DeleteEntryTest {
     private val diary = InMemoryDiaryRepository()
+    private val catalogue = InMemoryFoodCatalog()
     private val ids = SequentialIdGenerator()
 
-    private val logDish = LogDish(diary, FixedClock.atNoon(JOUR), ids)
+    private val logDish = LogDish(diary, catalogue, FixedClock.atNoon(JOUR), ids)
     private val deleteEntry = DeleteEntry(diary)
     private val restoreDish = RestoreDish(diary)
 

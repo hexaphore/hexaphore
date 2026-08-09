@@ -16,8 +16,8 @@ data object HomeDestination
  * vers quoi il envoie, ce qui lui évite de dépendre de `:feature:entry`. C'est
  * `:app` qui relie, parce que c'est lui qui assemble.
  */
-fun NavGraphBuilder.homeScreen(onAddDish: () -> Unit, onEditDish: (DishId) -> Unit) {
+fun NavGraphBuilder.homeScreen(onAddDish: () -> Unit, onSearchFood: () -> Unit, onEditDish: (DishId) -> Unit) {
     composable<HomeDestination> {
-        HomeRoute(onAddDish = onAddDish, onEditDish = onEditDish)
+        HomeRoute(onAddDish = onAddDish, onSearchFood = onSearchFood, onEditDish = onEditDish)
     }
 }

@@ -6,7 +6,9 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import app.hexaphore.core.database.dao.DiaryDao
+import app.hexaphore.core.database.dao.FoodDao
 import app.hexaphore.core.database.entity.DishEntity
+import app.hexaphore.core.database.entity.FoodEntity
 import app.hexaphore.core.database.entity.FoodEntryEntity
 
 /**
@@ -20,27 +22,28 @@ import app.hexaphore.core.database.entity.FoodEntryEntity
  * @see docs/07-modele-de-donnees.md
  */
 @Database(
-    entities = [DishEntity::class, FoodEntryEntity::class],
+    entities = [DishEntity::class, FoodEntryEntity::class, FoodEntity::class],
     version = HexaphoreDatabase.VERSION,
     exportSchema = true,
 )
 abstract class HexaphoreDatabase : RoomDatabase() {
     abstract fun diaryDao(): DiaryDao
 
+    abstract fun foodDao(): FoodDao
+
     companion object {
-        const val VERSION = 1
+        const val VERSION = 2
 
         const val NAME = "hexaphore.db"
 
         /**
-         * La chaîne de migrations, vide à la version 1.
+         * La chaîne de migrations.
          *
-         * Elle existe **avant** d'être utile, et c'est tout son intérêt. Le jour où
-         * trois semaines de repas sont sur un vrai téléphone, il est trop tard pour
-         * prendre l'habitude : la première migration doit s'ajouter à une liste qui
-         * existe déjà, testée par un mécanisme déjà en place.
+         * Elle existait **avant** d'être utile, et c'était tout son intérêt : la
+         * première vraie migration s'y ajoute au lieu d'inaugurer un mécanisme, et
+         * elle est validée par un test déjà écrit contre un schéma déjà versionné.
          */
-        val MIGRATIONS: List<Migration> = emptyList()
+        val MIGRATIONS: List<Migration> = listOf(Migration1To2)
 
         /**
          * Construit la base.
