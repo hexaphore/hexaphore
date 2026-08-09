@@ -19,4 +19,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
+
+    // La regle de filtrage d'un champ numerique se teste sans Compose : c'est une
+    // fonction sur une chaine, et c'est elle qui decide si une saisie est possible.
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }

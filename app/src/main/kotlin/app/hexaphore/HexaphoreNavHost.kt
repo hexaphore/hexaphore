@@ -6,8 +6,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import app.hexaphore.feature.entry.entryScreen
 import app.hexaphore.feature.entry.navigateToEntry
+import app.hexaphore.feature.entry.navigateToEntryFor
 import app.hexaphore.feature.home.HomeDestination
 import app.hexaphore.feature.home.homeScreen
+import app.hexaphore.feature.search.navigateToCustomFood
+import app.hexaphore.feature.search.navigateToSearch
+import app.hexaphore.feature.search.searchScreens
 
 /**
  * Le graphe de navigation.
@@ -28,8 +32,20 @@ fun HexaphoreNavHost(modifier: Modifier = Modifier) {
     NavHost(navController = navController, startDestination = HomeDestination, modifier = modifier) {
         homeScreen(
             onAddDish = { navController.navigateToEntry() },
+            onSearchFood = { navController.navigateToSearch() },
             onEditDish = { dishId -> navController.navigateToEntry(dishId) },
         )
         entryScreen(onClose = { navController.popBackStack() })
+        searchScreens(
+            // La recherche s'efface derriere la validation : revenir en arriere
+            // depuis un plat en cours doit rendre l'accueil, pas une liste de
+            // resultats qu'on a deja quittee.
+            onPick = { foodId ->
+                navController.popBackStack(HomeDestination, inclusive = false)
+                navController.navigateToEntryFor(foodId)
+            },
+            onCreate = { name -> navController.navigateToCustomFood(name) },
+            onClose = { navController.popBackStack() },
+        )
     }
 }

@@ -7,6 +7,7 @@ import app.hexaphore.domain.food.CustomFoodStore
 import app.hexaphore.domain.food.FavoriteFoods
 import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodId
+import app.hexaphore.domain.food.FoodLookup
 import app.hexaphore.domain.food.FoodSearch
 import app.hexaphore.domain.food.FoodSource
 import app.hexaphore.domain.food.FoodUsage
@@ -24,7 +25,7 @@ import javax.inject.Singleton
 /**
  * Le catalogue d'aliments, adossé aux deux bases.
  *
- * Une classe pour cinq ports, alors que le domaine les sépare : la séparation existe
+ * Une classe pour six ports, alors que le domaine les sépare : la séparation existe
  * pour que **les appelants** ne dépendent que de ce qu'ils utilisent ([docs/06][archi]),
  * pas pour forcer cinq objets. L'écran de recherche ne voit que [FoodSearch], et son
  * test n'a donc pas besoin d'un faux à quinze méthodes.
@@ -43,6 +44,7 @@ class RoomFoodCatalog @Inject constructor(
     private val clock: Clock,
     private val dispatchers: DispatcherProvider,
 ) : FoodSearch,
+    FoodLookup,
     RecentFoods,
     FavoriteFoods,
     CustomFoodStore,
@@ -72,6 +74,10 @@ class RoomFoodCatalog @Inject constructor(
             .map { row -> row.toDomain(FoodId(ids.next()), ciqual.servings(row.code)) }
 
         FoodRanking.sort(local + fromCiqual, query).take(limit)
+    }
+
+    override suspend fun byId(id: FoodId): Food? = withContext(dispatchers.io) {
+        dao.byId(id.value)?.let { it.toDomain(servingsOf(it.source, it.sourceRef)) }
     }
 
     override fun observeRecent(limit: Int): Flow<List<Food>> =

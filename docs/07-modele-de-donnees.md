@@ -97,7 +97,7 @@ Index sur `date DESC` : toutes les lectures sont des fenêtres récentes.
 
 ### `food`
 
-> **Créée en tranche 3**, avec l'import CIQUAL qui la remplit. Rien ne l'écrit ni ne la lit avant : une entrée de journal fige ses macros et n'a pas besoin de la fiche d'origine pour s'afficher. La colonne `food_entry.food_id` arrive avec elle ([D34](11-decisions.md)).
+> **Créée en tranche 3** par la migration 1 → 2, avec `food_entry.food_id` ([D34](11-decisions.md)). Quatre colonnes annoncées ici n'y sont pas encore — `density`, `is_liquid`, `user_edited_fields`, `fetched_at` — parce que rien ne les remplit avant les tranches 5 et 6, qui les apportent avec ce qui les remplit ([D50](11-decisions.md)). Une colonne `name_search` s'y ajoute en revanche : le nom sous sa forme cherchable, calculé à l'écriture ([D49](11-decisions.md)).
 
 Catalogue unifié : CIQUAL importé à la demande, produits Open Food Facts mis en cache, aliments personnels.
 
@@ -128,6 +128,8 @@ Index unique sur `(source, source_ref)` quand `source_ref` n'est pas nul — emp
 Les colonnes `saturated_fat_100` et `salt_100` existent alors que la v1 ne les affiche pas : la donnée est disponible dans les deux sources, la collecter maintenant coûte zéro et évite une migration le jour où on décide de les montrer.
 
 ### `food_serving`
+
+> **Pas encore créée.** Les portions de CIQUAL se lisent dans `ciqual_serving` par le code source, sans copie ; une fiche personnelle a `default_serving_g`, qui couvre le cas courant. Cette table naîtra quand un aliment personnel aura besoin de plusieurs portions nommées ([D50](11-decisions.md)).
 
 | Colonne | Type | Notes |
 |---|---|---|
@@ -260,7 +262,9 @@ WHERE started_at <= :date AND (ended_at IS NULL OR ended_at > :date)
 ORDER BY started_at DESC LIMIT 1;
 ```
 
-**Récents** : `food` trié par `last_used_at DESC`, limité à 20, `WHERE last_used_at IS NOT NULL`.
+**Récents** : `food` trié par `last_used_at DESC`, limité à 20, `WHERE last_used_at IS NOT NULL`. Le filtre n'est pas une précaution : une fiche créée et jamais servie n'a rien à faire là, et l'y mettre à sa date de création mélangerait deux informations différentes.
+
+**Recherche dans le catalogue local** : `LIKE '%…%'` sur `name_search`, sans index plein texte. Quelques centaines de fiches contre 3 484 pour CIQUAL, qui a le sien : une seconde table FTS demanderait ses triggers de synchronisation et un second chemin de normalisation à tenir aligné, pour balayer six cents chaînes courtes.
 
 Toutes les requêtes d'affichage renvoient un `Flow` : Room notifie sur invalidation, aucun rafraîchissement manuel n'est nécessaire.
 

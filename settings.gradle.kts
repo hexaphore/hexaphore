@@ -77,3 +77,4 @@ include(":feature:entry")
 // teste avec `./gradlew check`.
 include(":tooling:ciqual-import")
 include(":data:food")
+include(":feature:search")

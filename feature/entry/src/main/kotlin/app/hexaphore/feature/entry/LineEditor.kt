@@ -8,30 +8,24 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
+import app.hexaphore.core.designsystem.component.DraftTextField
+import app.hexaphore.core.designsystem.component.isNumberField
 import app.hexaphore.core.designsystem.theme.NeonTheme
 import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.domain.nutrition.Macro
@@ -160,59 +154,6 @@ private fun MacroField(line: EntryFormLine, macro: Macro, actions: EntryActions)
         labelColor = NeonTheme.macros[macro].base,
         keyboardType = KeyboardType.Decimal,
         accept = String::isNumberField,
-    )
-}
-
-/**
- * Un champ dont l'affichage ne dépend d'aucun aller-retour d'état.
- *
- * **Le texte affiché vit ici**, et non dans le `ViewModel`. La forme habituelle —
- * `value = state.texte`, `onValueChange = { viewModel.change(it) }` — suppose que
- * l'état revienne avant la frappe suivante. Il ne revient pas toujours : entre la
- * frappe et le nouvel état, il y a un `StateFlow`, un `combine` et une
- * recomposition, et une frappe rapide arrive avant la fin du trajet. Le champ se
- * réaffiche alors avec un texte d'il y a deux caractères, et la position du curseur
- * repart avec lui — on tape « Bolognaise », on lit « Boognaseil ».
- *
- * Ici, chaque frappe est appliquée immédiatement à l'état local ; le `ViewModel` est
- * prévenu ensuite et ne renvoie rien. Il n'y a plus qu'un seul écrivain, donc plus
- * de course.
- *
- * [initial] n'est lu qu'à la première composition. C'est voulu et suffisant : la
- * ligne est identifiée par son [app.hexaphore.domain.diary.DraftLineId] dans la
- * liste, donc rouvrir un plat ou replier les valeurs reconstruit le champ avec le
- * bon texte, et rien d'autre ne réécrit ce que l'utilisateur tape.
- *
- * @param accept ce que le champ laisse entrer. Une frappe refusée ne change rien —
- *   ni ici, ni dans le brouillon —, ce qui évite qu'une ligne devienne
- *   silencieusement inenregistrable à cause d'un caractère parasite.
- */
-@Composable
-private fun DraftTextField(
-    initial: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier,
-    labelColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    accept: (String) -> Boolean = { true },
-) {
-    var value by remember { mutableStateOf(TextFieldValue(initial, TextRange(initial.length))) }
-
-    OutlinedTextField(
-        value = value,
-        onValueChange = { candidate ->
-            if (accept(candidate.text)) {
-                value = candidate
-                onValueChange(candidate.text)
-            }
-        },
-        label = { Text(text = label, color = labelColor) },
-        singleLine = true,
-        // Decimal et non Number : le separateur decimal doit etre atteignable, et
-        // la virgule est ce que produit un clavier en francais.
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Next),
-        modifier = modifier,
     )
 }
 

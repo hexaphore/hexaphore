@@ -241,6 +241,7 @@ class EntryViewModelTest {
         getDishDraft = GetDishDraft(diary, ids),
         getDaySummary = GetDaySummary(diary, clock),
         createDraft = CreateDraft(clock, ids),
+        foodLookup = catalogue,
         logDish = LogDish(diary, catalogue, clock, ids),
         updateDish = UpdateDish(diary, ids),
     )

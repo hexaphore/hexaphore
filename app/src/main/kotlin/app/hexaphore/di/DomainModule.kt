@@ -1,6 +1,7 @@
 package app.hexaphore.di
 
 import app.hexaphore.domain.diary.DiaryRepository
+import app.hexaphore.domain.food.CustomFoodStore
 import app.hexaphore.domain.food.FoodUsage
 import app.hexaphore.domain.identity.IdGenerator
 import app.hexaphore.domain.time.Clock
@@ -10,6 +11,7 @@ import app.hexaphore.domain.usecase.GetDaySummary
 import app.hexaphore.domain.usecase.GetDishDraft
 import app.hexaphore.domain.usecase.LogDish
 import app.hexaphore.domain.usecase.RestoreDish
+import app.hexaphore.domain.usecase.SaveCustomFood
 import app.hexaphore.domain.usecase.UpdateDish
 import dagger.Module
 import dagger.Provides
@@ -37,6 +39,9 @@ object DomainModule {
 
     @Provides
     fun createDraft(clock: Clock, ids: IdGenerator): CreateDraft = CreateDraft(clock, ids)
+
+    @Provides
+    fun saveCustomFood(store: CustomFoodStore, ids: IdGenerator): SaveCustomFood = SaveCustomFood(store, ids)
 
     @Provides
     fun logDish(diary: DiaryRepository, foods: FoodUsage, clock: Clock, ids: IdGenerator): LogDish =

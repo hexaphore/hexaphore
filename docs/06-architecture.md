@@ -55,7 +55,8 @@ La flèche du bas remonte : `:data` dépend de `:domain`, jamais l'inverse. Un `
 
 :feature:onboarding
 :feature:home               Accueil, journée, calendrier
-:feature:entry              Les 4 modales de saisie + écran de validation
+:feature:entry              Écran de validation
+:feature:search             Recherche, récents, favoris, aliment personnel
 :feature:weight
 :feature:settings
 
@@ -130,12 +131,19 @@ Un client ne doit pas dépendre de méthodes qu'il n'utilise pas.
 L'interface fourre-tout `FoodRepository` est refusée. À la place, quatre ports étroits :
 
 ```kotlin
+fun interface FoodLookup      { suspend fun byId(id: FoodId): Food? }
 fun interface BarcodeLookup   { suspend fun byBarcode(code: String): Food? }
 interface     FoodSearch      { suspend fun search(q: String, limit: Int): List<Food> }
 interface     RecentFoods     { fun observeRecent(limit: Int): Flow<List<Food>> }
+interface     FavoriteFoods   { fun observeFavorites(): Flow<List<Food>>
+                                suspend fun setFavorite(id: FoodId, favorite: Boolean) }
 interface     CustomFoodStore { suspend fun save(food: Food): FoodId
-                                suspend fun delete(id: FoodId) }
+                                suspend fun delete(id: FoodId)
+                                suspend fun usageCount(id: FoodId): Int }
+interface     FoodUsage       { suspend fun remember(foods: Collection<Food>, at: Instant) }
 ```
+
+`BarcodeLookup` reste un croquis : rien ne le lit avant le scanner de la tranche 5. Les autres existent, et un seul adaptateur les implémente tous — la séparation paie du côté des **appelants**, pas du côté de l'implémentation. `LogDish` ne dépend que de `FoodUsage`, l'écran de recherche que de trois ports sur six.
 
 L'écran de scan ne dépend que de `BarcodeLookup`. Son test a donc besoin d'une fonction, pas d'un faux objet à quinze méthodes. C'est là que ce principe se paie : dans le volume de code de test.
 

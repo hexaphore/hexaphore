@@ -46,6 +46,7 @@ dependencies {
     implementation(projects.core.designsystem)
     implementation(projects.feature.home)
     implementation(projects.feature.entry)
+    implementation(projects.feature.search)
     implementation(projects.data.diary)
     implementation(projects.data.food)
 

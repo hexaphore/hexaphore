@@ -8,6 +8,8 @@ import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.diary.DraftLineId
 import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.diary.impactOf
+import app.hexaphore.domain.food.FoodId
+import app.hexaphore.domain.food.FoodLookup
 import app.hexaphore.domain.usecase.CreateDraft
 import app.hexaphore.domain.usecase.GetDaySummary
 import app.hexaphore.domain.usecase.GetDishDraft
@@ -47,10 +49,12 @@ internal class EntryViewModel @Inject constructor(
     private val getDishDraft: GetDishDraft,
     private val getDaySummary: GetDaySummary,
     private val createDraft: CreateDraft,
+    private val foodLookup: FoodLookup,
     private val logDish: LogDish,
     private val updateDish: UpdateDish,
 ) : ViewModel() {
     private val dishId: DishId? = savedStateHandle.get<String>(EntryDestination.DISH_ID)?.let(::DishId)
+    private val foodId: FoodId? = savedStateHandle.get<String>(EntryDestination.FOOD_ID)?.let(::FoodId)
 
     private val form = MutableStateFlow<EntryForm?>(null)
     private val status = MutableStateFlow(Status.LOADING)
@@ -141,7 +145,7 @@ internal class EntryViewModel @Inject constructor(
     private suspend fun open() {
         val id = dishId
         if (id == null) {
-            form.value = EntryForm.of(createDraft(EntrySource.MANUAL))
+            form.value = EntryForm.of(newDraft())
             status.value = Status.EDITING
             return
         }
@@ -154,6 +158,21 @@ internal class EntryViewModel @Inject constructor(
             status.value = Status.EDITING
         }
     }
+
+    /**
+     * Le brouillon d'une saisie neuve, prérempli ou non.
+     *
+     * Une fiche introuvable — supprimée entre la recherche et l'ouverture — donne un
+     * brouillon vierge plutôt qu'un écran d'erreur : il reste plus utile de saisir à
+     * la main que de repartir de zéro, et la ligne vide dit déjà qu'il n'y a rien.
+     *
+     * La source suit la provenance, et elle seule : c'est ce qui distinguera la
+     * pastille en tête d'écran, et rien d'autre dans tout l'écran n'en dépend.
+     */
+    private suspend fun newDraft() = foodId
+        ?.let { id -> runCatching { foodLookup.byId(id) }.getOrNull() }
+        ?.let { food -> createDraft(EntrySource.SEARCH, food) }
+        ?: createDraft(EntrySource.MANUAL)
 
     /**
      * Là où en est l'écran.

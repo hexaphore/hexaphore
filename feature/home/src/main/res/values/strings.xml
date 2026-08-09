@@ -23,9 +23,10 @@
     <!-- D29 : un total amputé d'une valeur inconnue ne doit pas se lire comme exact. -->
     <string name="home_incomplete_totals">Totaux minorés : certaines lignes n\'ont pas toutes leurs valeurs.</string>
 
-    <!-- Le bouton n'ouvre qu'un mode de saisie : les trois autres n'existent pas
-         encore, et un bouton qui n'ouvre rien n'est pas une avance. -->
-    <string name="home_add_dish">Ajouter</string>
+    <!-- Deux modes de saisie sur quatre : le scan et l'IA n'existent pas encore,
+         et un bouton qui n'ouvre rien n'est pas une avance. -->
+    <string name="home_add_dish">Saisir à la main</string>
+    <string name="home_search_food">Chercher</string>
 
     <!-- Aucune suppression n'est immédiatement définitive. -->
     <string name="home_entry_delete">Supprimer</string>

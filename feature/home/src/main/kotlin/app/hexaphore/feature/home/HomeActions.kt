@@ -15,6 +15,7 @@ import app.hexaphore.domain.diary.EntryId
 @Immutable
 data class HomeActions(
     val onAddDish: () -> Unit,
+    val onSearchFood: () -> Unit,
     val onEditDish: (DishId) -> Unit,
     val onDeleteEntry: (Dish, EntryId) -> Unit,
     val onUndo: () -> Unit,

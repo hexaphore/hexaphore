@@ -692,6 +692,24 @@ Le `flowOn(dispatchers.default)` disparaît aussi de cet écran. Ce qu'il produi
 
 ---
 
+## D50 — Ce que la tranche 3 ne construit pas · ✓ validée
+
+Listés ici pour cesser d'être des oublis, comme [D21](#d21--ce-que-litération-0-ne-construit-pas--par-défaut) et [D40](#d40--ce-que-la-tranche-2-ne-construit-pas--validée) l'ont fait avant.
+
+| Absent | Raison | Quand |
+|---|---|---|
+| Les **plats** favoris (`favorite_dish`, `favorite_component`) | [02](02-parcours-et-ecrans.md#modale--recherche) dit « favoris : aliments **et** plats ». Les aliments favoris existent ; les plats demandent deux tables, une action « enregistrer comme favori » sur l'écran de validation, et un rejeu qui reconstruit un brouillon à partir de fiches vivantes. C'est une capacité, pas une case à cocher. | Avec la réutilisation d'un plat entier |
+| `food_serving`, les portions nommées d'un **aliment personnel** | Les portions de CIQUAL se lisent dans `ciqual_serving` par le code source, sans copie. Une fiche personnelle a `default_serving_g`, qui couvre le cas courant. Une table que rien ne remplirait serait exactement ce que [D34](#d34--la-table-food-attend-la-tranche-qui-la-remplit--par-défaut) refusait. | Quand un aliment personnel aura besoin de plusieurs portions |
+| Les colonnes `density`, `is_liquid`, `user_edited_fields`, `fetched_at` de `food` | Même raison, appliquée colonne par colonne. La densité arrive avec le résolveur (tranche 6), les trois autres avec le cache Open Food Facts (tranche 5), qui est ce qui les remplit. La règle du projet préfère une colonne nullable ajoutée plus tard à une colonne vide ajoutée trop tôt. | Tranches 5 et 6 |
+| La suggestion « Chercher dans Open Food Facts » en dernière ligne de résultats | Elle suppose un client réseau, qui est le contenu de la tranche 5. Une ligne qui n'ouvre rien n'est pas une avance. | Tranche 5 |
+| Un brouillon **multi-lignes** transmis d'un écran à l'autre | La recherche produit une ligne, et une route la porte par son identifiant. La photo en produira cinq, et une route ne les portera pas : il faudra un brouillon en attente, partagé. Ajouter un argument de route par mode serait la première marche vers l'écran à quatre branches que le projet refuse. | Tranche 6 |
+
+**Ce que ça ne coûte pas.** La capacité annoncée par la tranche — « je cherche un aliment » — est entière : on cherche, on trouve hors-ligne, on reprend un récent, on épingle un favori, on crée ce qui manque, et la quantité recalcule les valeurs.
+
+**Une décision prise en route, qui mérite d'être écrite.** Un aliment de la table de l'ANSES entre au catalogue au moment où le plat qui le cite est enregistré, et pas au moment où on le choisit dans la liste. C'est `LogDish` qui appelle `FoodUsage.remember`, **avant** l'écriture du plat — une entrée qui désigne une fiche absente n'existe pas, la base la refuse, et l'ordre inverse aurait paru plus prudent sans jamais fonctionner. Marquer au tap aurait été plus simple et ferait remonter dans « Récents » un aliment qu'on a regardé puis abandonné : cette liste dit ce qu'on mange.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

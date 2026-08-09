@@ -4,6 +4,7 @@ import app.hexaphore.domain.food.CustomFoodStore
 import app.hexaphore.domain.food.FavoriteFoods
 import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodId
+import app.hexaphore.domain.food.FoodLookup
 import app.hexaphore.domain.food.FoodSearch
 import app.hexaphore.domain.food.FoodUsage
 import app.hexaphore.domain.food.RecentFoods
@@ -16,12 +17,12 @@ import java.time.Instant
 /**
  * Le catalogue d'aliments en mémoire.
  *
- * Ce n'est pas une béquille de test : c'est la **première implémentation** des cinq
+ * Ce n'est pas une béquille de test : c'est la **première implémentation** des six
  * ports du catalogue, celle contre laquelle les écrans sont écrits avant que Room
  * n'arrive. Basculer vers l'adaptateur Room ne change qu'une fonction du module
  * Hilt, et c'est cette propriété que sa présence ici entretient.
  *
- * Une seule classe pour cinq ports, alors que le domaine les sépare : la séparation
+ * Une seule classe pour six ports, alors que le domaine les sépare : la séparation
  * existe pour que **les appelants** ne dépendent que de ce qu'ils utilisent, pas
  * pour forcer cinq objets. L'adaptateur Room fait de même.
  *
@@ -30,6 +31,7 @@ import java.time.Instant
  */
 class InMemoryFoodCatalog(initial: List<Food> = emptyList(), var failure: Boolean = false) :
     FoodSearch,
+    FoodLookup,
     RecentFoods,
     FavoriteFoods,
     CustomFoodStore,
@@ -40,7 +42,7 @@ class InMemoryFoodCatalog(initial: List<Food> = emptyList(), var failure: Boolea
     val all: List<Food> get() = foods.value.values.toList()
 
     override suspend fun search(query: String, limit: Int): List<Food> {
-        failIfAsked()
+        failIf(failure)
         val normalised = SearchText.normalise(query)
         if (normalised.isEmpty()) return emptyList()
 
@@ -52,6 +54,8 @@ class InMemoryFoodCatalog(initial: List<Food> = emptyList(), var failure: Boolea
             .sortedWith(compareByDescending<Food> { it.useCount }.thenBy { it.name.length })
             .take(limit)
     }
+
+    override suspend fun byId(id: FoodId): Food? = foods.value[id]
 
     override fun observeRecent(limit: Int): Flow<List<Food>> = foods.map { catalogue ->
         catalogue.values
@@ -65,25 +69,25 @@ class InMemoryFoodCatalog(initial: List<Food> = emptyList(), var failure: Boolea
     }
 
     override suspend fun setFavorite(id: FoodId, favorite: Boolean) {
-        failIfAsked()
-        update(id) { it.copy(favorite = favorite) }
+        failIf(failure)
+        foods.replace(id) { it.copy(favorite = favorite) }
     }
 
     override suspend fun save(food: Food): FoodId {
-        failIfAsked()
+        failIf(failure)
         foods.value = foods.value + (food.id to food)
         return food.id
     }
 
     override suspend fun delete(id: FoodId) {
-        failIfAsked()
+        failIf(failure)
         foods.value = foods.value - id
     }
 
     override suspend fun usageCount(id: FoodId): Int = 0
 
     override suspend fun remember(foods: Collection<Food>, at: Instant) {
-        failIfAsked()
+        failIf(failure)
         foods.forEach { food ->
             // Les valeurs d'une fiche deja connue ne sont pas reecrites : une
             // correction apportee a un aliment personnel ne doit pas etre defaite
@@ -93,13 +97,15 @@ class InMemoryFoodCatalog(initial: List<Food> = emptyList(), var failure: Boolea
                 this.foods.value + (food.id to known.copy(lastUsedAt = at, useCount = known.useCount + 1))
         }
     }
+}
 
-    private fun update(id: FoodId, transform: (Food) -> Food) {
-        val food = foods.value[id] ?: return
-        foods.value = foods.value + (id to transform(food))
-    }
+/** Remplace une fiche en place, ou ne fait rien si elle n'est pas là. */
+private fun MutableStateFlow<Map<FoodId, Food>>.replace(id: FoodId, transform: (Food) -> Food) {
+    val food = value[id] ?: return
+    value = value + (id to transform(food))
+}
 
-    private fun failIfAsked() {
-        if (failure) error("Catalogue illisible")
-    }
+/** Reproduit une base illisible, pour que ce cas s'éprouve sans en corrompre une vraie. */
+private fun failIf(failure: Boolean) {
+    if (failure) error("Catalogue illisible")
 }
