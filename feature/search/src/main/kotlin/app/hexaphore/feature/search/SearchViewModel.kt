@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.hexaphore.domain.food.FavoriteFoods
 import app.hexaphore.domain.food.Food
+import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodSearch
+import app.hexaphore.domain.food.FoodStore
 import app.hexaphore.domain.food.RecentFoods
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -49,12 +51,29 @@ import javax.inject.Inject
 internal class SearchViewModel @Inject constructor(
     private val foodSearch: FoodSearch,
     private val favorites: FavoriteFoods,
+    private val store: FoodStore,
     recentFoods: RecentFoods,
 ) : ViewModel() {
     private val typed = MutableStateFlow("")
 
-    /** Ce que le champ porte, pour que l'écran de création parte du bon nom. */
+    /** Ce que le champ porte, pour que la saisie manuelle parte du bon nom. */
     val query: StateFlow<String> = typed
+
+    /**
+     * La fiche choisie, une fois **versée au catalogue**.
+     *
+     * Un résultat de la table de l'ANSES n'y est pas encore : il porte un
+     * identifiant provisoire, régénéré à chaque recherche. Le rendre tel quel à
+     * l'écran de validation le faisait chercher une fiche inexistante, et l'écran
+     * s'ouvrait vide — c'était le défaut. La fiche est donc écrite ici, et c'est son
+     * identifiant définitif qui voyage.
+     */
+    private val chosen = MutableStateFlow<FoodId?>(null)
+    val picked: StateFlow<FoodId?> = chosen
+
+    /** La fiche dont la corbeille vient d'être touchée, et ce qu'il faut en dire. */
+    private val pendingDeletion = MutableStateFlow<FoodDeletion?>(null)
+    val deletion: StateFlow<FoodDeletion?> = pendingDeletion
 
     private val results: Flow<SearchUiState?> =
         typed
@@ -92,6 +111,47 @@ internal class SearchViewModel @Inject constructor(
         viewModelScope.launch { runCatching { favorites.setFavorite(food.id, !food.favorite) } }
     }
 
+    fun onPick(food: Food) {
+        viewModelScope.launch {
+            // En cas d'echec d'ecriture, la fiche presentee sert de repli : l'ecran
+            // de validation la retrouvera par son identifiant provisoire s'il le
+            // peut, et sinon proposera une saisie vierge plutot qu'une impasse.
+            chosen.value = runCatching { store.place(food).id }.getOrDefault(food.id)
+        }
+    }
+
+    /**
+     * Demande la suppression d'une fiche personnelle.
+     *
+     * Elle n'est jamais immédiate : [docs/02][parcours] réserve le dialogue à ce qui
+     * est destructif, et supprimer un aliment utilisé dans l'historique en fait
+     * partie. Le nombre d'entrées concernées est lu avant de demander, parce que
+     * c'est lui qui fait la différence entre « êtes-vous sûr » et une vraie
+     * information.
+     *
+     * [parcours]: docs/02-parcours-et-ecrans.md
+     */
+    fun onDeleteRequested(food: Food) {
+        viewModelScope.launch {
+            val used = runCatching { store.usageCount(food.id) }.getOrDefault(0)
+            pendingDeletion.value = FoodDeletion(food, used)
+        }
+    }
+
+    fun onDeleteCancelled() {
+        pendingDeletion.value = null
+    }
+
+    fun onDeleteConfirmed() {
+        val target = pendingDeletion.value ?: return
+        pendingDeletion.value = null
+        viewModelScope.launch { runCatching { store.delete(target.food.id) } }
+    }
+
+    fun onPickHandled() {
+        chosen.value = null
+    }
+
     /**
      * `Searching` avant la lecture, et pas seulement pendant.
      *
@@ -106,6 +166,7 @@ internal class SearchViewModel @Inject constructor(
     }.catch { emit(SearchUiState.Error) }
 
     private companion object {
+        // --- Reglages ---------------------------------------------------------
         /** [D23][decisions] : la requête part 120 ms après la dernière frappe. */
         const val DEBOUNCE_MILLIS = 120L
 
@@ -127,3 +188,12 @@ internal class SearchViewModel @Inject constructor(
         const val SUBSCRIPTION_TIMEOUT_MILLIS = 5_000L
     }
 }
+
+/**
+ * Une suppression en attente de confirmation.
+ *
+ * [usedEntries] est ce qui change la phrase posée : une fiche jamais servie se
+ * supprime sans conséquence, une fiche citée par douze entrées demande qu'on dise
+ * ce qu'elles deviennent — elles survivent, avec leurs valeurs figées.
+ */
+internal data class FoodDeletion(val food: Food, val usedEntries: Int)

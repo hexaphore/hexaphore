@@ -45,6 +45,10 @@ class GetDishDraft(private val diary: DiaryRepository, private val ids: IdGenera
                     // enregistre.
                     unit = QuantityUnit.of(entry.unit, entry.grams, entry.quantity),
                     values = NutrientValues.of(entry.macros),
+                    // Reconstruite depuis ce qui a ete ecrit, sans relire la fiche :
+                    // elle a pu etre corrigee ou supprimee depuis, et un journal est
+                    // un registre d evenements.
+                    reference = DraftLine.referenceOf(NutrientValues.of(entry.macros), entry.grams),
                 )
             },
         )

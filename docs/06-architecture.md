@@ -137,7 +137,8 @@ interface     FoodSearch      { suspend fun search(q: String, limit: Int): List<
 interface     RecentFoods     { fun observeRecent(limit: Int): Flow<List<Food>> }
 interface     FavoriteFoods   { fun observeFavorites(): Flow<List<Food>>
                                 suspend fun setFavorite(id: FoodId, favorite: Boolean) }
-interface     CustomFoodStore { suspend fun save(food: Food): FoodId
+interface     FoodStore       { suspend fun place(food: Food): Food
+                                suspend fun save(food: Food): FoodId
                                 suspend fun delete(id: FoodId)
                                 suspend fun usageCount(id: FoodId): Int }
 interface     FoodUsage       { suspend fun remember(foods: Collection<Food>, at: Instant) }

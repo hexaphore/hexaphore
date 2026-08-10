@@ -35,8 +35,10 @@ internal sealed interface LineEdit {
  */
 internal fun EntryFormLine.apply(edit: LineEdit): EntryFormLine = when (edit) {
     is LineEdit.Name -> copy(name = edit.value)
-    is LineEdit.Quantity -> copy(quantity = edit.value)
-    is LineEdit.Measurement -> copy(unit = edit.value)
-    is LineEdit.MacroValue -> copy(macros = macros + (edit.macro to edit.value))
+    // La quantite et l unite reecrivent les valeurs ; une valeur ecrite a la main
+    // se marque et cesse de suivre.
+    is LineEdit.Quantity -> remeasured(edit.value)
+    is LineEdit.Measurement -> remeasured(quantity, edit.value)
+    is LineEdit.MacroValue -> copy(macros = macros + (edit.macro to edit.value), edited = edited + edit.macro)
     LineEdit.ToggleDetails -> copy(expanded = !expanded)
 }

@@ -18,9 +18,21 @@
     <string name="search_pin">Épingler %1$s</string>
     <string name="search_unpin">Retirer %1$s des favoris</string>
 
-    <!-- Rien trouvé : on propose de créer, avec le nom déjà tapé. -->
+    <!-- La saisie manuelle est permanente, pas un lot de consolation : un reste de
+         la veille n'a pas de nom qu'on aurait envie de chercher. -->
+    <string name="search_manual_entry">Saisie manuelle</string>
+    <string name="search_manual_entry_named">Saisir « %1$s » à la main</string>
+
     <string name="search_no_result">Aucun aliment ne correspond à « %1$s ».</string>
-    <string name="search_create">Créer « %1$s »</string>
+
+    <!-- Ce que l'utilisateur a saisi lui-même se voit, et lui seul se supprime. -->
+    <string name="search_own_food">Mon aliment</string>
+    <string name="search_delete">Supprimer %1$s</string>
+    <string name="search_delete_title">Supprimer « %1$s » ?</string>
+    <string name="search_delete_unused">Cet aliment n\'a jamais servi. Sa fiche disparaît du catalogue.</string>
+    <string name="search_delete_used">Cet aliment est utilisé dans %1$d entrée(s) de votre journal. Elles sont conservées telles quelles, avec leurs valeurs : seule la fiche disparaît.</string>
+    <string name="search_delete_confirm">Supprimer</string>
+    <string name="search_delete_cancel">Annuler</string>
 
     <string name="search_error_title">Recherche impossible</string>
     <string name="search_error_body">La lecture du catalogue n\'a pas abouti. Rien n\'a été modifié.</string>
@@ -28,6 +40,9 @@
 
     <!-- Formulaire d'aliment personnel. -->
     <string name="custom_title">Nouvel aliment</string>
+    <!-- Les valeurs se saisissent pour 100 g, comme sur toute fiche : c'est ce qui
+         permet ensuite a la quantite de les recalculer. -->
+    <string name="custom_subtitle">Il rejoindra vos aliments et reviendra dans les recherches.</string>
     <string name="custom_field_name">Nom</string>
     <string name="custom_field_brand">Marque (facultatif)</string>
     <string name="custom_field_serving">Portion habituelle en grammes (facultatif)</string>

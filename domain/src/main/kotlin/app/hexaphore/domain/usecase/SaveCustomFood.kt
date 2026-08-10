@@ -1,10 +1,10 @@
 package app.hexaphore.domain.usecase
 
 import app.hexaphore.domain.food.CustomFoodDraft
-import app.hexaphore.domain.food.CustomFoodStore
 import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodSource
+import app.hexaphore.domain.food.FoodStore
 import app.hexaphore.domain.identity.IdGenerator
 
 /**
@@ -21,7 +21,7 @@ import app.hexaphore.domain.identity.IdGenerator
  *
  * [decisions]: docs/11-decisions.md
  */
-class SaveCustomFood(private val store: CustomFoodStore, private val ids: IdGenerator) {
+class SaveCustomFood(private val store: FoodStore, private val ids: IdGenerator) {
     /**
      * @throws IllegalArgumentException si la fiche n'a ni nom ni énergie. Le
      *   formulaire empêche le cas ; la vérification est là pour qu'un futur appelant

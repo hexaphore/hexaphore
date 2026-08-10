@@ -103,6 +103,11 @@ private fun Form(state: CustomFoodUiState.Editing, actions: CustomFoodActions) {
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
+        Text(
+            text = stringResource(R.string.custom_subtitle),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
 
         IdentityFields(state.form, actions)
         NutrientFields(state.form, actions)

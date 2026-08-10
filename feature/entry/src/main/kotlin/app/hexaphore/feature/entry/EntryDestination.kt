@@ -29,7 +29,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class EntryDestination(val dishId: String? = null, val foodId: String? = null) {
-    internal companion object {
+    companion object {
         /**
          * Le nom sous lequel l'argument arrive dans le `SavedStateHandle`.
          *
@@ -42,10 +42,24 @@ data class EntryDestination(val dishId: String? = null, val foodId: String? = nu
          * exige un appareil ou Robolectric. Un `ViewModel` qu'on ne peut pas
          * instancier dans un test JVM pour lire un argument est un mauvais échange.
          */
-        val DISH_ID: String = EntryDestination::dishId.name
+        internal val DISH_ID: String = EntryDestination::dishId.name
 
         /** Idem, pour la fiche d'où part une saisie neuve. */
-        val FOOD_ID: String = EntryDestination::foodId.name
+        internal val FOOD_ID: String = EntryDestination::foodId.name
+
+        /**
+         * La clé sous laquelle la recherche dépose la fiche choisie pour cet écran.
+         *
+         * Le passage par le `SavedStateHandle` de l'entrée précédente est le chemin
+         * que la navigation Compose prévoit pour un résultat. L'alternative aurait
+         * été un objet partagé entre les deux écrans, qui survivrait à leur
+         * disparition et qu'il faudrait penser à vider.
+         *
+         * **Ce chemin s'arrête à une ligne.** La photo de la tranche 6 en produira
+         * cinq, et un `SavedStateHandle` ne portera pas un brouillon entier : il
+         * faudra alors un brouillon en attente, partagé.
+         */
+        const val PICKED_FOOD: String = "picked_food"
     }
 }
 
@@ -65,8 +79,8 @@ fun NavController.navigateToEntryFor(foodId: FoodId) {
  * Le module expose son entrée plutôt que sa composable : `:app` assemble des
  * graphes sans avoir à connaître les arguments de chaque écran.
  */
-fun NavGraphBuilder.entryScreen(onClose: () -> Unit) {
+fun NavGraphBuilder.entryScreen(onAddFood: () -> Unit, onClose: () -> Unit) {
     composable<EntryDestination> {
-        EntryRoute(onClose = onClose)
+        EntryRoute(onAddFood = onAddFood, onClose = onClose)
     }
 }

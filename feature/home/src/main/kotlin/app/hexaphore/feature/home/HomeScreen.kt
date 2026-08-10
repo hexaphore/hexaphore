@@ -7,13 +7,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -45,7 +41,7 @@ import kotlin.math.roundToInt
 
 /** L'accueil, branché sur le graphe d'injection. */
 @Composable
-fun HomeRoute(onAddDish: () -> Unit, onSearchFood: () -> Unit, onEditDish: (DishId) -> Unit) {
+fun HomeRoute(onAddDish: () -> Unit, onEditDish: (DishId) -> Unit) {
     val viewModel: HomeViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val pendingUndo by viewModel.pendingUndo.collectAsStateWithLifecycle()
@@ -53,10 +49,9 @@ fun HomeRoute(onAddDish: () -> Unit, onSearchFood: () -> Unit, onEditDish: (Dish
     HomeScreen(
         state = state,
         pendingUndo = pendingUndo,
-        actions = remember(viewModel, onAddDish, onSearchFood, onEditDish) {
+        actions = remember(viewModel, onAddDish, onEditDish) {
             HomeActions(
                 onAddDish = onAddDish,
-                onSearchFood = onSearchFood,
                 onEditDish = onEditDish,
                 onDeleteEntry = viewModel::onDeleteEntry,
                 onUndo = viewModel::onUndo,
@@ -102,21 +97,13 @@ fun HomeScreen(state: HomeUiState, pendingUndo: Dish?, actions: HomeActions, mod
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            // Deux boutons et non l'arc de quatre actions de docs/02 : le scan et
-            // l'IA n'existent pas encore, et un bouton qui n'ouvre rien n'est pas
-            // une avance. La recherche passe devant parce que c'est le chemin le
-            // plus court vers une saisie juste -- la main ne sert qu'a ce que la
-            // table ne connait pas.
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                SmallFloatingActionButton(onClick = actions.onAddDish) {
-                    Icon(
-                        imageVector = Icons.Filled.Edit,
-                        contentDescription = stringResource(R.string.home_add_dish),
-                    )
-                }
-                ExtendedFloatingActionButton(onClick = actions.onSearchFood) {
-                    Text(text = stringResource(R.string.home_search_food))
-                }
+            // Un seul bouton, et non l'arc de quatre actions de docs/02 : le scan
+            // et l'IA n'existent pas encore, et un bouton qui n'ouvre rien n'est pas
+            // une avance. Il ouvre la recherche, qui porte aussi la saisie manuelle
+            // -- un aliment tape a la main devient une fiche, donc il se cherche
+            // comme les autres et il n'y a plus deux portes a distinguer.
+            ExtendedFloatingActionButton(onClick = actions.onAddDish) {
+                Text(text = stringResource(R.string.home_add_dish))
             }
         },
     ) { padding ->

@@ -160,9 +160,11 @@ Recherche locale sur trois sources fusionnées et ordonnées :
 
 Accents et casse ignorés (« creme brulee » trouve « crème brûlée »). Chaque résultat affiche nom, marque éventuelle, et calories pour 100 g — assez pour choisir sans ouvrir.
 
-Tap → écran de validation avec la quantité par défaut de l'aliment (voir [04](04-sources-de-donnees.md#portions-usuelles)).
+Tap → écran de validation avec la quantité par défaut de l'aliment (voir [04](04-sources-de-donnees.md#portions-usuelles)). La fiche est **versée au catalogue au moment du choix** : un aliment de la table n'y est pas avant, et son identifiant provisoire ne désignerait rien ([D51](11-decisions.md)).
 
-**Aucun résultat.** Bouton « Créer *« pâtes de mamie »* » qui ouvre le formulaire d'aliment personnel avec le nom pré-rempli.
+**La saisie manuelle est ici, en permanence.** C'est le seul point d'entrée d'une saisie, et taper un aliment à la main y **crée une fiche** : elle revient ensuite dans cette liste, se reprend en un tap, et sa quantité recalcule ses valeurs comme celle de n'importe quel autre. Le bouton passe en plein quand la recherche ne rend rien, avec le nom déjà tapé.
+
+**Ce que l'utilisateur a saisi lui-même se voit**, et lui seul porte une corbeille — une ligne de la table est une référence publiée. La suppression demande confirmation et dit ce qu'elle coûte : les entrées de journal qui citaient la fiche sont conservées telles quelles, avec leurs valeurs figées ([D51](11-decisions.md)).
 
 ---
 
@@ -185,12 +187,12 @@ Le point de convergence. Une ou plusieurs lignes, chacune éditable, un bouton d
 Chaque ligne présente :
 
 - **Nom de l'aliment**. Pas de source par ligne : elle appartient au plat, et le badge se pose une fois en tête d'écran ([D32](11-decisions.md)). À partir de la tranche 6, une ligne dont les chiffres sont une **estimation** plutôt qu'une correspondance porte un marqueur — l'utilisateur doit savoir quand un chiffre est une supposition, mais c'est une propriété de la valeur, pas une seconde source.
-- **Quantité** : champ numérique + sélecteur d'unité (g, ml, et les portions nommées disponibles pour cet aliment : « 1 tranche », « 1 verre »). Les macros se recalculent en direct. *Ces deux points supposent une fiche d'aliment : les portions nommées lui appartiennent, et le recalcul part de ses valeurs pour 100 g. Une ligne saisie à la main n'en a pas — elle porte les valeurs telles qu'elles ont été tapées, en grammes ou en millilitres ([D42](11-decisions.md)).*
+- **Quantité** : champ numérique + sélecteur d'unité (g, ml, et les portions nommées disponibles pour cet aliment : « 1 tranche », « 1 verre »). Les macros se recalculent en direct, à partir de la **référence pour 100 g** que la ligne porte — capturée à sa naissance, et reconstruite depuis les valeurs figées quand on rouvre un plat. Le recalcul ne relit donc jamais la fiche, qui a pu être corrigée ou supprimée depuis ([D51](11-decisions.md)).
 - **Confiance IA**, sur les lignes issues d'une analyse : une correspondance faible est visuellement signalée et propose jusqu'à 3 aliments alternatifs, sans obliger à choisir.
-- **Macros dépliables** : les six valeurs, chacune éditable. Une valeur modifiée à la main est marquée et ne sera plus jamais recalculée automatiquement pour cette ligne.
+- **Macros dépliables** : les six valeurs, chacune éditable. Une valeur modifiée à la main est marquée et ne sera plus jamais recalculée automatiquement pour cette ligne. Vider un champ compte comme une modification : c'est une affirmation, et la quantité n'a pas à la contredire.
 - **Date** : aujourd'hui par défaut, ou la date consultée si on vient d'un jour passé. Il n'y a **pas** de repas de destination à choisir : les lignes de cet écran forment un plat, et le plat se range tout seul à son heure.
 
-En bas du défilement : total de la saisie, et son impact sur les compteurs du jour (« il vous restera 780 kcal »), avec **Ajouter une ligne**. **Enregistrer** et **Annuler** n'y sont pas : ils flottent au-dessus de la liste, côte à côte et toujours à l'image, parce qu'en pied de défilement ils s'éloignaient à mesure que le plat grossissait ([D48](11-decisions.md)). Les autres actions — **Supprimer une ligne**, **Enregistrer comme plat favori** — restent auprès de ce sur quoi elles portent.
+En bas du défilement : total de la saisie, et son impact sur les compteurs du jour (« il vous restera 780 kcal »), avec **Ajouter un aliment** — qui rouvre la même recherche que le bouton de l'accueil, et dont le choix revient au brouillon en cours. **Enregistrer** et **Annuler** n'y sont pas : ils flottent au-dessus de la liste, côte à côte et toujours à l'image, parce qu'en pied de défilement ils s'éloignaient à mesure que le plat grossissait ([D48](11-decisions.md)). Les autres actions — **Supprimer une ligne**, **Enregistrer comme plat favori** — restent auprès de ce sur quoi elles portent.
 
 **Deux chemins pour supprimer une ligne**, et les deux sont nécessaires : une corbeille visible à droite du nom, et le balayage. Un geste sans représentation visible est introuvable pour qui ne le connaît pas, hors d'atteinte au lecteur d'écran, et difficile pour une main qui tient mal le téléphone. Le balayage reste le raccourci de celui qui le connaît, jamais le seul chemin vers une action destructrice.
 

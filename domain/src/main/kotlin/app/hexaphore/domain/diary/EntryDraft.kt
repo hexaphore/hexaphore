@@ -3,6 +3,7 @@ package app.hexaphore.domain.diary
 import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.identity.IdGenerator
+import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.nutrition.NutrientValues
 import java.time.LocalDate
 
@@ -72,6 +73,34 @@ data class DraftLine(
      * rien qui puisse dire ce que pèse une tranche.
      */
     val servings: List<QuantityUnit.Serving> = emptyList(),
+    /**
+     * Les valeurs pour 100 g dont cette ligne dérive.
+     *
+     * C'est elle qui permet à la quantité de recalculer, et **elle ne vient pas de
+     * la fiche courante** : elle est capturée à la naissance de la ligne, et
+     * reconstruite depuis les valeurs figées quand on rouvre un plat. Un fabricant
+     * qui reformule son produit ne doit pas réécrire un journal vieux de six mois
+     * ([D05][decisions]) — corriger une quantité ne doit pas être l'occasion d'aller
+     * relire une fiche qui a changé, ni d'en exiger une qui a pu être supprimée.
+     *
+     * `null` quand il n'y a rien à recalculer : une ligne vierge, ou une ligne dont
+     * la quantité enregistrée était nulle et ne permet aucune règle de trois.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val reference: NutrientValues? = null,
+    /**
+     * Les valeurs que l'utilisateur a écrites lui-même.
+     *
+     * Elles ne sont **plus jamais recalculées** pour cette ligne, ce que
+     * [docs/02][parcours] demande depuis la conception. Corriger les calories d'une
+     * pomme parce que la sienne est petite, puis voir le chiffre revenir en changeant
+     * d'unité, serait incompréhensible — et la correction serait perdue sans que rien
+     * ne prévienne.
+     *
+     * [parcours]: docs/02-parcours-et-ecrans.md
+     */
+    val edited: Set<Macro> = emptySet(),
 ) {
     /** La quantité convertie en grammes, base de tout calcul. */
     val grams: Double? get() = quantity?.times(unit.gramsPerUnit)
@@ -92,6 +121,44 @@ data class DraftLine(
 
     /** Les unités proposées pour cette ligne : les deux universelles, puis ses portions. */
     val units: List<QuantityUnit> get() = QuantityUnit.universal + servings
+
+    /**
+     * La même ligne, pour une autre quantité.
+     *
+     * **Les valeurs suivent, sauf celles qu'on a corrigées à la main.** C'est le
+     * point où le recalcul demandé par [docs/02][parcours] a enfin une référence, et
+     * c'est aussi le point où il pouvait le plus facilement effacer le travail de
+     * l'utilisateur.
+     *
+     * Sans [reference], rien ne bouge : une ligne dont on ne connaît pas les valeurs
+     * pour 100 g n'a aucune règle de trois à appliquer, et en inventer une
+     * réécrirait des chiffres que personne n'a donnés ([D42][decisions]).
+     *
+     * [parcours]: docs/02-parcours-et-ecrans.md
+     * [decisions]: docs/11-decisions.md
+     */
+    fun measured(quantity: Double?, unit: QuantityUnit = this.unit): DraftLine {
+        val moved = copy(quantity = quantity, unit = unit)
+        val scaled = moved.grams?.let { grams -> reference?.per(grams) }
+        return when (scaled) {
+            null -> moved
+            else -> moved.copy(values = scaled.keeping(edited, values))
+        }
+    }
+
+    /** Les valeurs recalculées, celles corrigées à la main laissées telles quelles. */
+    private fun NutrientValues.keeping(edited: Set<Macro>, corrections: NutrientValues): NutrientValues =
+        edited.fold(this) { values, macro -> values.with(macro, corrections[macro]) }
+
+    /**
+     * La même ligne, une valeur corrigée à la main.
+     *
+     * La marque est posée même quand la valeur est effacée : vider un champ est une
+     * affirmation — « je ne sais pas » — et la quantité n'a pas à la contredire au
+     * gramme suivant.
+     */
+    fun corrected(macro: Macro, value: Double?): DraftLine =
+        copy(values = values.with(macro, value), edited = edited + macro)
 
     companion object {
         /** Une ligne vierge, telle que la produit « Ajouter une ligne ». */
@@ -125,7 +192,27 @@ data class DraftLine(
                 unit = unit ?: QuantityUnit.Gram,
                 values = food.per100g.per(quantity * (unit?.gramsPerUnit ?: 1.0)),
                 servings = servings,
+                reference = food.per100g,
             )
+        }
+
+        /**
+         * Une ligne rouverte, avec la référence reconstruite depuis ses valeurs figées.
+         *
+         * La règle de trois est exacte et **ne relit aucune fiche** : les valeurs
+         * affichées à l'ouverture restent celles enregistrées ce jour-là, puisque la
+         * quantité n'a pas bougé. C'est seulement en la changeant qu'elles suivent —
+         * et elles suivent la ligne, pas la fiche, qui a pu être corrigée ou
+         * supprimée depuis ([D05][decisions]).
+         *
+         * [decisions]: docs/11-decisions.md
+         */
+        fun referenceOf(values: NutrientValues, grams: Double): NutrientValues? {
+            // Une quantite nulle ne permet aucune regle de trois. La ligne se
+            // modifie quand meme, ses valeurs ne suivront simplement pas.
+            if (grams <= 0.0) return null
+            val hundredGrams = NutrientValues.REFERENCE_GRAMS
+            return values.per(hundredGrams * hundredGrams / grams)
         }
     }
 }

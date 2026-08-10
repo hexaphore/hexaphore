@@ -1,9 +1,8 @@
 package app.hexaphore.feature.search
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -11,11 +10,6 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -27,7 +21,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -38,36 +31,63 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.hexaphore.core.designsystem.component.NeonButton
 import app.hexaphore.core.designsystem.component.NeonButtonStyle
-import app.hexaphore.core.designsystem.theme.NeonTheme
 import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodId
-import app.hexaphore.domain.nutrition.Macro
-import kotlin.math.roundToInt
 
 /** L'écran de recherche, branché sur le graphe d'injection. */
 @Composable
 internal fun SearchRoute(
     onPick: (FoodId) -> Unit,
-    onCreate: (String) -> Unit,
+    onManualEntry: (String) -> Unit,
     onClose: () -> Unit,
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
+    val picked by viewModel.picked.collectAsStateWithLifecycle()
+    val deletion by viewModel.deletion.collectAsStateWithLifecycle()
+
+    // La fiche est versee au catalogue avant de partir : un resultat de la table de
+    // l'ANSES n'a qu'un identifiant provisoire tant qu'il n'y est pas ecrit, et
+    // l'ecran de validation ne le retrouverait pas -- il s'ouvrirait vide.
+    LaunchedEffect(picked) {
+        val id = picked ?: return@LaunchedEffect
+        viewModel.onPickHandled()
+        onPick(id)
+    }
 
     SearchScreen(
         state = state,
-        onQueryChange = viewModel::onQueryChange,
-        onPick = onPick,
-        onToggleFavorite = viewModel::onToggleFavorite,
-        onCreate = { onCreate(query.trim()) },
-        onClose = onClose,
+        query = query,
+        actions = remember(viewModel, onManualEntry, onClose) {
+            SearchActions(
+                onQueryChange = viewModel::onQueryChange,
+                onPick = viewModel::onPick,
+                onToggleFavorite = viewModel::onToggleFavorite,
+                onDelete = viewModel::onDeleteRequested,
+                onManualEntry = onManualEntry,
+                onClose = onClose,
+            )
+        },
     )
+
+    deletion?.let {
+        DeleteConfirmation(
+            deletion = it,
+            onConfirm = viewModel::onDeleteConfirmed,
+            onDismiss = viewModel::onDeleteCancelled,
+        )
+    }
 }
 
 /**
  * La recherche, sans état.
+ *
+ * **C'est le seul point d'entrée d'une saisie**, et la saisie manuelle y est une
+ * branche permanente plutôt qu'une porte à côté. Un aliment tapé à la main devient
+ * une fiche : il se retrouve ensuite dans cette liste, se reprend en un tap, et sa
+ * quantité recalcule ses valeurs comme celle de n'importe quel autre.
  *
  * **Le champ tient son propre texte** ([D45][decisions]) : faire transiter la frappe
  * par un `StateFlow` fait reculer le curseur en frappe rapide, et c'est justement
@@ -78,15 +98,7 @@ internal fun SearchRoute(
  * @see docs/02-parcours-et-ecrans.md
  */
 @Composable
-internal fun SearchScreen(
-    state: SearchUiState,
-    onQueryChange: (String) -> Unit,
-    onPick: (FoodId) -> Unit,
-    onToggleFavorite: (Food) -> Unit,
-    onCreate: () -> Unit,
-    onClose: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+internal fun SearchScreen(state: SearchUiState, query: String, actions: SearchActions, modifier: Modifier = Modifier) {
     Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -95,17 +107,47 @@ internal fun SearchScreen(
                 .padding(horizontal = Spacing.screenMargin),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            QueryField(onQueryChange)
+            QueryField(actions.onQueryChange)
 
-            when (state) {
-                is SearchUiState.Shortcuts -> Shortcuts(state, onPick, onToggleFavorite)
-                SearchUiState.Searching -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                is SearchUiState.Results -> FoodList(state.foods, onPick, onToggleFavorite)
-                is SearchUiState.Empty -> NoResult(state.query, onCreate)
-                SearchUiState.Error -> ReadFailed(onClose)
+            Box(modifier = Modifier.weight(1f)) {
+                when (state) {
+                    is SearchUiState.Shortcuts -> Shortcuts(state, actions)
+                    SearchUiState.Searching -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    is SearchUiState.Results -> FoodList(state.foods, actions)
+                    is SearchUiState.Empty -> NoResult(state.query)
+                    SearchUiState.Error -> ReadFailed(actions.onClose)
+                }
             }
+
+            if (state != SearchUiState.Error) ManualEntry(state, query, actions.onManualEntry)
         }
     }
+}
+
+/**
+ * La saisie manuelle, toujours à l'image.
+ *
+ * Permanente et non réservée au cas où la recherche ne rend rien : un reste de la
+ * veille n'a pas de nom qu'on aurait envie de chercher, et obliger à taper deux
+ * lettres pour découvrir le bouton serait un détour payé à chaque fois. Elle passe
+ * en bouton plein quand la recherche n'a rien trouvé — c'est alors la seule chose à
+ * faire.
+ */
+@Composable
+private fun ManualEntry(state: SearchUiState, query: String, onManualEntry: (String) -> Unit) {
+    val named = state is SearchUiState.Empty
+    NeonButton(
+        text = if (named) {
+            stringResource(R.string.search_manual_entry_named, query.trim())
+        } else {
+            stringResource(R.string.search_manual_entry)
+        },
+        onClick = { onManualEntry(query.trim()) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = Spacing.md),
+        style = if (named) NeonButtonStyle.FILLED else NeonButtonStyle.OUTLINED,
+    )
 }
 
 /**
@@ -140,7 +182,7 @@ private fun QueryField(onQueryChange: (String) -> Unit) {
 }
 
 @Composable
-private fun Shortcuts(state: SearchUiState.Shortcuts, onPick: (FoodId) -> Unit, onToggleFavorite: (Food) -> Unit) {
+private fun Shortcuts(state: SearchUiState.Shortcuts, actions: SearchActions) {
     if (state.recent.isEmpty() && state.favorites.isEmpty()) {
         Empty(
             title = stringResource(R.string.search_first_title),
@@ -152,88 +194,29 @@ private fun Shortcuts(state: SearchUiState.Shortcuts, onPick: (FoodId) -> Unit, 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         if (state.favorites.isNotEmpty()) {
             item(key = "favoris") { SectionTitle(stringResource(R.string.search_favorites)) }
-            items(state.favorites, key = { "fav-${it.id.value}" }) { FoodRow(it, onPick, onToggleFavorite) }
+            items(state.favorites, key = { "fav-" + it.id.value }) { FoodRow(it, actions) }
         }
         if (state.recent.isNotEmpty()) {
             item(key = "recents") { SectionTitle(stringResource(R.string.search_recent)) }
-            items(state.recent, key = { "rec-${it.id.value}" }) { FoodRow(it, onPick, onToggleFavorite) }
+            items(state.recent, key = { "rec-" + it.id.value }) { FoodRow(it, actions) }
         }
     }
 }
 
 @Composable
-private fun FoodList(foods: List<Food>, onPick: (FoodId) -> Unit, onToggleFavorite: (Food) -> Unit) {
+private fun FoodList(foods: List<Food>, actions: SearchActions) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        items(foods, key = { it.id.value }) { FoodRow(it, onPick, onToggleFavorite) }
-    }
-}
-
-/**
- * Un résultat : nom, marque, et calories pour 100 g — assez pour choisir sans ouvrir.
- *
- * **Une énergie inconnue s'affiche « — » et non « 0 kcal ».** 143 aliments de la
- * table sont dans ce cas, et ce ne sont pas des rebuts : la feta, les câpres, la
- * canneberge. Les montrer à zéro calorie serait mentir sur une donnée qui manque.
- */
-@Composable
-private fun FoodRow(food: Food, onPick: (FoodId) -> Unit, onToggleFavorite: (Food) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onPick(food.id) }
-            .padding(vertical = Spacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = food.name,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            food.brand?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        Text(
-            text = food.per100g.kcal
-                ?.let { stringResource(R.string.search_kcal_per_100g, it.roundToInt()) }
-                ?: stringResource(R.string.search_unknown_energy),
-            style = MaterialTheme.typography.labelSmall,
-            color = NeonTheme.macros[Macro.CALORIES].base,
-        )
-        IconButton(onClick = { onToggleFavorite(food) }) {
-            Icon(
-                imageVector = if (food.favorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                contentDescription = stringResource(
-                    if (food.favorite) R.string.search_unpin else R.string.search_pin,
-                    food.name,
-                ),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        items(foods, key = { it.id.value }) { FoodRow(it, actions) }
     }
 }
 
 @Composable
-private fun NoResult(query: String, onCreate: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        Text(
-            text = stringResource(R.string.search_no_result, query),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        NeonButton(
-            text = stringResource(R.string.search_create, query),
-            onClick = onCreate,
-            modifier = Modifier.fillMaxWidth(),
-            style = NeonButtonStyle.FILLED,
-        )
-    }
+private fun NoResult(query: String) {
+    Text(
+        text = stringResource(R.string.search_no_result, query),
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable

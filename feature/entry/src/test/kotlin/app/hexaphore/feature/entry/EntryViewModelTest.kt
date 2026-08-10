@@ -11,9 +11,13 @@ import app.hexaphore.domain.diary.DraftLineId
 import app.hexaphore.domain.diary.EntryId
 import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.diary.FoodEntry
+import app.hexaphore.domain.food.Food
+import app.hexaphore.domain.food.FoodId
+import app.hexaphore.domain.food.FoodSource
 import app.hexaphore.domain.goal.DailyGoal
 import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.nutrition.Macros
+import app.hexaphore.domain.nutrition.NutrientValues
 import app.hexaphore.domain.usecase.CreateDraft
 import app.hexaphore.domain.usecase.GetDaySummary
 import app.hexaphore.domain.usecase.GetDishDraft
@@ -23,7 +27,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -71,8 +77,9 @@ class EntryViewModelTest {
         // reecrire a chaque nouveau mode de saisie.
         val viewModel = viewModel()
 
-        viewModel.onAddLine()
-        viewModel.onAddLine()
+        ajouterAliment(RIZ)
+        ajouterAliment(POULET)
+        advanceUntilIdle()
 
         assertEquals(3, viewModel.content().form.lines.size)
     }
@@ -97,7 +104,9 @@ class EntryViewModelTest {
         val premiere = viewModel.content().form.lines.single().id
         remplir(viewModel, premiere)
 
-        viewModel.onAddLine()
+        handle[EntryDestination.PICKED_FOOD] = "inconnu"
+        advanceUntilIdle()
+        viewModel.onLineEdit(premiere, LineEdit.Quantity(""))
 
         assertFalse(viewModel.content().saveable)
     }
@@ -106,7 +115,8 @@ class EntryViewModelTest {
     fun `enregistrer ecrit un plat avec toutes ses lignes`() = runTest(dispatcher) {
         val viewModel = viewModel()
         remplir(viewModel, viewModel.content().form.lines.single().id)
-        viewModel.onAddLine()
+        ajouterAliment(POULET)
+        advanceUntilIdle()
         remplir(viewModel, viewModel.content().form.lines.last().id, nom = "Poulet")
 
         viewModel.onSave()
@@ -131,7 +141,8 @@ class EntryViewModelTest {
     @Test
     fun `supprimer une ligne la retire du brouillon`() = runTest(dispatcher) {
         val viewModel = viewModel()
-        viewModel.onAddLine()
+        ajouterAliment(RIZ)
+        advanceUntilIdle()
         val aSupprimer = viewModel.content().form.lines.first().id
 
         viewModel.onRemoveLine(aSupprimer)
@@ -236,8 +247,24 @@ class EntryViewModelTest {
     private suspend fun EntryViewModel.content(): EntryUiState.Content =
         uiState.filterIsInstance<EntryUiState.Content>().first()
 
+    /**
+     * Le canal par lequel la recherche depose une fiche pour cet ecran.
+     *
+     * Les tests l'utilisent tel quel plutot que d'appeler une methode d'ajout : c'est
+     * le vrai chemin depuis que « Ajouter un aliment » rouvre la recherche, et un
+     * raccourci de test aurait cesse d'eprouver ce qui se passe vraiment.
+     */
+    private lateinit var handle: SavedStateHandle
+
+    private fun ajouterAliment(food: Food = RIZ) {
+        catalogue.let { runBlocking { it.save(food) } }
+        handle[EntryDestination.PICKED_FOOD] = food.id.value
+    }
+
     private fun viewModel(dishId: String? = null) = EntryViewModel(
-        savedStateHandle = SavedStateHandle(if (dishId == null) emptyMap() else mapOf("dishId" to dishId)),
+        savedStateHandle = SavedStateHandle(
+            if (dishId == null) emptyMap() else mapOf("dishId" to dishId),
+        ).also { handle = it },
         getDishDraft = GetDishDraft(diary, ids),
         getDaySummary = GetDaySummary(diary, clock),
         createDraft = CreateDraft(clock, ids),
@@ -245,4 +272,22 @@ class EntryViewModelTest {
         logDish = LogDish(diary, catalogue, clock, ids),
         updateDish = UpdateDish(diary, ids),
     )
+
+    private companion object {
+        val RIZ = Food(
+            id = FoodId("f-riz"),
+            source = FoodSource.CIQUAL,
+            sourceRef = "9104",
+            name = "Riz blanc, cuit",
+            per100g = NutrientValues(kcal = 155.0),
+        )
+
+        val POULET = Food(
+            id = FoodId("f-poulet"),
+            source = FoodSource.CIQUAL,
+            sourceRef = "36005",
+            name = "Poulet roti",
+            per100g = NutrientValues(kcal = 200.0),
+        )
+    }
 }

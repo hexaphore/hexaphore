@@ -42,6 +42,9 @@ class CreateDraft(private val clock: Clock, private val ids: IdGenerator) {
         lines = listOf(DraftLine.of(DraftLineId(ids.next()), food)),
     )
 
-    /** Une ligne vierge de plus, telle que la produit « Ajouter une ligne ». */
+    /** Une ligne vierge de plus. Sert de repli quand aucune fiche n'est disponible. */
     fun line(): DraftLine = DraftLine.blank(DraftLineId(ids.next()))
+
+    /** Une ligne de plus, préremplie depuis une fiche — ce que produit « Ajouter un aliment ». */
+    fun line(food: Food): DraftLine = DraftLine.of(DraftLineId(ids.next()), food)
 }
