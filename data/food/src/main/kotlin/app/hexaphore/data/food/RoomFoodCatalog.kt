@@ -16,6 +16,8 @@ import app.hexaphore.domain.food.SearchText
 import app.hexaphore.domain.identity.IdGenerator
 import app.hexaphore.domain.time.Clock
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -60,20 +62,28 @@ class RoomFoodCatalog @Inject constructor(
      * garde [limit]. Prendre moins de chaque côté ferait dépendre le résultat de la
      * provenance : une recherche qui rend dix aliments personnels n'a aucune raison
      * de rendre en plus dix lignes de l'ANSES moins pertinentes.
+     *
+     * **Le flux vient du catalogue local, et lui seul rythme les ré-émissions.** Room
+     * invalide sur écriture — épingler, supprimer, verser une fiche — et c'est ce qui
+     * fait suivre les résultats sans qu'on relance la recherche ([D53][decisions]).
+     * La table de l'ANSES, livrée en lecture seule, ne change jamais : la relire à
+     * chaque invalidation coûte deux requêtes sur des libellés courts, et c'est ce
+     * qui garde la fusion et le dédoublonnage justes quand une fiche vient d'être
+     * copiée.
+     *
+     * [decisions]: docs/11-decisions.md
      */
-    override suspend fun search(query: String, limit: Int): List<Food> = withContext(dispatchers.io) {
+    override fun search(query: String, limit: Int): Flow<List<Food>> {
         val normalised = SearchText.normalise(query)
-        if (normalised.isBlank()) return@withContext emptyList()
+        if (normalised.isBlank()) return flowOf(emptyList())
 
-        val local = dao.search(normalised, limit).map { it.toDomain() }
-        val alreadyCopied = local.mapNotNullTo(mutableSetOf()) { it.sourceRef.takeIf { _ -> it.isFromCiqual } }
-
-        val fromCiqual = ciqual
-            .search(normalised, limit)
-            .filterNot { it.code in alreadyCopied }
-            .map { row -> row.toDomain(FoodId(ids.next()), ciqual.servings(row.code)) }
-
-        FoodRanking.sort(local + fromCiqual, query).take(limit)
+        return dao
+            .observeSearch(normalised, limit)
+            .map { rows -> ciqual.mergedWith(rows.map { it.toDomain() }, normalised, query, limit, ids) }
+            // La fusion lit la base de l'ANSES : sans cela, ces lectures SQLite se
+            // feraient sur le dispatcher de celui qui collecte, c'est-a-dire le fil
+            // principal.
+            .flowOn(dispatchers.io)
     }
 
     override suspend fun byId(id: FoodId): Food? = withContext(dispatchers.io) {
@@ -131,6 +141,35 @@ class RoomFoodCatalog @Inject constructor(
             dao.markUsed(stored.id.value, at.toEpochMilli())
         }
     }
+}
+
+/**
+ * Les lignes de l'ANSES que le catalogue n'a pas encore copiées, ajoutées et classées.
+ *
+ * Hors de la classe pour la même raison que [servingsOf] juste dessous : c'est une
+ * lecture de la base embarquée, pas une des six capacités que le catalogue expose.
+ *
+ * Chaque ligne non copiée reçoit un identifiant **provisoire**, régénéré à chaque
+ * appel. Il ne désigne rien tant que [FoodStore.place] n'a pas été appelé, et c'est
+ * volontaire : copier les 3 484 lignes à l'installation gonflerait la base, les
+ * sauvegardes et la recherche avec 99 % de contenu jamais utilisé ([D51][decisions]).
+ *
+ * [decisions]: docs/11-decisions.md
+ */
+private fun CiqualDatabase.mergedWith(
+    local: List<Food>,
+    normalised: String,
+    query: String,
+    limit: Int,
+    ids: IdGenerator,
+): List<Food> {
+    val alreadyCopied = local.mapNotNullTo(mutableSetOf()) { it.sourceRef.takeIf { _ -> it.isFromCiqual } }
+
+    val fromCiqual = search(normalised, limit)
+        .filterNot { it.code in alreadyCopied }
+        .map { row -> row.toDomain(FoodId(ids.next()), servings(row.code)) }
+
+    return FoodRanking.sort(local + fromCiqual, query).take(limit)
 }
 
 /**

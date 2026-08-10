@@ -36,7 +36,18 @@ import org.junit.jupiter.api.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class SearchViewModelTest {
     private val dispatcher = StandardTestDispatcher()
-    private val catalogue = InMemoryFoodCatalog(listOf(RIZ, RIZ_COMPLET))
+
+    /**
+     * Deux réserves, comme la vraie.
+     *
+     * [BLE] n'est **pas** au catalogue : c'est ce que la table de l'ANSES propose
+     * sans l'avoir copié. Sans cette moitié-là, le faux ne rendait que des fiches
+     * déjà écrites — et un test écrit contre lui éprouvait un chemin que
+     * l'application n'emprunte jamais ([D53][decisions]).
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    private val catalogue = InMemoryFoodCatalog(initial = listOf(RIZ, RIZ_COMPLET), reference = listOf(BLE))
 
     @BeforeEach
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -141,18 +152,35 @@ class SearchViewModelTest {
     }
 
     @Test
-    fun `choisir un aliment le verse au catalogue et rend son identifiant definitif`() = runTest(dispatcher) {
-        // Le defaut corrige : un resultat de la table de l'ANSES porte un
-        // identifiant provisoire tant qu'il n'est pas ecrit. Le rendre tel quel
+    fun `choisir un aliment de la table le verse au catalogue`() = runTest(dispatcher) {
+        // Le defaut corrige en tranche 3 : un resultat de la table de l'ANSES porte
+        // un identifiant provisoire tant qu'il n'est pas ecrit. Le rendre tel quel
         // faisait chercher une fiche inexistante, et l'ecran de saisie s'ouvrait vide.
-        val absent = RIZ.copy(id = FoodId("provisoire"))
         val viewModel = collecting()
+        viewModel.onQueryChange("ble")
+        advanceUntilIdle()
+        val propose = (viewModel.uiState.value as SearchUiState.Results).foods.single()
 
-        viewModel.onPick(absent)
+        viewModel.onPick(propose)
         advanceUntilIdle()
 
-        assertEquals(absent.id, viewModel.picked.value)
-        assertTrue(catalogue.all.any { it.id == absent.id }, "la fiche aurait du entrer au catalogue")
+        assertEquals(propose.id, viewModel.picked.value)
+        assertTrue(catalogue.all.any { it.id == propose.id }, "la fiche aurait du entrer au catalogue")
+    }
+
+    @Test
+    fun `choisir un aliment deja copie rend l identifiant de la fiche existante`() = runTest(dispatcher) {
+        // Et non le provisoire qu'on lui presente. Le rapprochement se fait par
+        // (source, source_ref), parce que l'identifiant est justement celui qui
+        // change a chaque recherche : rendre le provisoire recopierait la fiche et
+        // remettrait ses compteurs d'usage a zero.
+        val viewModel = collecting()
+
+        viewModel.onPick(RIZ.copy(id = FoodId("provisoire")))
+        advanceUntilIdle()
+
+        assertEquals(RIZ.id, viewModel.picked.value)
+        assertEquals(2, catalogue.all.size, "la fiche a ete recopiee sous un second identifiant")
     }
 
     @Test
@@ -188,6 +216,41 @@ class SearchViewModelTest {
 
         val state = viewModel.uiState.value as SearchUiState.Shortcuts
         assertEquals(listOf(RIZ.id), state.favorites.map { it.id })
+    }
+
+    @Test
+    fun `epingler un aliment de la table allume son etoile dans les resultats`() = runTest(dispatcher) {
+        // Le defaut : un resultat de la table de l'ANSES porte un identifiant
+        // provisoire tant qu'il n'est pas verse au catalogue, et `setFavorite` sur
+        // cet identifiant ne mettait a jour aucune ligne. L'etoile ne s'allumait
+        // donc jamais sur un aliment neuf -- meme en relancant la recherche.
+        val viewModel = collecting()
+        viewModel.onQueryChange("ble")
+        advanceUntilIdle()
+        val propose = (viewModel.uiState.value as SearchUiState.Results).foods.single()
+
+        viewModel.onToggleFavorite(propose)
+        advanceUntilIdle()
+
+        val apres = viewModel.uiState.value as SearchUiState.Results
+        assertTrue(apres.foods.single().favorite, "l etoile n a pas suivi dans les resultats")
+    }
+
+    @Test
+    fun `supprimer une fiche la retire des resultats sans relancer la recherche`() = runTest(dispatcher) {
+        // Meme forme, autre geste : les resultats venaient d'une lecture unique, donc
+        // rien de ce qu'on ecrivait dans le catalogue ne les atteignait.
+        val viewModel = collecting()
+        viewModel.onQueryChange("riz")
+        advanceUntilIdle()
+
+        viewModel.onDeleteRequested(RIZ)
+        advanceUntilIdle()
+        viewModel.onDeleteConfirmed()
+        advanceUntilIdle()
+
+        val apres = viewModel.uiState.value as SearchUiState.Results
+        assertTrue(apres.foods.none { it.id == RIZ.id }, "la fiche supprimee est restee affichee")
     }
 
     // --- Outillage ------------------------------------------------------------
@@ -230,6 +293,15 @@ class SearchViewModelTest {
             sourceRef = "9105",
             name = "Riz complet, cuit",
             per100g = NutrientValues(kcal = 150.0),
+        )
+
+        /** Proposé par la table, jamais copié : son identifiant est provisoire. */
+        val BLE = Food(
+            id = FoodId("provisoire"),
+            source = FoodSource.CIQUAL,
+            sourceRef = "9010",
+            name = "Ble tendre, cuit",
+            per100g = NutrientValues(kcal = 130.0),
         )
     }
 }

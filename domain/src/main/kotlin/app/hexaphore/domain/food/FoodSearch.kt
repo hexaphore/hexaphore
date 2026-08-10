@@ -1,5 +1,7 @@
 package app.hexaphore.domain.food
 
+import kotlinx.coroutines.flow.Flow
+
 /**
  * Chercher un aliment par son nom.
  *
@@ -26,10 +28,21 @@ package app.hexaphore.domain.food
  */
 interface FoodSearch {
     /**
-     * Les aliments dont le nom correspond à [query].
+     * Les aliments dont le nom correspond à [query], **et ce qu'ils deviennent**.
+     *
+     * Un flux et non une lecture unique, parce que le catalogue change sous les
+     * yeux de celui qui regarde ses résultats : épingler un aliment, supprimer une
+     * fiche personnelle, verser au catalogue l'aliment qu'on vient de choisir. Une
+     * `suspend fun` rend un instantané, et un instantané ne peut pas se démentir —
+     * il fallait relancer la recherche pour voir l'étoile changer, alors que les
+     * raccourcis, eux, se rafraîchissaient. C'est cette asymétrie qui a fait le
+     * défaut ([D53][decisions]).
+     *
+     * L'implémentation décide quand ré-émettre. Room le sait : il invalide sur
+     * écriture, exactement comme pour [RecentFoods.observeRecent].
      *
      * Rend une liste vide plutôt qu'une erreur quand rien ne correspond : ne rien
      * trouver est une réponse.
      */
-    suspend fun search(query: String, limit: Int): List<Food>
+    fun search(query: String, limit: Int): Flow<List<Food>>
 }

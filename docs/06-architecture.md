@@ -133,7 +133,7 @@ L'interface fourre-tout `FoodRepository` est refusée. À la place, quatre ports
 ```kotlin
 fun interface FoodLookup      { suspend fun byId(id: FoodId): Food? }
 fun interface BarcodeLookup   { suspend fun byBarcode(code: String): Food? }
-interface     FoodSearch      { suspend fun search(q: String, limit: Int): List<Food> }
+interface     FoodSearch      { fun search(q: String, limit: Int): Flow<List<Food>> }
 interface     RecentFoods     { fun observeRecent(limit: Int): Flow<List<Food>> }
 interface     FavoriteFoods   { fun observeFavorites(): Flow<List<Food>>
                                 suspend fun setFavorite(id: FoodId, favorite: Boolean) }
@@ -144,7 +144,11 @@ interface     FoodStore       { suspend fun place(food: Food): Food
 interface     FoodUsage       { suspend fun remember(foods: Collection<Food>, at: Instant) }
 ```
 
-`BarcodeLookup` reste un croquis : rien ne le lit avant le scanner de la tranche 5. Les autres existent, et un seul adaptateur les implémente tous — la séparation paie du côté des **appelants**, pas du côté de l'implémentation. `LogDish` ne dépend que de `FoodUsage`, l'écran de recherche que de trois ports sur six.
+`BarcodeLookup` reste un croquis : rien ne le lit avant le scanner de la tranche 5. Les autres existent, et un seul adaptateur les implémente tous — la séparation paie du côté des **appelants**, pas du côté de l'implémentation. `LogDish` ne dépend que de `FoodUsage`, l'écran de recherche que de quatre ports sur six.
+
+`FoodSearch` rend un `Flow` et non une liste : le catalogue change sous les yeux de celui qui regarde ses résultats, et une lecture unique ne peut pas se démentir ([D53](11-decisions.md)).
+
+Un seul adaptateur pour six ports a une contrepartie que le projet a payée deux fois : la **seconde** implémentation, celle en mémoire, peut diverger sans que rien ne le dise. Elle est donc tenue par un jeu de tests de contrat exécuté sur les deux, `FoodCatalogContract` dans `:data:food` ([D53](11-decisions.md)).
 
 L'écran de scan ne dépend que de `BarcodeLookup`. Son test a donc besoin d'une fonction, pas d'un faux objet à quinze méthodes. C'est là que ce principe se paie : dans le volume de code de test.
 
