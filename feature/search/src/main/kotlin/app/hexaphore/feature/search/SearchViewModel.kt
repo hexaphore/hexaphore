@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -107,8 +108,25 @@ internal class SearchViewModel @Inject constructor(
         typed.value = value
     }
 
+    /**
+     * Épingler, y compris une fiche que le catalogue ne connaît pas encore.
+     *
+     * Le [FoodStore.place] n'est pas une précaution : un résultat de la table de
+     * l'ANSES porte un identifiant provisoire tant qu'il n'y est pas écrit
+     * ([D51][decisions]), et `setFavorite` sur cet identifiant ne mettait à jour
+     * **aucune ligne**. L'étoile ne s'allumait donc jamais sur un aliment neuf, et
+     * relancer la recherche n'y changeait rien.
+     *
+     * L'état épinglé est lu sur la fiche **rendue par le catalogue** et non sur
+     * celle qu'on affiche : c'est elle qui fait foi.
+     */
     fun onToggleFavorite(food: Food) {
-        viewModelScope.launch { runCatching { favorites.setFavorite(food.id, !food.favorite) } }
+        viewModelScope.launch {
+            runCatching {
+                val stored = store.place(food)
+                favorites.setFavorite(stored.id, !stored.favorite)
+            }
+        }
     }
 
     fun onPick(food: Food) {
@@ -158,12 +176,17 @@ internal class SearchViewModel @Inject constructor(
      * Émis dans le flux plutôt que posé avant lui : ainsi une frappe qui annule la
      * recherche en cours annule aussi son état de chargement, et l'écran ne reste
      * jamais à « je cherche » pour une requête abandonnée.
+     *
+     * Le port rend un flux ([D53][decisions]) : les résultats suivent désormais les
+     * écritures du catalogue sans qu'on relance la recherche. `onStart` et non une
+     * émission manuelle, parce qu'il n'y a plus une lecture mais une suite.
      */
-    private fun search(query: String): Flow<SearchUiState> = flow {
-        emit(SearchUiState.Searching)
-        val foods = foodSearch.search(query, RESULT_LIMIT)
-        emit(if (foods.isEmpty()) SearchUiState.Empty(query) else SearchUiState.Results(query, foods))
-    }.catch { emit(SearchUiState.Error) }
+    private fun search(query: String): Flow<SearchUiState> = foodSearch
+        .search(query, RESULT_LIMIT)
+        .map { foods ->
+            if (foods.isEmpty()) SearchUiState.Empty(query) else SearchUiState.Results(query, foods)
+        }.onStart { emit(SearchUiState.Searching) }
+        .catch { emit(SearchUiState.Error) }
 
     private companion object {
         // --- Reglages ---------------------------------------------------------

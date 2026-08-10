@@ -758,6 +758,41 @@ Listés ici pour cesser d'être des oublis, comme [D21](#d21--ce-que-litération
 
 ---
 
+## D53 — La recherche est un flux, et le faux est tenu par un contrat · ✓ validée
+
+**Contexte.** Constaté sur appareil : dans la recherche, épingler un aliment ou supprimer une fiche personnelle **ne se voyait pas**. Il fallait relancer la recherche. Les raccourcis — récents et favoris — se rafraîchissaient bien, eux.
+
+**La cause, et l'asymétrie qui la rendait visible.** `SearchUiState.Results` venait d'un appel unique à `FoodSearch.search`, une `suspend fun`. Les raccourcis venaient de `Flow`. Écrire dans le catalogue n'invalidait donc rien du côté des résultats : une lecture unique rend un instantané, et **un instantané ne peut pas se démentir**.
+
+**Choix.** `FoodSearch.search` rend un `Flow<List<Food>>`. Room invalide sur écriture, exactement comme pour `observeRecent` — le mécanisme existait déjà à trois lignes de là.
+
+**Écarté.** *Un déclencheur de relecture* poussé après chaque écriture : c'est un `Flow` reconstruit à la main, avec une invalidation à ne pas oublier à chaque nouvelle écriture. Room la connaît déjà et ne l'oublie jamais. *Recomposer la liste côté écran* à partir des favoris observés : ça n'aurait couvert que l'étoile, pas la suppression ni le versement au catalogue, et ça aurait mis la fusion des provenances dans le `ViewModel`.
+
+**Le flux vient du catalogue local, et lui seul.** La table de l'ANSES est livrée en lecture seule et ne change jamais ; elle est relue à chaque invalidation, ce qui coûte deux requêtes sur des libellés courts. C'est ce qui garde le dédoublonnage juste au moment précis où une fiche vient d'être copiée — sans quoi elle apparaîtrait deux fois pendant une image.
+
+**Un second défaut, de la même famille, que la correction a mis à nu.** Épingler un aliment de la table de l'ANSES **non encore copié** n'allumait aucune étoile, et pour une raison indépendante du flux : `setFavorite` recevait l'identifiant **provisoire** ([D51](#d51--une-seule-porte-et-la-quantité-qui-recalcule--validée)) et ne mettait à jour aucune ligne. L'écran verse donc la fiche au catalogue avant d'épingler, comme il le fait déjà pour la choisir. L'état épinglé est lu sur la fiche **rendue** par le catalogue, jamais sur celle qu'on affiche.
+
+### Le faux était plus indulgent que le vrai, et c'est ça qu'il fallait corriger
+
+Trois défauts de suite avaient la même forme, et **à chaque fois le test passait**. La cause n'est pas la paresse du test : c'est que `InMemoryFoodCatalog` ne rendait que des fiches **déjà écrites**, alors que `RoomFoodCatalog` en fabrique qui n'y sont pas encore. Le faux ne modélisait pas la moitié du monde, donc un test écrit contre lui éprouvait un chemin que l'application n'emprunte jamais.
+
+**Choix, en deux parties indissociables.**
+
+- **Le faux gagne une table de référence.** `InMemoryFoodCatalog(initial, reference)` : la seconde liste joue la table de l'ANSES — trouvable, jamais écrite, avec un identifiant provisoire **régénéré à chaque recherche**. Son `place` rapproche par `(source, source_ref)` et non par l'identifiant, comme le vrai. Sans cette moitié-là, le test qui attrape le défaut de l'étoile ne pouvait même pas s'écrire.
+- **Un jeu de tests de contrat, écrit une fois et exécuté deux fois.** `FoodCatalogContract` couvre **six des sept ports** du projet — c'est la même paire de classes qui les porte tous — et `RoomFoodCatalogTest` comme `InMemoryFoodCatalogTest` en héritent. Une propriété que le faux s'autorise à ne pas tenir devient une ligne rouge à côté d'une verte, et non une découverte sur l'appareil.
+
+**Il vit dans `:data:food`, pas dans `:core:testing`.** Les deux implémentations sont ainsi compilées et exécutées **côte à côte**, sous la même commande et dans le même rapport. En contrepartie, JUnit 4 et Robolectric entrent dans un second module — le contrat a besoin de Room, donc d'Android, et Robolectric est un lanceur JUnit 4. C'est l'extension de [D35](#d35--le-test-de-migration-tourne-sur-la-jvm-pas-sur-un-appareil--validée) et non sa contradiction : JUnit 4 reste cantonné aux modules qui ne peuvent pas s'en passer, et le moteur vintage les rassemble sous `./gradlew check`.
+
+**La table de l'ANSES n'est pas garnissable**, puisqu'elle est livrée dans l'APK. Les fiches de référence du contrat sont donc de **vraies lignes** — codes 13039, 13037, 39213 — et la sous-classe Room **vérifie que le code et l'intitulé concordent** avant de jouer quoi que ce soit. Sans ce contrôle, une fixture périmée rendrait zéro résultat et la moitié des cas passeraient en ne mesurant rien : exactement le vert qui a déjà coûté deux corrections.
+
+**Les deux corrections ont été éprouvées en les défaisant.** Remettre la recherche en lecture unique fait tomber quatre tests, et **du seul côté Room** — le faux, lui, passait toujours, ce qui est la démonstration littérale du problème. Retirer le versement au catalogue avant l'épinglage fait tomber le test du `ViewModel`.
+
+**Ce que ça a révélé, et qui était un vrai défaut latent.** Un test de la tranche 3 affirmait que choisir un aliment rendait l'identifiant **provisoire** qu'on lui présentait. Il n'éprouvait que l'indulgence du faux : sur Room, choisir un aliment dont le code CIQUAL est déjà au catalogue rend l'identifiant **existant**, et c'est le comportement correct — l'inverse recopierait la fiche et remettrait ses compteurs d'usage à zéro. Le test disait donc le contraire de la règle qu'il croyait garder.
+
+**Conséquences.** `:core:testing` gagne `TestDispatchers`, qui était recopié en privé dans les modules de test. Le port `FoodSearch` n'a plus de `suspend`, ce qui touche son unique appelant. Il reste **un** port à deux implémentations non couvert par un contrat, `DiaryRepository` ; la tranche 4 en ajoutera, et ils rejoindront le même dispositif.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

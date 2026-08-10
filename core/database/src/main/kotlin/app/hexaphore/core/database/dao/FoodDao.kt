@@ -24,10 +24,20 @@ import kotlinx.coroutines.flow.Flow
  */
 @Dao
 interface FoodDao {
+    /**
+     * Un flux, et c'est ce qui fait réagir la liste de résultats.
+     *
+     * Room ré-exécute cette requête à chaque écriture sur `food` : épingler,
+     * supprimer, verser une fiche au catalogue. Une `suspend fun` rendait un
+     * instantané, et l'écran restait sur des résultats démentis par le catalogue
+     * jusqu'à ce qu'on relance la recherche ([D53][decisions]).
+     *
+     * [decisions]: docs/11-decisions.md
+     */
     @Query(
         "SELECT * FROM food WHERE name_search LIKE '%' || :normalisedQuery || '%' ORDER BY use_count DESC LIMIT :limit",
     )
-    suspend fun search(normalisedQuery: String, limit: Int): List<FoodEntity>
+    fun observeSearch(normalisedQuery: String, limit: Int): Flow<List<FoodEntity>>
 
     @Query("SELECT * FROM food WHERE id = :id")
     suspend fun byId(id: String): FoodEntity?

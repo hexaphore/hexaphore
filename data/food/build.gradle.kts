@@ -5,6 +5,13 @@ plugins {
 
 android {
     namespace = "app.hexaphore.data.food"
+
+    // Robolectric a besoin des ressources Android -- et des assets, dont ciqual.db
+    // que :core:database livre -- pour ouvrir une base SQLite sur la JVM. Sans cela,
+    // le jeu de tests de contrat exigerait un appareil, donc ne tournerait pas.
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 dependencies {
@@ -17,4 +24,13 @@ dependencies {
 
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
+
+    // JUnit 4 et le moteur vintage pour la meme raison qu'en :core:database (D35) :
+    // Robolectric est un lanceur JUnit 4, et le contrat se joue sur la vraie base.
+    testImplementation(projects.core.testing)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.junit4)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testRuntimeOnly(libs.junit.vintage.engine)
 }
