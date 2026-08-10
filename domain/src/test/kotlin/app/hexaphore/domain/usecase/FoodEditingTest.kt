@@ -159,7 +159,7 @@ class FoodEditingTest {
 
     private fun brouillonDe(food: Food) = EntryDraft(
         date = JOUR,
-        source = EntrySource.SEARCH,
+        source = EntrySource.MANUAL,
         lines = listOf(DraftLine.of(DraftLineId("l1"), food)),
     )
 

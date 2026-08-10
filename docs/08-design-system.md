@@ -233,7 +233,7 @@ Ligne d'aliment dans un plat. Nom, quantité, calories. Balayage vers la gauche 
 
 **Aucune pastille de source ici** : elle appartient au plat et se pose une fois en tête ([D32](11-decisions.md)). Cinq pastilles voisines ne distinguaient plus rien.
 
-**Aucun clic non plus.** La cible tactile est le plat entier, y compris son heure, sa pastille, son total et ses apports ([D48](11-decisions.md)). Ce que la ligne garde est sa phrase d'accessibilité — nom, quantité, calories en une fois — et c'est elle qui rend l'annonce du plat lisible une fois les nœuds fusionnés.
+**Aucun clic non plus.** La cible tactile est le plat entier, y compris son heure, sa pastille, son total et ses apports ([D48](11-decisions.md)) — et sans rognage, qui tronquait la pastille et le total ([D52](11-decisions.md)). Ce que la ligne garde est sa phrase d'accessibilité — nom, quantité, calories en une fois — et c'est elle qui rend l'annonce du plat lisible une fois les nœuds fusionnés.
 
 ### Apports d'un plat
 

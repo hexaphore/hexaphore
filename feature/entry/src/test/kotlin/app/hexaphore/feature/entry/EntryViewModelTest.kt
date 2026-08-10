@@ -13,6 +13,7 @@ import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.diary.FoodEntry
 import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodId
+import app.hexaphore.domain.food.FoodServing
 import app.hexaphore.domain.food.FoodSource
 import app.hexaphore.domain.goal.DailyGoal
 import app.hexaphore.domain.nutrition.Macro
@@ -77,11 +78,53 @@ class EntryViewModelTest {
         // reecrire a chaque nouveau mode de saisie.
         val viewModel = viewModel()
 
-        ajouterAliment(RIZ)
-        ajouterAliment(POULET)
+        ajouterAliment(viewModel, RIZ)
+        ajouterAliment(viewModel, POULET)
         advanceUntilIdle()
 
         assertEquals(3, viewModel.content().form.lines.size)
+    }
+
+    @Test
+    fun `un aliment choisi arrive prerempli, avec sa reference`() = runTest(dispatcher) {
+        // Le defaut : la ligne s ajoutait vide, ou pas du tout. Elle doit porter le
+        // nom, la quantite et les valeurs de la fiche -- et sa reference, sans quoi
+        // la quantite ne recalculerait rien.
+        val viewModel = viewModel()
+
+        ajouterAliment(viewModel, RIZ)
+        advanceUntilIdle()
+
+        val ajoutee = viewModel.content().form.lines.last()
+        assertEquals("Riz blanc, cuit", ajoutee.name)
+        assertEquals("155", ajoutee.macros[Macro.CALORIES])
+        assertEquals(RIZ.per100g, ajoutee.reference)
+    }
+
+    @Test
+    fun `les valeurs s affichent en grammes entiers`() = runTest(dispatcher) {
+        // Personne ne compte les demi-grammes, et ce qui est affiche est ce qui sera
+        // enregistre : l arrondi a lieu a l aller, pas seulement a l ecran.
+        val viewModel = viewModel()
+
+        ajouterAliment(viewModel, POMME)
+        advanceUntilIdle()
+
+        val ajoutee = viewModel.content().form.lines.last()
+        assertEquals("81", ajoutee.macros[Macro.CALORIES], "54 kcal pour 100 g, sur 150 g")
+        assertEquals("2", ajoutee.macros[Macro.FIBER], "1,4 g pour 100 g, sur 150 g")
+    }
+
+    @Test
+    fun `changer la quantite recalcule les valeurs affichees`() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        ajouterAliment(viewModel, RIZ)
+        advanceUntilIdle()
+        val ligne = viewModel.content().form.lines.last().id
+
+        viewModel.onLineEdit(ligne, LineEdit.Quantity("200"))
+
+        assertEquals("310", viewModel.content().form.lines.last().macros[Macro.CALORIES])
     }
 
     @Test
@@ -104,8 +147,6 @@ class EntryViewModelTest {
         val premiere = viewModel.content().form.lines.single().id
         remplir(viewModel, premiere)
 
-        handle[EntryDestination.PICKED_FOOD] = "inconnu"
-        advanceUntilIdle()
         viewModel.onLineEdit(premiere, LineEdit.Quantity(""))
 
         assertFalse(viewModel.content().saveable)
@@ -115,7 +156,7 @@ class EntryViewModelTest {
     fun `enregistrer ecrit un plat avec toutes ses lignes`() = runTest(dispatcher) {
         val viewModel = viewModel()
         remplir(viewModel, viewModel.content().form.lines.single().id)
-        ajouterAliment(POULET)
+        ajouterAliment(viewModel, POULET)
         advanceUntilIdle()
         remplir(viewModel, viewModel.content().form.lines.last().id, nom = "Poulet")
 
@@ -141,7 +182,7 @@ class EntryViewModelTest {
     @Test
     fun `supprimer une ligne la retire du brouillon`() = runTest(dispatcher) {
         val viewModel = viewModel()
-        ajouterAliment(RIZ)
+        ajouterAliment(viewModel, RIZ)
         advanceUntilIdle()
         val aSupprimer = viewModel.content().form.lines.first().id
 
@@ -222,7 +263,7 @@ class EntryViewModelTest {
         return Dish(
             id = id,
             date = jour,
-            source = EntrySource.SEARCH,
+            source = EntrySource.MANUAL,
             loggedAt = clock.now(),
             entries = listOf(
                 FoodEntry(
@@ -248,23 +289,20 @@ class EntryViewModelTest {
         uiState.filterIsInstance<EntryUiState.Content>().first()
 
     /**
-     * Le canal par lequel la recherche depose une fiche pour cet ecran.
+     * Ce que fait l'écran quand la recherche lui rend une fiche.
      *
-     * Les tests l'utilisent tel quel plutot que d'appeler une methode d'ajout : c'est
-     * le vrai chemin depuis que « Ajouter un aliment » rouvre la recherche, et un
-     * raccourci de test aurait cesse d'eprouver ce qui se passe vraiment.
+     * C'est le `ViewModel` qu'on appelle et non un `SavedStateHandle` qu'on remplit :
+     * celui d'un `ViewModel` et celui d'une entrée de pile sont deux objets
+     * différents, et le premier n'a jamais vu ce que le second recevait. Un test qui
+     * écrivait dans le handle passait, pendant que l'écran ne faisait rien.
      */
-    private lateinit var handle: SavedStateHandle
-
-    private fun ajouterAliment(food: Food = RIZ) {
-        catalogue.let { runBlocking { it.save(food) } }
-        handle[EntryDestination.PICKED_FOOD] = food.id.value
+    private fun ajouterAliment(viewModel: EntryViewModel, food: Food = RIZ) {
+        runBlocking { catalogue.save(food) }
+        viewModel.onFoodPicked(food.id)
     }
 
     private fun viewModel(dishId: String? = null) = EntryViewModel(
-        savedStateHandle = SavedStateHandle(
-            if (dishId == null) emptyMap() else mapOf("dishId" to dishId),
-        ).also { handle = it },
+        savedStateHandle = SavedStateHandle(if (dishId == null) emptyMap() else mapOf("dishId" to dishId)),
         getDishDraft = GetDishDraft(diary, ids),
         getDaySummary = GetDaySummary(diary, clock),
         createDraft = CreateDraft(clock, ids),
@@ -280,6 +318,15 @@ class EntryViewModelTest {
             sourceRef = "9104",
             name = "Riz blanc, cuit",
             per100g = NutrientValues(kcal = 155.0),
+        )
+
+        val POMME = Food(
+            id = FoodId("f-pomme"),
+            source = FoodSource.CIQUAL,
+            sourceRef = "13039",
+            name = "Pomme, chair et peau, crue",
+            per100g = NutrientValues(kcal = 54.0, fiber = 1.4),
+            servings = listOf(FoodServing("1 pomme moyenne", grams = 150.0, isDefault = true)),
         )
 
         val POULET = Food(

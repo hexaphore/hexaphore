@@ -154,7 +154,6 @@ private fun DrawScope.drawWave(color: Color) {
 private val EntrySource.labelRes: Int
     get() = when (this) {
         EntrySource.MANUAL -> R.string.ds_source_manual
-        EntrySource.SEARCH -> R.string.ds_source_search
         EntrySource.BARCODE -> R.string.ds_source_barcode
         EntrySource.PHOTO_AI -> R.string.ds_source_photo
         EntrySource.TEXT_AI -> R.string.ds_source_text

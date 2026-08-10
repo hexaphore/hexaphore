@@ -1,5 +1,7 @@
 package app.hexaphore.feature.entry
 
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
@@ -50,14 +52,22 @@ data class EntryDestination(val dishId: String? = null, val foodId: String? = nu
         /**
          * La clé sous laquelle la recherche dépose la fiche choisie pour cet écran.
          *
-         * Le passage par le `SavedStateHandle` de l'entrée précédente est le chemin
-         * que la navigation Compose prévoit pour un résultat. L'alternative aurait
-         * été un objet partagé entre les deux écrans, qui survivrait à leur
-         * disparition et qu'il faudrait penser à vider.
+         * **Elle se lit sur le `NavBackStackEntry`, jamais dans le `ViewModel`.** Le
+         * `SavedStateHandle` qu'un `ViewModel` reçoit et celui que porte l'entrée de
+         * pile sont deux objets **différents**, construits chacun de leur côté
+         * depuis le même registre : écrire dans l'un ne se voit pas dans l'autre. Le
+         * `ViewModel` observait donc une clé que personne ne remplissait, et
+         * « Ajouter un aliment » ne faisait rien ([D52][decisions]).
+         *
+         * Les arguments de route, eux, passent bien par les deux : ils sont dans le
+         * `Bundle` d'arguments par défaut. C'est pourquoi le **premier** aliment
+         * arrivait et pas les suivants.
          *
          * **Ce chemin s'arrête à une ligne.** La photo de la tranche 6 en produira
          * cinq, et un `SavedStateHandle` ne portera pas un brouillon entier : il
          * faudra alors un brouillon en attente, partagé.
+         *
+         * [decisions]: docs/11-decisions.md
          */
         const val PICKED_FOOD: String = "picked_food"
     }
@@ -80,7 +90,17 @@ fun NavController.navigateToEntryFor(foodId: FoodId) {
  * graphes sans avoir à connaître les arguments de chaque écran.
  */
 fun NavGraphBuilder.entryScreen(onAddFood: () -> Unit, onClose: () -> Unit) {
-    composable<EntryDestination> {
-        EntryRoute(onAddFood = onAddFood, onClose = onClose)
+    composable<EntryDestination> { entry ->
+        val handle = entry.savedStateHandle
+        val picked by handle
+            .getStateFlow<String?>(EntryDestination.PICKED_FOOD, null)
+            .collectAsStateWithLifecycle()
+
+        EntryRoute(
+            pickedFood = picked?.let(::FoodId),
+            onPickedFoodHandled = { handle[EntryDestination.PICKED_FOOD] = null },
+            onAddFood = onAddFood,
+            onClose = onClose,
+        )
     }
 }

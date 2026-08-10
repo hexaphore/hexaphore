@@ -90,4 +90,21 @@ fun DraftTextField(
 fun String.isNumberField(): Boolean =
     all { it.isDigit() || it in DECIMAL_SEPARATORS } && count { it in DECIMAL_SEPARATORS } <= 1
 
+/**
+ * Ce qu'un champ de valeur nutritionnelle laisse entrer : des chiffres, rien d'autre.
+ *
+ * **Les six valeurs sont des grammes entiers.** Personne ne compte les demi-grammes
+ * de lipides, et une décimale affichée est une précision promise que la source ne
+ * tient pas — CIQUAL donne 0,25 g de protéines pour une pomme parce que la mesure
+ * est en dessous du seuil de quantification, pas parce qu'elle vaut un quart de
+ * gramme ([D52][decisions]).
+ *
+ * Le séparateur décimal disparaît donc du clavier **et** du filtre : laisser taper
+ * « 12,5 » pour l'arrondir ensuite obligerait à réécrire le texte affiché, donc à
+ * repositionner le curseur — exactement ce que [DraftTextField] évite.
+ *
+ * [decisions]: docs/11-decisions.md
+ */
+fun String.isWholeNumberField(): Boolean = all { it.isDigit() }
+
 private const val DECIMAL_SEPARATORS = ",."

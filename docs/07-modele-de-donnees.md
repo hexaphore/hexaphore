@@ -147,11 +147,13 @@ Un **plat** : plusieurs aliments, entrés en une fois. Pas de repas nommé, pas 
 |---|---|---|
 | `id` | TEXT PK | |
 | `date` | TEXT | journée locale à laquelle le plat est rattaché |
-| `source` | TEXT | `MANUAL` · `SEARCH` · `BARCODE` · `PHOTO_AI` · `TEXT_AI` · `FAVORITE` |
+| `source` | TEXT | `MANUAL` · `BARCODE` · `PHOTO_AI` · `TEXT_AI` · `FAVORITE` |
 | `logged_at` | INTEGER | ordonne les plats de la journée |
 | `created_at`, `updated_at` | INTEGER | |
 
 Index sur `(date, logged_at)` : c'est l'ordre d'affichage de l'accueil.
+
+`SEARCH` a existé et n'existe plus : elle se confondait avec `MANUAL`, puisqu'un même plat mêle couramment un aliment trouvé dans la table et un autre saisi à la main ([D52](11-decisions.md)). Une base antérieure en porte encore ; elle se relit en `MANUAL`.
 
 **`source` n'est jamais réécrite.** Un plat reste éditable à la main indéfiniment ; son origine est un fait historique, pas un état. Corriger une quantité sur une proposition de l'IA ne doit pas la faire passer pour une saisie manuelle — ce serait perdre la seule trace de ce qui a été deviné ([D32](11-decisions.md)).
 
