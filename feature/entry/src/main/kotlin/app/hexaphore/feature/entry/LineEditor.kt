@@ -146,6 +146,16 @@ private fun QuantityRow(line: EntryFormLine, actions: EntryActions) {
  */
 @Composable
 private fun MacroField(line: EntryFormLine, macro: Macro, actions: EntryActions) {
+    // La cle porte la revision : un recalcul reconstruit le champ avec sa nouvelle
+    // valeur, alors qu'une frappe -- qui ne l'incremente pas -- laisse le curseur ou
+    // il est. Sans elle, le brouillon changerait sans que l'ecran bouge.
+    key(line.revision) {
+        MacroTextField(line, macro, actions)
+    }
+}
+
+@Composable
+private fun MacroTextField(line: EntryFormLine, macro: Macro, actions: EntryActions) {
     DraftTextField(
         initial = line.macros[macro].orEmpty(),
         onValueChange = { actions.onLineEdit(line.id, LineEdit.MacroValue(macro, it)) },

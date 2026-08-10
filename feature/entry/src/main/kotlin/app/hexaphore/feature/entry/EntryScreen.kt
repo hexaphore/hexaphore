@@ -45,7 +45,7 @@ import kotlin.math.roundToInt
 
 /** L'écran de validation, branché sur le graphe d'injection. */
 @Composable
-internal fun EntryRoute(onClose: () -> Unit, viewModel: EntryViewModel = hiltViewModel()) {
+internal fun EntryRoute(onAddFood: () -> Unit, onClose: () -> Unit, viewModel: EntryViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     // Enregistre : l'ecran se referme. Un effet plutot qu'un rappel depuis onSave,
@@ -56,10 +56,10 @@ internal fun EntryRoute(onClose: () -> Unit, viewModel: EntryViewModel = hiltVie
 
     EntryScreen(
         state = state,
-        actions = remember(viewModel, onClose) {
+        actions = remember(viewModel, onAddFood, onClose) {
             EntryActions(
                 onLineEdit = viewModel::onLineEdit,
-                onAddLine = viewModel::onAddLine,
+                onAddFood = onAddFood,
                 onRemoveLine = viewModel::onRemoveLine,
                 onSave = viewModel::onSave,
                 onRetry = viewModel::onRetry,
@@ -185,7 +185,7 @@ private fun DraftFooter(state: EntryUiState.Content, actions: EntryActions) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         NeonButton(
             text = stringResource(R.string.entry_add_line),
-            onClick = actions.onAddLine,
+            onClick = actions.onAddFood,
             modifier = Modifier.fillMaxWidth(),
         )
 

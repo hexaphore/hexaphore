@@ -23,7 +23,7 @@
     <string name="entry_show_macros">Détailler les valeurs nutritionnelles</string>
     <string name="entry_hide_macros">Replier les valeurs nutritionnelles</string>
 
-    <string name="entry_add_line">Ajouter une ligne</string>
+    <string name="entry_add_line">Ajouter un aliment</string>
     <string name="entry_remove_line">Supprimer</string>
     <!-- Le balayage n'est pas le seul chemin : un geste sans représentation visible
          est introuvable pour qui ne le connaît pas, et hors d'atteinte au lecteur

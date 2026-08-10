@@ -3,13 +3,13 @@ package app.hexaphore.data.food
 import app.hexaphore.core.database.ciqual.CiqualDatabase
 import app.hexaphore.core.database.dao.FoodDao
 import app.hexaphore.domain.concurrency.DispatcherProvider
-import app.hexaphore.domain.food.CustomFoodStore
 import app.hexaphore.domain.food.FavoriteFoods
 import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodLookup
 import app.hexaphore.domain.food.FoodSearch
 import app.hexaphore.domain.food.FoodSource
+import app.hexaphore.domain.food.FoodStore
 import app.hexaphore.domain.food.FoodUsage
 import app.hexaphore.domain.food.RecentFoods
 import app.hexaphore.domain.food.SearchText
@@ -47,7 +47,7 @@ class RoomFoodCatalog @Inject constructor(
     FoodLookup,
     RecentFoods,
     FavoriteFoods,
-    CustomFoodStore,
+    FoodStore,
     FoodUsage {
     /**
      * Le catalogue local d'abord, la table de l'ANSES ensuite, puis un seul tri.
@@ -77,17 +77,40 @@ class RoomFoodCatalog @Inject constructor(
     }
 
     override suspend fun byId(id: FoodId): Food? = withContext(dispatchers.io) {
-        dao.byId(id.value)?.let { it.toDomain(servingsOf(it.source, it.sourceRef)) }
+        dao.byId(id.value)?.let { it.toDomain(ciqual.servingsOf(it.source, it.sourceRef)) }
     }
 
     override fun observeRecent(limit: Int): Flow<List<Food>> =
-        dao.observeRecent(limit).map { rows -> rows.map { it.toDomain(servingsOf(it.source, it.sourceRef)) } }
+        dao.observeRecent(limit).map { rows -> rows.map { it.toDomain(ciqual.servingsOf(it.source, it.sourceRef)) } }
 
     override fun observeFavorites(): Flow<List<Food>> =
-        dao.observeFavorites().map { rows -> rows.map { it.toDomain(servingsOf(it.source, it.sourceRef)) } }
+        dao.observeFavorites().map { rows -> rows.map { it.toDomain(ciqual.servingsOf(it.source, it.sourceRef)) } }
 
     override suspend fun setFavorite(id: FoodId, favorite: Boolean) = withContext(dispatchers.io) {
         dao.setFavorite(id.value, favorite, clock.now().toEpochMilli())
+    }
+
+    /**
+     * Le geste qui donne une existence durable a un aliment de la table de l ANSES.
+     *
+     * Un resultat de recherche non encore copie porte un identifiant provisoire :
+     * l ecrire ici est ce qui le rend designable par une entree de journal. Sans ce
+     * passage, une ligne pointerait vers une fiche absente, et la base la refuserait.
+     */
+    override suspend fun place(food: Food): Food = withContext(dispatchers.io) {
+        // Par la reference plutot que par l identifiant : le provisoire change a
+        // chaque recherche, alors que (source, source_ref) designe la meme chose
+        // pour toujours. Chercher par identifiant recopierait l aliment a chaque
+        // fois qu on le choisit.
+        val reference = food.sourceRef
+        val known = when {
+            reference != null -> dao.byReference(food.source.name, reference)
+            else -> dao.byId(food.id.value)
+        }
+        known?.let { return@withContext it.toDomain(ciqual.servingsOf(it.source, it.sourceRef)) }
+
+        dao.upsert(food.toEntity(clock.now().toEpochMilli()))
+        food
     }
 
     override suspend fun save(food: Food): FoodId = withContext(dispatchers.io) {
@@ -104,18 +127,23 @@ class RoomFoodCatalog @Inject constructor(
             // La fiche n'est ecrite que si elle est absente : reecrire une fiche
             // connue defairait une correction apportee a un aliment personnel, avec
             // les valeurs qu'un brouillon ouvert depuis dix minutes porte encore.
-            if (dao.byId(food.id.value) == null) dao.upsert(food.toEntity(at.toEpochMilli()))
-            dao.markUsed(food.id.value, at.toEpochMilli())
+            val stored = place(food)
+            dao.markUsed(stored.id.value, at.toEpochMilli())
         }
     }
-
-    /** Les portions d'une fiche viennent de la table de l'ANSES, quand elle en vient. */
-    private fun servingsOf(source: String, reference: String?) =
-        if (source == FoodSource.CIQUAL.name && reference != null) {
-            ciqual.servings(reference).map { it.toDomain() }
-        } else {
-            emptyList()
-        }
 }
+
+/**
+ * Les portions d'une fiche viennent de la table de l'ANSES, quand elle en vient.
+ *
+ * Hors de la classe : c'est une lecture de la base embarquée, pas une des six
+ * capacités que le catalogue expose.
+ */
+private fun CiqualDatabase.servingsOf(source: String, reference: String?) =
+    if (source == FoodSource.CIQUAL.name && reference != null) {
+        servings(reference).map { it.toDomain() }
+    } else {
+        emptyList()
+    }
 
 private val Food.isFromCiqual: Boolean get() = source == FoodSource.CIQUAL

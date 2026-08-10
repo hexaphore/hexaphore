@@ -45,7 +45,7 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 internal class EntryViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
     private val getDishDraft: GetDishDraft,
     private val getDaySummary: GetDaySummary,
     private val createDraft: CreateDraft,
@@ -111,14 +111,35 @@ internal class EntryViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { open() }
+        observePickedFood()
+    }
+
+    /**
+     * La fiche que la recherche vient de déposer pour cet écran.
+     *
+     * **Elle s'ajoute au brouillon en cours**, elle n'en démarre pas un nouveau :
+     * « Ajouter une ligne » rouvre la même recherche que le bouton de l'accueil, et
+     * c'est ce qui rend les deux gestes identiques à apprendre. La clé est vidée
+     * après lecture, sans quoi revenir sur cet écran rajouterait la même ligne.
+     */
+    private fun observePickedFood() {
+        viewModelScope.launch {
+            savedStateHandle.getStateFlow<String?>(EntryDestination.PICKED_FOOD, null).collect { value ->
+                val id = value?.let(::FoodId) ?: return@collect
+                savedStateHandle[EntryDestination.PICKED_FOOD] = null
+                addLineFrom(id)
+            }
+        }
+    }
+
+    private suspend fun addLineFrom(id: FoodId) {
+        val food = runCatching { foodLookup.byId(id) }.getOrNull() ?: return
+        val line = EntryFormLine.of(createDraft.line(food))
+        form.update { current -> current?.copy(lines = current.lines + line) }
     }
 
     fun onLineEdit(id: DraftLineId, edit: LineEdit) {
         form.update { current -> current?.update(id) { line -> line.apply(edit) } }
-    }
-
-    fun onAddLine() {
-        form.update { current -> current?.copy(lines = current.lines + EntryFormLine.of(createDraft.line())) }
     }
 
     fun onRemoveLine(id: DraftLineId) {

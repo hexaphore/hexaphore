@@ -3,27 +3,34 @@ package app.hexaphore.feature.search
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import androidx.navigation.toRoute
 import app.hexaphore.domain.food.FoodId
 import kotlinx.serialization.Serializable
 
 /**
  * La recherche, comme destination.
  *
- * Aucun argument : elle s'ouvre toujours de la même façon, et ce qu'elle montre
- * avant la frappe ne dépend que du catalogue.
+ * **C'est le seul point d'entrée d'une saisie**, et la saisie manuelle en est une
+ * branche plutôt qu'une porte à côté : un aliment tapé à la main devient une fiche,
+ * donc il se cherche, se reprend et se recalcule comme les autres.
+ *
+ * [addToDraft] dit **à qui rendre le choix**, et c'est la seule chose qui distingue
+ * ses deux usages : ouverte depuis l'accueil elle commence un plat, ouverte depuis
+ * une saisie en cours elle y ajoute une ligne. L'écran lui-même ne le lit pas — il
+ * rend un aliment, et c'est le graphe qui sait quoi en faire.
  */
 @Serializable
-data object SearchDestination
+data class SearchDestination(val addToDraft: Boolean = false)
 
 /**
- * Le formulaire d'aliment personnel.
+ * Le formulaire d'aliment personnel, c'est-à-dire la saisie manuelle.
  *
  * Il reçoit le nom déjà tapé dans la recherche. C'est le parcours « aucun résultat »,
  * et retaper « pâtes de mamie » serait la première chose que l'utilisateur
  * reprocherait à cet écran.
  */
 @Serializable
-data class CustomFoodDestination(val name: String = "") {
+data class CustomFoodDestination(val name: String = "", val addToDraft: Boolean = false) {
     internal companion object {
         /**
          * Le nom sous lequel l'argument arrive dans le `SavedStateHandle`.
@@ -35,8 +42,19 @@ data class CustomFoodDestination(val name: String = "") {
     }
 }
 
+/** Ouvre la recherche pour commencer un plat. */
 fun NavController.navigateToSearch() {
-    navigate(SearchDestination)
+    navigate(SearchDestination(addToDraft = false))
+}
+
+/** Ouvre la recherche pour ajouter une ligne au plat en cours de saisie. */
+fun NavController.navigateToSearchForDraft() {
+    navigate(SearchDestination(addToDraft = true))
+}
+
+/** Ouvre la saisie manuelle, nom prérempli. */
+fun NavController.navigateToManualEntry(name: String, addToDraft: Boolean) {
+    navigate(CustomFoodDestination(name = name, addToDraft = addToDraft))
 }
 
 /**
@@ -45,20 +63,25 @@ fun NavController.navigateToSearch() {
  * Le module expose son entrée plutôt que ses composables : `:app` assemble des
  * graphes sans avoir à connaître les arguments de chaque écran.
  *
- * [onPick] reçoit la fiche choisie, que ce soit par la recherche ou juste après une
- * création : les deux chemins aboutissent au même endroit, l'écran de validation
- * prérempli. C'est ce qui évite au formulaire de création d'être une impasse.
+ * [onPick] reçoit la fiche choisie **et la façon de la rendre**. Les deux chemins —
+ * choisir dans le catalogue, ou créer puis utiliser — aboutissent au même endroit,
+ * ce qui évite au formulaire de création d'être une impasse.
  */
-fun NavGraphBuilder.searchScreens(onPick: (FoodId) -> Unit, onCreate: (String) -> Unit, onClose: () -> Unit) {
-    composable<SearchDestination> {
-        SearchRoute(onPick = onPick, onCreate = onCreate, onClose = onClose)
+fun NavGraphBuilder.searchScreens(
+    onPick: (FoodId, addToDraft: Boolean) -> Unit,
+    onManualEntry: (name: String, addToDraft: Boolean) -> Unit,
+    onClose: () -> Unit,
+) {
+    composable<SearchDestination> { entry ->
+        val addToDraft = entry.toRoute<SearchDestination>().addToDraft
+        SearchRoute(
+            onPick = { foodId -> onPick(foodId, addToDraft) },
+            onManualEntry = { name -> onManualEntry(name, addToDraft) },
+            onClose = onClose,
+        )
     }
-    composable<CustomFoodDestination> {
-        CustomFoodRoute(onSaved = onPick, onClose = onClose)
+    composable<CustomFoodDestination> { entry ->
+        val addToDraft = entry.toRoute<CustomFoodDestination>().addToDraft
+        CustomFoodRoute(onSaved = { foodId -> onPick(foodId, addToDraft) }, onClose = onClose)
     }
-}
-
-/** Ouvre le formulaire d'aliment personnel, nom prérempli. */
-fun NavController.navigateToCustomFood(name: String) {
-    navigate(CustomFoodDestination(name))
 }

@@ -710,6 +710,32 @@ Listés ici pour cesser d'être des oublis, comme [D21](#d21--ce-que-litération
 
 ---
 
+## D51 — Une seule porte, et la quantité qui recalcule · ✓ validée
+
+**Contexte.** Constaté sur appareil : choisir un aliment dans la recherche ouvrait un écran de saisie **vide**. Et changer la quantité d'une ligne ne changeait rien à ses valeurs.
+
+**La cause du premier défaut, qui était une faute de conception.** Un résultat de la table de l'ANSES recevait un identifiant **provisoire**, régénéré à chaque recherche : il n'entrait dans `food` qu'à l'enregistrement du plat. La route ne transportait que cet identifiant, et l'écran de validation le cherchait dans une table où il n'existait pas. Il ne trouvait rien et retombait sur un brouillon vierge. Cela ne marchait que pour un récent, un favori ou un aliment personnel — les fiches déjà écrites — c'est-à-dire pour les cas qu'un test en mémoire couvre et qu'un appareil ne montre qu'une fois le catalogue rempli.
+
+**Choix.** La fiche est **versée au catalogue au moment du choix**, et c'est son identifiant définitif qui voyage. Le port `CustomFoodStore` devient `FoodStore` et gagne `place`, qui écrit si la fiche est absente et rend celle qui est là — jamais l'inverse, sans quoi choisir un aliment remettrait ses compteurs d'usage à zéro. Le rapprochement se fait par `(source, source_ref)` et non par l'identifiant, précisément parce que celui-ci était le provisoire.
+
+**Écarté.** *Un identifiant déterministe* du genre `ciqual:13039` : stable, mais il abandonne la convention UUIDv4 de [07](07-modele-de-donnees.md) et n'est pas réversible, donc la recherche par identifiant aurait quand même eu besoin d'un repli. *Faire transiter la fiche entière par la route* : une route est sérialisée dans l'état de navigation, et y mettre un objet du domaine y ferait entrer Android.
+
+**Ce que ça coûte.** Une fiche regardée puis abandonnée reste au catalogue, avec `last_used_at` nul — donc absente de « Récents », et indiscernable de la ligne de l'ANSES qu'elle est. Le coût est une ligne par aliment réellement ouvert, et il achète un identifiant qui désigne toujours quelque chose.
+
+**Le second défaut, et sa règle.** Les valeurs d'une ligne étaient calculées une fois, à sa naissance. Une ligne porte désormais sa **référence pour 100 g**, et changer la quantité ou l'unité recalcule. La référence est capturée à la naissance de la ligne et **reconstruite depuis les valeurs figées** quand on rouvre un plat : la règle de trois ne relit jamais la fiche, qui a pu être corrigée ou supprimée depuis ([D05](#d05--les-entrées-de-journal-figent-leurs-valeurs--validée)). Les valeurs affichées à l'ouverture restent exactement celles enregistrées, puisque la quantité n'a pas bougé.
+
+**Une valeur corrigée à la main ne bouge plus**, ce que [02](02-parcours-et-ecrans.md#écran-de-validation-dentrée) demandait depuis la conception et que rien ne tenait. Vider un champ compte comme une correction : c'est une affirmation — « je ne sais pas » — et la quantité n'a pas à la contredire au gramme suivant. Le marqueur est posé par macro et par ligne.
+
+**Le point technique qui rend le recalcul visible.** Un champ de saisie tient son propre texte et ne relit sa valeur initiale qu'à la première composition ([D45](#d45--un-champ-de-saisie-tient-son-texte-lui-même--validée)). Sans un signal supplémentaire, le recalcul aurait mis à jour le brouillon **sans que l'écran bouge**. Chaque ligne porte donc un compteur de révisions, incrémenté par le recalcul et par lui seul : il sert de clé de composition aux six champs. Une frappe ne l'incrémente pas, donc le curseur ne bouge pas.
+
+**Une seule porte pour ajouter.** L'accueil n'a plus qu'un bouton, et il ouvre la recherche. La saisie manuelle y est une action permanente plutôt qu'une porte à côté, et **elle crée une fiche** : un aliment tapé à la main se cherche, se reprend et se recalcule comme les autres. « Ajouter un aliment » depuis l'écran de saisie rouvre la même recherche, dont le choix revient au brouillon en cours par le canal que la navigation prévoit pour un résultat.
+
+**Ce que la saisie manuelle coûte sous cette forme.** Elle se saisit **pour 100 g** et non pour la quantité mangée : c'est le prix de la fiche, et c'est ce qui rend la ligne recalculable. Pour « reste d'hier, 300 kcal », il faut donc penser en pour-cent-grammes une fois — et une seule, puisque la fiche revient ensuite.
+
+**Ce que ça rend nécessaire, et qui est fait.** Le catalogue accumule ce qu'on saisit. Une fiche créée par l'utilisateur se **voit** dans les listes et porte une **corbeille** ; une ligne de la table de l'ANSES n'en a pas, c'est une référence publiée. La suppression demande confirmation, et la phrase change selon l'usage : une fiche citée par douze entrées annonce que celles-ci sont conservées telles quelles, avec leurs valeurs figées.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

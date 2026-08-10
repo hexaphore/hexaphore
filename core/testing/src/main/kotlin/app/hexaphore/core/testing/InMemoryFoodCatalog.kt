@@ -1,11 +1,11 @@
 package app.hexaphore.core.testing
 
-import app.hexaphore.domain.food.CustomFoodStore
 import app.hexaphore.domain.food.FavoriteFoods
 import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodLookup
 import app.hexaphore.domain.food.FoodSearch
+import app.hexaphore.domain.food.FoodStore
 import app.hexaphore.domain.food.FoodUsage
 import app.hexaphore.domain.food.RecentFoods
 import app.hexaphore.domain.food.SearchText
@@ -34,7 +34,7 @@ class InMemoryFoodCatalog(initial: List<Food> = emptyList(), var failure: Boolea
     FoodLookup,
     RecentFoods,
     FavoriteFoods,
-    CustomFoodStore,
+    FoodStore,
     FoodUsage {
     private val foods = MutableStateFlow(initial.associateBy { it.id })
 
@@ -73,6 +73,15 @@ class InMemoryFoodCatalog(initial: List<Food> = emptyList(), var failure: Boolea
         foods.replace(id) { it.copy(favorite = favorite) }
     }
 
+    override suspend fun place(food: Food): Food {
+        failIf(failure)
+        // La fiche deja connue gagne : elle porte ses compteurs d usage et les
+        // corrections qu elle a recues, que celle qu on presente ignore.
+        foods.value[food.id]?.let { return it }
+        foods.value = foods.value + (food.id to food)
+        return food
+    }
+
     override suspend fun save(food: Food): FoodId {
         failIf(failure)
         foods.value = foods.value + (food.id to food)
@@ -84,7 +93,10 @@ class InMemoryFoodCatalog(initial: List<Food> = emptyList(), var failure: Boolea
         foods.value = foods.value - id
     }
 
-    override suspend fun usageCount(id: FoodId): Int = 0
+    /** Les entrees de journal ne sont pas ici : c est [InMemoryDiaryRepository] qui les tient. */
+    var usages: Map<FoodId, Int> = emptyMap()
+
+    override suspend fun usageCount(id: FoodId): Int = usages[id] ?: 0
 
     override suspend fun remember(foods: Collection<Food>, at: Instant) {
         failIf(failure)

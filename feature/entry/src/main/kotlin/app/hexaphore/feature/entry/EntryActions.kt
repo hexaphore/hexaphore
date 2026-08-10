@@ -18,7 +18,8 @@ import app.hexaphore.domain.diary.DraftLineId
 @Immutable
 internal data class EntryActions(
     val onLineEdit: (DraftLineId, LineEdit) -> Unit,
-    val onAddLine: () -> Unit,
+    /** Ouvre la recherche : la meme que celle de l'accueil, et le choix revient ici. */
+    val onAddFood: () -> Unit,
     val onRemoveLine: (DraftLineId) -> Unit,
     val onSave: () -> Unit,
     val onRetry: () -> Unit,

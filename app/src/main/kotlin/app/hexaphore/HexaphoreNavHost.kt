@@ -4,13 +4,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
+import app.hexaphore.feature.entry.EntryDestination
 import app.hexaphore.feature.entry.entryScreen
 import app.hexaphore.feature.entry.navigateToEntry
 import app.hexaphore.feature.entry.navigateToEntryFor
 import app.hexaphore.feature.home.HomeDestination
 import app.hexaphore.feature.home.homeScreen
-import app.hexaphore.feature.search.navigateToCustomFood
+import app.hexaphore.feature.search.navigateToManualEntry
 import app.hexaphore.feature.search.navigateToSearch
+import app.hexaphore.feature.search.navigateToSearchForDraft
 import app.hexaphore.feature.search.searchScreens
 
 /**
@@ -31,20 +33,34 @@ fun HexaphoreNavHost(modifier: Modifier = Modifier) {
 
     NavHost(navController = navController, startDestination = HomeDestination, modifier = modifier) {
         homeScreen(
-            onAddDish = { navController.navigateToEntry() },
-            onSearchFood = { navController.navigateToSearch() },
+            // Un seul bouton, et il ouvre la recherche : la saisie manuelle y est
+            // une branche, puisqu'un aliment tape a la main devient une fiche.
+            onAddDish = { navController.navigateToSearch() },
             onEditDish = { dishId -> navController.navigateToEntry(dishId) },
         )
-        entryScreen(onClose = { navController.popBackStack() })
+        entryScreen(
+            onAddFood = { navController.navigateToSearchForDraft() },
+            onClose = { navController.popBackStack() },
+        )
         searchScreens(
-            // La recherche s'efface derriere la validation : revenir en arriere
-            // depuis un plat en cours doit rendre l'accueil, pas une liste de
-            // resultats qu'on a deja quittee.
-            onPick = { foodId ->
-                navController.popBackStack(HomeDestination, inclusive = false)
-                navController.navigateToEntryFor(foodId)
+            onPick = { foodId, addToDraft ->
+                if (addToDraft) {
+                    // Le choix revient a l'ecran qui l'a demande, par le canal que
+                    // la navigation prevoit pour un resultat. Ouvrir une seconde
+                    // validation aurait perdu le plat en cours.
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(EntryDestination.PICKED_FOOD, foodId.value)
+                    navController.popBackStack()
+                } else {
+                    // La recherche s'efface derriere la validation : revenir en
+                    // arriere depuis un plat en cours doit rendre l'accueil, pas une
+                    // liste de resultats qu'on a deja quittee.
+                    navController.popBackStack(HomeDestination, inclusive = false)
+                    navController.navigateToEntryFor(foodId)
+                }
             },
-            onCreate = { name -> navController.navigateToCustomFood(name) },
+            onManualEntry = { name, addToDraft -> navController.navigateToManualEntry(name, addToDraft) },
             onClose = { navController.popBackStack() },
         )
     }

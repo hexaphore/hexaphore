@@ -19,6 +19,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -140,6 +141,45 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `choisir un aliment le verse au catalogue et rend son identifiant definitif`() = runTest(dispatcher) {
+        // Le defaut corrige : un resultat de la table de l'ANSES porte un
+        // identifiant provisoire tant qu'il n'est pas ecrit. Le rendre tel quel
+        // faisait chercher une fiche inexistante, et l'ecran de saisie s'ouvrait vide.
+        val absent = RIZ.copy(id = FoodId("provisoire"))
+        val viewModel = collecting()
+
+        viewModel.onPick(absent)
+        advanceUntilIdle()
+
+        assertEquals(absent.id, viewModel.picked.value)
+        assertTrue(catalogue.all.any { it.id == absent.id }, "la fiche aurait du entrer au catalogue")
+    }
+
+    @Test
+    fun `supprimer une fiche demande confirmation et dit ce qu elle coute`() = runTest(dispatcher) {
+        val viewModel = collecting()
+        catalogue.usages = mapOf(RIZ.id to 12)
+
+        viewModel.onDeleteRequested(RIZ)
+        advanceUntilIdle()
+
+        assertEquals(12, viewModel.deletion.value?.usedEntries)
+        assertTrue(catalogue.all.any { it.id == RIZ.id }, "rien n'est supprime avant confirmation")
+    }
+
+    @Test
+    fun `la suppression confirmee retire la fiche`() = runTest(dispatcher) {
+        val viewModel = collecting()
+        viewModel.onDeleteRequested(RIZ)
+        advanceUntilIdle()
+
+        viewModel.onDeleteConfirmed()
+        advanceUntilIdle()
+
+        assertTrue(catalogue.all.none { it.id == RIZ.id })
+    }
+
+    @Test
     fun `epingler un aliment le fait apparaitre en favori`() = runTest(dispatcher) {
         val viewModel = collecting()
 
@@ -152,7 +192,7 @@ class SearchViewModelTest {
 
     // --- Outillage ------------------------------------------------------------
 
-    private fun viewModel() = SearchViewModel(catalogue, catalogue, catalogue)
+    private fun viewModel() = SearchViewModel(catalogue, catalogue, catalogue, catalogue)
 
     /**
      * Un `ViewModel` dont l'état est collecté.

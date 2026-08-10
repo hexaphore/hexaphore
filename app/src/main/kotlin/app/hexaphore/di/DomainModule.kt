@@ -1,7 +1,7 @@
 package app.hexaphore.di
 
 import app.hexaphore.domain.diary.DiaryRepository
-import app.hexaphore.domain.food.CustomFoodStore
+import app.hexaphore.domain.food.FoodStore
 import app.hexaphore.domain.food.FoodUsage
 import app.hexaphore.domain.identity.IdGenerator
 import app.hexaphore.domain.time.Clock
@@ -41,7 +41,7 @@ object DomainModule {
     fun createDraft(clock: Clock, ids: IdGenerator): CreateDraft = CreateDraft(clock, ids)
 
     @Provides
-    fun saveCustomFood(store: CustomFoodStore, ids: IdGenerator): SaveCustomFood = SaveCustomFood(store, ids)
+    fun saveCustomFood(store: FoodStore, ids: IdGenerator): SaveCustomFood = SaveCustomFood(store, ids)
 
     @Provides
     fun logDish(diary: DiaryRepository, foods: FoodUsage, clock: Clock, ids: IdGenerator): LogDish =

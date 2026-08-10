@@ -73,6 +73,21 @@ internal data class EntryFormLine(
     val macros: Map<Macro, String> = emptyMap(),
     /** Les portions que propose la fiche d'origine. Vide pour une ligne tapée à la main. */
     val servings: List<QuantityUnit.Serving> = emptyList(),
+    val reference: NutrientValues? = null,
+    val edited: Set<Macro> = emptySet(),
+    /**
+     * Combien de fois la quantité a réécrit les valeurs de cette ligne.
+     *
+     * **C'est ce qui fait revivre les champs.** Un champ de saisie tient son propre
+     * texte et ne relit son texte initial qu'à la première composition
+     * ([D45][decisions]) : sans un signal qui change, un recalcul mettrait à jour le
+     * brouillon sans que l'écran bouge. Ce compteur sert de clé de composition, donc
+     * un recalcul reconstruit les champs — et une frappe, qui ne l'incrémente pas,
+     * laisse le curseur où il est.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val revision: Int = 0,
     /** Les cinq macros hors calories sont repliées par défaut : elles sont facultatives. */
     val expanded: Boolean = false,
 ) {
@@ -99,7 +114,28 @@ internal data class EntryFormLine(
             fiber = macroValue(Macro.FIBER),
         ),
         servings = servings,
+        reference = reference,
+        edited = edited,
     )
+
+    /**
+     * La quantité a changé : les valeurs suivent, et les champs sont reconstruits.
+     *
+     * La règle est celle du domaine — seules les valeurs non corrigées à la main
+     * bougent — et elle est appliquée là plutôt qu'ici : ce type ne fait que porter
+     * le texte des champs, il ne décide pas de ce que valent les macros.
+     */
+    fun remeasured(quantity: String, unit: QuantityUnit = this.unit): EntryFormLine {
+        val recomputed = toDraftLine().measured(number(quantity), unit)
+        if (recomputed.values == toDraftLine().values) return copy(quantity = quantity, unit = unit)
+
+        return copy(
+            quantity = quantity,
+            unit = unit,
+            macros = Macro.entries.associateWith { recomputed.values[it].asField() },
+            revision = revision + 1,
+        )
+    }
 
     private fun macroValue(macro: Macro): Double? = number(macros[macro].orEmpty())
 
@@ -113,6 +149,8 @@ internal data class EntryFormLine(
             unit = line.unit,
             macros = Macro.entries.associateWith { line.values[it].asField() },
             servings = line.servings,
+            reference = line.reference,
+            edited = line.edited,
             // Une ligne relue montre ses valeurs : les replier obligerait a deplier
             // chaque ligne pour verifier qu'on modifie la bonne.
             expanded = !line.values.empty,

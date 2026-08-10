@@ -1,10 +1,10 @@
 package app.hexaphore.di
 
 import app.hexaphore.data.food.RoomFoodCatalog
-import app.hexaphore.domain.food.CustomFoodStore
 import app.hexaphore.domain.food.FavoriteFoods
 import app.hexaphore.domain.food.FoodLookup
 import app.hexaphore.domain.food.FoodSearch
+import app.hexaphore.domain.food.FoodStore
 import app.hexaphore.domain.food.FoodUsage
 import app.hexaphore.domain.food.RecentFoods
 import dagger.Module
@@ -22,7 +22,7 @@ import dagger.hilt.components.SingletonComponent
  * Que six ports partagent un adaptateur ne les rend pas superflus : c'est du côté
  * des **appelants** que la séparation paie. L'écran de recherche ne voit que
  * [FoodSearch] et [RecentFoods], le formulaire d'aliment personnel que
- * [CustomFoodStore], et `LogDish` que [FoodUsage] — chacun se teste avec ce qu'il
+ * [FoodStore], et `LogDish` que [FoodUsage] — chacun se teste avec ce qu'il
  * utilise, pas avec quinze méthodes dont il ignore l'existence.
  *
  * @see docs/06-architecture.md
@@ -43,7 +43,7 @@ object FoodModule {
     fun favoriteFoods(catalog: RoomFoodCatalog): FavoriteFoods = catalog
 
     @Provides
-    fun customFoodStore(catalog: RoomFoodCatalog): CustomFoodStore = catalog
+    fun customFoodStore(catalog: RoomFoodCatalog): FoodStore = catalog
 
     @Provides
     fun foodUsage(catalog: RoomFoodCatalog): FoodUsage = catalog
