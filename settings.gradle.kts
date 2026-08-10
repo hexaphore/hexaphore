@@ -78,3 +78,11 @@ include(":feature:entry")
 include(":tooling:ciqual-import")
 include(":data:food")
 include(":feature:search")
+
+// Tranche 4. Le profil, le journal de poids et les objectifs versionnes.
+//
+// :data:profile et non une extension de :data:diary : un objectif n'est pas une
+// entree de journal, et le nom d'un module est ce qui empeche d'y ranger n'importe
+// quoi. Il porte trois ports que rien d'autre ne lit.
+include(":data:profile")
+include(":feature:onboarding")

@@ -2,6 +2,7 @@ package app.hexaphore.feature.home
 
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryDiaryRepository
+import app.hexaphore.core.testing.InMemoryGoals
 import app.hexaphore.core.testing.SampleDiary
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.diary.EntrySource
@@ -175,7 +176,7 @@ class HomeViewModelTest {
     }
 
     private fun viewModel(diary: InMemoryDiaryRepository, clock: FixedClock) = HomeViewModel(
-        getDaySummary = GetDaySummary(diary, clock),
+        getDaySummary = GetDaySummary(diary, InMemoryGoals(listOf(InMemoryGoals.maintenance(jour))), clock),
         dispatchers = TestDispatchers(dispatcher),
         deleteEntry = DeleteEntry(diary),
         restoreDish = RestoreDish(diary),

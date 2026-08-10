@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryDiaryRepository
 import app.hexaphore.core.testing.InMemoryFoodCatalog
+import app.hexaphore.core.testing.InMemoryGoals
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.DishId
@@ -15,7 +16,6 @@ import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodServing
 import app.hexaphore.domain.food.FoodSource
-import app.hexaphore.domain.goal.DailyGoal
 import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.nutrition.Macros
 import app.hexaphore.domain.nutrition.NutrientValues
@@ -51,6 +51,10 @@ class EntryViewModelTest {
     private val diary = InMemoryDiaryRepository()
     private val catalogue = InMemoryFoodCatalog()
     private val ids = SequentialIdGenerator()
+
+    /** Un objectif de maintien : le restant se compte par rapport à lui. */
+    private val objectif = InMemoryGoals.maintenance(jour)
+    private val goals = InMemoryGoals(listOf(objectif))
 
     @BeforeEach
     fun setUp() {
@@ -200,7 +204,7 @@ class EntryViewModelTest {
         val impact = viewModel.content().impact!!
 
         assertEquals(500.0, impact.draftKcal)
-        assertEquals(DailyGoal.Placeholder.kcal - 1100.0, impact.remainingKcal)
+        assertEquals(objectif.daily.kcal - 1100.0, impact.remainingKcal)
     }
 
     @Test
@@ -304,7 +308,7 @@ class EntryViewModelTest {
     private fun viewModel(dishId: String? = null) = EntryViewModel(
         savedStateHandle = SavedStateHandle(if (dishId == null) emptyMap() else mapOf("dishId" to dishId)),
         getDishDraft = GetDishDraft(diary, ids),
-        getDaySummary = GetDaySummary(diary, clock),
+        getDaySummary = GetDaySummary(diary, goals, clock),
         createDraft = CreateDraft(clock, ids),
         foodLookup = catalogue,
         logDish = LogDish(diary, catalogue, clock, ids),

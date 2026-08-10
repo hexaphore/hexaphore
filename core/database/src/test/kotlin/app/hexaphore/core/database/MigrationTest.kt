@@ -157,6 +157,122 @@ class MigrationTest {
         }
     }
 
+    // --- Version 2 -> 3 : profil, poids, objectifs versionnes ------------------
+
+    @Test
+    fun `un journal ecrit avant la tranche 4 se relit apres`() {
+        // Trois tables neuves et rien qui bouge : c'est la meilleure espece de
+        // migration, et c'est cette propriete-la qu'on eprouve.
+        helper.createDatabase(TEST_DATABASE, 1).use { it.seedVersionOne() }
+
+        migrate().use { database ->
+            database.query("SELECT display_name, kcal, fiber_g FROM food_entry WHERE id = 'e1'").use { row ->
+                assertTrue("la ligne de journal a disparu", row.moveToFirst())
+                assertEquals("Riz basmati cuit", row.getString(0))
+                assertEquals(232.0, row.getDouble(1), 0.0)
+                assertTrue("les fibres ont ete remplies par un defaut", row.isNull(2))
+            }
+        }
+    }
+
+    @Test
+    fun `la migration n invente ni profil ni objectif`() {
+        // Un profil « moyen » produirait un objectif que personne n'a demande, et les
+        // journees deja notees se retrouveraient jugees sur une regle qu'elles
+        // n'avaient pas. L'absence est la reponse exacte.
+        helper.createDatabase(TEST_DATABASE, 1).use { it.seedVersionOne() }
+
+        migrate().use { database ->
+            assertEquals("un profil a ete invente", 0, database.count("profile"))
+            assertEquals("un objectif a ete invente", 0, database.count("goal"))
+            assertEquals("une pesee a ete inventee", 0, database.count("weight_entry"))
+        }
+    }
+
+    @Test
+    fun `deux objectifs actifs sont refuses par la base`() {
+        // L'invariant de D04, tenu par un index unique et non par une convention
+        // d'ecriture. Deux NULL ne se heurtent jamais en SQLite : c'est `active_key`
+        // qui les fait entrer en collision.
+        helper.createDatabase(TEST_DATABASE, 1).close()
+
+        migrate().use { database ->
+            database.seedGoal(id = "g1", startedAt = "2026-01-01", endedAt = null)
+            val doublon = runCatching { database.seedGoal(id = "g2", startedAt = "2026-06-01", endedAt = null) }
+
+            assertTrue("le second objectif actif aurait du etre refuse", doublon.isFailure)
+        }
+    }
+
+    @Test
+    fun `un objectif clos laisse la place a un nouveau`() {
+        helper.createDatabase(TEST_DATABASE, 1).close()
+
+        migrate().use { database ->
+            database.seedGoal(id = "g1", startedAt = "2026-01-01", endedAt = null)
+            database.execSQL("UPDATE goal SET ended_at = '2026-06-01', active_key = id WHERE ended_at IS NULL")
+            database.seedGoal(id = "g2", startedAt = "2026-06-01", endedAt = null)
+
+            assertEquals(2, database.count("goal"))
+        }
+    }
+
+    @Test
+    fun `une journee est comparee a l objectif actif ce jour-la`() {
+        // La requete que D04 achete. Le 15 mai releve du premier objectif, le 15
+        // juillet du second, et la borne de fin est exclue : le 1er juin appartient
+        // au nouveau.
+        helper.createDatabase(TEST_DATABASE, 1).close()
+
+        migrate().use { database ->
+            database.seedGoal(id = "g1", startedAt = "2026-01-01", endedAt = "2026-06-01", kcal = 2500.0)
+            database.seedGoal(id = "g2", startedAt = "2026-06-01", endedAt = null, kcal = 2200.0)
+
+            assertEquals(2500.0, database.goalKcalOn("2026-05-15"), 0.0)
+            assertEquals(2200.0, database.goalKcalOn("2026-06-01"), 0.0)
+            assertEquals(2200.0, database.goalKcalOn("2026-07-15"), 0.0)
+        }
+    }
+
+    @Test
+    fun `une journee anterieure au premier objectif n en a aucun`() {
+        // Et non l'objectif courant applique retroactivement : une journee notee
+        // avant qu'un objectif existe n'a rien a quoi se comparer.
+        helper.createDatabase(TEST_DATABASE, 1).close()
+
+        migrate().use { database ->
+            database.seedGoal(id = "g1", startedAt = "2026-01-01", endedAt = null)
+
+            database.query(GOAL_ON_SQL, arrayOf("2025-12-31")).use { row ->
+                assertEquals("une journee d avant le premier objectif en a recu un", 0, row.count)
+            }
+        }
+    }
+
+    @Test
+    fun `une seule pesee par jour, la derniere remplace`() {
+        helper.createDatabase(TEST_DATABASE, 1).close()
+
+        migrate().use { database ->
+            database.seedWeight(id = "w1", date = "2026-08-10", kg = 88.0)
+            val doublon = runCatching { database.seedWeight(id = "w2", date = "2026-08-10", kg = 87.5) }
+
+            assertTrue("deux pesees le meme jour auraient du etre refusees", doublon.isFailure)
+        }
+    }
+
+    @Test
+    fun `le profil est une ligne unique`() {
+        helper.createDatabase(TEST_DATABASE, 1).close()
+
+        migrate().use { database ->
+            database.seedProfile()
+            val doublon = runCatching { database.seedProfile() }
+
+            assertTrue("un second profil aurait du etre refuse", doublon.isFailure)
+        }
+    }
+
     // --- Outillage ------------------------------------------------------------
 
     /**
@@ -219,8 +335,63 @@ class MigrationTest {
         )
     }
 
+    private fun SupportSQLiteDatabase.count(table: String): Int = query("SELECT COUNT(*) FROM $table").use { row ->
+        row.moveToFirst()
+        row.getInt(0)
+    }
+
+    private fun SupportSQLiteDatabase.goalKcalOn(date: String): Double =
+        query(GOAL_ON_SQL, arrayOf(date, date)).use { row ->
+            assertTrue("aucun objectif pour le $date", row.moveToFirst())
+            row.getDouble(0)
+        }
+
+    @Suppress("LongParameterList")
+    private fun SupportSQLiteDatabase.seedGoal(
+        id: String,
+        startedAt: String,
+        endedAt: String?,
+        kcal: Double = 2500.0,
+    ) {
+        execSQL(
+            """
+            INSERT INTO goal (
+                id, started_at, ended_at, active_key, origin, strategy,
+                target_weight_kg, target_date,
+                kcal, protein_g, carb_g, sugar_g, fat_g, fiber_g, manual_fields, created_at
+            ) VALUES (?, ?, ?, ?, 'CALCULATED', 'LOSE', 80.0, '2027-02-08', ?, 144.0, 312.0, 63.0, 70.0, 35.0, '', 1000)
+            """.trimIndent(),
+            // `active_key` vaut 1 tant que l'objectif court, l'identifiant une fois
+            // clos : c'est ce qui fait entrer deux objectifs actifs en collision.
+            arrayOf(id, startedAt, endedAt, if (endedAt == null) "1" else id, kcal),
+        )
+    }
+
+    private fun SupportSQLiteDatabase.seedWeight(id: String, date: String, kg: Double) {
+        execSQL(
+            "INSERT INTO weight_entry (id, date, weight_kg, created_at) VALUES (?, ?, ?, 1000)",
+            arrayOf(id, date, kg),
+        )
+    }
+
+    private fun SupportSQLiteDatabase.seedProfile() {
+        execSQL(
+            """
+            INSERT INTO profile (id, birth_date, sex, height_cm, activity_level, unit_system, created_at, updated_at)
+            VALUES ('singleton', '1991-03-04', 'MALE', 182.0, 'MODERATE', 'METRIC', 1000, 1000)
+            """.trimIndent(),
+        )
+    }
+
     private companion object {
         const val TEST_DATABASE = "migration-test.db"
+
+        const val GOAL_ON_SQL =
+            """
+            SELECT kcal FROM goal
+            WHERE started_at <= ? AND (ended_at IS NULL OR ended_at > ?)
+            ORDER BY started_at DESC LIMIT 1
+            """
     }
 }
 

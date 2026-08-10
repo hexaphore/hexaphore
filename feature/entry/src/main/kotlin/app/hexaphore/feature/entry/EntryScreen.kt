@@ -295,14 +295,18 @@ private fun Totals(impact: DraftImpact) {
                 color = NeonTheme.macros[Macro.CALORIES].base,
             )
         }
-        Text(
-            text = stringResource(
-                if (impact.remainingKcal < 0) R.string.entry_over else R.string.entry_remaining,
-                abs(impact.remainingKcal).roundToInt(),
-            ),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        // Rien tant qu'aucun objectif ne court : il n'y a alors pas de « restant »,
+        // et afficher le cout du brouillon a sa place inventerait une reference.
+        impact.remainingKcal?.let { remaining ->
+            Text(
+                text = stringResource(
+                    if (remaining < 0) R.string.entry_over else R.string.entry_remaining,
+                    abs(remaining).roundToInt(),
+                ),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

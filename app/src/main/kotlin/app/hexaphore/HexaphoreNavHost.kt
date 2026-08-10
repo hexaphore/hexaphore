@@ -10,6 +10,8 @@ import app.hexaphore.feature.entry.navigateToEntry
 import app.hexaphore.feature.entry.navigateToEntryFor
 import app.hexaphore.feature.home.HomeDestination
 import app.hexaphore.feature.home.homeScreen
+import app.hexaphore.feature.onboarding.OnboardingDestination
+import app.hexaphore.feature.onboarding.onboardingScreen
 import app.hexaphore.feature.search.navigateToManualEntry
 import app.hexaphore.feature.search.navigateToSearch
 import app.hexaphore.feature.search.navigateToSearchForDraft
@@ -37,6 +39,13 @@ fun HexaphoreNavHost(modifier: Modifier = Modifier) {
             // une branche, puisqu'un aliment tape a la main devient une fiche.
             onAddDish = { navController.navigateToSearch() },
             onEditDish = { dishId -> navController.navigateToEntry(dishId) },
+            onSetUpGoal = { navController.navigate(OnboardingDestination) },
+        )
+        onboardingScreen(
+            // L'onboarding s'efface derriere l'accueil : y revenir par le bouton
+            // « retour » du systeme reposerait cinq questions auxquelles on vient de
+            // repondre.
+            onDone = { navController.popBackStack(HomeDestination, inclusive = false) },
         )
         entryScreen(
             onAddFood = { navController.navigateToSearchForDraft() },

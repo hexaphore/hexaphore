@@ -47,8 +47,10 @@ dependencies {
     implementation(projects.feature.home)
     implementation(projects.feature.entry)
     implementation(projects.feature.search)
+    implementation(projects.feature.onboarding)
     implementation(projects.data.diary)
     implementation(projects.data.food)
+    implementation(projects.data.profile)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

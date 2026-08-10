@@ -136,9 +136,11 @@ C'est le vrai premier jalon : à la fin de cette tranche, **l'application est ut
 - L'exemple chiffré du doc [03](03-nutrition-calculs.md#exemple-complet) passe en test, au kcal près, **contrôle de cohérence énergétique compris** — c'est lui qui a révélé les 70 kcal de fibres comptées deux fois ([D24](11-decisions.md)).
 - Chaque garde-fou est testé sur ses deux bornes.
 - Une journée passée est comparée à l'objectif **actif ce jour-là**.
-- L'objectif codé en dur de la tranche 1 a disparu, et la dette correspondante est rayée.
+- ~~L'objectif codé en dur de la tranche 1 a disparu, et la dette correspondante est rayée.~~ **Fait** : `DailyGoal.Placeholder` n'existe plus, `GetDaySummary` lit l'objectif actif du jour, et `DaySummary.goal` est nullable ([D55](11-decisions.md)).
 
 **Piège** : mettre à jour un objectif en place « parce que c'est plus simple ». Voir [D04](11-decisions.md).
+
+> **Livrée en partie.** Le calcul, les tables versionnées et les cinq étapes sont là ; l'exemple de [03](03-nutrition-calculs.md#exemple-complet) passe au kcal près et chaque garde-fou est éprouvé sur ses deux bornes. **Les réglages profil, avec le verrouillage des champs édités, restent à faire** — la colonne `manual_fields` existe et le domaine la porte, mais aucun écran ne l'écrit. Voir [D55](11-decisions.md).
 
 ---
 

@@ -5,6 +5,8 @@ import app.hexaphore.core.database.HexaphoreDatabase
 import app.hexaphore.core.database.ciqual.CiqualDatabase
 import app.hexaphore.core.database.dao.DiaryDao
 import app.hexaphore.core.database.dao.FoodDao
+import app.hexaphore.core.database.dao.GoalDao
+import app.hexaphore.core.database.dao.ProfileDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -34,6 +36,12 @@ object DatabaseModule {
 
     @Provides
     fun foodDao(database: HexaphoreDatabase): FoodDao = database.foodDao()
+
+    @Provides
+    fun profileDao(database: HexaphoreDatabase): ProfileDao = database.profileDao()
+
+    @Provides
+    fun goalDao(database: HexaphoreDatabase): GoalDao = database.goalDao()
 
     /**
      * Singleton, comme la base applicative : l'ouverture recopie l'asset au premier
