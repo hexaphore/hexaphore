@@ -1,5 +1,7 @@
 package app.hexaphore.tooling.ciqual
 
+import app.hexaphore.domain.food.FoodCategory
+
 /** Une teneur dont l'écriture n'est reconnue par aucune règle du parseur. */
 internal data class UnrecognisedValue(val foodCode: String, val constCode: String, val raw: String) {
     override fun toString(): String = "aliment $foodCode, constituant $constCode : [$raw]"
@@ -20,6 +22,7 @@ internal class CiqualReader(private val archive: CiqualArchive) {
     fun read(): CiqualTable {
         verifyConstituents()
         val groups = readGroups()
+        verifyCategories(groups)
         val names = readFoods(groups)
         val (nutrients, unrecognised) = readCompositions(names.keys)
 
@@ -29,6 +32,7 @@ internal class CiqualReader(private val archive: CiqualArchive) {
                     code = code,
                     name = identity.name,
                     groupName = identity.groupName,
+                    category = identity.category,
                     nutrients = nutrients[code].orEmpty(),
                 )
             }
@@ -83,16 +87,54 @@ internal class CiqualReader(private val archive: CiqualArchive) {
         return names.filterValues { it.isNotBlank() && it != "-" }
     }
 
+    /**
+     * Le pendant de [verifyConstituents], pour la table des rayons.
+     *
+     * Deux dérives sont possibles et aucune ne se voit à l'exécution. L'ANSES peut
+     * **renuméroter** — et « 0405 » désignerait alors autre chose que les poissons,
+     * qui se retrouveraient sous un rayon faux. Elle peut aussi **ajouter** un
+     * sous-groupe, qui n'aurait alors aucun rayon sans que personne l'ait décidé :
+     * un silence qui ressemble en tout point à un arbitrage.
+     *
+     * Les deux arrêtent l'import. C'est le même raisonnement qu'en [D49][decisions]
+     * pour une écriture de teneur inconnue : un repli silencieux se découvre des mois
+     * plus tard, et sur l'appareil de quelqu'un.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    private fun verifyCategories(groups: Map<String, String>) {
+        val drifted = CiqualCategories.drifted(groups)
+        val unknown = groups.keys.filterNot { CiqualCategories.knows(it) }.sorted().map {
+            "  $it : [${groups[it]}] -- sous-groupe inconnu de la table des rayons"
+        }
+        if (drifted.isEmpty() && unknown.isEmpty()) return
+
+        error(
+            buildString {
+                appendLine("La nomenclature CIQUAL ne correspond plus a la table des rayons :")
+                (drifted + unknown).forEach(::appendLine)
+                appendLine()
+                appendLine("Un rayon faux se voit chez l'utilisateur, pas ici : un aliment sort")
+                appendLine("sous une pastille a laquelle il n'appartient pas, ou sous aucune.")
+                appendLine()
+                append("Arbitrer chaque ligne dans CiqualCategories, puis incrementer sa VERSION.")
+            },
+        )
+    }
+
     private fun readFoods(groups: Map<String, String>): Map<String, FoodIdentity> {
         val identities = linkedMapOf<String, FoodIdentity>()
         archive.foods { record ->
             val code = record["alim_code"].orEmpty()
             val name = record["alim_nom_fr"].orEmpty()
             if (code.isBlank() || name.isBlank()) return@foods
+            val subGroup = record["alim_ssgrp_code"]
+            val group = record["alim_grp_code"]
             identities[code] =
                 FoodIdentity(
                     name = name,
-                    groupName = groups[record["alim_ssgrp_code"]] ?: groups[record["alim_grp_code"]],
+                    groupName = groups[subGroup] ?: groups[group],
+                    category = CiqualCategories.of(subGroup, group),
                 )
         }
         return identities
@@ -126,5 +168,5 @@ internal class CiqualReader(private val archive: CiqualArchive) {
         return values to unrecognised
     }
 
-    private data class FoodIdentity(val name: String, val groupName: String?)
+    private data class FoodIdentity(val name: String, val groupName: String?, val category: FoodCategory?)
 }

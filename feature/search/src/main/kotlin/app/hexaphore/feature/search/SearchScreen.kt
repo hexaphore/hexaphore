@@ -33,6 +33,7 @@ import app.hexaphore.core.designsystem.component.NeonButton
 import app.hexaphore.core.designsystem.component.NeonButtonStyle
 import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.domain.food.Food
+import app.hexaphore.domain.food.FoodFilter
 import app.hexaphore.domain.food.FoodId
 
 /** L'écran de recherche, branché sur le graphe d'injection. */
@@ -45,6 +46,7 @@ internal fun SearchRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
+    val filter by viewModel.filter.collectAsStateWithLifecycle()
     val picked by viewModel.picked.collectAsStateWithLifecycle()
     val deletion by viewModel.deletion.collectAsStateWithLifecycle()
 
@@ -60,12 +62,15 @@ internal fun SearchRoute(
     SearchScreen(
         state = state,
         query = query,
+        filter = filter,
         actions = remember(viewModel, onManualEntry, onClose) {
             SearchActions(
                 onQueryChange = viewModel::onQueryChange,
                 onPick = viewModel::onPick,
                 onToggleFavorite = viewModel::onToggleFavorite,
                 onDelete = viewModel::onDeleteRequested,
+                onToggleCategory = viewModel::onToggleCategory,
+                onToggleTrait = viewModel::onToggleTrait,
                 onManualEntry = onManualEntry,
                 onClose = onClose,
             )
@@ -98,7 +103,13 @@ internal fun SearchRoute(
  * @see docs/02-parcours-et-ecrans.md
  */
 @Composable
-internal fun SearchScreen(state: SearchUiState, query: String, actions: SearchActions, modifier: Modifier = Modifier) {
+internal fun SearchScreen(
+    state: SearchUiState,
+    query: String,
+    filter: FoodFilter,
+    actions: SearchActions,
+    modifier: Modifier = Modifier,
+) {
     Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -108,6 +119,11 @@ internal fun SearchScreen(state: SearchUiState, query: String, actions: SearchAc
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             QueryField(actions.onQueryChange)
+
+            // Le bandeau est hors du `Box` qui change d'etat : il doit rester la dans
+            // les cinq, sans quoi un filtre qui ne rend rien deviendrait impossible a
+            // defaire.
+            FilterBand(filter, actions)
 
             Box(modifier = Modifier.weight(1f)) {
                 when (state) {
@@ -135,7 +151,10 @@ internal fun SearchScreen(state: SearchUiState, query: String, actions: SearchAc
  */
 @Composable
 private fun ManualEntry(state: SearchUiState, query: String, onManualEntry: (String) -> Unit) {
-    val named = state is SearchUiState.Empty
+    // Nommee seulement s'il y a un nom : en mode parcours, la recherche peut ne rien
+    // rendre sans qu'un seul caractere ait ete tape, et « Saisir "" a la main »
+    // proposerait de creer un aliment sans nom.
+    val named = state is SearchUiState.Empty && query.isNotBlank()
     NeonButton(
         text = if (named) {
             stringResource(R.string.search_manual_entry_named, query.trim())
@@ -210,10 +229,21 @@ private fun FoodList(foods: List<Food>, actions: SearchActions) {
     }
 }
 
+/**
+ * Rien ne correspond — et la phrase dit **pourquoi**.
+ *
+ * Sans mot tapé, ce sont les pastilles qui ont vidé la liste. Garder « aucun aliment
+ * ne correspond à "" » laisserait croire que le catalogue est vide, alors qu'il suffit
+ * de retirer une pastille.
+ */
 @Composable
 private fun NoResult(query: String) {
     Text(
-        text = stringResource(R.string.search_no_result, query),
+        text = if (query.isBlank()) {
+            stringResource(R.string.search_no_result_filtered)
+        } else {
+            stringResource(R.string.search_no_result, query)
+        },
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )

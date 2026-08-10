@@ -34,10 +34,19 @@ interface FoodDao {
      *
      * [decisions]: docs/11-decisions.md
      */
-    @Query(
-        "SELECT * FROM food WHERE name_search LIKE '%' || :normalisedQuery || '%' ORDER BY use_count DESC LIMIT :limit",
-    )
-    fun observeSearch(normalisedQuery: String, limit: Int): Flow<List<FoodEntity>>
+    /**
+     * **Sans `LIMIT`, et c'est délibéré.** Le `LIKE` balaie déjà la table entière ;
+     * tronquer par `use_count` avant le classement écarterait un nom qui correspond
+     * mieux au profit d'un aliment simplement plus fréquent, et le filtre par rayon
+     * s'applique lui aussi après. Le catalogue local est borné par construction — une
+     * ligne par aliment réellement ouvert ([D51][decisions]) — là où la table de
+     * l'ANSES, elle, garde sa limite en SQL.
+     *
+     * Une requête vide rend tout le catalogue : c'est le mode parcours, où seule une
+     * pastille filtre.
+     */
+    @Query("SELECT * FROM food WHERE name_search LIKE '%' || :normalisedQuery || '%'")
+    fun observeSearch(normalisedQuery: String): Flow<List<FoodEntity>>
 
     @Query("SELECT * FROM food WHERE id = :id")
     suspend fun byId(id: String): FoodEntity?

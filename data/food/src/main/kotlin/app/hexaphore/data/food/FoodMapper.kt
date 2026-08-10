@@ -4,6 +4,7 @@ import app.hexaphore.core.database.ciqual.CiqualFoodRow
 import app.hexaphore.core.database.ciqual.CiqualServingRow
 import app.hexaphore.core.database.entity.FoodEntity
 import app.hexaphore.domain.food.Food
+import app.hexaphore.domain.food.FoodCategory
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodServing
 import app.hexaphore.domain.food.FoodSource
@@ -21,12 +22,13 @@ import java.time.Instant
  * **Les huit valeurs traversent telles quelles.** Un `?: 0.0` sur l'une d'elles
  * serait la dernière occasion de perdre la distinction entre inconnu et zéro.
  */
-internal fun FoodEntity.toDomain(servings: List<FoodServing> = emptyList()) = Food(
+internal fun FoodEntity.toDomain(servings: List<FoodServing> = emptyList(), category: FoodCategory? = null) = Food(
     id = FoodId(id),
     source = source.toFoodSource(),
     sourceRef = sourceRef,
     name = name,
     brand = brand,
+    category = category,
     per100g = NutrientValues(
         kcal = kcal100,
         protein = protein100,
@@ -50,6 +52,16 @@ internal fun FoodEntity.toDomain(servings: List<FoodServing> = emptyList()) = Fo
  * aliment personnel ne lui attribue aucune autorité qu'elle n'a pas.
  */
 private fun String.toFoodSource(): FoodSource = FoodSource.entries.firstOrNull { it.name == this } ?: FoodSource.CUSTOM
+
+/**
+ * Un rayon inconnu vaut **aucun rayon**.
+ *
+ * Même lecture prudente que ci-dessus, et le repli est ici sans conséquence : une
+ * base écrite par une version plus récente peut nommer un rayon que celle-ci ne
+ * connaît pas encore. Le lui inventer une correspondance ferait sortir l'aliment
+ * sous une pastille au hasard ; ne rien lui donner le laisse trouvable par son nom.
+ */
+internal fun String?.toFoodCategory(): FoodCategory? = FoodCategory.entries.firstOrNull { it.name == this }
 
 internal fun Food.toEntity(now: Long) = FoodEntity(
     id = id.value,
@@ -93,6 +105,7 @@ internal fun CiqualFoodRow.toDomain(id: FoodId, servings: List<CiqualServingRow>
     sourceRef = code,
     name = name,
     brand = null,
+    category = category.toFoodCategory(),
     per100g = NutrientValues(
         kcal = kcal100,
         protein = protein100,

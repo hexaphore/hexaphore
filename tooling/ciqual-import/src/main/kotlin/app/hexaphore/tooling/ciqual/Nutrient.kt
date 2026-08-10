@@ -1,5 +1,7 @@
 package app.hexaphore.tooling.ciqual
 
+import app.hexaphore.domain.food.FoodCategory
+
 /**
  * Les colonnes de CIQUAL que l'application retient, et le code sous lequel l'ANSES
  * les publie.
@@ -50,6 +52,8 @@ data class CiqualFood(
     val code: String,
     val name: String,
     val groupName: String?,
+    /** Le rayon du bandeau de recherche, ou `null` s'il n'entre dans aucun. */
+    val category: FoodCategory?,
     val nutrients: Map<Nutrient, Double>,
 ) {
     /**

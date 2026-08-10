@@ -1,5 +1,6 @@
 package app.hexaphore.tooling.ciqual
 
+import app.hexaphore.domain.food.FoodCategory
 import java.io.File
 import java.security.MessageDigest
 
@@ -111,7 +112,25 @@ private fun report(foods: List<CiqualFood>, servings: List<CiqualServing>, outpu
     missing.forEach { (nutrient, count) ->
         println("    ${nutrient.column.padEnd(NUTRIENT_COLUMN_WIDTH)} $count / ${foods.size}")
     }
+    reportCategories(foods)
+}
+
+/**
+ * Le decompte par rayon, imprime a chaque import.
+ *
+ * C'est la seule facon de voir qu'un arbitrage de CiqualCategories a derape : un
+ * rayon a douze aliments quand on en attendait deux cents se lit d'un coup d'oeil,
+ * la ou aucun test ne dirait qu'on s'est trompe de case.
+ */
+private fun reportCategories(foods: List<CiqualFood>) {
+    val byCategory = foods.groupingBy { it.category }.eachCount()
+    println("  rayons du bandeau de recherche (table version ${CiqualCategories.VERSION}) :")
+    FoodCategory.entries.forEach {
+        println("    ${it.name.padEnd(CATEGORY_COLUMN_WIDTH)} ${byCategory[it] ?: 0}")
+    }
+    println("    ${"(sans rayon)".padEnd(CATEGORY_COLUMN_WIDTH)} ${byCategory[null] ?: 0}")
 }
 
 private const val KILOBYTE = 1024
 private const val NUTRIENT_COLUMN_WIDTH = 18
+private const val CATEGORY_COLUMN_WIDTH = 20

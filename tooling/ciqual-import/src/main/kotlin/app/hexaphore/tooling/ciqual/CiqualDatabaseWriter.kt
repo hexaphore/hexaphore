@@ -57,6 +57,11 @@ internal class CiqualDatabaseWriter(private val target: File) {
             text(food.name)
             text(SearchText.normalise(food.name))
             text(food.groupName)
+            // Le nom de l'enumeration du domaine, et non un entier : une
+            // renumerotation silencieuse rangerait les poissons dans les desserts,
+            // et la base est lue par une version de l'application qui n'est pas
+            // forcement celle qui l'a ecrite.
+            text(food.category?.name)
             Nutrient.entries.forEach { real(food[it]) }
         }
         batch(INSERT_FTS, foods.withIndex()) { (index, food) ->
@@ -109,8 +114,8 @@ internal class CiqualDatabaseWriter(private val target: File) {
     }
 
     internal companion object {
-        /** `rowid`, `code`, `name`, `name_search`, `group_name`, puis les teneurs. */
-        private const val FIXED_COLUMNS = 5
+        /** `rowid`, `code`, `name`, `name_search`, `group_name`, `category`, puis les teneurs. */
+        private const val FIXED_COLUMNS = 6
 
         val SCHEMA =
             listOf(
@@ -121,6 +126,7 @@ internal class CiqualDatabaseWriter(private val target: File) {
                     name TEXT NOT NULL,
                     name_search TEXT NOT NULL,
                     group_name TEXT,
+                    category TEXT,
                     ${Nutrient.entries.joinToString(",\n                    ") { "${it.column} REAL" }}
                 )
                 """.trimIndent(),
@@ -146,13 +152,17 @@ internal class CiqualDatabaseWriter(private val target: File) {
                 )
                 """.trimIndent(),
                 "CREATE INDEX index_ciqual_serving_code ON ciqual_serving(code)",
+                // Le mode parcours -- une pastille, champ vide -- balaie la table
+                // entiere sans passer par l'index plein texte. Sans cet index, c'est
+                // 3 484 lignes lues pour en rendre trente.
+                "CREATE INDEX index_ciqual_food_category ON ciqual_food(category)",
             )
 
         // Les colonnes de teneur et l'ordre de liaison viennent de la meme liste :
         // reordonner Nutrient reordonne les deux ensemble, ou aucune des deux.
         val INSERT_FOOD =
             buildString {
-                append("INSERT INTO ciqual_food (rowid, code, name, name_search, group_name")
+                append("INSERT INTO ciqual_food (rowid, code, name, name_search, group_name, category")
                 Nutrient.entries.forEach { append(", ").append(it.column) }
                 append(") VALUES (")
                 append(List(FIXED_COLUMNS + Nutrient.entries.size) { "?" }.joinToString())

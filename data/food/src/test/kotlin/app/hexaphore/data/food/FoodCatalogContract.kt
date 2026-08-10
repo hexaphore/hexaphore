@@ -1,8 +1,11 @@
 package app.hexaphore.data.food
 
 import app.hexaphore.domain.food.Food
+import app.hexaphore.domain.food.FoodCategory
+import app.hexaphore.domain.food.FoodFilter
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodSource
+import app.hexaphore.domain.food.FoodTrait
 import app.hexaphore.domain.nutrition.NutrientValues
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
@@ -250,9 +253,123 @@ abstract class FoodCatalogContract {
         assertEquals(1, avecAccents.count { it.sourceRef == CODE_CREME })
     }
 
+    // --- Le bandeau de pastilles -----------------------------------------------
+
+    @Test
+    fun `une pastille de rayon filtre les resultats`() = runBlocking {
+        val catalogue = catalogue(reference = listOf(POMME_DE_REFERENCE, CREME_BRULEE))
+
+        val fruits = catalogue.parcourir(FRUITS).first()
+
+        assertTrue("la pomme est un fruit", fruits.any { it.sourceRef == CODE_POMME })
+        assertTrue("une creme brulee n'est pas un fruit", fruits.none { it.sourceRef == CODE_CREME })
+    }
+
+    @Test
+    fun `une pastille seule et un champ vide listent des aliments`() = runBlocking {
+        // Le mode parcours. Sans lui, une pastille sans frappe ne rendrait rien, et
+        // le bandeau ne servirait qu'a retrecir une recherche deja faite.
+        val catalogue = catalogue(reference = listOf(POMME_DE_REFERENCE))
+
+        assertTrue(catalogue.parcourir(FRUITS).first().isNotEmpty())
+    }
+
+    @Test
+    fun `deux rayons se cumulent en OU`() = runBlocking {
+        val catalogue = catalogue(reference = listOf(POMME_DE_REFERENCE, CREME_BRULEE))
+        val deux = FoodFilter(categories = setOf(FoodCategory.FRUITS, FoodCategory.PRODUITS_LAITIERS))
+
+        val trouve = catalogue.parcourir(deux).first()
+
+        assertTrue("le fruit a disparu", trouve.any { it.sourceRef == CODE_POMME })
+        assertTrue("le produit laitier a disparu", trouve.any { it.sourceRef == CODE_CREME })
+    }
+
+    @Test
+    fun `une qualite se pose en ET par-dessus un rayon`() = runBlocking {
+        // « Favori + Fruits » montre les fruits epingles. C'est la regle que le
+        // domaine porte, et les deux implementations doivent la tenir pareil.
+        val epinglee = POMME_STOCKEE.copy(favorite = true)
+        val catalogue = catalogue(stored = listOf(epinglee), reference = listOf(POIRE_DE_REFERENCE))
+        val favorisFruits = FoodFilter(setOf(FoodCategory.FRUITS), setOf(FoodTrait.FAVORITE))
+
+        val trouve = catalogue.parcourir(favorisFruits).first()
+
+        assertEquals(listOf(POMME_STOCKEE.id), trouve.map { it.id })
+    }
+
+    @Test
+    fun `une qualite ecarte ce qui n a pas ete verse au catalogue`() = runBlocking {
+        // Une ligne de la table de l'ANSES n'est ni personnelle ni epinglee tant
+        // qu'elle n'a pas ete copiee. La rendre sous « Mon aliment » serait proposer
+        // de supprimer une reference publiee.
+        val catalogue = catalogue(stored = listOf(POMME_PERSONNELLE), reference = listOf(POIRE_DE_REFERENCE))
+
+        val miennes = catalogue.parcourir(FoodFilter(traits = setOf(FoodTrait.PERSONAL))).first()
+
+        assertEquals(listOf(POMME_PERSONNELLE.id), miennes.map { it.id })
+    }
+
+    @Test
+    fun `un aliment personnel ne porte aucun rayon`() = runBlocking {
+        // La decision, eprouvee sur les deux implementations : il ne repond qu'a
+        // « Mon aliment ».
+        val catalogue = catalogue(stored = listOf(POMME_PERSONNELLE))
+
+        assertNull(catalogue.byId(POMME_PERSONNELLE.id)?.category)
+        assertTrue(catalogue.parcourir(FRUITS).first().none { it.id == POMME_PERSONNELLE.id })
+    }
+
+    @Test
+    fun `le rayon accompagne une fiche versee au catalogue`() = runBlocking {
+        // Il n'est pas stocke dans `food` : il se relit dans la table de reference.
+        // Si ce chemin cassait, une fiche copiee cesserait de repondre a sa pastille
+        // -- et seulement apres avoir ete ouverte une fois, donc jamais ici.
+        val catalogue = catalogue(reference = listOf(POMME_DE_REFERENCE))
+        catalogue.place(catalogue.chercher(POMME).first().pomme!!)
+
+        val apres = catalogue.parcourir(FRUITS).first()
+
+        assertTrue("la fiche copiee a perdu son rayon", apres.any { it.sourceRef == CODE_POMME })
+        assertEquals(FoodCategory.FRUITS, catalogue.chercher(POMME).first().pomme!!.category)
+    }
+
+    @Test
+    fun `les pastilles filtrent aussi les recents et les favoris`() = runBlocking {
+        val catalogue = catalogue(stored = listOf(POMME_STOCKEE, POMME_PERSONNELLE))
+        catalogue.remember(listOf(POMME_STOCKEE, POMME_PERSONNELLE), CONSOMME_LE)
+
+        val recents = catalogue.observeRecent(RECENTS).first()
+
+        // Le port rend tout ; c'est la regle du domaine qui trie, et elle a besoin
+        // que la categorie soit portee par la fiche pour pouvoir le faire.
+        assertEquals(FoodCategory.FRUITS, recents.first { it.id == POMME_STOCKEE.id }.category)
+        assertNull(recents.first { it.id == POMME_PERSONNELLE.id }.category)
+        assertEquals(listOf(POMME_STOCKEE.id), recents.filter(FRUITS::matches).map { it.id })
+    }
+
+    @Test
+    fun `sans pastille et sans mot, rien ne sort`() = runBlocking {
+        // Le catalogue entier n'est pas une reponse : c'est l'ecran des raccourcis
+        // qui occupe cet etat, pas une liste de 3 484 lignes.
+        val catalogue = catalogue(stored = listOf(POMME_STOCKEE), reference = listOf(POIRE_DE_REFERENCE))
+
+        assertTrue(catalogue.chercher("").first().isEmpty())
+    }
+
     // --- Outillage -------------------------------------------------------------
 
-    private fun FoodCatalogView<*>.chercher(query: String): Flow<List<Food>> = search(query, RESULTATS)
+    /**
+     * Le mode parcours demande une limite large.
+     *
+     * La table de l'ANSES n'est pas garnissable : côté Room, « Fruits » rend les 191
+     * vrais fruits, et une limite de trente écarterait la fixture par la longueur de
+     * son libellé. Le contrat porterait alors sur le tri, pas sur le filtre.
+     */
+    private fun FoodCatalogView<*>.parcourir(filter: FoodFilter): Flow<List<Food>> = search("", filter, PARCOURS)
+
+    private fun FoodCatalogView<*>.chercher(query: String, filter: FoodFilter = FoodFilter.NONE): Flow<List<Food>> =
+        search(query, filter, RESULTATS)
 
     private val List<Food>.pomme: Food? get() = firstOrNull { it.sourceRef == CODE_POMME }
 
@@ -310,6 +427,7 @@ abstract class FoodCatalogContract {
             source = FoodSource.CIQUAL,
             sourceRef = CODE_POIRE,
             name = "Poire, chair et peau, crue",
+            category = FoodCategory.FRUITS,
             per100g = NutrientValues(kcal = 56.6),
         )
 
@@ -318,16 +436,21 @@ abstract class FoodCatalogContract {
             source = FoodSource.CIQUAL,
             sourceRef = CODE_POMME,
             name = "Pomme, chair et peau, crue",
+            category = FoodCategory.FRUITS,
             per100g = NutrientValues(kcal = 54.0),
         )
 
+        /** Un autre rayon, pour éprouver que le filtre écarte vraiment. */
         val CREME_BRULEE = Food(
             id = FoodId("provisoire-creme"),
             source = FoodSource.CIQUAL,
             sourceRef = CODE_CREME,
             name = "Crème brûlée, rayon frais",
+            category = FoodCategory.PRODUITS_LAITIERS,
             per100g = NutrientValues(kcal = 269.0),
         )
+
+        val FRUITS = FoodFilter(categories = setOf(FoodCategory.FRUITS))
 
         const val PROTEINES_POMME = 0.3
 
@@ -337,12 +460,18 @@ abstract class FoodCatalogContract {
             per100g = NutrientValues(kcal = 54.0, protein = PROTEINES_POMME, fiber = null),
         )
 
-        /** Une fiche personnelle : elle seule se supprime. */
+        /**
+         * Une fiche personnelle : elle seule se supprime, et elle n'a **aucun rayon**.
+         *
+         * C'est la décision, éprouvée plutôt que déclarée : des « pommes de mamie » ne
+         * sortent pas sous « Fruits », seulement sous « Mon aliment ».
+         */
         val POMME_PERSONNELLE = Food(
             id = FoodId("f-pomme-de-mamie"),
             source = FoodSource.CUSTOM,
             sourceRef = null,
             name = "Pommes de mamie",
+            category = null,
             per100g = NutrientValues(kcal = 60.0),
         )
 
@@ -350,6 +479,9 @@ abstract class FoodCatalogContract {
 
         const val RECENTS = 20
         const val RESULTATS = 50
+
+        /** Assez large pour que « Fruits » rende les 191 fruits de la table livrée. */
+        const val PARCOURS = 1_000
         const val DELAI_MILLIS = 5_000L
     }
 }

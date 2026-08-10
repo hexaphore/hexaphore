@@ -28,7 +28,8 @@ import kotlinx.coroutines.flow.Flow
  */
 interface FoodSearch {
     /**
-     * Les aliments dont le nom correspond à [query], **et ce qu'ils deviennent**.
+     * Les aliments dont le nom correspond à [query] et que [filter] retient, **et ce
+     * qu'ils deviennent**.
      *
      * Un flux et non une lecture unique, parce que le catalogue change sous les
      * yeux de celui qui regarde ses résultats : épingler un aliment, supprimer une
@@ -41,8 +42,12 @@ interface FoodSearch {
      * L'implémentation décide quand ré-émettre. Room le sait : il invalide sur
      * écriture, exactement comme pour [RecentFoods.observeRecent].
      *
+     * **Une requête vide et un filtre suffisent** : c'est le mode parcours, où l'on
+     * demande « les fruits » sans rien taper. Vides tous les deux, en revanche, ne
+     * rendent rien — le catalogue entier n'est pas une réponse.
+     *
      * Rend une liste vide plutôt qu'une erreur quand rien ne correspond : ne rien
      * trouver est une réponse.
      */
-    fun search(query: String, limit: Int): Flow<List<Food>>
+    fun search(query: String, filter: FoodFilter = FoodFilter.NONE, limit: Int): Flow<List<Food>>
 }

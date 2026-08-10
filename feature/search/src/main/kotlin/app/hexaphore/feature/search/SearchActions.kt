@@ -2,6 +2,8 @@ package app.hexaphore.feature.search
 
 import androidx.compose.runtime.Immutable
 import app.hexaphore.domain.food.Food
+import app.hexaphore.domain.food.FoodCategory
+import app.hexaphore.domain.food.FoodTrait
 
 /**
  * Ce que l'écran de recherche peut déclencher.
@@ -20,6 +22,8 @@ internal data class SearchActions(
     val onPick: (Food) -> Unit,
     val onToggleFavorite: (Food) -> Unit,
     val onDelete: (Food) -> Unit,
+    val onToggleCategory: (FoodCategory) -> Unit,
+    val onToggleTrait: (FoodTrait) -> Unit,
     val onManualEntry: (String) -> Unit,
     val onClose: () -> Unit,
 )
