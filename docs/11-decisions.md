@@ -384,6 +384,8 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 
 **Date de péremption.** Sa disparition est un critère de fin de la tranche 4, déjà écrit dans [12](12-plan-de-developpement.md). Un seul point du code le référence, et le nom `Placeholder` le désigne comme tel dans chaque complétion de l'IDE.
 
+> **Échéance tenue.** `DailyGoal.Placeholder` n'existe plus ([D55](#d55--lobjectif-est-calculé-daté-et-parfois-absent--validée)). `GetDaySummary` lit l'objectif **actif ce jour-là**, et `DaySummary.goal` est devenu nullable : une journée sans objectif ne se compare à rien plutôt que d'être jugée sur une règle qu'elle n'avait pas. Les valeurs elles-mêmes survivent dans `InMemoryGoals.maintenance`, où elles servent de décor de test — ce qui a disparu est le fait qu'un **écran** s'en serve.
+
 ---
 
 ## D31 — Un plat, pas un repas nommé · ✓ validée
@@ -838,6 +840,44 @@ Décision de l'auteur, appliquée telle quelle. **Contestation, pour mémoire** 
 - **Le décompte par rayon est imprimé à chaque import.** 191 fruits, 352 légumes, 325 boissons, 754 sans rayon. Un rayon à douze aliments quand on en attendait deux cents se lit d'un coup d'œil, là où aucun test ne dirait qu'on s'est trompé de case.
 
 **Ce que ça coûte.** `ciqual.db` passe de 824 à 924 Ko : la colonne porte le **nom** de l'énumération et non un entier, parce que la base est lue par une version de l'application qui n'est pas forcément celle qui l'a écrite, et qu'un client SQLite doit pouvoir la lire le jour où une pastille ne rend rien.
+
+---
+
+## D55 — L'objectif est calculé, daté, et parfois absent · ✓ validée
+
+**Contexte.** La tranche 4 remplace l'objectif en dur de [D30](#d30--objectif-provisoire-en-dur-avec-sa-date-de-péremption--par-défaut) par un calcul réel : profil, dépense, garde-fous, répartition. Trois questions se posaient en même temps, et c'est leur combinaison qui décide.
+
+### Le calcul est découpé en quatre objets, pas en un
+
+`EnergyExpenditureCalculator`, `GoalSafetyPolicy`, `MacroDistributionPolicy`, puis `CalculateDailyGoal` qui les enchaîne et **ne décide de rien**. C'est ce qui permet d'éprouver un garde-fou sur ses deux bornes sans construire un profil complet : avec un profil réel, deux garde-fous mordent souvent ensemble, et le test ne dirait plus lequel.
+
+**L'exemple de référence de [03](03-nutrition-calculs.md#exemple-complet) passe au kcal près**, contrôle de cohérence compris : 576 + 630 + 70 + 1 248 = 2 524, soit 1 kcal d'arrondi sur 2 525. C'est ce contrôle qui avait révélé les 70 kcal de fibres distribuées deux fois ([D24](#d24--les-fibres-sont-déduites-du-solde-glucidique--validée)), et il est désormais un test permanent plutôt qu'une vérification faite une fois.
+
+**Les grammes sont entiers, et le solde se calcule sur eux.** Calculer les glucides sur des valeurs non arrondies puis arrondir donnerait un contrôle de cohérence qui ne retombe pas sur ce qui est **affiché** — même raisonnement qu'en [D52](#d52--deux-savedstatehandle-une-seule-saisie-manuelle-des-grammes-entiers--validée), et il vaut pour l'objectif comme pour la saisie.
+
+### Une journée sans objectif n'est pas une journée à zéro
+
+`DaySummary.goal` devient **nullable**, et c'est la conséquence directe de [D04](#d04--objectifs-versionnés-plutôt-que-mis-à-jour-en-place--validée). Une journée notée avant que le premier objectif existe n'a rien à quoi se comparer ; lui appliquer l'objectif courant la jugerait sur une règle qu'elle n'avait pas. L'accueil affiche alors les six totaux **sans jauge** — ce qui a été mangé reste exact, c'est la comparaison qui manque — et propose les cinq questions.
+
+**Écarté.** *Un objectif par défaut écrit à la migration* : l'accueil aurait toujours eu une jauge, au prix d'un objectif que personne n'a demandé et d'un mois d'historique repeint. *Garder un `Placeholder` non nul* : c'était exactement la dette qu'il fallait lever, et elle se serait réinstallée sous un autre nom.
+
+**La migration 2 → 3 n'écrit donc aucune donnée**, seulement trois tables. Rien d'existant ne bouge : un journal de six mois traverse sans qu'une ligne soit réécrite.
+
+### L'invariant « au plus un objectif actif » est tenu par la base
+
+`goal.active_key` vaut `1` tant que l'objectif court, et l'identifiant une fois clos. Un index unique dessus fait entrer deux objectifs actifs en collision.
+
+**Pourquoi pas un index sur `ended_at`.** SQLite ne compare jamais deux `NULL` comme égaux : un index unique sur cette colonne ne contraindrait strictement rien, et l'invariant reposerait sur la discipline d'écriture. C'est le même mécanisme que l'index `(source, source_ref)` de `food`, retourné — là, la permissivité des `NULL` était ce qu'on voulait ; ici, c'est ce qu'il fallait contourner. Le port n'offre d'ailleurs **aucun** `update` : `replace` clôt et écrit en une transaction, et c'est le seul chemin.
+
+### Ce que la tranche 4 ne construit pas
+
+| Absent | Raison | Quand |
+|---|---|---|
+| L'écran de **réglages profil**, avec verrouillage des champs édités | La colonne `manual_fields` existe, le domaine la porte (`Goal.manualFields`), et le mapper la sérialise — mais **rien ne l'écrit encore**, faute d'écran d'édition. C'est une capacité à part entière : relire le profil, recalculer, et distinguer ce que l'utilisateur a fixé de ce que le calcul propose. | Tranche suivante |
+| L'**adaptation hebdomadaire** (`SuggestGoalAdjustment`) | Elle demande une moyenne mobile sur 7 jours et une mesure d'adhérence, donc un historique de pesées que personne n'a encore. [12](12-plan-de-developpement.md) la place en tranche 7, avec le journal de poids. | Tranche 7 |
+| Un jeu de tests de **contrat** pour `Profiles`, `WeightLog` et `Goals` | Le dispositif existe depuis [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat--validée) et ces trois ports ont deux implémentations chacun. Ils ne l'ont pas encore. | Avec les réglages profil |
+
+**Ce que ça ne coûte pas.** La capacité annoncée par la tranche — « l'application connaît mon objectif » — est entière : on répond à cinq questions, l'objectif est calculé, il est daté, et chaque journée est jugée sur le sien.
 
 ---
 

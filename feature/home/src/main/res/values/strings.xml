@@ -23,6 +23,16 @@
     <!-- D29 : un total amputé d'une valeur inconnue ne doit pas se lire comme exact. -->
     <string name="home_incomplete_totals">Totaux minorés : certaines lignes n\'ont pas toutes leurs valeurs.</string>
 
+    <!-- Tant qu'aucun objectif n'a été posé. Une invitation, pas six jauges vides :
+         une jauge à zéro laisserait croire qu'un objectif existe et n'est pas atteint. -->
+    <string name="home_no_goal_title">Pas encore d\'objectif</string>
+    <string name="home_no_goal_body">Cinq questions suffisent à calculer vos six objectifs quotidiens. En attendant, vos totaux sont notés sans être comparés à quoi que ce soit.</string>
+    <string name="home_no_goal_action">Définir mon objectif</string>
+
+    <!-- Ce qui a été mangé reste exact sans objectif : c'est la comparaison qui manque. -->
+    <string name="home_total_line">%1$s : %2$d</string>
+    <string name="home_total_line_partial">%1$s : au moins %2$d</string>
+
     <!-- Un seul bouton : il ouvre la recherche, qui porte aussi la saisie manuelle.
          Le scan et l'IA n'existent pas encore, et un bouton qui n'ouvre rien n'est
          pas une avance. -->

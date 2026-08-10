@@ -3,8 +3,10 @@ package app.hexaphore.di
 import app.hexaphore.domain.diary.DiaryRepository
 import app.hexaphore.domain.food.FoodStore
 import app.hexaphore.domain.food.FoodUsage
+import app.hexaphore.domain.goal.Goals
 import app.hexaphore.domain.identity.IdGenerator
 import app.hexaphore.domain.time.Clock
+import app.hexaphore.domain.usecase.CalculateDailyGoal
 import app.hexaphore.domain.usecase.CreateDraft
 import app.hexaphore.domain.usecase.DeleteEntry
 import app.hexaphore.domain.usecase.GetDaySummary
@@ -32,7 +34,11 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 object DomainModule {
     @Provides
-    fun getDaySummary(diary: DiaryRepository, clock: Clock): GetDaySummary = GetDaySummary(diary, clock)
+    fun getDaySummary(diary: DiaryRepository, goals: Goals, clock: Clock): GetDaySummary =
+        GetDaySummary(diary, goals, clock)
+
+    @Provides
+    fun calculateDailyGoal(clock: Clock): CalculateDailyGoal = CalculateDailyGoal(clock)
 
     @Provides
     fun getDishDraft(diary: DiaryRepository, ids: IdGenerator): GetDishDraft = GetDishDraft(diary, ids)

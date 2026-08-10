@@ -3,6 +3,7 @@ package app.hexaphore.domain.diary
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryDiaryRepository
 import app.hexaphore.core.testing.InMemoryFoodCatalog
+import app.hexaphore.core.testing.InMemoryGoals
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.usecase.GetDaySummary
@@ -21,7 +22,7 @@ class DraftImpactTest {
     private val ids = SequentialIdGenerator()
 
     private val logDish = LogDish(diary, catalogue, clock, ids)
-    private val getDaySummary = GetDaySummary(diary, clock)
+    private val getDaySummary = GetDaySummary(diary, InMemoryGoals(listOf(InMemoryGoals.maintenance(JOUR))), clock)
 
     @Test
     fun `le restant retranche le brouillon de l objectif`() = runTest {
@@ -30,7 +31,7 @@ class DraftImpactTest {
         val impact = journee.impactOf(brouillon(ligne("a", kcal = 500.0)))
 
         assertEquals(500.0, impact.draftKcal)
-        assertEquals(journee.goal.kcal - 500.0, impact.remainingKcal)
+        assertEquals(journee.goal!!.kcal - 500.0, impact.remainingKcal)
     }
 
     @Test
@@ -43,7 +44,7 @@ class DraftImpactTest {
 
         val impact = journee.impactOf(brouillon(ligne("a", kcal = 700.0), dishId = id))
 
-        assertEquals(journee.goal.kcal - 700.0, impact.remainingKcal)
+        assertEquals(journee.goal!!.kcal - 700.0, impact.remainingKcal)
     }
 
     @Test
@@ -53,7 +54,7 @@ class DraftImpactTest {
 
         val impact = journee.impactOf(brouillon(ligne("b", kcal = 400.0)))
 
-        assertEquals(journee.goal.kcal - 1000.0, impact.remainingKcal)
+        assertEquals(journee.goal!!.kcal - 1000.0, impact.remainingKcal)
     }
 
     @Test
@@ -66,6 +67,6 @@ class DraftImpactTest {
 
         assertFalse(journee.totals[Macro.FIBER].complete)
         assertTrue(journee.totals[Macro.CALORIES].complete)
-        assertEquals(journee.goal.kcal - 800.0, journee.impactOf(brouillon(ligne("b", kcal = 200.0))).remainingKcal)
+        assertEquals(journee.goal!!.kcal - 800.0, journee.impactOf(brouillon(ligne("b", kcal = 200.0))).remainingKcal)
     }
 }

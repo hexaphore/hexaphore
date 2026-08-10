@@ -18,9 +18,11 @@ import app.hexaphore.domain.nutrition.Macro
  * [totals]: app.hexaphore.domain.nutrition.MacroTotal
  *
  * @property remainingKcal ce qui restera une fois le brouillon enregistré. Négatif
- *   en cas de dépassement — c'est une donnée, pas un jugement.
+ *   en cas de dépassement — c'est une donnée, pas un jugement. `null` quand la
+ *   journée n'a pas d'objectif : il n'y a alors rien qui « reste », et afficher le
+ *   coût du brouillon comme un restant serait inventer une référence.
  */
-data class DraftImpact(val draftKcal: Double, val remainingKcal: Double)
+data class DraftImpact(val draftKcal: Double, val remainingKcal: Double?)
 
 /**
  * L'impact d'un brouillon sur cette journée.
@@ -37,6 +39,6 @@ fun DaySummary.impactOf(draft: EntryDraft): DraftImpact {
 
     return DraftImpact(
         draftKcal = draft.kcal,
-        remainingKcal = goal.kcal - (consumed - replaced + draft.kcal),
+        remainingKcal = goal?.let { it.kcal - (consumed - replaced + draft.kcal) },
     )
 }

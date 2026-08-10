@@ -34,6 +34,7 @@ import app.hexaphore.core.designsystem.theme.Timing
 import app.hexaphore.domain.diary.DaySummary
 import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.DishId
+import app.hexaphore.domain.goal.DailyGoal
 import app.hexaphore.domain.nutrition.Macro
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.abs
@@ -41,7 +42,7 @@ import kotlin.math.roundToInt
 
 /** L'accueil, branché sur le graphe d'injection. */
 @Composable
-fun HomeRoute(onAddDish: () -> Unit, onEditDish: (DishId) -> Unit) {
+fun HomeRoute(onAddDish: () -> Unit, onEditDish: (DishId) -> Unit, onSetUpGoal: () -> Unit) {
     val viewModel: HomeViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val pendingUndo by viewModel.pendingUndo.collectAsStateWithLifecycle()
@@ -49,7 +50,7 @@ fun HomeRoute(onAddDish: () -> Unit, onEditDish: (DishId) -> Unit) {
     HomeScreen(
         state = state,
         pendingUndo = pendingUndo,
-        actions = remember(viewModel, onAddDish, onEditDish) {
+        actions = remember(viewModel, onAddDish, onEditDish, onSetUpGoal) {
             HomeActions(
                 onAddDish = onAddDish,
                 onEditDish = onEditDish,
@@ -57,6 +58,7 @@ fun HomeRoute(onAddDish: () -> Unit, onEditDish: (DishId) -> Unit) {
                 onUndo = viewModel::onUndo,
                 onUndoExpired = viewModel::onUndoExpired,
                 onRetry = viewModel::retry,
+                onSetUpGoal = onSetUpGoal,
             )
         },
     )
@@ -130,10 +132,27 @@ fun HomeScreen(state: HomeUiState, pendingUndo: Dish?, actions: HomeActions, mod
     }
 }
 
+/**
+ * La journée, avec ou **sans** objectif.
+ *
+ * Une journée sans objectif n'est pas une journée à zéro : c'est une journée qu'on ne
+ * peut comparer à rien, parce qu'aucun objectif ne courait ce jour-là — avant
+ * l'onboarding, ou pour une journée notée avant qu'un objectif soit posé
+ * ([D04][decisions]). Les six totaux s'affichent alors sans jauge, et l'écran invite à
+ * répondre aux questions plutôt que d'inventer une cible.
+ *
+ * [decisions]: docs/11-decisions.md
+ */
 @Composable
 private fun DayContent(summary: DaySummary, actions: HomeActions) {
-    RemainingBlock(summary)
-    MacroBars(summary)
+    val goal = summary.goal
+    if (goal != null) {
+        RemainingBlock(summary, goal)
+        MacroBars(summary, goal)
+    } else {
+        NoGoal(actions.onSetUpGoal)
+        MacroTotalsOnly(summary)
+    }
     if (summary.logged) {
         DishList(dishes = summary.dishes, zone = summary.zone, actions = actions)
     } else {
@@ -152,9 +171,9 @@ private fun DayContent(summary: DaySummary, actions: HomeActions) {
  * sans rouge d'alerte ni message : c'est une donnée, pas un jugement.
  */
 @Composable
-private fun RemainingBlock(summary: DaySummary) {
+private fun RemainingBlock(summary: DaySummary, dailyGoal: DailyGoal) {
     val consumed = summary.totals[Macro.CALORIES].value
-    val goal = summary.goal.kcal
+    val goal = dailyGoal.kcal
     val remaining = goal - consumed
 
     Column(
@@ -164,7 +183,7 @@ private fun RemainingBlock(summary: DaySummary) {
     ) {
         // Un intervalle de plus sous la figure : les six lettres touchent le bas de
         // sa zone, et le « G » des glucides venait buter contre le grand chiffre.
-        MacroHexagon(quarters = summary.quarters(), modifier = Modifier.padding(bottom = Spacing.md))
+        MacroHexagon(quarters = summary.quarters(dailyGoal), modifier = Modifier.padding(bottom = Spacing.md))
         Text(
             text = abs(remaining).roundToInt().toString(),
             style = MaterialTheme.typography.displayLarge,
@@ -189,7 +208,7 @@ private fun RemainingBlock(summary: DaySummary) {
  * Un objectif nul rendrait un ratio infini : le quartier est alors vide, ce qui est
  * la seule lecture honnête d'une cible qui n'existe pas.
  */
-private fun DaySummary.quarters(): Map<Macro, MacroQuarter> = Macro.entries.associateWith { macro ->
+private fun DaySummary.quarters(goal: DailyGoal): Map<Macro, MacroQuarter> = Macro.entries.associateWith { macro ->
     val total = totals[macro]
     val target = goal[macro]
     MacroQuarter(
@@ -199,7 +218,7 @@ private fun DaySummary.quarters(): Map<Macro, MacroQuarter> = Macro.entries.asso
 }
 
 @Composable
-private fun MacroBars(summary: DaySummary) {
+private fun MacroBars(summary: DaySummary, goal: DailyGoal) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -209,7 +228,7 @@ private fun MacroBars(summary: DaySummary) {
                 macro = macro,
                 label = stringResource(macro.labelRes),
                 consumed = summary.totals[macro].value.toFloat(),
-                goal = summary.goal[macro].toFloat(),
+                goal = goal[macro].toFloat(),
                 unit = MacroUnit.GRAM,
             )
         }
@@ -220,6 +239,58 @@ private fun MacroBars(summary: DaySummary) {
             Text(
                 text = stringResource(R.string.home_incomplete_totals),
                 style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/**
+ * Ce qu'on voit tant qu'aucun objectif n'a été posé.
+ *
+ * Une invitation, pas une jauge à zéro : afficher six barres vides laisserait croire
+ * qu'un objectif existe et qu'il n'est pas atteint. Le bouton mène aux cinq questions
+ * qui permettent de le calculer.
+ */
+@Composable
+private fun NoGoal(onSetUpGoal: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        Text(
+            text = stringResource(R.string.home_no_goal_title),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = stringResource(R.string.home_no_goal_body),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        NeonButton(text = stringResource(R.string.home_no_goal_action), onClick = onSetUpGoal)
+    }
+}
+
+/**
+ * Les six totaux, sans référence à quoi que ce soit.
+ *
+ * Ce qui a été mangé reste une information exacte même sans objectif ; c'est la
+ * **comparaison** qui manque, pas la mesure. Les afficher en texte plutôt qu'en jauge
+ * dit exactement cela.
+ */
+@Composable
+private fun MacroTotalsOnly(summary: DaySummary) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Macro.entries.forEach { macro ->
+            val total = summary.totals[macro]
+            Text(
+                text = stringResource(
+                    if (total.complete) R.string.home_total_line else R.string.home_total_line_partial,
+                    stringResource(macro.labelRes),
+                    total.value.roundToInt(),
+                ),
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

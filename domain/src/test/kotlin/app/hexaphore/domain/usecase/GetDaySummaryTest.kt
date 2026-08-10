@@ -2,6 +2,7 @@ package app.hexaphore.domain.usecase
 
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryDiaryRepository
+import app.hexaphore.core.testing.InMemoryGoals
 import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.diary.EntryId
@@ -77,7 +78,11 @@ class GetDaySummaryTest {
                 ),
             )
 
-        val summary = GetDaySummary(diary, FixedClock.atNoon(jour, paris))().first()
+        val summary = GetDaySummary(
+            diary,
+            InMemoryGoals(listOf(InMemoryGoals.maintenance(jour))),
+            FixedClock.atNoon(jour, paris),
+        )().first()
 
         assertEquals(jour, summary.date)
         assertEquals(700.0, summary.totals[Macro.CALORIES].value, "la veille ne doit pas deborder")
@@ -91,7 +96,11 @@ class GetDaySummaryTest {
         val minuitMoinsUne = Instant.parse("2026-03-15T22:59:00Z")
         val diary = InMemoryDiaryRepository(listOf(plat(macros(kcal = 150.0))))
 
-        val summary = GetDaySummary(diary, FixedClock(minuitMoinsUne, paris))().first()
+        val summary = GetDaySummary(
+            diary,
+            InMemoryGoals(listOf(InMemoryGoals.maintenance(jour))),
+            FixedClock(minuitMoinsUne, paris),
+        )().first()
 
         assertEquals(jour, summary.date)
         assertEquals(150.0, summary.totals[Macro.CALORIES].value)
@@ -121,9 +130,12 @@ class GetDaySummaryTest {
 
     // --- Decor ---------------------------------------------------------------
 
-    private suspend fun summaryOf(vararg dishes: Dish) =
-        GetDaySummary(InMemoryDiaryRepository(dishes.toList()), FixedClock.atNoon(jour, paris))()
-            .first()
+    private suspend fun summaryOf(vararg dishes: Dish) = GetDaySummary(
+        InMemoryDiaryRepository(dishes.toList()),
+        InMemoryGoals(listOf(InMemoryGoals.maintenance(jour))),
+        FixedClock.atNoon(jour, paris),
+    )()
+        .first()
 
     private var nextIndex = 0
 

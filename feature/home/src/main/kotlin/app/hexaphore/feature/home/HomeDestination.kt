@@ -12,12 +12,12 @@ data object HomeDestination
 /**
  * Déclare l'accueil dans un graphe.
  *
- * Les deux rappels sont des sorties et non des destinations : le module ne sait pas
- * vers quoi il envoie, ce qui lui évite de dépendre de `:feature:entry`. C'est
- * `:app` qui relie, parce que c'est lui qui assemble.
+ * Les trois rappels sont des sorties et non des destinations : le module ne sait pas
+ * vers quoi il envoie, ce qui lui évite de dépendre de `:feature:entry` ni de
+ * `:feature:onboarding`. C'est `:app` qui relie, parce que c'est lui qui assemble.
  */
-fun NavGraphBuilder.homeScreen(onAddDish: () -> Unit, onEditDish: (DishId) -> Unit) {
+fun NavGraphBuilder.homeScreen(onAddDish: () -> Unit, onEditDish: (DishId) -> Unit, onSetUpGoal: () -> Unit) {
     composable<HomeDestination> {
-        HomeRoute(onAddDish = onAddDish, onEditDish = onEditDish)
+        HomeRoute(onAddDish = onAddDish, onEditDish = onEditDish, onSetUpGoal = onSetUpGoal)
     }
 }

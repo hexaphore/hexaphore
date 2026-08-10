@@ -36,7 +36,18 @@ data class DaySummary(
      * pense être la veille.
      */
     val zone: ZoneId,
-    val goal: DailyGoal,
+    /**
+     * L'objectif **actif ce jour-là**, et non celui d'aujourd'hui ([D04][decisions]).
+     *
+     * `null` pour une journée antérieure au premier objectif — avant l'onboarding, ou
+     * pour une journée notée avant qu'un objectif ait été posé. Ce n'est pas un cas
+     * d'erreur : une telle journée n'a rien à quoi se comparer, et lui appliquer
+     * l'objectif courant serait la juger sur une règle qu'elle n'avait pas. L'accueil
+     * affiche alors les six totaux sans jauge.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val goal: DailyGoal?,
     val totals: MacroTotals,
     val dishes: List<DishSummary>,
 ) {

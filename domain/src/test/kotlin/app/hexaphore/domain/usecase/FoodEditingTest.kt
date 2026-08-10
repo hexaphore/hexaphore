@@ -3,6 +3,7 @@ package app.hexaphore.domain.usecase
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryDiaryRepository
 import app.hexaphore.core.testing.InMemoryFoodCatalog
+import app.hexaphore.core.testing.InMemoryGoals
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.domain.diary.DraftLine
 import app.hexaphore.domain.diary.DraftLineId
@@ -42,7 +43,7 @@ class FoodEditingTest {
     private val ids = SequentialIdGenerator()
 
     private val logDish = LogDish(diary, catalogue, clock, ids)
-    private val getDaySummary = GetDaySummary(diary, clock)
+    private val getDaySummary = GetDaySummary(diary, InMemoryGoals(listOf(InMemoryGoals.maintenance(JOUR))), clock)
     private val getDishDraft = GetDishDraft(diary, ids)
     private val saveCustomFood = SaveCustomFood(catalogue, ids)
 

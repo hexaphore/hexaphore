@@ -27,31 +27,19 @@ data class DailyGoal(
         Macro.FIBER -> fiber
     }
 
-    companion object {
-        /**
-         * Objectif provisoire, en dur. **Dette assumée de la tranche 1.**
-         *
-         * Le calcul réel demande un profil, un poids cible et une échéance, qui
-         * n'existent qu'à partir de la tranche 4. Plutôt que d'attendre, l'accueil
-         * se construit contre une valeur plausible : c'est un raccourci écrit,
-         * daté, et dont la suppression est un critère de fin de la tranche 4.
-         *
-         * La répartition suit les règles de docs/03 pour 2 000 kcal en maintien,
-         * sur un poids de référence de 70 kg — protéines 1,6 g/kg, lipides 30 %
-         * des calories, fibres 14 g pour 1 000 kcal, glucides en solde une fois
-         * les fibres déduites. Le contrôle de cohérence retombe à 1 kcal près :
-         * 448 + 603 + 56 + 892 = 1 999.
-         *
-         * @see docs/11-decisions.md — D30
-         */
-        val Placeholder: DailyGoal =
-            DailyGoal(
-                kcal = 2000.0,
-                protein = 112.0,
-                carbs = 223.0,
-                sugars = 50.0,
-                fat = 67.0,
-                fiber = 28.0,
-            )
-    }
+    /**
+     * Ce que les quatre macros énergétiques représentent, en kcal.
+     *
+     * Les sucres n'y figurent pas : ils sont **inclus dans les glucides**, et les
+     * compter en plus doublerait une partie du budget. C'est la même famille d'erreur
+     * que les fibres distribuées deux fois ([D24][decisions]), à l'endroit exact où
+     * elle se glisserait le plus facilement.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val macroEnergy: Double
+        get() = KCAL_PER_GRAM_PROTEIN * protein +
+            KCAL_PER_GRAM_FAT * fat +
+            KCAL_PER_GRAM_FIBER * fiber +
+            KCAL_PER_GRAM_CARB * carbs
 }

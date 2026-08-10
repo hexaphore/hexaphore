@@ -20,4 +20,6 @@ data class HomeActions(
     val onUndo: () -> Unit,
     val onUndoExpired: () -> Unit,
     val onRetry: () -> Unit,
+    /** Vers les cinq questions, tant qu'aucun objectif n'a été posé. */
+    val onSetUpGoal: () -> Unit,
 )
