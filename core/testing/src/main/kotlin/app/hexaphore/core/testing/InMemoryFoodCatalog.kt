@@ -2,6 +2,7 @@ package app.hexaphore.core.testing
 
 import app.hexaphore.domain.food.FavoriteFoods
 import app.hexaphore.domain.food.Food
+import app.hexaphore.domain.food.FoodFilter
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodLookup
 import app.hexaphore.domain.food.FoodSearch
@@ -60,13 +61,20 @@ class InMemoryFoodCatalog(
      * Un flux, comme le vrai : le catalogue change sous les yeux de qui regarde ses
      * résultats, et une lecture unique ne peut pas se démentir.
      */
-    override fun search(query: String, limit: Int): Flow<List<Food>> = foods.map { catalogue ->
+    override fun search(query: String, filter: FoodFilter, limit: Int): Flow<List<Food>> = foods.map { catalogue ->
         failIf(failure)
         val normalised = SearchText.normalise(query)
-        if (normalised.isEmpty()) return@map emptyList()
+        if (normalised.isEmpty() && filter.isEmpty) return@map emptyList()
 
-        val stored = catalogue.values.filter { it.matches(normalised) }
-        (stored + reference.notYetCopied(stored, normalised) { FoodId("provisoire-${++provisional}") })
+        val stored = catalogue.values.filter { it.matches(normalised) && filter.matches(it) }
+        // Une qualite demandee ecarte la table de reference, comme dans le vrai : une
+        // ligne qui n'a pas ete versee au catalogue n'est ni personnelle ni epinglee.
+        val proposed = if (filter.traits.isEmpty()) {
+            reference.notYetCopied(stored, normalised, filter) { FoodId("provisoire-${++provisional}") }
+        } else {
+            emptyList()
+        }
+        (stored + proposed)
             // Ce que l'utilisateur mange vraiment passe devant, puis le nom court :
             // c'est le classement que le port promet, et un faux qui ordonnerait
             // autrement laisserait passer un ecran qui compte dessus.
@@ -142,10 +150,12 @@ class InMemoryFoodCatalog(
 private fun List<Food>.notYetCopied(
     stored: List<Food>,
     normalisedQuery: String,
+    filter: FoodFilter,
     provisionalId: () -> FoodId,
 ): List<Food> {
     val copied = stored.mapNotNullTo(mutableSetOf()) { it.reference }
-    return filter { it.matches(normalisedQuery) && it.reference !in copied }.map { it.copy(id = provisionalId()) }
+    return filter { it.matches(normalisedQuery) && it.reference !in copied && filter.matches(it) }
+        .map { it.copy(id = provisionalId()) }
 }
 
 /**

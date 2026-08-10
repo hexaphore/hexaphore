@@ -18,6 +18,29 @@
     <string name="search_pin">Épingler %1$s</string>
     <string name="search_unpin">Retirer %1$s des favoris</string>
 
+    <!-- Le bandeau de pastilles. Les deux premières sont des qualités et se cumulent
+         en ET ; les huit suivantes sont des rayons et se cumulent en OU. Le trait qui
+         les sépare à l'écran est ce qui le dit. -->
+    <string name="search_tag_favorite">Favori</string>
+    <string name="search_tag_personal">Mon aliment</string>
+    <string name="search_tag_fruits">Fruits</string>
+    <string name="search_tag_vegetables">Légumes</string>
+    <string name="search_tag_starches">Féculents</string>
+    <string name="search_tag_meat_fish">Viandes et poissons</string>
+    <string name="search_tag_dairy">Produits laitiers</string>
+    <string name="search_tag_drinks">Boissons</string>
+    <string name="search_tag_desserts">Desserts</string>
+    <string name="search_tag_snacks">Snacks</string>
+
+    <!-- La famille se lit a la forme, a la position et au trait qui separe : trois
+         canaux visuels, et aucun pour TalkBack. Ces deux phrases sont le quatrieme. -->
+    <string name="search_tag_trait_a11y">%1$s, qualité</string>
+    <string name="search_tag_category_a11y">%1$s, rayon</string>
+
+    <!-- Un filtre qui ne rend rien doit dire que ce sont les pastilles qui l'ont vidé,
+         sinon on croit le catalogue vide. -->
+    <string name="search_no_result_filtered">Aucun aliment ne correspond aux pastilles retenues.</string>
+
     <!-- La saisie manuelle est permanente, pas un lot de consolation : un reste de
          la veille n'a pas de nom qu'on aurait envie de chercher. -->
     <string name="search_manual_entry">Saisie manuelle</string>

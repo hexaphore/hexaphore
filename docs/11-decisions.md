@@ -793,6 +793,54 @@ Trois défauts de suite avaient la même forme, et **à chaque fois le test pass
 
 ---
 
+## D54 — Un bandeau de rayons, et deux familles qui ne se combinent pas pareil · ✓ validée
+
+**Contexte.** La recherche ne se parcourt pas : il faut savoir quoi taper. Un bandeau de pastilles sous la barre donne une entrée pour ceux qui ne cherchent pas un aliment précis mais **une sorte** d'aliment.
+
+**Choix.** Huit rayons — Fruits, Légumes, Féculents, Viandes et poissons, Produits laitiers, Boissons, Desserts, Snacks — plus deux qualités, « Favori » et « Mon aliment ».
+
+**Huit, et pas quarante-cinq.** La nomenclature de l'ANSES compte 45 sous-groupes ; c'est une classification de laboratoire, pas un bandeau qu'on parcourt au pouce. La correspondance est une **table maison versionnée**, `CiqualCategories` dans `:tooling:ciqual-import`, appliquée à l'import.
+
+### La catégorie descend jusqu'au domaine
+
+`Food.category` est un `FoodCategory?` du domaine, et le filtre est `FoodFilter`, une classe de `:domain` avec sa méthode `matches`. Un tag qui n'aurait été qu'une clause `WHERE` dans l'adaptateur ne s'éprouverait que sur un appareil, alors que **c'est une règle de ce que l'utilisateur voit**. Le SQL n'en est que l'accélération — sur 3 484 lignes, filtrer en Kotlin obligerait à toutes les lire pour en rendre trente — et le contrat de `FoodSearch` ([D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat--validée)) vérifie que les deux disent la même chose.
+
+**Deux familles, deux combinaisons.** Les rayons entre eux en **OU** : aucun aliment n'étant à la fois un fruit et un légume, l'intersection ne rendrait jamais rien. Les qualités en **ET** par-dessus : « Favori + Fruits » montre les fruits épinglés.
+
+**Rien dans un texte ne dit qu'il y a deux familles**, donc trois canaux le disent, et aucun ne travaille seul : la **position** — les qualités ouvrent le bandeau —, un **trait** qui sépare les deux blocs, et la **forme** — une qualité est une pastille ronde à icône, un rayon un rectangle de texte. Un quatrième existe pour ceux qui ne voient rien : TalkBack annonce « Favori, qualité » contre « Fruits, rayon ». La règle de [08](08-design-system.md#daltonisme) est la même que partout — la couleur de sélection ne porte jamais seule une information.
+
+### Le rayon n'est pas stocké dans `food`
+
+Une fiche copiée au catalogue ne porte pas sa catégorie : elle est relue dans `ciqual.db` par `(source, source_ref)`, en un seul lot, exactement comme les portions le sont déjà.
+
+**Raison.** Une copie figerait la correspondance du jour où elle a été faite. Corriger un rayon dans `CiqualCategories` n'atteindrait jamais les fiches déjà copiées, et **aucune migration ne pourrait le rattraper** : les deux bases sont deux fichiers, et une migration Room ne lit pas l'autre. Le rayon est une propriété de la **référence**, pas de la copie — à l'inverse exact des six valeurs, que le journal fige exprès ([D05](#d05--les-entrées-de-journal-figent-leurs-valeurs--validée)).
+
+**Conséquence heureuse** : aucune colonne ajoutée à `food`, donc aucune migration, donc aucun problème de reprise sur une base existante. Le coût est une requête `IN (...)` par affichage.
+
+**Écarté.** *Une colonne `category` dans `food`*, avec migration 2 → 3 : filtrage en SQL des deux côtés, mais les fiches déjà copiées seraient restées à `NULL` — donc muettes sous leur pastille — sans moyen honnête de les rattraper.
+
+### Un tag seul est un mode parcours
+
+Champ vide et une pastille : la liste des aliments du rayon. `FoodSearch.search` rend donc quelque chose pour une requête vide **si le filtre ne l'est pas** ; vides tous les deux, rien — le catalogue entier n'est pas une réponse.
+
+**Les sections « Favoris » et « Récents » disparaissent dès qu'une pastille est active**, remplacées par la liste parcourue. Elles ne sont pas perdues pour autant : `FoodRanking` fait déjà remonter ce qui a un `useCount > 0`, donc « Fruits » liste les fruits qu'on mange d'abord. L'alternative — garder les deux sections filtrées **plus** la liste — faisait apparaître trois fois un fruit épinglé et récemment mangé.
+
+**Une qualité écarte la table de l'ANSES.** Une ligne non versée au catalogue n'est ni personnelle ni épinglée ; l'interroger quand même rendrait des résultats que le filtre rejetterait juste après, et « Mon aliment » proposerait de supprimer une référence publiée.
+
+### Un aliment personnel ne porte aucun rayon
+
+Décision de l'auteur, appliquée telle quelle. **Contestation, pour mémoire** : la conséquence est que des « pâtes de mamie » ne sortent pas sous « Féculents », alors que l'utilisateur qui les a saisies sait très bien ce que c'est. Elle est acceptée parce que l'alternative — un sélecteur de catégorie au formulaire de création — ajoute un champ à chaque saisie manuelle pour un gain qui ne se voit qu'en mode parcours, et que le formulaire est déjà le point de friction du parcours. Le champ reste `null` en base : le jour où la question revient, il n'y a rien à migrer.
+
+### Trois points d'outillage, dont un piège désamorcé
+
+- **L'import échoue si la nomenclature bouge.** Même dispositif que `Nutrient` : le code fait foi, l'intitulé le vérifie. Deux dérives sont attrapées — une renumérotation, qui rangerait les poissons dans les desserts, et un **sous-groupe ajouté**, qui n'aurait aucun rayon sans que personne l'ait décidé. Un silence qui ressemble à un arbitrage est ce qu'il fallait rendre impossible.
+- **Le nom du fichier copié porte une révision de schéma**, `ciqual-2025-11-03-r2.db`. Sans elle, ajouter une colonne sans que l'ANSES ait republié laissait le nom inchangé : un appareil déjà installé aurait gardé sa copie, et la première requête sur `category` aurait échoué **chez lui seulement** — jamais ici, où l'installation est toujours fraîche.
+- **Le décompte par rayon est imprimé à chaque import.** 191 fruits, 352 légumes, 325 boissons, 754 sans rayon. Un rayon à douze aliments quand on en attendait deux cents se lit d'un coup d'œil, là où aucun test ne dirait qu'on s'est trompé de case.
+
+**Ce que ça coûte.** `ciqual.db` passe de 824 à 924 Ko : la colonne porte le **nom** de l'énumération et non un entier, parce que la base est lue par une version de l'application qui n'est pas forcément celle qui l'a écrite, et qu'un client SQLite doit pouvoir la lire le jour où une pastille ne rend rien.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

@@ -1,5 +1,6 @@
 package app.hexaphore.tooling.ciqual
 
+import app.hexaphore.domain.food.FoodCategory
 import app.hexaphore.domain.food.SearchText
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -96,6 +97,33 @@ class CiqualDatabaseWriterTest {
         write(POMME).use { assertTrue(it.servings("13039").isEmpty()) }
     }
 
+    @Test
+    fun `le rayon est ecrit sous le nom de l enumeration du domaine`() {
+        // Et non sous un entier : la base est lue par une version de l'application
+        // qui n'est pas forcement celle qui l'a ecrite, et une renumerotation
+        // rangerait les poissons dans les desserts sans que rien ne le dise.
+        write(POMME, CREME).use { connection ->
+            assertEquals("FRUITS", connection.category("13039"))
+            assertEquals("PRODUITS_LAITIERS", connection.category("39213"))
+        }
+    }
+
+    @Test
+    fun `un aliment sans rayon garde une colonne nulle`() {
+        // Comme pour les teneurs : l'absence est une reponse. Une chaine vide ou un
+        // rayon par defaut le ferait sortir sous une pastille au hasard.
+        write(THE).use { assertNull(it.category("18066"), "un the n'a aucun des huit rayons") }
+    }
+
+    @Test
+    fun `le mode parcours rend les aliments d un rayon`() {
+        // Une pastille, aucun mot : la requete ne passe pas par l'index plein texte.
+        write(POMME, CREME, THE).use { connection ->
+            assertEquals(listOf("Pomme, chair et peau, crue"), connection.browse("FRUITS"))
+            assertTrue(connection.browse("SNACKS").isEmpty())
+        }
+    }
+
     // --- Outillage ------------------------------------------------------------
 
     private fun write(vararg foods: CiqualFood): Connection = write(foods.toList(), emptyList())
@@ -129,6 +157,23 @@ class CiqualDatabaseWriterTest {
             }
         }
 
+    private fun Connection.category(code: String): String? =
+        prepareStatement("SELECT category FROM ciqual_food WHERE code = ?").use { statement ->
+            statement.setString(1, code)
+            statement.executeQuery().use { rows ->
+                rows.next()
+                rows.getString(1)
+            }
+        }
+
+    private fun Connection.browse(category: String): List<String> =
+        prepareStatement("SELECT name FROM ciqual_food WHERE category = ? ORDER BY code").use { statement ->
+            statement.setString(1, category)
+            statement.executeQuery().use { rows ->
+                generateSequence { rows.takeIf { it.next() }?.getString(1) }.toList()
+            }
+        }
+
     private fun Connection.servings(code: String): List<Pair<String, Boolean>> = prepareStatement(
         "SELECT label, is_default FROM ciqual_serving WHERE code = ? ORDER BY rowid",
     ).use { statement ->
@@ -144,6 +189,7 @@ class CiqualDatabaseWriterTest {
                 code = "13039",
                 name = "Pomme, chair et peau, crue",
                 groupName = "fruits",
+                category = FoodCategory.FRUITS,
                 // Pas de fibres : l'inconnu est l'absence de cle, pas une valeur.
                 // Les lipides, eux, sont mesures a zero.
                 nutrients = mapOf(Nutrient.KCAL to 54.0, Nutrient.FAT to 0.0),
@@ -154,14 +200,17 @@ class CiqualDatabaseWriterTest {
                 code = "39213",
                 name = "Crème brûlée",
                 groupName = "desserts",
+                category = FoodCategory.PRODUITS_LAITIERS,
                 nutrients = mapOf(Nutrient.KCAL to 269.0),
             )
 
+        /** Sans rayon : toutes les fiches n'en ont pas, et la colonne doit rester nulle. */
         val THE =
             CiqualFood(
                 code = "18066",
                 name = "Thé infusé",
                 groupName = "boissons",
+                category = null,
                 nutrients = mapOf(Nutrient.KCAL to 1.0),
             )
     }

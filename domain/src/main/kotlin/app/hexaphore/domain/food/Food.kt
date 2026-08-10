@@ -56,6 +56,15 @@ data class Food(
     val sourceRef: String? = null,
     val name: String,
     val brand: String? = null,
+    /**
+     * Le rayon, quand la fiche en a un.
+     *
+     * `null` pour un aliment personnel, pour un produit scanné, et pour les lignes de
+     * l'ANSES qui n'entrent dans aucune des huit cases du bandeau — voir
+     * [FoodCategory]. Ce n'est pas un trou à combler : « ne pas avoir de rayon » est
+     * une réponse, et la seule honnête pour une huile ou une soupe.
+     */
+    val category: FoodCategory? = null,
     val per100g: NutrientValues,
     val servings: List<FoodServing> = emptyList(),
     /** Quantité proposée à l'ouverture. `null` vaut 100 g. */

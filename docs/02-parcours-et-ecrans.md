@@ -150,6 +150,8 @@ Feuille modale qui monte aux deux tiers, champ de recherche focalisé et clavier
 - **Récents** : les 20 derniers aliments distincts, tous modes de saisie confondus, triés par date de dernière utilisation.
 - **Favoris** : aliments et plats épinglés, en tête.
 
+**Sous la barre, un bandeau de pastilles** qui défile horizontalement et filtre tout ce qui s'affiche ([D54](11-decisions.md)). Deux qualités d'abord — *Favori*, *Mon aliment* — puis un trait, puis huit rayons : *Fruits*, *Légumes*, *Féculents*, *Viandes et poissons*, *Produits laitiers*, *Boissons*, *Desserts*, *Snacks*. Les rayons se cumulent en **OU**, les qualités en **ET** par-dessus. Une pastille seule et le champ vide listent les aliments du rayon : c'est un mode parcours, et les sections *Récents* et *Favoris* cèdent alors la place à cette liste — le classement y fait de toute façon remonter ce qu'on mange vraiment.
+
 **Pendant la frappe** : résultats à partir du **2ᵉ caractère**, une fois écoulées **120 ms sans nouvelle frappe**. La requête n'est jamais lancée à chaque touche : on attend que la saisie se stabilise, et une frappe qui arrive avant l'échéance annule la précédente. Sans cela, taper « chocolat » déclenche sept recherches dont six sont jetées, et les résultats clignotent pendant qu'on écrit.
 
 Recherche locale sur trois sources fusionnées et ordonnées :

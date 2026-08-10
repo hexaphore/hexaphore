@@ -2,9 +2,12 @@ package app.hexaphore.data.food
 
 import app.hexaphore.core.database.ciqual.CiqualDatabase
 import app.hexaphore.core.database.dao.FoodDao
+import app.hexaphore.core.database.entity.FoodEntity
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.food.FavoriteFoods
 import app.hexaphore.domain.food.Food
+import app.hexaphore.domain.food.FoodCategory
+import app.hexaphore.domain.food.FoodFilter
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodLookup
 import app.hexaphore.domain.food.FoodSearch
@@ -58,10 +61,9 @@ class RoomFoodCatalog @Inject constructor(
      * porte un code CIQUAL est la version vivante de la ligne de l'ANSES : c'est
      * elle qui compte les usages et porte les corrections, donc c'est elle qui reste.
      *
-     * Les deux lectures demandent chacune [limit] résultats, et le tri final en
-     * garde [limit]. Prendre moins de chaque côté ferait dépendre le résultat de la
-     * provenance : une recherche qui rend dix aliments personnels n'a aucune raison
-     * de rendre en plus dix lignes de l'ANSES moins pertinentes.
+     * La table de l'ANSES est bornée par [limit] ; le catalogue local ne l'est pas,
+     * parce qu'il est déjà borné par construction et que le classement doit voir
+     * tous ses candidats. Le tri final en garde [limit].
      *
      * **Le flux vient du catalogue local, et lui seul rythme les ré-émissions.** Room
      * invalide sur écriture — épingler, supprimer, verser une fiche — et c'est ce qui
@@ -71,30 +73,35 @@ class RoomFoodCatalog @Inject constructor(
      * qui garde la fusion et le dédoublonnage justes quand une fiche vient d'être
      * copiée.
      *
+     * **Une qualité demandée écarte la table de l'ANSES.** « Mon aliment » et
+     * « Favori » ne peuvent désigner qu'une fiche déjà écrite : une ligne de la table
+     * n'est ni personnelle ni épinglée tant qu'elle n'a pas été versée au catalogue
+     * ([D54][decisions]). L'interroger quand même rendrait des résultats que le
+     * filtre du domaine rejetterait juste après.
+     *
      * [decisions]: docs/11-decisions.md
      */
-    override fun search(query: String, limit: Int): Flow<List<Food>> {
+    override fun search(query: String, filter: FoodFilter, limit: Int): Flow<List<Food>> {
         val normalised = SearchText.normalise(query)
-        if (normalised.isBlank()) return flowOf(emptyList())
+        if (normalised.isBlank() && filter.isEmpty) return flowOf(emptyList())
 
         return dao
-            .observeSearch(normalised, limit)
-            .map { rows -> ciqual.mergedWith(rows.map { it.toDomain() }, normalised, query, limit, ids) }
-            // La fusion lit la base de l'ANSES : sans cela, ces lectures SQLite se
-            // feraient sur le dispatcher de celui qui collecte, c'est-a-dire le fil
-            // principal.
+            .observeSearch(normalised)
+            .map { rows -> ciqual.results(rows, normalised, query, filter, limit, ids) }
+            // Les lectures de la base de l'ANSES : sans cela, elles se feraient sur
+            // le dispatcher de celui qui collecte, c'est-a-dire le fil principal.
             .flowOn(dispatchers.io)
     }
 
     override suspend fun byId(id: FoodId): Food? = withContext(dispatchers.io) {
-        dao.byId(id.value)?.let { it.toDomain(ciqual.servingsOf(it.source, it.sourceRef)) }
+        dao.byId(id.value)?.let { it.toDomain(ciqual.servingsOf(it.source, it.sourceRef), ciqual.categoryOf(it)) }
     }
 
     override fun observeRecent(limit: Int): Flow<List<Food>> =
-        dao.observeRecent(limit).map { rows -> rows.map { it.toDomain(ciqual.servingsOf(it.source, it.sourceRef)) } }
+        dao.observeRecent(limit).map(ciqual::withServingsAndCategories).flowOn(dispatchers.io)
 
     override fun observeFavorites(): Flow<List<Food>> =
-        dao.observeFavorites().map { rows -> rows.map { it.toDomain(ciqual.servingsOf(it.source, it.sourceRef)) } }
+        dao.observeFavorites().map(ciqual::withServingsAndCategories).flowOn(dispatchers.io)
 
     override suspend fun setFavorite(id: FoodId, favorite: Boolean) = withContext(dispatchers.io) {
         dao.setFavorite(id.value, favorite, clock.now().toEpochMilli())
@@ -144,10 +151,31 @@ class RoomFoodCatalog @Inject constructor(
 }
 
 /**
- * Les lignes de l'ANSES que le catalogue n'a pas encore copiées, ajoutées et classées.
+ * Les deux provenances, filtrées puis classées ensemble.
  *
- * Hors de la classe pour la même raison que [servingsOf] juste dessous : c'est une
- * lecture de la base embarquée, pas une des six capacités que le catalogue expose.
+ * Hors de la classe, comme les trois fonctions qui suivent : ce sont des lectures de
+ * la base embarquée, pas des capacités que le catalogue expose.
+ */
+private fun CiqualDatabase.results(
+    rows: List<FoodEntity>,
+    normalised: String,
+    query: String,
+    filter: FoodFilter,
+    limit: Int,
+    ids: IdGenerator,
+): List<Food> {
+    val local = withCategories(rows).filter(filter::matches)
+    // Une qualite demandee ecarte la table de l'ANSES : une ligne qui n'a pas ete
+    // versee au catalogue n'est ni personnelle ni epinglee.
+    val proposed = if (filter.traits.isEmpty()) notYetCopied(local, normalised, filter, limit, ids) else emptyList()
+    return FoodRanking.sort(local + proposed, query).take(limit)
+}
+
+/**
+ * Les lignes de l'ANSES que le catalogue n'a pas encore copiées.
+ *
+ * Hors de la classe pour la même raison que [servingsOf] plus bas : c'est une lecture
+ * de la base embarquée, pas une des six capacités que le catalogue expose.
  *
  * Chaque ligne non copiée reçoit un identifiant **provisoire**, régénéré à chaque
  * appel. Il ne désigne rien tant que [FoodStore.place] n'a pas été appelé, et c'est
@@ -156,21 +184,52 @@ class RoomFoodCatalog @Inject constructor(
  *
  * [decisions]: docs/11-decisions.md
  */
-private fun CiqualDatabase.mergedWith(
+private fun CiqualDatabase.notYetCopied(
     local: List<Food>,
     normalised: String,
-    query: String,
+    filter: FoodFilter,
     limit: Int,
     ids: IdGenerator,
 ): List<Food> {
     val alreadyCopied = local.mapNotNullTo(mutableSetOf()) { it.sourceRef.takeIf { _ -> it.isFromCiqual } }
 
-    val fromCiqual = search(normalised, limit)
+    return search(normalised, filter.categories.mapTo(mutableSetOf()) { it.name }, limit)
         .filterNot { it.code in alreadyCopied }
         .map { row -> row.toDomain(FoodId(ids.next()), servings(row.code)) }
-
-    return FoodRanking.sort(local + fromCiqual, query).take(limit)
 }
+
+/**
+ * Le rayon des fiches copiées, relu dans la table de l'ANSES.
+ *
+ * **Il n'est pas stocké dans `food`, et c'est un choix.** Une copie figerait la
+ * correspondance du jour où elle a été faite : corriger un rayon dans
+ * `CiqualCategories` ne l'atteindrait jamais, et une migration ne pourrait pas le
+ * rattraper — les deux bases sont deux fichiers ([D54][decisions]). Le rayon est une
+ * propriété de la **référence**, pas de la copie, contrairement aux six valeurs, que
+ * le journal fige exprès ([D05][decisions]).
+ *
+ * En un seul lot : une requête par ligne en ferait des centaines par affichage.
+ *
+ * [decisions]: docs/11-decisions.md
+ */
+private fun CiqualDatabase.withCategories(rows: List<FoodEntity>): List<Food> {
+    val categories = categoriesOf(rows.mapNotNull { it.ciqualCode })
+    return rows.map { it.toDomain(category = categories[it.ciqualCode].toFoodCategory()) }
+}
+
+/** Comme [withCategories], plus les portions — pour les listes courtes qui les affichent. */
+private fun CiqualDatabase.withServingsAndCategories(rows: List<FoodEntity>): List<Food> {
+    val categories = categoriesOf(rows.mapNotNull { it.ciqualCode })
+    return rows.map {
+        it.toDomain(servingsOf(it.source, it.sourceRef), categories[it.ciqualCode].toFoodCategory())
+    }
+}
+
+private fun CiqualDatabase.categoryOf(row: FoodEntity): FoodCategory? =
+    row.ciqualCode?.let { categoriesOf(listOf(it))[it] }.toFoodCategory()
+
+/** Le code de l'ANSES d'une fiche, quand elle en vient. Lui seul désigne un rayon. */
+private val FoodEntity.ciqualCode: String? get() = sourceRef.takeIf { source == FoodSource.CIQUAL.name }
 
 /**
  * Les portions d'une fiche viennent de la table de l'ANSES, quand elle en vient.

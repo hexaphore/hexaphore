@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.hexaphore.domain.food.FavoriteFoods
 import app.hexaphore.domain.food.Food
+import app.hexaphore.domain.food.FoodCategory
+import app.hexaphore.domain.food.FoodFilter
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodSearch
 import app.hexaphore.domain.food.FoodStore
+import app.hexaphore.domain.food.FoodTrait
 import app.hexaphore.domain.food.RecentFoods
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -76,18 +79,36 @@ internal class SearchViewModel @Inject constructor(
     private val pendingDeletion = MutableStateFlow<FoodDeletion?>(null)
     val deletion: StateFlow<FoodDeletion?> = pendingDeletion
 
+    /**
+     * Les pastilles retenues.
+     *
+     * Hors de [uiState], comme [query], parce que le bandeau doit rester à l'écran
+     * dans les cinq états — y compris pendant la recherche et sur une erreur. Le
+     * faire transiter par l'état d'écran obligerait chaque variante à le porter.
+     */
+    private val active = MutableStateFlow(FoodFilter.NONE)
+    val filter: StateFlow<FoodFilter> = active
+
+    /**
+     * **L'anti-rebond ne porte que sur la frappe.** Un tap sur une pastille est un
+     * geste unique et délibéré : le retarder de 120 ms ferait paraître le bandeau
+     * mou, alors que l'attente existe pour empêcher huit recherches pendant qu'on
+     * écrit « chocolat ».
+     */
     private val results: Flow<SearchUiState?> =
-        typed
-            .map { it.trim() }
-            .distinctUntilChanged()
-            .debounce(DEBOUNCE_MILLIS)
-            .flatMapLatest { query ->
-                if (query.length < MINIMUM_CHARACTERS) {
+        combine(
+            typed.map { it.trim() }.distinctUntilChanged().debounce(DEBOUNCE_MILLIS),
+            active,
+        ) { query, filter -> query to filter }
+            .flatMapLatest { (query, filter) ->
+                if (query.length < MINIMUM_CHARACTERS && filter.isEmpty) {
                     // `null` et non un etat : c'est l'absence de recherche, et c'est
                     // ce qui laisse les raccourcis reprendre la main.
                     flow<SearchUiState?> { emit(null) }
                 } else {
-                    search(query)
+                    // Une pastille seule, champ vide, est un mode parcours : c'est
+                    // une demande explicite, et elle merite une liste.
+                    search(query, filter)
                 }
             }
 
@@ -106,6 +127,14 @@ internal class SearchViewModel @Inject constructor(
 
     fun onQueryChange(value: String) {
         typed.value = value
+    }
+
+    fun onToggleCategory(category: FoodCategory) {
+        active.value = active.value.toggle(category)
+    }
+
+    fun onToggleTrait(trait: FoodTrait) {
+        active.value = active.value.toggle(trait)
     }
 
     /**
@@ -181,8 +210,8 @@ internal class SearchViewModel @Inject constructor(
      * écritures du catalogue sans qu'on relance la recherche. `onStart` et non une
      * émission manuelle, parce qu'il n'y a plus une lecture mais une suite.
      */
-    private fun search(query: String): Flow<SearchUiState> = foodSearch
-        .search(query, RESULT_LIMIT)
+    private fun search(query: String, filter: FoodFilter): Flow<SearchUiState> = foodSearch
+        .search(query, filter, RESULT_LIMIT)
         .map { foods ->
             if (foods.isEmpty()) SearchUiState.Empty(query) else SearchUiState.Results(query, foods)
         }.onStart { emit(SearchUiState.Searching) }

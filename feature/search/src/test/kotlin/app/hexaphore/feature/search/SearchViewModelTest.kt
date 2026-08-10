@@ -2,8 +2,10 @@ package app.hexaphore.feature.search
 
 import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.domain.food.Food
+import app.hexaphore.domain.food.FoodCategory
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodSource
+import app.hexaphore.domain.food.FoodTrait
 import app.hexaphore.domain.nutrition.NutrientValues
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -47,7 +49,10 @@ class SearchViewModelTest {
      *
      * [decisions]: docs/11-decisions.md
      */
-    private val catalogue = InMemoryFoodCatalog(initial = listOf(RIZ, RIZ_COMPLET), reference = listOf(BLE))
+    private val catalogue = InMemoryFoodCatalog(
+        initial = listOf(RIZ, RIZ_COMPLET, POMME, PATES_DE_MAMIE),
+        reference = listOf(BLE),
+    )
 
     @BeforeEach
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -129,12 +134,12 @@ class SearchViewModelTest {
     fun `une recherche sans resultat propose de creer`() = runTest(dispatcher) {
         val viewModel = collecting()
 
-        viewModel.onQueryChange("pâtes de mamie")
+        viewModel.onQueryChange("gratin de mamie")
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertInstanceOf(SearchUiState.Empty::class.java, state)
-        assertEquals("pâtes de mamie", (state as SearchUiState.Empty).query)
+        assertEquals("gratin de mamie", (state as SearchUiState.Empty).query)
     }
 
     @Test
@@ -180,7 +185,11 @@ class SearchViewModelTest {
         advanceUntilIdle()
 
         assertEquals(RIZ.id, viewModel.picked.value)
-        assertEquals(2, catalogue.all.size, "la fiche a ete recopiee sous un second identifiant")
+        assertEquals(
+            1,
+            catalogue.all.count { it.sourceRef == RIZ.sourceRef },
+            "la fiche a ete recopiee sous un second identifiant",
+        )
     }
 
     @Test
@@ -253,6 +262,88 @@ class SearchViewModelTest {
         assertTrue(apres.foods.none { it.id == RIZ.id }, "la fiche supprimee est restee affichee")
     }
 
+    // --- Le bandeau de pastilles ----------------------------------------------
+
+    @Test
+    fun `une pastille seule, champ vide, liste des aliments`() = runTest(dispatcher) {
+        // Le mode parcours. Sans lui, le bandeau ne servirait qu'a retrecir une
+        // recherche deja faite, et toucher « Fruits » sans rien taper ne ferait rien.
+        val viewModel = collecting()
+
+        viewModel.onToggleCategory(FoodCategory.FRUITS)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertInstanceOf(SearchUiState.Results::class.java, state)
+        assertEquals(listOf(POMME.id), (state as SearchUiState.Results).foods.map { it.id })
+    }
+
+    @Test
+    fun `retirer la derniere pastille rend les raccourcis`() = runTest(dispatcher) {
+        val viewModel = collecting()
+        viewModel.onToggleCategory(FoodCategory.FRUITS)
+        advanceUntilIdle()
+
+        viewModel.onToggleCategory(FoodCategory.FRUITS)
+        advanceUntilIdle()
+
+        assertInstanceOf(SearchUiState.Shortcuts::class.java, viewModel.uiState.value)
+    }
+
+    @Test
+    fun `une pastille retrecit une recherche en cours`() = runTest(dispatcher) {
+        val viewModel = collecting()
+        viewModel.onQueryChange("ri")
+        advanceUntilIdle()
+
+        viewModel.onToggleCategory(FoodCategory.FRUITS)
+        advanceUntilIdle()
+
+        // Aucun riz n'est un fruit : la liste se vide, et c'est le filtre qui l'a
+        // videe -- pas la requete.
+        assertInstanceOf(SearchUiState.Empty::class.java, viewModel.uiState.value)
+    }
+
+    @Test
+    fun `Mon aliment ne rend que les fiches personnelles`() = runTest(dispatcher) {
+        // Et surtout pas la fiche de la table de l'ANSES, qui n'a ete versee au
+        // catalogue par personne : proposer de la supprimer serait proposer d'effacer
+        // une reference publiee.
+        val viewModel = collecting()
+
+        viewModel.onToggleTrait(FoodTrait.PERSONAL)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as SearchUiState.Results
+        assertEquals(listOf(PATES_DE_MAMIE.id), state.foods.map { it.id })
+    }
+
+    @Test
+    fun `un rayon et une qualite se cumulent en ET`() = runTest(dispatcher) {
+        val viewModel = collecting()
+        viewModel.onToggleCategory(FoodCategory.FRUITS)
+        advanceUntilIdle()
+
+        viewModel.onToggleTrait(FoodTrait.FAVORITE)
+        advanceUntilIdle()
+
+        // La pomme est un fruit mais n'est pas epinglee : « Favori + Fruits » ne doit
+        // pas la rendre, alors que « Favori » ou « Fruits » seuls le feraient.
+        assertInstanceOf(SearchUiState.Empty::class.java, viewModel.uiState.value)
+    }
+
+    @Test
+    fun `le bandeau garde ce qui est retenu`() = runTest(dispatcher) {
+        val viewModel = collecting()
+
+        viewModel.onToggleCategory(FoodCategory.FRUITS)
+        viewModel.onToggleTrait(FoodTrait.FAVORITE)
+        advanceUntilIdle()
+
+        assertEquals(setOf(FoodCategory.FRUITS), viewModel.filter.value.categories)
+        assertEquals(setOf(FoodTrait.FAVORITE), viewModel.filter.value.traits)
+    }
+
     // --- Outillage ------------------------------------------------------------
 
     private fun viewModel() = SearchViewModel(catalogue, catalogue, catalogue, catalogue)
@@ -301,7 +392,28 @@ class SearchViewModelTest {
             source = FoodSource.CIQUAL,
             sourceRef = "9010",
             name = "Ble tendre, cuit",
+            category = FoodCategory.FECULENTS,
             per100g = NutrientValues(kcal = 130.0),
+        )
+
+        /** Le seul fruit du décor, et il n'est pas épinglé. */
+        val POMME = Food(
+            id = FoodId("f-pomme"),
+            source = FoodSource.CIQUAL,
+            sourceRef = "13039",
+            name = "Pomme, chair et peau, crue",
+            category = FoodCategory.FRUITS,
+            per100g = NutrientValues(kcal = 54.0),
+        )
+
+        /** Un aliment personnel : aucun rayon, par décision ([D54][decisions]). */
+        val PATES_DE_MAMIE = Food(
+            id = FoodId("f-pates"),
+            source = FoodSource.CUSTOM,
+            sourceRef = null,
+            name = "Pates de mamie",
+            category = null,
+            per100g = NutrientValues(kcal = 320.0),
         )
     }
 }
