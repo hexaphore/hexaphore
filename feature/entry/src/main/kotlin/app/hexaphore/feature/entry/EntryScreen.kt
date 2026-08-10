@@ -37,6 +37,7 @@ import app.hexaphore.core.designsystem.component.SwipeToDelete
 import app.hexaphore.core.designsystem.theme.NeonTheme
 import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.domain.diary.DraftImpact
+import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.nutrition.Macro
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -45,13 +46,27 @@ import kotlin.math.roundToInt
 
 /** L'écran de validation, branché sur le graphe d'injection. */
 @Composable
-internal fun EntryRoute(onAddFood: () -> Unit, onClose: () -> Unit, viewModel: EntryViewModel = hiltViewModel()) {
+internal fun EntryRoute(
+    pickedFood: FoodId?,
+    onPickedFoodHandled: () -> Unit,
+    onAddFood: () -> Unit,
+    onClose: () -> Unit,
+    viewModel: EntryViewModel = hiltViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     // Enregistre : l'ecran se referme. Un effet plutot qu'un rappel depuis onSave,
     // pour que la fermeture suive l'etat reellement atteint et non l'intention.
     LaunchedEffect(state) {
         if (state is EntryUiState.Saved) onClose()
+    }
+
+    // La fiche choisie dans la recherche s ajoute au plat en cours. La cle est videe
+    // avant l ajout : revenir sur cet ecran ne doit pas rajouter la meme ligne.
+    LaunchedEffect(pickedFood) {
+        val id = pickedFood ?: return@LaunchedEffect
+        onPickedFoodHandled()
+        viewModel.onFoodPicked(id)
     }
 
     EntryScreen(

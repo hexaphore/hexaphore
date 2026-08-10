@@ -34,7 +34,6 @@
 
     <!-- Origine d'un plat. Un plat, une source. -->
     <string name="ds_source_manual">Saisie manuelle</string>
-    <string name="ds_source_search">Recherche</string>
     <string name="ds_source_barcode">Code-barres</string>
     <string name="ds_source_photo">Photo</string>
     <string name="ds_source_text">Description</string>

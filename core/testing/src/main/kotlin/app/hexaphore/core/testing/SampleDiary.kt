@@ -32,7 +32,7 @@ object SampleDiary {
         dish(
             date = date,
             hour = 8,
-            source = EntrySource.SEARCH,
+            source = EntrySource.MANUAL,
             lines = listOf(
                 SampleEntry("Pain complet", 80.0, "g", Macros(198.0, 7.8, 36.0, 2.1, 1.6, 5.4)),
                 SampleEntry("Yaourt nature", 125.0, "g", Macros(76.0, 4.3, 6.0, 6.0, 3.9, 0.0)),

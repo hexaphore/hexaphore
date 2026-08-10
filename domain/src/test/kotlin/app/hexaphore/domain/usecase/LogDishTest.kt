@@ -88,9 +88,9 @@ class LogDishTest {
 
     @Test
     fun `la source du brouillon devient celle du plat`() = runTest {
-        logDish(brouillon(ligne("a"), source = EntrySource.SEARCH))
+        logDish(brouillon(ligne("a"), source = EntrySource.FAVORITE))
 
-        assertEquals(EntrySource.SEARCH, diary.dishes.single().source)
+        assertEquals(EntrySource.FAVORITE, diary.dishes.single().source)
         assertNotEquals(EntrySource.MANUAL, diary.dishes.single().source)
     }
 }

@@ -11,6 +11,7 @@ import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.nutrition.NutrientValues
 import java.time.LocalDate
+import kotlin.math.roundToInt
 
 /**
  * Le brouillon, tel que les champs de l'écran le portent.
@@ -127,14 +128,15 @@ internal data class EntryFormLine(
      */
     fun remeasured(quantity: String, unit: QuantityUnit = this.unit): EntryFormLine {
         val recomputed = toDraftLine().measured(number(quantity), unit)
-        if (recomputed.values == toDraftLine().values) return copy(quantity = quantity, unit = unit)
+        val fields = Macro.entries.associateWith { recomputed.values[it].asWholeField() }
 
-        return copy(
-            quantity = quantity,
-            unit = unit,
-            macros = Macro.entries.associateWith { recomputed.values[it].asField() },
-            revision = revision + 1,
-        )
+        // La comparaison porte sur les champs et non sur les valeurs : arrondies,
+        // 41,2 g et 41,4 g s'ecrivent pareil, et rien ne justifie de reconstruire
+        // les champs -- donc de risquer un curseur -- pour un texte identique.
+        return when (fields) {
+            macros -> copy(quantity = quantity, unit = unit)
+            else -> copy(quantity = quantity, unit = unit, macros = fields, revision = revision + 1)
+        }
     }
 
     private fun macroValue(macro: Macro): Double? = number(macros[macro].orEmpty())
@@ -147,7 +149,7 @@ internal data class EntryFormLine(
             name = line.name,
             quantity = line.quantity.asField(),
             unit = line.unit,
-            macros = Macro.entries.associateWith { line.values[it].asField() },
+            macros = Macro.entries.associateWith { line.values[it].asWholeField() },
             servings = line.servings,
             reference = line.reference,
             edited = line.edited,
@@ -185,3 +187,15 @@ private fun Double?.asField(): String = when {
     this == toLong().toDouble() -> toLong().toString()
     else -> toString()
 }
+
+/**
+ * Une valeur nutritionnelle telle qu'on la met dans un champ : un entier.
+ *
+ * **Ce qui est affiché est ce qui sera enregistré.** L'arrondi a lieu ici, à
+ * l'aller ; la lecture reprend le texte tel quel. Arrondir seulement à l'affichage
+ * ferait diverger le chiffre lu de celui écrit dans le journal, ce qui est la
+ * définition d'un écran qui ment.
+ *
+ * `null` reste vide : inconnu n'est pas zéro, et un arrondi ne crée pas de valeur.
+ */
+private fun Double?.asWholeField(): String = this?.roundToInt()?.toString().orEmpty()

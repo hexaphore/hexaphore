@@ -16,11 +16,25 @@ package app.hexaphore.domain.diary
  * @see docs/11-decisions.md — D32
  */
 enum class EntrySource {
-    /** Saisi de bout en bout par l'utilisateur. */
+    /**
+     * Composé par l'utilisateur, qu'il ait cherché ses aliments ou tapé leurs
+     * valeurs.
+     *
+     * **Il n'y a plus de source « recherche ».** Elle se confondait avec celle-ci :
+     * un même plat mêle couramment un aliment trouvé dans la table et un autre saisi
+     * à la main, et un plat porte **une** source. Distinguer les deux revenait à
+     * choisir laquelle mentir ([D52][decisions]).
+     *
+     * Ce que la distinction voulait dire reste vrai et reste utile ailleurs : ce qui
+     * compte est de savoir ce qui a été **proposé** par un modèle, et c'est
+     * [proposed] qui le dit.
+     *
+     * Une base écrite par une version antérieure porte encore `SEARCH` ; elle se
+     * relit ici, la lecture retombant sur cette valeur.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
     MANUAL,
-
-    /** Choisi dans la recherche par nom. */
-    SEARCH,
 
     /** Scanné, puis complété depuis Open Food Facts. */
     BARCODE,

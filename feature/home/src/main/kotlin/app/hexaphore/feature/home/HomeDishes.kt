@@ -16,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -67,9 +66,10 @@ private fun DishBlock(summary: DishSummary, zone: ZoneId, timeFormatter: DateTim
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            // Rognage avant le clic : sans lui l'ondulation deborde en rectangle
-            // franc sur un ecran qui n'en compte aucun autre.
-            .clip(MaterialTheme.shapes.medium)
+            // Aucun rognage : les coins arrondis coupaient la pastille de source et
+            // le total de calories, qui sont aux deux extremites de la premiere
+            // ligne. L'ondulation deborde donc en rectangle, ce qui est le prix a
+            // payer pour que rien ne soit tronque.
             .clickable(
                 onClickLabel = stringResource(R.string.home_dish_edit),
                 onClick = { actions.onEditDish(summary.dish.id) },

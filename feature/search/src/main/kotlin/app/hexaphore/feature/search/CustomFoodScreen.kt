@@ -30,6 +30,7 @@ import app.hexaphore.core.designsystem.component.NeonButton
 import app.hexaphore.core.designsystem.component.NeonButtonAvailability
 import app.hexaphore.core.designsystem.component.NeonButtonStyle
 import app.hexaphore.core.designsystem.component.isNumberField
+import app.hexaphore.core.designsystem.component.isWholeNumberField
 import app.hexaphore.core.designsystem.theme.NeonTheme
 import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.domain.food.FoodId
@@ -161,8 +162,10 @@ private fun ColumnScope.NutrientFields(form: CustomFoodForm, actions: CustomFood
             label = stringResource(macro.fieldRes),
             modifier = Modifier.fillMaxWidth(),
             labelColor = NeonTheme.macros[macro].base,
-            keyboardType = KeyboardType.Decimal,
-            accept = String::isNumberField,
+            // Des entiers, comme sur l'ecran de saisie : les deux ecrans decrivent
+            // les memes six valeurs, et deux regles pour la meme chose divergent.
+            keyboardType = KeyboardType.Number,
+            accept = String::isWholeNumberField,
         )
     }
 }

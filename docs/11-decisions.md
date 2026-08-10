@@ -736,6 +736,28 @@ Listés ici pour cesser d'être des oublis, comme [D21](#d21--ce-que-litération
 
 ---
 
+## D52 — Deux `SavedStateHandle`, une seule saisie manuelle, des grammes entiers · ✓ validée
+
+**Contexte.** Constaté sur appareil : « Ajouter un aliment » depuis une saisie en cours ne faisait **rien**. On revenait à l'écran avec la seule ligne de départ, et il devenait impossible de composer un plat de plus d'un aliment.
+
+**La cause, et c'est un piège d'API.** Le `SavedStateHandle` qu'un `ViewModel` reçoit et celui que porte un `NavBackStackEntry` sont **deux objets différents**. Tous deux sont construits par `createSavedStateHandle` depuis le même registre, mais sous deux clés distinctes : ils ne partagent aucun état. La recherche écrivait dans celui de l'entrée de pile, le `ViewModel` observait le sien, et personne ne remplissait jamais la clé qu'il écoutait.
+
+**Ce qui rendait l'erreur crédible.** Le **premier** aliment arrivait, lui. Les arguments de route passent par les deux handles — ils sont dans le `Bundle` d'arguments par défaut — donc le chemin « accueil → recherche → saisie » fonctionnait, et seul l'ajout d'une deuxième ligne échouait. Un défaut qui marche à moitié est plus difficile à voir qu'un défaut qui ne marche pas.
+
+**Choix.** Le résultat se lit sur le `NavBackStackEntry`, dans la composable de la destination, et l'écran le passe au `ViewModel`. C'est le chemin que la navigation Compose prévoit ; le lire dans le `ViewModel` était une commodité qui n'existe pas.
+
+**Ce que le test manquait.** Il écrivait dans le `SavedStateHandle` qu'il construisait lui-même, celui du `ViewModel` — donc il éprouvait un chemin qui n'existe nulle part. Il passait pendant que l'écran ne faisait rien. Les tests appellent désormais la méthode que la composable appelle, et trois cas de plus couvrent ce que la ligne ajoutée doit porter.
+
+**La recherche n'est plus une source.** `EntrySource.SEARCH` disparaît. Elle se confondait avec `MANUAL` : un même plat mêle couramment un aliment trouvé dans la table et un autre saisi à la main, et un plat porte **une** source ([D32](#d32--la-source-appartient-au-plat-et-ne-change-jamais--validée)) — distinguer les deux revenait à choisir laquelle mentir. Le typage reste, parce que ce qu'il devra dire un jour est autre chose : ce qui a été **proposé** par un modèle mérite un regard que ne mérite pas ce qu'on a composé soi-même, et `proposed` le porte déjà. Une base antérieure porte encore `SEARCH` ; elle se relit en `MANUAL`, ce que la lecture prudente du mapper faisait déjà.
+
+**Les six valeurs sont des grammes entiers.** Personne ne compte les demi-grammes de lipides, et une décimale affichée est une précision promise que la source ne tient pas : CIQUAL donne 0,25 g de protéines pour une pomme parce que la mesure est sous le seuil de quantification, pas parce qu'elle vaut un quart de gramme. Le séparateur décimal quitte donc le clavier **et** le filtre de ces champs — l'accepter pour arrondir ensuite obligerait à réécrire le texte affiché, donc à repositionner le curseur ([D45](#d45--un-champ-de-saisie-tient-son-texte-lui-même--validée)).
+
+**L'arrondi a lieu à l'aller, pas seulement à l'écran.** Ce qui est affiché est ce qui sera enregistré. Arrondir à la seule présentation ferait diverger le chiffre lu de celui écrit dans le journal — la définition d'un écran qui ment. La référence pour 100 g, elle, garde sa précision : c'est elle qui recalcule, et l'arrondir la ferait dériver à chaque changement de quantité. La quantité garde aussi ses décimales : 12,5 g d'huile est une pesée, pas une approximation.
+
+**Le rognage du plat disparaît de l'accueil.** [D48](#d48--la-barre-pleine-vaut-lobjectif--validée) avait ajouté des coins arrondis pour borner l'ondulation du tap. Ils coupaient la pastille de source et le total de calories, qui sont aux deux extrémités de la première ligne. L'ondulation déborde donc en rectangle, et c'est le prix à payer pour que rien ne soit tronqué.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

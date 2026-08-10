@@ -45,7 +45,7 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 internal class EntryViewModel @Inject constructor(
-    private val savedStateHandle: SavedStateHandle,
+    savedStateHandle: SavedStateHandle,
     private val getDishDraft: GetDishDraft,
     private val getDaySummary: GetDaySummary,
     private val createDraft: CreateDraft,
@@ -111,31 +111,28 @@ internal class EntryViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { open() }
-        observePickedFood()
     }
 
     /**
-     * La fiche que la recherche vient de déposer pour cet écran.
+     * La fiche que la recherche vient de rendre : elle s'ajoute au plat en cours.
      *
-     * **Elle s'ajoute au brouillon en cours**, elle n'en démarre pas un nouveau :
-     * « Ajouter une ligne » rouvre la même recherche que le bouton de l'accueil, et
-     * c'est ce qui rend les deux gestes identiques à apprendre. La clé est vidée
-     * après lecture, sans quoi revenir sur cet écran rajouterait la même ligne.
+     * **Elle ne démarre pas un nouveau brouillon.** « Ajouter un aliment » rouvre la
+     * même recherche que le bouton de l'accueil, et c'est ce qui rend les deux
+     * gestes identiques à apprendre.
+     *
+     * L'écran la lui passe plutôt que de la lire ici : le `SavedStateHandle` d'un
+     * `ViewModel` et celui d'une entrée de pile sont deux objets différents, et
+     * l'observer d'ici revenait à écouter une clé que personne ne remplissait
+     * ([D52][decisions]).
+     *
+     * [decisions]: docs/11-decisions.md
      */
-    private fun observePickedFood() {
+    fun onFoodPicked(id: FoodId) {
         viewModelScope.launch {
-            savedStateHandle.getStateFlow<String?>(EntryDestination.PICKED_FOOD, null).collect { value ->
-                val id = value?.let(::FoodId) ?: return@collect
-                savedStateHandle[EntryDestination.PICKED_FOOD] = null
-                addLineFrom(id)
-            }
+            val food = runCatching { foodLookup.byId(id) }.getOrNull() ?: return@launch
+            val line = EntryFormLine.of(createDraft.line(food))
+            form.update { current -> current?.copy(lines = current.lines + line) }
         }
-    }
-
-    private suspend fun addLineFrom(id: FoodId) {
-        val food = runCatching { foodLookup.byId(id) }.getOrNull() ?: return
-        val line = EntryFormLine.of(createDraft.line(food))
-        form.update { current -> current?.copy(lines = current.lines + line) }
     }
 
     fun onLineEdit(id: DraftLineId, edit: LineEdit) {
@@ -187,12 +184,13 @@ internal class EntryViewModel @Inject constructor(
      * brouillon vierge plutôt qu'un écran d'erreur : il reste plus utile de saisir à
      * la main que de repartir de zéro, et la ligne vide dit déjà qu'il n'y a rien.
      *
-     * La source suit la provenance, et elle seule : c'est ce qui distinguera la
-     * pastille en tête d'écran, et rien d'autre dans tout l'écran n'en dépend.
+     * La source est la même dans les deux cas : chercher un aliment ou taper ses
+     * valeurs, c'est composer son plat soi-même. Ce qui mérite une pastille à part
+     * est ce qu'un modèle a **proposé**, et ça n'existe pas encore.
      */
     private suspend fun newDraft() = foodId
         ?.let { id -> runCatching { foodLookup.byId(id) }.getOrNull() }
-        ?.let { food -> createDraft(EntrySource.SEARCH, food) }
+        ?.let { food -> createDraft(EntrySource.MANUAL, food) }
         ?: createDraft(EntrySource.MANUAL)
 
     /**

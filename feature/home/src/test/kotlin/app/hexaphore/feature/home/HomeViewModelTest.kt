@@ -71,7 +71,7 @@ class HomeViewModelTest {
             premier.totals[Macro.PROTEIN].value > 0.0,
             "un plat doit exposer ses proteines, pas seulement ses calories",
         )
-        assertEquals(EntrySource.SEARCH, premier.dish.source)
+        assertEquals(EntrySource.MANUAL, premier.dish.source)
     }
 
     @Test
