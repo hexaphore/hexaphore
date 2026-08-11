@@ -5,6 +5,7 @@ import app.hexaphore.core.testing.InMemoryGoals
 import app.hexaphore.core.testing.InMemoryProfiles
 import app.hexaphore.core.testing.InMemoryWeightLog
 import app.hexaphore.core.testing.SequentialIdGenerator
+import app.hexaphore.domain.goal.GoalHorizon
 import app.hexaphore.domain.goal.GoalOrigin
 import app.hexaphore.domain.goal.GoalStrategy
 import app.hexaphore.domain.profile.ActivityLevel

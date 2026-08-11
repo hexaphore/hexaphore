@@ -21,6 +21,7 @@ import app.hexaphore.core.designsystem.component.MacroQuarter
 import app.hexaphore.core.designsystem.component.NeonChip
 import app.hexaphore.core.designsystem.component.NeonDateField
 import app.hexaphore.core.designsystem.theme.Spacing
+import app.hexaphore.domain.goal.GoalHorizon
 import app.hexaphore.domain.goal.GoalStrategy
 import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.profile.ActivityLevel
