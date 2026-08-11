@@ -68,7 +68,7 @@ L'interdiction pure et simple pousse les gens à mentir sur leur poids pour cont
 
 Calculée dans cet ordre : protéines d'abord (le besoin le plus contraint), lipides ensuite (un plancher physiologique), **fibres** puis glucides en solde.
 
-Les fibres passent avant les glucides parce qu'elles **consomment de l'énergie** : 2 kcal/g au sens du règlement UE 1169/2011, et elles sont comptées séparément des glucides dans CIQUAL comme dans Open Food Facts. Les calculer après le solde reviendrait à distribuer deux fois les mêmes calories ([D24](11-decisions.md#d24--les-fibres-sont-déduites-du-solde-glucidique--validée)).
+Les fibres passent avant les glucides parce qu'elles **consomment de l'énergie** : 2 kcal/g au sens du règlement UE 1169/2011, et elles sont comptées séparément des glucides dans CIQUAL comme dans Open Food Facts. Les calculer après le solde reviendrait à distribuer deux fois les mêmes calories ([D24](11-decisions.md#d24--les-fibres-sont-déduites-du-solde-glucidique---validée)).
 
 ### Protéines
 
@@ -212,7 +212,7 @@ Ce choix coûte une table et une jointure. Il achète :
 - un historique lisible des changements de cap ;
 - un `UNDO` naturel : on réactive la version précédente.
 
-Voir [07](07-modele-de-donnees.md#goal) pour le schéma et [11](11-decisions.md#d04--objectifs-versionnés-plutôt-que-mis-à-jour-en-place) pour la décision.
+Voir [07](07-modele-de-donnees.md#goal) pour le schéma et [11](11-decisions.md#d04--objectifs-versionnés-plutôt-que-mis-à-jour-en-place---validée) pour la décision.
 
 ---
 

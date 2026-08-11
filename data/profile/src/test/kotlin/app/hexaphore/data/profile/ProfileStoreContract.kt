@@ -1,0 +1,379 @@
+package app.hexaphore.data.profile
+
+import app.hexaphore.domain.goal.DailyGoal
+import app.hexaphore.domain.goal.Goal
+import app.hexaphore.domain.goal.GoalId
+import app.hexaphore.domain.goal.GoalOrigin
+import app.hexaphore.domain.goal.GoalStrategy
+import app.hexaphore.domain.nutrition.Macro
+import app.hexaphore.domain.profile.ActivityLevel
+import app.hexaphore.domain.profile.Sex
+import app.hexaphore.domain.profile.UnitSystem
+import app.hexaphore.domain.profile.UserProfile
+import app.hexaphore.domain.profile.WeightEntry
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
+import java.time.LocalDate
+
+/**
+ * Ce que **les deux** implémentations du profil doivent tenir.
+ *
+ * `Profiles`, `WeightLog` et `Goals` ont chacun deux implémentations depuis la
+ * tranche 4, et aucune ne les éprouvait ensemble. C'est la configuration qui a produit
+ * quatre défauts livrés : un faux plus indulgent que le vrai, des tests écrits contre
+ * le faux, et un chemin que l'application emprunte sans que rien ne le parcoure
+ * ([D53][decisions]).
+ *
+ * Ce jeu est écrit une fois et exécuté deux fois — sur les faux de `:core:testing` et
+ * sur `RoomProfileStore` sous Robolectric. Une propriété que le faux s'autorise à ne
+ * pas tenir devient une ligne rouge à côté d'une verte.
+ *
+ * **Ce qu'il ne prouve pas.** Ni l'affichage, ni ce qu'un `ViewModel` fait de ces
+ * flux. Il ne prouve pas non plus le repli d'une énumération inconnue à la lecture :
+ * les énumérations du domaine sont fermées, donc aucun appelant du port ne peut
+ * soumettre une valeur que le mapper aurait à replier. Cette propriété-là n'appartient
+ * pas au contrat mais à la sérialisation, et elle est éprouvée dans
+ * `ProfileMapperTest`, qui écrit directement en base.
+ *
+ * [decisions]: docs/11-decisions.md
+ */
+abstract class ProfileStoreContract {
+    /** Le magasin sous test, vide. Tout ce que les cas contiennent y entre par les ports. */
+    protected abstract fun store(): ProfileStoreView
+
+    // --- Le profil --------------------------------------------------------------
+
+    @Test
+    fun `sans onboarding, il n y a pas de profil`() = runBlocking {
+        assertNull("un profil est apparu de nulle part", store().observeProfile().first())
+    }
+
+    @Test
+    fun `un profil enregistre se relit entier`() = runBlocking {
+        val magasin = store()
+
+        magasin.save(PROFIL)
+
+        // L'objet entier, et non trois champs choisis : ce qui se perd dans un
+        // aller-retour se perd toujours dans le champ qu'on n'a pas regarde.
+        assertEquals(PROFIL, magasin.observeProfile().first())
+    }
+
+    @Test
+    fun `corriger le profil remplace, il n en cree pas un second`() = runBlocking {
+        val magasin = store()
+        magasin.save(PROFIL)
+
+        magasin.save(PROFIL_CORRIGE)
+
+        assertEquals("la correction n a pas remplace", PROFIL_CORRIGE, magasin.observeProfile().first())
+    }
+
+    @Test
+    fun `le flux du profil se dement apres une correction`() = runBlocking {
+        val magasin = store()
+        magasin.save(PROFIL)
+
+        val apres = magasin.observeProfile().apres(
+            ecriture = { magasin.save(PROFIL_CORRIGE) },
+            attendu = { it == PROFIL_CORRIGE },
+        )
+
+        assertEquals(PROFIL_CORRIGE, apres)
+    }
+
+    // --- Le journal de poids ----------------------------------------------------
+
+    @Test
+    fun `sans pesee, il n y a ni derniere ni recente`() = runBlocking {
+        val magasin = store()
+
+        assertNull(magasin.observeLatest().first())
+        assertEquals(emptyList<WeightEntry>(), magasin.observeRecent(JOURNAL).first())
+    }
+
+    @Test
+    fun `deux pesees le meme jour n en font qu une, et la derniere gagne`() = runBlocking {
+        // Se peser trois fois un matin est courant. En garder trois donnerait trois
+        // fois plus de poids a ce jour-la dans la moyenne mobile, c'est-a-dire
+        // exactement le bruit qu'elle sert a retirer.
+        val magasin = store()
+
+        magasin.record(WeightEntry(LUNDI, POIDS_INITIAL))
+        magasin.record(WeightEntry(LUNDI, POIDS_CORRIGE))
+
+        assertEquals(listOf(WeightEntry(LUNDI, POIDS_CORRIGE)), magasin.observeRecent(JOURNAL).first())
+    }
+
+    @Test
+    fun `la derniere pesee est celle du jour le plus recent, pas la derniere ecrite`() = runBlocking {
+        // C'est elle qui sert au calcul de l'objectif. Rattraper une pesee oubliee
+        // la veille ne doit pas faire recalculer sur un poids perime.
+        val magasin = store()
+
+        magasin.record(WeightEntry(MERCREDI, POIDS_INITIAL))
+        magasin.record(WeightEntry(LUNDI, POIDS_CORRIGE))
+
+        assertEquals(WeightEntry(MERCREDI, POIDS_INITIAL), magasin.observeLatest().first())
+    }
+
+    @Test
+    fun `les pesees sortent les plus recentes d abord`() = runBlocking {
+        val magasin = store()
+
+        magasin.record(WeightEntry(LUNDI, POIDS_INITIAL))
+        magasin.record(WeightEntry(MERCREDI, POIDS_CORRIGE))
+        magasin.record(WeightEntry(MARDI, POIDS_INTERMEDIAIRE))
+
+        assertEquals(
+            listOf(MERCREDI, MARDI, LUNDI),
+            magasin.observeRecent(JOURNAL).first().map { it.date },
+        )
+    }
+
+    @Test
+    fun `la limite borne le journal, et garde les plus recentes`() = runBlocking {
+        // Une limite ignoree ne se verrait jamais sur trois pesees ; elle se verrait
+        // le jour ou la moyenne mobile en demande sept et en recoit deux cents.
+        val magasin = store()
+        magasin.record(WeightEntry(LUNDI, POIDS_INITIAL))
+        magasin.record(WeightEntry(MARDI, POIDS_INTERMEDIAIRE))
+        magasin.record(WeightEntry(MERCREDI, POIDS_CORRIGE))
+
+        assertEquals(listOf(MERCREDI, MARDI), magasin.observeRecent(DEUX).first().map { it.date })
+    }
+
+    @Test
+    fun `le flux des pesees se dement apres une ecriture`() = runBlocking {
+        val magasin = store()
+        magasin.record(WeightEntry(LUNDI, POIDS_INITIAL))
+
+        val apres = magasin.observeLatest().apres(
+            ecriture = { magasin.record(WeightEntry(MARDI, POIDS_CORRIGE)) },
+            attendu = { it?.date == MARDI },
+        )
+
+        assertEquals(WeightEntry(MARDI, POIDS_CORRIGE), apres)
+    }
+
+    // --- Les objectifs ----------------------------------------------------------
+
+    @Test
+    fun `sans objectif, il n y en a ni de courant ni pour aujourd hui`() = runBlocking {
+        val magasin = store()
+
+        assertNull(magasin.observeCurrent().first())
+        assertNull(magasin.observeGoalOn(MARDI).first())
+    }
+
+    @Test
+    fun `un objectif enregistre devient le courant et se relit entier`() = runBlocking {
+        val magasin = store()
+
+        magasin.replace(PREMIER)
+
+        assertEquals(PREMIER, magasin.observeCurrent().first())
+    }
+
+    @Test
+    fun `les compteurs fixes a la main survivent a l aller-retour`() = runBlocking {
+        // La propriete dont depend le verrouillage des reglages profil : un recalcul
+        // ne doit pas reecrire un compteur fixe par l'utilisateur, et il ne peut pas
+        // le savoir si l'ensemble ne revient pas de la base.
+        val magasin = store()
+
+        magasin.replace(PREMIER.copy(manualFields = setOf(Macro.PROTEIN, Macro.FAT)))
+
+        assertEquals(setOf(Macro.PROTEIN, Macro.FAT), magasin.observeCurrent().first()!!.manualFields)
+    }
+
+    @Test
+    fun `un objectif sans compteur fixe se relit sans compteur fixe`() = runBlocking {
+        // Le cas limite de la serialisation : une chaine vide decoupee rend une
+        // chaine vide, et non rien du tout.
+        val magasin = store()
+
+        magasin.replace(PREMIER)
+
+        assertEquals(emptySet<Macro>(), magasin.observeCurrent().first()!!.manualFields)
+    }
+
+    @Test
+    fun `remplacer clot le precedent, et il n en reste qu un de courant`() = runBlocking {
+        val magasin = store()
+        magasin.replace(PREMIER)
+
+        magasin.replace(SECOND)
+
+        assertEquals(SECOND, magasin.observeCurrent().first())
+    }
+
+    @Test
+    fun `le precedent est clos a la date de debut du nouveau`() = runBlocking {
+        val magasin = store()
+        magasin.replace(PREMIER)
+
+        magasin.replace(SECOND)
+
+        val clos = magasin.observeGoalOn(DEBUT_SECOND.minusDays(1)).first()
+        assertEquals("l ancien objectif n a pas ete clos", DEBUT_SECOND, clos?.endedAt)
+    }
+
+    @Test
+    fun `le jour du remplacement appartient au nouvel objectif`() = runBlocking {
+        // Borne de fin exclue. Sans cette convention, cette journee releverait des
+        // deux objectifs et le resume dependrait de l'ordre de lecture.
+        val magasin = store()
+        magasin.replace(PREMIER)
+        magasin.replace(SECOND)
+
+        assertEquals(SECOND.id, magasin.observeGoalOn(DEBUT_SECOND).first()?.id)
+    }
+
+    @Test
+    fun `la veille du remplacement appartient encore a l ancien`() = runBlocking {
+        val magasin = store()
+        magasin.replace(PREMIER)
+        magasin.replace(SECOND)
+
+        assertEquals(PREMIER.id, magasin.observeGoalOn(DEBUT_SECOND.minusDays(1)).first()?.id)
+    }
+
+    @Test
+    fun `le jour de debut est inclus`() = runBlocking {
+        val magasin = store()
+        magasin.replace(PREMIER)
+
+        assertEquals(PREMIER.id, magasin.observeGoalOn(DEBUT_PREMIER).first()?.id)
+    }
+
+    @Test
+    fun `une journee anterieure au premier objectif n en a aucun`() = runBlocking {
+        // Elle n'a rien a quoi se comparer, et lui appliquer l'objectif d'aujourd'hui
+        // serait la juger sur une regle qu'elle n'avait pas.
+        val magasin = store()
+        magasin.replace(PREMIER)
+
+        assertNull(magasin.observeGoalOn(DEBUT_PREMIER.minusDays(1)).first())
+    }
+
+    @Test
+    fun `le flux de l objectif du jour se dement apres un remplacement`() = runBlocking {
+        val magasin = store()
+        magasin.replace(PREMIER)
+
+        val apres = magasin.observeGoalOn(DEBUT_SECOND).apres(
+            ecriture = { magasin.replace(SECOND) },
+            attendu = { it?.id == SECOND.id },
+        )
+
+        assertEquals(SECOND.id, apres?.id)
+    }
+
+    // --- Outillage --------------------------------------------------------------
+
+    /**
+     * Ce que le flux rend **après** [ecriture], et non ce qu'il rendait avant.
+     *
+     * Écrit ainsi plutôt qu'en relisant après coup : une relecture passerait même si
+     * le flux n'avait jamais ré-émis, c'est-à-dire même si le port était resté une
+     * lecture unique. Ici, l'attente expire et le message le dit.
+     */
+    private suspend fun <T> Flow<T>.apres(ecriture: suspend () -> Unit, attendu: (T) -> Boolean): T = coroutineScope {
+        val recu = Channel<T>(Channel.UNLIMITED)
+        val collecte = launch(Dispatchers.Default) { collect { recu.send(it) } }
+        try {
+            withTimeout(DELAI_MILLIS) {
+                recu.receive()
+                ecriture()
+                var valeur = recu.receive()
+                while (!attendu(valeur)) valeur = recu.receive()
+                valeur
+            }
+        } catch (_: TimeoutCancellationException) {
+            error("le flux n a pas re-emis apres l ecriture : est-il encore une lecture unique ?")
+        } finally {
+            collecte.cancel()
+        }
+    }
+
+    protected companion object {
+        val LUNDI: LocalDate = LocalDate.of(2026, 8, 10)
+        val MARDI: LocalDate = LocalDate.of(2026, 8, 11)
+        val MERCREDI: LocalDate = LocalDate.of(2026, 8, 12)
+
+        const val POIDS_INITIAL = 88.0
+        const val POIDS_INTERMEDIAIRE = 87.4
+        const val POIDS_CORRIGE = 87.2
+
+        const val JOURNAL = 20
+        const val DEUX = 2
+        const val DELAI_MILLIS = 5_000L
+
+        const val TAILLE_CM = 182.0
+        const val TAILLE_CORRIGEE_CM = 183.0
+
+        val PROFIL = UserProfile(
+            birthDate = LocalDate.of(1991, 3, 4),
+            sex = Sex.MALE,
+            heightCm = TAILLE_CM,
+            activityLevel = ActivityLevel.MODERATE,
+            unitSystem = UnitSystem.METRIC,
+        )
+
+        /**
+         * Le même profil, corrigé sur **tous** les champs éditables.
+         *
+         * Un seul champ modifié laisserait passer un aller-retour qui en perd un
+         * autre : c'est le champ qu'on n'a pas regardé qui se perd.
+         */
+        val PROFIL_CORRIGE = UserProfile(
+            birthDate = LocalDate.of(1990, 12, 25),
+            sex = Sex.UNSPECIFIED,
+            heightCm = TAILLE_CORRIGEE_CM,
+            activityLevel = ActivityLevel.VERY_ACTIVE,
+            unitSystem = UnitSystem.IMPERIAL,
+        )
+
+        val DEBUT_PREMIER: LocalDate = LocalDate.of(2026, 6, 1)
+        val DEBUT_SECOND: LocalDate = LocalDate.of(2026, 7, 1)
+
+        private val QUOTIDIEN = DailyGoal(
+            kcal = 2000.0,
+            protein = 112.0,
+            carbs = 223.0,
+            sugars = 50.0,
+            fat = 67.0,
+            fiber = 28.0,
+        )
+
+        val PREMIER = Goal(
+            id = GoalId("goal-premier"),
+            startedAt = DEBUT_PREMIER,
+            origin = GoalOrigin.CALCULATED,
+            strategy = GoalStrategy.MAINTAIN,
+            daily = QUOTIDIEN,
+        )
+
+        /** Un cap différent, avec ce que le premier n'a pas : une cible et une échéance. */
+        val SECOND = Goal(
+            id = GoalId("goal-second"),
+            startedAt = DEBUT_SECOND,
+            origin = GoalOrigin.MANUAL,
+            strategy = GoalStrategy.LOSE,
+            targetWeightKg = 80.0,
+            targetDate = LocalDate.of(2026, 12, 31),
+            daily = QUOTIDIEN.copy(kcal = 1800.0),
+        )
+    }
+}

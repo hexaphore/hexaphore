@@ -108,7 +108,7 @@ GET https://world.openfoodfacts.org/api/v2/product/{barcode}.json
 
 **En-tête `User-Agent` obligatoire** : `Hexaphore/<version> (github.com/hexaphore/hexaphore)`. Open Food Facts bloque les clients anonymes, et c'est légitime : l'en-tête est leur seul moyen de joindre l'auteur d'un client qui se comporte mal. Cet en-tête est posé par un intercepteur OkHttp, pas au cas par cas.
 
-L'adresse est figée sur l'organisation GitHub du projet, réservée pour cela ([D14](11-decisions.md#d14--domaine-et-publication-reportés-après-la-05--validée)) : elle survit à un changement de propriétaire, contrairement à un compte personnel. La version vient du `versionName`, pour qu'un rapport de la part d'Open Food Facts désigne un binaire précis.
+L'adresse est figée sur l'organisation GitHub du projet, réservée pour cela ([D14](11-decisions.md#d14--domaine-et-publication-reportés-après-la-05---validée)) : elle survit à un changement de propriétaire, contrairement à un compte personnel. La version vient du `versionName`, pour qu'un rapport de la part d'Open Food Facts désigne un binaire précis.
 
 Pas de clé, pas de compte, pas de quota commercial. Limite de courtoisie : 100 requêtes par minute — hors d'atteinte pour un usage normal, mais l'intercepteur applique quand même un retrait exponentiel sur `429` et `5xx`, trois tentatives maximum.
 

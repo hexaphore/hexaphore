@@ -2,21 +2,16 @@ package app.hexaphore.feature.onboarding
 
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryGoals
+import app.hexaphore.core.testing.InMemoryProfiles
+import app.hexaphore.core.testing.InMemoryWeightLog
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.domain.goal.GoalOrigin
 import app.hexaphore.domain.goal.GoalStrategy
 import app.hexaphore.domain.profile.ActivityLevel
-import app.hexaphore.domain.profile.Profiles
 import app.hexaphore.domain.profile.Sex
-import app.hexaphore.domain.profile.UserProfile
-import app.hexaphore.domain.profile.WeightEntry
-import app.hexaphore.domain.profile.WeightLog
 import app.hexaphore.domain.usecase.CalculateDailyGoal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -44,8 +39,8 @@ import java.time.LocalDate
 class OnboardingViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private val clock = FixedClock.atNoon(AUJOURD_HUI)
-    private val profiles = FakeProfiles()
-    private val weights = FakeWeightLog()
+    private val profiles = InMemoryProfiles()
+    private val weights = InMemoryWeightLog()
     private val goals = InMemoryGoals()
 
     @BeforeEach
@@ -136,7 +131,7 @@ class OnboardingViewModelTest {
 
         assertNull(profiles.saved)
         assertTrue(goals.all.isEmpty())
-        assertNull(weights.recorded)
+        assertNull(weights.latest)
     }
 
     @Test
@@ -150,8 +145,8 @@ class OnboardingViewModelTest {
 
         assertTrue(termine)
         assertEquals(Sex.MALE, profiles.saved?.sex)
-        assertEquals(88.0, weights.recorded?.weightKg)
-        assertEquals(AUJOURD_HUI, weights.recorded?.date, "la pesee est datee par l horloge, pas par LocalDate.now()")
+        assertEquals(88.0, weights.latest?.weightKg)
+        assertEquals(AUJOURD_HUI, weights.latest?.date, "la pesee est datee par l horloge, pas par LocalDate.now()")
 
         val objectif = goals.all.single()
         assertEquals(GoalOrigin.CALCULATED, objectif.origin)
@@ -227,30 +222,6 @@ class OnboardingViewModelTest {
         clock = clock,
         ids = SequentialIdGenerator("goal"),
     )
-
-    private class FakeProfiles : Profiles {
-        private val state = MutableStateFlow<UserProfile?>(null)
-        val saved: UserProfile? get() = state.value
-
-        override fun observeProfile(): Flow<UserProfile?> = state
-
-        override suspend fun save(profile: UserProfile) {
-            state.value = profile
-        }
-    }
-
-    private class FakeWeightLog : WeightLog {
-        private val state = MutableStateFlow<WeightEntry?>(null)
-        val recorded: WeightEntry? get() = state.value
-
-        override fun observeRecent(limit: Int): Flow<List<WeightEntry>> = state.map { listOfNotNull(it) }
-
-        override fun observeLatest(): Flow<WeightEntry?> = state
-
-        override suspend fun record(entry: WeightEntry) {
-            state.value = entry
-        }
-    }
 
     private companion object {
         val AUJOURD_HUI: LocalDate = LocalDate.of(2026, 8, 10)
