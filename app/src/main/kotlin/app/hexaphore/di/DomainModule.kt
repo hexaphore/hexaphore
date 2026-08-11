@@ -5,6 +5,8 @@ import app.hexaphore.domain.food.FoodStore
 import app.hexaphore.domain.food.FoodUsage
 import app.hexaphore.domain.goal.Goals
 import app.hexaphore.domain.identity.IdGenerator
+import app.hexaphore.domain.profile.Profiles
+import app.hexaphore.domain.profile.WeightLog
 import app.hexaphore.domain.time.Clock
 import app.hexaphore.domain.usecase.CalculateDailyGoal
 import app.hexaphore.domain.usecase.CreateDraft
@@ -13,6 +15,7 @@ import app.hexaphore.domain.usecase.GetDaySummary
 import app.hexaphore.domain.usecase.GetDishDraft
 import app.hexaphore.domain.usecase.LogDish
 import app.hexaphore.domain.usecase.RestoreDish
+import app.hexaphore.domain.usecase.ReviseGoal
 import app.hexaphore.domain.usecase.SaveCustomFood
 import app.hexaphore.domain.usecase.UpdateDish
 import dagger.Module
@@ -39,6 +42,10 @@ object DomainModule {
 
     @Provides
     fun calculateDailyGoal(clock: Clock): CalculateDailyGoal = CalculateDailyGoal(clock)
+
+    @Provides
+    fun reviseGoal(profiles: Profiles, weights: WeightLog, goals: Goals, clock: Clock, ids: IdGenerator): ReviseGoal =
+        ReviseGoal(profiles, weights, goals, clock, ids)
 
     @Provides
     fun getDishDraft(diary: DiaryRepository, ids: IdGenerator): GetDishDraft = GetDishDraft(diary, ids)

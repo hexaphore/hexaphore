@@ -48,6 +48,7 @@ dependencies {
     implementation(projects.feature.entry)
     implementation(projects.feature.search)
     implementation(projects.feature.onboarding)
+    implementation(projects.feature.settings)
     implementation(projects.data.diary)
     implementation(projects.data.food)
     implementation(projects.data.profile)

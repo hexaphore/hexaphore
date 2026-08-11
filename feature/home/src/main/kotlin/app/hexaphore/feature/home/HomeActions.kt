@@ -22,4 +22,15 @@ data class HomeActions(
     val onRetry: () -> Unit,
     /** Vers les cinq questions, tant qu'aucun objectif n'a été posé. */
     val onSetUpGoal: () -> Unit,
+    /**
+     * Vers « Profil et objectifs ».
+     *
+     * Directement, sans écran de réglages au-dessus : les quatre autres sections que
+     * [docs/02][parcours] prévoit dépendent de tranches à venir, et un écran de transit
+     * qui ne désigne qu'une destination est un écran de trop ([D59][decisions]).
+     *
+     * [parcours]: docs/02-parcours-et-ecrans.md
+     * [decisions]: docs/11-decisions.md
+     */
+    val onOpenProfile: () -> Unit,
 )
