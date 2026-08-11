@@ -10,11 +10,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -33,7 +35,6 @@ import app.hexaphore.core.designsystem.component.MacroBar
 import app.hexaphore.core.designsystem.component.MacroHexagon
 import app.hexaphore.core.designsystem.component.MacroQuarter
 import app.hexaphore.core.designsystem.component.MacroUnit
-import app.hexaphore.core.designsystem.component.NeonButton
 import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.core.designsystem.theme.Timing
 import app.hexaphore.domain.diary.DaySummary
@@ -52,15 +53,19 @@ fun HomeRoute(
     onEditDish: (DishId) -> Unit,
     onSetUpGoal: () -> Unit,
     onOpenProfile: () -> Unit,
+    onOpenFavorites: () -> Unit,
 ) {
     val viewModel: HomeViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val pendingUndo by viewModel.pendingUndo.collectAsStateWithLifecycle()
+    val nameTaken by viewModel.favoriteNameTaken.collectAsStateWithLifecycle()
 
     HomeScreen(
         state = state,
         pendingUndo = pendingUndo,
-        actions = remember(viewModel, onAddDish, onEditDish, onSetUpGoal, onOpenProfile) {
+        favoriteNameTaken = nameTaken,
+        onDismissFavoriteError = viewModel::onDismissFavoriteError,
+        actions = remember(viewModel, onAddDish, onEditDish, onSetUpGoal, onOpenProfile, onOpenFavorites) {
             HomeActions(
                 onAddDish = onAddDish,
                 onEditDish = onEditDish,
@@ -71,6 +76,8 @@ fun HomeRoute(
                 onRetry = viewModel::retry,
                 onSetUpGoal = onSetUpGoal,
                 onOpenProfile = onOpenProfile,
+                onToggleFavorite = viewModel::onToggleFavorite,
+                onOpenFavorites = onOpenFavorites,
             )
         },
     )
@@ -86,7 +93,14 @@ fun HomeRoute(
  * @see docs/02-parcours-et-ecrans.md
  */
 @Composable
-fun HomeScreen(state: HomeUiState, pendingUndo: Dish?, actions: HomeActions, modifier: Modifier = Modifier) {
+fun HomeScreen(
+    state: HomeUiState,
+    pendingUndo: Dish?,
+    actions: HomeActions,
+    modifier: Modifier = Modifier,
+    favoriteNameTaken: Boolean = false,
+    onDismissFavoriteError: () -> Unit = {},
+) {
     val snackbarHostState = remember { SnackbarHostState() }
     val deleted = stringResource(R.string.home_entry_deleted)
     val undo = stringResource(R.string.home_entry_undo)
@@ -110,16 +124,7 @@ fun HomeScreen(state: HomeUiState, pendingUndo: Dish?, actions: HomeActions, mod
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        floatingActionButton = {
-            // Un seul bouton, et non l'arc de quatre actions de docs/02 : le scan
-            // et l'IA n'existent pas encore, et un bouton qui n'ouvre rien n'est pas
-            // une avance. Il ouvre la recherche, qui porte aussi la saisie manuelle
-            // -- un aliment tape a la main devient une fiche, donc il se cherche
-            // comme les autres et il n'y a plus deux portes a distinguer.
-            ExtendedFloatingActionButton(onClick = actions.onAddDish) {
-                Text(text = stringResource(R.string.home_add_dish))
-            }
-        },
+        floatingActionButton = { DayActions(actions) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -129,32 +134,71 @@ fun HomeScreen(state: HomeUiState, pendingUndo: Dish?, actions: HomeActions, mod
                 .padding(horizontal = Spacing.screenMargin),
             verticalArrangement = Arrangement.spacedBy(Spacing.xl),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(R.string.home_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                // Une icone seule, sans libelle : c'est la porte la moins frequentee
-                // de l'ecran, et le titre du jour doit rester ce qu'on lit en premier.
-                IconButton(onClick = actions.onOpenProfile) {
-                    Icon(
-                        imageVector = Icons.Filled.Person,
-                        contentDescription = stringResource(R.string.home_open_profile),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            DayHeader(actions.onOpenProfile)
 
             when (state) {
                 HomeUiState.Loading -> Unit
-                is HomeUiState.Content -> DayContent(state.summary, actions)
+                is HomeUiState.Content -> DayContent(
+                    summary = state.summary,
+                    actions = actions,
+                    favoriteNameTaken = favoriteNameTaken,
+                    onDismissFavoriteError = onDismissFavoriteError,
+                )
+
                 HomeUiState.Error -> UnreadableDay(actions.onRetry)
             }
+        }
+    }
+}
+
+/** Le titre du jour, et la porte vers le profil. */
+@Composable
+private fun DayHeader(onOpenProfile: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.home_title),
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        // Une icone seule, sans libelle : c'est la porte la moins frequentee de
+        // l'ecran, et le titre du jour doit rester ce qu'on lit en premier.
+        IconButton(onClick = onOpenProfile) {
+            Icon(
+                imageVector = Icons.Filled.Person,
+                contentDescription = stringResource(R.string.home_open_profile),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/**
+ * Les deux boutons flottants, empilés.
+ *
+ * L'étoile ouvre les plats déjà composés, « Ajouter » la recherche — qui porte aussi
+ * la saisie manuelle, puisqu'un aliment tapé à la main devient une fiche. « Ajouter »
+ * reste le geste principal : c'est le seul des deux qui porte un libellé.
+ *
+ * Toujours pas l'arc de quatre actions de [docs/02][parcours] : le scan et l'IA
+ * n'existent pas encore, et un bouton qui n'ouvre rien n'est pas une avance.
+ *
+ * [parcours]: docs/02-parcours-et-ecrans.md
+ */
+@Composable
+private fun DayActions(actions: HomeActions) {
+    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        SmallFloatingActionButton(onClick = actions.onOpenFavorites) {
+            Icon(
+                imageVector = Icons.Filled.Star,
+                contentDescription = stringResource(R.string.home_open_favorites),
+            )
+        }
+        ExtendedFloatingActionButton(onClick = actions.onAddDish) {
+            Text(text = stringResource(R.string.home_add_dish))
         }
     }
 }
@@ -171,7 +215,12 @@ fun HomeScreen(state: HomeUiState, pendingUndo: Dish?, actions: HomeActions, mod
  * [decisions]: docs/11-decisions.md
  */
 @Composable
-private fun DayContent(summary: DaySummary, actions: HomeActions) {
+private fun DayContent(
+    summary: DaySummary,
+    actions: HomeActions,
+    favoriteNameTaken: Boolean,
+    onDismissFavoriteError: () -> Unit,
+) {
     val goal = summary.goal
     if (goal != null) {
         RemainingBlock(summary, goal)
@@ -181,7 +230,13 @@ private fun DayContent(summary: DaySummary, actions: HomeActions) {
         MacroTotalsOnly(summary)
     }
     if (summary.logged) {
-        DishList(dishes = summary.dishes, zone = summary.zone, actions = actions)
+        DishList(
+            dishes = summary.dishes,
+            zone = summary.zone,
+            actions = actions,
+            favoriteNameTaken = favoriteNameTaken,
+            onDismissFavoriteError = onDismissFavoriteError,
+        )
     } else {
         EmptyDay()
     }
@@ -269,102 +324,6 @@ private fun MacroBars(summary: DaySummary, goal: DailyGoal) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-    }
-}
-
-/**
- * Ce qu'on voit tant qu'aucun objectif n'a été posé.
- *
- * Une invitation, pas une jauge à zéro : afficher six barres vides laisserait croire
- * qu'un objectif existe et qu'il n'est pas atteint. Le bouton mène aux cinq questions
- * qui permettent de le calculer.
- */
-@Composable
-private fun NoGoal(onSetUpGoal: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        Text(
-            text = stringResource(R.string.home_no_goal_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = stringResource(R.string.home_no_goal_body),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        NeonButton(text = stringResource(R.string.home_no_goal_action), onClick = onSetUpGoal)
-    }
-}
-
-/**
- * Les six totaux, sans référence à quoi que ce soit.
- *
- * Ce qui a été mangé reste une information exacte même sans objectif ; c'est la
- * **comparaison** qui manque, pas la mesure. Les afficher en texte plutôt qu'en jauge
- * dit exactement cela.
- */
-@Composable
-private fun MacroTotalsOnly(summary: DaySummary) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        Macro.entries.forEach { macro ->
-            val total = summary.totals[macro]
-            Text(
-                text = stringResource(
-                    if (total.complete) R.string.home_total_line else R.string.home_total_line_partial,
-                    stringResource(macro.labelRes),
-                    total.value.roundToInt(),
-                ),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-/**
- * L'écran qui dit « je n'ai pas pu lire », plutôt que de montrer zéro.
- *
- * Sans lui, un échec de lecture s'afficherait comme une journée vide — et une
- * journée vide est une affirmation, pas une absence de réponse. C'est exactement
- * le genre de mensonge que le reste de l'application s'interdit sur les valeurs
- * inconnues ; il n'y a aucune raison de se l'autoriser sur la journée entière.
- *
- * Encart inline et non dialogue : rien n'est détruit, rien n'est irréversible, et
- * un dialogue bloquerait un écran qu'il suffit de relire.
- */
-@Composable
-private fun UnreadableDay(onRetry: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        Text(
-            text = stringResource(R.string.home_error_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.error,
-        )
-        Text(
-            text = stringResource(R.string.home_error_body),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        NeonButton(text = stringResource(R.string.home_error_retry), onClick = onRetry)
-    }
-}
-
-@Composable
-private fun EmptyDay() {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text(
-            text = stringResource(R.string.home_empty_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = stringResource(R.string.home_empty_body),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 

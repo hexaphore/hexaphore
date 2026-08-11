@@ -35,4 +35,18 @@ data class Dish(
     /** Sert au classement : les plats s'affichent dans l'ordre où ils ont été notés. */
     val loggedAt: Instant,
     val entries: List<FoodEntry>,
+    /**
+     * Le favori dont ce plat a été rejoué, s'il en vient d'un.
+     *
+     * C'est ce lien qui permet à l'étoile de se rallumer en rouvrant le plat, et il
+     * **tombe dès que le contenu est modifié** : un plat corrigé n'est plus celui que
+     * le favori décrit ([D62][decisions]).
+     *
+     * `null` aussi quand le favori a été supprimé depuis — la base le délie plutôt que
+     * d'effacer le plat, parce qu'un journal est un registre d'événements et qu'un
+     * modèle réutilisable disparu n'a pas à en amputer une journée.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val favoriteId: FavoriteDishId? = null,
 )

@@ -22,6 +22,7 @@ fun NavGraphBuilder.homeScreen(
     onEditDish: (DishId) -> Unit,
     onSetUpGoal: () -> Unit,
     onOpenProfile: () -> Unit,
+    onOpenFavorites: () -> Unit,
 ) {
     composable<HomeDestination> {
         HomeRoute(
@@ -29,6 +30,7 @@ fun NavGraphBuilder.homeScreen(
             onEditDish = onEditDish,
             onSetUpGoal = onSetUpGoal,
             onOpenProfile = onOpenProfile,
+            onOpenFavorites = onOpenFavorites,
         )
     }
 }

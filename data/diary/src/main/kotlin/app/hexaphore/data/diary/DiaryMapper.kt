@@ -7,6 +7,7 @@ import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.diary.EntryId
 import app.hexaphore.domain.diary.EntrySource
+import app.hexaphore.domain.diary.FavoriteDishId
 import app.hexaphore.domain.diary.FoodEntry
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.nutrition.Macros
@@ -31,6 +32,7 @@ internal fun DishWithEntries.toDomain(): Dish {
         source = dish.source.toEntrySource(),
         loggedAt = Instant.ofEpochMilli(dish.loggedAt),
         entries = entries.map { it.toDomain(id) },
+        favoriteId = dish.favoriteId?.let(::FavoriteDishId),
     )
 }
 
@@ -78,6 +80,7 @@ internal fun Dish.toEntity(now: Long) = DishEntity(
     date = date.toString(),
     source = source.name,
     loggedAt = loggedAt.toEpochMilli(),
+    favoriteId = favoriteId?.value,
     createdAt = now,
     updatedAt = now,
 )

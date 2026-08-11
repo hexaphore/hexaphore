@@ -23,7 +23,27 @@ internal sealed interface EntryUiState {
         val impact: DraftImpact?,
         /** `true` pendant l'écriture : le bouton d'enregistrement devient inerte. */
         val saving: Boolean = false,
+        /**
+         * `true` quand le dernier nom de favori proposé était déjà pris.
+         *
+         * Porté par l'état plutôt que rendu par l'appel : la boîte de nommage reste
+         * ouverte avec le nom refusé dedans, et c'est ce qui permet de le corriger
+         * plutôt que de tout retaper.
+         */
+        val favoriteNameTaken: Boolean = false,
     ) : EntryUiState {
+        /** `true` quand ce plat est dans la liste des favoris. */
+        val favorite: Boolean get() = form.favoriteId != null
+
+        /**
+         * Un plat sans ligne enregistrable ne peut pas devenir un favori.
+         *
+         * Il ne rejouerait rien. L'étoile est donc absente plutôt que refusante : il
+         * n'y a rien à expliquer sur un brouillon qu'on est en train de remplir.
+         */
+        val favoritable: Boolean get() = form.toDraft().let {
+            it.lines.isNotEmpty() && it.lines.all { l -> l.complete }
+        }
         val saveable: Boolean get() = !saving && form.toDraft().saveable
 
         /**

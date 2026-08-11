@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -80,6 +81,9 @@ internal fun EntryRoute(
                 onAddFood = onAddFood,
                 onRemoveLine = viewModel::onRemoveLine,
                 onSave = viewModel::onSave,
+                onFavorite = viewModel::onFavorite,
+                onUnfavorite = viewModel::onUnfavorite,
+                onDismissFavoriteError = viewModel::onDismissFavoriteError,
                 onRetry = viewModel::onRetry,
                 onClose = onClose,
             )
@@ -158,7 +162,7 @@ private fun DraftEditor(state: EntryUiState.Content, actions: EntryActions) {
             contentPadding = PaddingValues(bottom = with(density) { actionsHeightPx.toDp() }),
         ) {
             item(key = "en-tete") {
-                DraftHeader(state, dateFormatter)
+                DraftHeader(state, actions, dateFormatter)
             }
 
             items(items = state.form.lines, key = { it.id.value }) { line ->
@@ -196,15 +200,49 @@ private fun DraftEditor(state: EntryUiState.Content, actions: EntryActions) {
 }
 
 @Composable
-private fun DraftHeader(state: EntryUiState.Content, dateFormatter: DateTimeFormatter) {
+private fun DraftHeader(state: EntryUiState.Content, actions: EntryActions, dateFormatter: DateTimeFormatter) {
+    var naming by remember { mutableStateOf(false) }
+
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text(
-            text = stringResource(
-                if (state.form.dishId == null) R.string.entry_title_new else R.string.entry_title_edit,
-            ),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(
+                    if (state.form.dishId == null) R.string.entry_title_new else R.string.entry_title_edit,
+                ),
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            // L'etoile n'apparait que sur un brouillon complet : un favori sans
+            // ligne enregistrable ne rejouerait rien, et il n'y a rien a expliquer
+            // sur un plat qu'on est en train de remplir.
+            if (state.favoritable) {
+                FavoriteStar(
+                    favorite = state.favorite,
+                    onToggle = { if (state.favorite) actions.onUnfavorite() else naming = true },
+                )
+            }
+        }
+
+        if (naming) {
+            FavoriteNameDialog(
+                proposal = state.form.proposedFavoriteName(),
+                nameTaken = state.favoriteNameTaken,
+                onConfirm = actions.onFavorite,
+                onDismiss = {
+                    naming = false
+                    actions.onDismissFavoriteError()
+                },
+            )
+        }
+        // La boite se referme d'elle-meme des que le favori existe : c'est le seul
+        // signal fiable que l'ecriture a abouti.
+        LaunchedEffect(state.favorite) {
+            if (state.favorite) naming = false
+        }
         Row(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,

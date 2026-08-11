@@ -1,6 +1,7 @@
 package app.hexaphore.di
 
 import app.hexaphore.domain.diary.DiaryRepository
+import app.hexaphore.domain.diary.FavoriteDishes
 import app.hexaphore.domain.food.FoodStore
 import app.hexaphore.domain.food.FoodUsage
 import app.hexaphore.domain.goal.Goals
@@ -14,6 +15,7 @@ import app.hexaphore.domain.usecase.GetDishDraft
 import app.hexaphore.domain.usecase.LogDish
 import app.hexaphore.domain.usecase.RestoreDish
 import app.hexaphore.domain.usecase.SaveCustomFood
+import app.hexaphore.domain.usecase.SaveDraft
 import app.hexaphore.domain.usecase.UpdateDish
 import dagger.Module
 import dagger.Provides
@@ -54,11 +56,19 @@ object DomainModule {
     fun saveCustomFood(store: FoodStore, ids: IdGenerator): SaveCustomFood = SaveCustomFood(store, ids)
 
     @Provides
-    fun logDish(diary: DiaryRepository, foods: FoodUsage, clock: Clock, ids: IdGenerator): LogDish =
-        LogDish(diary, foods, clock, ids)
+    fun logDish(
+        diary: DiaryRepository,
+        foods: FoodUsage,
+        favorites: FavoriteDishes,
+        clock: Clock,
+        ids: IdGenerator,
+    ): LogDish = LogDish(diary, foods, favorites, clock, ids)
 
     @Provides
     fun updateDish(diary: DiaryRepository, ids: IdGenerator): UpdateDish = UpdateDish(diary, ids)
+
+    @Provides
+    fun saveDraft(log: LogDish, update: UpdateDish): SaveDraft = SaveDraft(log, update)
 
     @Provides
     fun deleteEntry(diary: DiaryRepository): DeleteEntry = DeleteEntry(diary)

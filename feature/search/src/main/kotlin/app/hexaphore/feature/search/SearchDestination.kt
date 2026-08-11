@@ -4,6 +4,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import app.hexaphore.domain.diary.FavoriteDishId
 import app.hexaphore.domain.food.FoodId
 import kotlinx.serialization.Serializable
 
@@ -42,6 +43,24 @@ data class CustomFoodDestination(val name: String = "", val addToDraft: Boolean 
     }
 }
 
+/**
+ * Les plats favoris, comme destination. Aucun argument.
+ *
+ * Elle vit dans ce module et non dans un `:feature:favorites` : [docs/02][parcours]
+ * range les favoris — aliments **et** plats — dans la modale de sélection, et c'est
+ * bien ce que fait cet écran. Un module de plus pour une liste et un champ aurait
+ * ajouté un `build.gradle.kts` sans rien séparer.
+ *
+ * [parcours]: docs/02-parcours-et-ecrans.md
+ */
+@Serializable
+data object FavoritesDestination
+
+/** Ouvre la liste des plats favoris. */
+fun NavController.navigateToFavorites() {
+    navigate(FavoritesDestination)
+}
+
 /** Ouvre la recherche pour commencer un plat. */
 fun NavController.navigateToSearch() {
     navigate(SearchDestination(addToDraft = false))
@@ -70,8 +89,12 @@ fun NavController.navigateToManualEntry(name: String, addToDraft: Boolean) {
 fun NavGraphBuilder.searchScreens(
     onPick: (FoodId, addToDraft: Boolean) -> Unit,
     onManualEntry: (name: String, addToDraft: Boolean) -> Unit,
+    onPickFavorite: (FavoriteDishId) -> Unit,
     onClose: () -> Unit,
 ) {
+    composable<FavoritesDestination> {
+        FavoritesRoute(onPick = onPickFavorite, onClose = onClose)
+    }
     composable<SearchDestination> { entry ->
         val addToDraft = entry.toRoute<SearchDestination>().addToDraft
         SearchRoute(

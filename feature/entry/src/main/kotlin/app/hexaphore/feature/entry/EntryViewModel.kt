@@ -6,15 +6,17 @@ import androidx.lifecycle.viewModelScope
 import app.hexaphore.domain.diary.DaySummary
 import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.diary.DraftLineId
-import app.hexaphore.domain.diary.EntrySource
+import app.hexaphore.domain.diary.FavoriteDishId
 import app.hexaphore.domain.diary.impactOf
 import app.hexaphore.domain.food.FoodId
-import app.hexaphore.domain.food.FoodLookup
-import app.hexaphore.domain.usecase.CreateDraft
+import app.hexaphore.domain.usecase.AddFoodLine
+import app.hexaphore.domain.usecase.DraftOrigin
+import app.hexaphore.domain.usecase.FavoriteOutcome
 import app.hexaphore.domain.usecase.GetDaySummary
-import app.hexaphore.domain.usecase.GetDishDraft
-import app.hexaphore.domain.usecase.LogDish
-import app.hexaphore.domain.usecase.UpdateDish
+import app.hexaphore.domain.usecase.OpenDraft
+import app.hexaphore.domain.usecase.RemoveFavoriteDish
+import app.hexaphore.domain.usecase.SaveDraft
+import app.hexaphore.domain.usecase.SaveFavoriteDish
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -46,18 +48,23 @@ import javax.inject.Inject
 @HiltViewModel
 internal class EntryViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val getDishDraft: GetDishDraft,
+    private val openDraft: OpenDraft,
+    private val addFoodLine: AddFoodLine,
     private val getDaySummary: GetDaySummary,
-    private val createDraft: CreateDraft,
-    private val foodLookup: FoodLookup,
-    private val logDish: LogDish,
-    private val updateDish: UpdateDish,
+    private val saveDraft: SaveDraft,
+    private val saveFavoriteDish: SaveFavoriteDish,
+    private val removeFavoriteDish: RemoveFavoriteDish,
 ) : ViewModel() {
     private val dishId: DishId? = savedStateHandle.get<String>(EntryDestination.DISH_ID)?.let(::DishId)
     private val foodId: FoodId? = savedStateHandle.get<String>(EntryDestination.FOOD_ID)?.let(::FoodId)
+    private val favoriteId: FavoriteDishId? =
+        savedStateHandle.get<String>(EntryDestination.FAVORITE_ID)?.let(::FavoriteDishId)
 
     private val form = MutableStateFlow<EntryForm?>(null)
     private val status = MutableStateFlow(Status.LOADING)
+
+    /** `true` quand le dernier nom proposé était déjà pris. */
+    private val favoriteError = MutableStateFlow(false)
 
     /**
      * La journée visée, relue une seule fois.
@@ -85,7 +92,7 @@ internal class EntryViewModel @Inject constructor(
             }
 
     val uiState: StateFlow<EntryUiState> =
-        combine(form, status, day) { form, status, day ->
+        combine(form, status, day, favoriteError) { form, status, day, nameTaken ->
             when {
                 status == Status.UNAVAILABLE -> EntryUiState.Unavailable
                 status == Status.SAVED -> EntryUiState.Saved
@@ -95,6 +102,7 @@ internal class EntryViewModel @Inject constructor(
                     form = form,
                     impact = day?.impactOf(form.toDraft()),
                     saving = status == Status.SAVING,
+                    favoriteNameTaken = nameTaken,
                 )
             }
         }
@@ -129,9 +137,12 @@ internal class EntryViewModel @Inject constructor(
      */
     fun onFoodPicked(id: FoodId) {
         viewModelScope.launch {
-            val food = runCatching { foodLookup.byId(id) }.getOrNull() ?: return@launch
-            val line = EntryFormLine.of(createDraft.line(food))
-            form.update { current -> current?.copy(lines = current.lines + line) }
+            val line = addFoodLine(id) ?: return@launch
+            // Ajouter une ligne detache du favori : le plat n'est plus celui que le
+            // favori decrit (D62).
+            form.update { current ->
+                current?.copy(lines = current.lines + EntryFormLine.of(line), favoriteId = null)
+            }
         }
     }
 
@@ -140,7 +151,44 @@ internal class EntryViewModel @Inject constructor(
     }
 
     fun onRemoveLine(id: DraftLineId) {
-        form.update { current -> current?.copy(lines = current.lines.filterNot { it.id == id }) }
+        // Retirer une ligne detache aussi du favori : le plat n'est plus celui que
+        // le favori decrit (D62).
+        form.update { current -> current?.copy(lines = current.lines.filterNot { it.id == id }, favoriteId = null) }
+    }
+
+    /**
+     * Met le plat en favori sous ce nom, ou le retire de la liste.
+     *
+     * **Éteindre l'étoile supprime le favori**, et c'est le seul chemin pour retirer
+     * un plat de sa liste : la liste des favoris ne sert qu'à en choisir un, et lui
+     * ajouter un geste de suppression aurait fait deux endroits pour la même décision.
+     *
+     * Un nom déjà pris est une **réponse**, pas une panne : l'écran la dit et laisse
+     * le champ ouvert.
+     */
+    fun onFavorite(name: String) {
+        val current = form.value ?: return
+        favoriteError.value = false
+
+        viewModelScope.launch {
+            val outcome = runCatching { saveFavoriteDish(current.toDraft(), name, current.favoriteId) }
+            when (val result = outcome.getOrNull()) {
+                is FavoriteOutcome.Saved -> form.update { it?.copy(favoriteId = result.id) }
+                FavoriteOutcome.NameTaken -> favoriteError.value = true
+                null -> Unit
+            }
+        }
+    }
+
+    fun onUnfavorite() {
+        val id = form.value?.favoriteId ?: return
+        form.update { it?.copy(favoriteId = null) }
+        viewModelScope.launch { runCatching { removeFavoriteDish(id) } }
+    }
+
+    /** L'utilisateur corrige le nom refusé : le message cesse de s'appliquer. */
+    fun onDismissFavoriteError() {
+        favoriteError.value = false
     }
 
     /** Après un échec d'écriture : le brouillon n'a pas bougé, il n'y a qu'à réessayer. */
@@ -155,20 +203,13 @@ internal class EntryViewModel @Inject constructor(
 
         status.value = Status.SAVING
         viewModelScope.launch {
-            val written = runCatching { if (draft.editing) updateDish(draft) else logDish(draft) }
+            val written = runCatching { saveDraft(draft) }
             status.value = if (written.isSuccess) Status.SAVED else Status.FAILED
         }
     }
 
     private suspend fun open() {
-        val id = dishId
-        if (id == null) {
-            form.value = EntryForm.of(newDraft())
-            status.value = Status.EDITING
-            return
-        }
-
-        val relu = runCatching { getDishDraft(id) }.getOrNull()
+        val relu = openDraft(origin())
         if (relu == null) {
             status.value = Status.UNAVAILABLE
         } else {
@@ -177,21 +218,12 @@ internal class EntryViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Le brouillon d'une saisie neuve, prérempli ou non.
-     *
-     * Une fiche introuvable — supprimée entre la recherche et l'ouverture — donne un
-     * brouillon vierge plutôt qu'un écran d'erreur : il reste plus utile de saisir à
-     * la main que de repartir de zéro, et la ligne vide dit déjà qu'il n'y a rien.
-     *
-     * La source est la même dans les deux cas : chercher un aliment ou taper ses
-     * valeurs, c'est composer son plat soi-même. Ce qui mérite une pastille à part
-     * est ce qu'un modèle a **proposé**, et ça n'existe pas encore.
-     */
-    private suspend fun newDraft() = foodId
-        ?.let { id -> runCatching { foodLookup.byId(id) }.getOrNull() }
-        ?.let { food -> createDraft(EntrySource.MANUAL, food) }
-        ?: createDraft(EntrySource.MANUAL)
+    /** Ce que la destination désigne. Un seul endroit qui lit les trois arguments. */
+    private fun origin(): DraftOrigin = when {
+        dishId != null -> DraftOrigin.Dish(dishId)
+        favoriteId != null -> DraftOrigin.Favorite(favoriteId)
+        else -> DraftOrigin.New(foodId)
+    }
 
     /**
      * Là où en est l'écran.

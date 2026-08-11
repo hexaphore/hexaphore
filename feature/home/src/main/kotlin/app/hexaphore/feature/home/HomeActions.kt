@@ -28,6 +28,16 @@ data class HomeActions(
      */
     val onDeleteDish: (Dish) -> Unit,
     val onDeleteEntry: (Dish, EntryId) -> Unit,
+    /**
+     * Met le plat en favori sous ce nom, ou l'en retire quand [name] est `null`.
+     *
+     * Un seul rappel pour les deux sens : l'entrée de menu est une bascule, et deux
+     * actions auraient obligé l'écran à choisir laquelle appeler alors que l'état du
+     * plat le dit déjà.
+     */
+    val onToggleFavorite: (Dish, name: String?) -> Unit,
+    /** Ouvre la liste des plats favoris, pour en rejouer un. */
+    val onOpenFavorites: () -> Unit,
     val onUndo: () -> Unit,
     val onUndoExpired: () -> Unit,
     val onRetry: () -> Unit,

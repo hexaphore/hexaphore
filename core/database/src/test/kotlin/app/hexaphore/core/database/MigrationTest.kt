@@ -331,6 +331,86 @@ class MigrationTest {
         }
     }
 
+    // --- Version 4 -> 5 : les plats favoris ------------------------------------
+
+    @Test
+    fun `un journal ecrit avant les favoris se relit apres`() {
+        // `dish` est recreee pour recevoir sa cle etrangere -- SQLite ne sait pas en
+        // ajouter une apres coup. Une recopie perd tout ce qu'on a oublie de nommer.
+        helper.createDatabase(TEST_DATABASE, 1).use { it.seedVersionOne() }
+
+        migrate().use { database ->
+            database.query("SELECT date, source, logged_at, favorite_id FROM dish WHERE id = 'd1'").use { row ->
+                assertTrue("le plat a disparu dans la recopie", row.moveToFirst())
+                assertEquals("2026-08-08", row.getString(0))
+                assertEquals("MANUAL", row.getString(1))
+                assertEquals(1000L, row.getLong(2))
+                assertTrue("aucun plat ne venait d un favori : la colonne doit rester nulle", row.isNull(3))
+            }
+        }
+    }
+
+    @Test
+    fun `supprimer un favori delie les plats qui en venaient, sans les effacer`() {
+        // Un journal est un registre d'evenements : le modele qui a servi a composer
+        // un repas n'a pas a emporter le repas en disparaissant. C'est la meme regle
+        // que pour un aliment personnel supprime.
+        helper.createDatabase(TEST_DATABASE, 1).use { it.seedVersionOne() }
+
+        migrate().use { database ->
+            database.execSQL("PRAGMA foreign_keys = ON")
+            database.seedFavorite()
+            database.execSQL("UPDATE dish SET favorite_id = 'fav1' WHERE id = 'd1'")
+
+            database.execSQL("DELETE FROM favorite_dish WHERE id = 'fav1'")
+
+            database.query("SELECT favorite_id FROM dish WHERE id = 'd1'").use { row ->
+                assertTrue("le plat a ete supprime avec son favori", row.moveToFirst())
+                assertTrue("le lien aurait du se defaire", row.isNull(0))
+            }
+            assertEquals("les composants devaient partir en cascade", 0, database.count("favorite_component"))
+        }
+    }
+
+    @Test
+    fun `deux favoris ne peuvent pas porter le meme nom normalise`() {
+        // C'est l'index qui tient la regle, pas la seule discipline d'ecriture :
+        // « Petit-dej » et « petit dej » ne se distinguent pas dans une liste.
+        helper.createDatabase(TEST_DATABASE, 1).close()
+
+        migrate().use { database ->
+            database.seedFavorite(id = "fav1", nameSearch = "petit dej")
+            val doublon = runCatching { database.seedFavorite(id = "fav2", nameSearch = "petit dej") }
+
+            assertTrue("le doublon de nom aurait du etre refuse", doublon.isFailure)
+        }
+    }
+
+    @Test
+    fun `supprimer un aliment delie le composant sans vider le favori`() {
+        // Les six valeurs enregistrees avec le composant prennent alors le relais :
+        // c'est la raison pour laquelle elles sont ecrites meme quand une fiche est
+        // citee.
+        helper.createDatabase(TEST_DATABASE, 1).close()
+
+        migrate().use { database ->
+            database.execSQL("PRAGMA foreign_keys = ON")
+            database.seedFood(id = "f1")
+            database.seedFavorite()
+            database.execSQL("UPDATE favorite_component SET food_id = 'f1' WHERE favorite_id = 'fav1'")
+
+            database.execSQL("DELETE FROM food WHERE id = 'f1'")
+
+            database.query("SELECT food_id, display_name, kcal FROM favorite_component WHERE favorite_id = 'fav1'")
+                .use { row ->
+                    assertTrue("le composant a ete supprime avec l aliment", row.moveToFirst())
+                    assertTrue("le lien aurait du se defaire", row.isNull(0))
+                    assertEquals("Flocons", row.getString(1))
+                    assertEquals(218.0, row.getDouble(2), 0.0)
+                }
+        }
+    }
+
     // --- Outillage ------------------------------------------------------------
 
     /**
@@ -445,6 +525,26 @@ class MigrationTest {
             )
             """.trimIndent(),
             arrayOf(id, endedAt, if (endedAt == null) "1" else id),
+        )
+    }
+
+    /** Un plat favori d'une ligne, tel que l'étoile en écrit un. */
+    private fun SupportSQLiteDatabase.seedFavorite(id: String = "fav1", nameSearch: String = "petit dej") {
+        execSQL(
+            """
+            INSERT INTO favorite_dish (id, name, name_search, use_count, created_at)
+            VALUES (?, 'Petit-déj', ?, 0, 1000)
+            """.trimIndent(),
+            arrayOf(id, nameSearch),
+        )
+        execSQL(
+            """
+            INSERT INTO favorite_component (
+                favorite_id, position, food_id, display_name, quantity, unit, grams,
+                kcal, protein_g, carb_g, sugar_g, fat_g, fiber_g
+            ) VALUES (?, 0, NULL, 'Flocons', 60.0, 'g', 60.0, 218.0, 8.1, 36.0, 0.6, 4.2, NULL)
+            """.trimIndent(),
+            arrayOf(id),
         )
     }
 

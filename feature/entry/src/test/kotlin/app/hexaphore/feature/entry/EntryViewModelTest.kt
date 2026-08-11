@@ -3,6 +3,7 @@ package app.hexaphore.feature.entry
 import androidx.lifecycle.SavedStateHandle
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryDiaryRepository
+import app.hexaphore.core.testing.InMemoryFavoriteDishes
 import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.core.testing.InMemoryGoals
 import app.hexaphore.core.testing.SequentialIdGenerator
@@ -19,10 +20,16 @@ import app.hexaphore.domain.food.FoodSource
 import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.nutrition.Macros
 import app.hexaphore.domain.nutrition.NutrientValues
+import app.hexaphore.domain.usecase.AddFoodLine
 import app.hexaphore.domain.usecase.CreateDraft
 import app.hexaphore.domain.usecase.GetDaySummary
 import app.hexaphore.domain.usecase.GetDishDraft
+import app.hexaphore.domain.usecase.GetFavoriteDraft
 import app.hexaphore.domain.usecase.LogDish
+import app.hexaphore.domain.usecase.OpenDraft
+import app.hexaphore.domain.usecase.RemoveFavoriteDish
+import app.hexaphore.domain.usecase.SaveDraft
+import app.hexaphore.domain.usecase.SaveFavoriteDish
 import app.hexaphore.domain.usecase.UpdateDish
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -305,15 +312,27 @@ class EntryViewModelTest {
         viewModel.onFoodPicked(food.id)
     }
 
-    private fun viewModel(dishId: String? = null) = EntryViewModel(
-        savedStateHandle = SavedStateHandle(if (dishId == null) emptyMap() else mapOf("dishId" to dishId)),
-        getDishDraft = GetDishDraft(diary, ids),
+    private fun viewModel(dishId: String? = null, favoriteId: String? = null) = EntryViewModel(
+        savedStateHandle = SavedStateHandle(
+            listOfNotNull(
+                dishId?.let { "dishId" to it },
+                favoriteId?.let { "favoriteId" to it },
+            ).toMap(),
+        ),
+        openDraft = OpenDraft(
+            dishes = GetDishDraft(diary, ids),
+            favorites = GetFavoriteDraft(favoris, catalogue, clock, ids),
+            create = CreateDraft(clock, ids),
+            foods = catalogue,
+        ),
+        addFoodLine = AddFoodLine(catalogue, CreateDraft(clock, ids)),
         getDaySummary = GetDaySummary(diary, goals, clock),
-        createDraft = CreateDraft(clock, ids),
-        foodLookup = catalogue,
-        logDish = LogDish(diary, catalogue, clock, ids),
-        updateDish = UpdateDish(diary, ids),
+        saveDraft = SaveDraft(LogDish(diary, catalogue, favoris, clock, ids), UpdateDish(diary, ids)),
+        saveFavoriteDish = SaveFavoriteDish(favoris, ids),
+        removeFavoriteDish = RemoveFavoriteDish(favoris),
     )
+
+    private val favoris = InMemoryFavoriteDishes()
 
     private companion object {
         val RIZ = Food(

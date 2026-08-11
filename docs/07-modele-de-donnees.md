@@ -189,18 +189,26 @@ Un plat enregistré pour être rejoué. C'est le seul endroit où un nom est dem
 | `favorite_dish` | Type |
 |---|---|
 | `id` | TEXT PK |
-| `name` | TEXT |
+| `name` | TEXT — tel qu'il a été tapé |
+| `name_search` | TEXT **UNIQUE** — normalisé, c'est lui qui porte l'unicité |
 | `use_count` | INTEGER |
 | `created_at` | INTEGER |
 
 | `favorite_component` | Type |
 |---|---|
-| `id` | TEXT PK |
-| `favorite_id` | TEXT FK, CASCADE |
-| `food_id` | TEXT FK |
+| `favorite_id`, `position` | TEXT / INTEGER — **clé composite** |
+| `food_id` | TEXT FK NULL, SET NULL |
+| `display_name` | TEXT |
 | `quantity`, `unit`, `grams` | REAL / TEXT / REAL |
+| `kcal`, `protein_g`, `carb_g`, `sugar_g`, `fat_g`, `fiber_g` | REAL NULL |
+
+**Pas d'identifiant de composant** : un composant n'existe pas hors de son plat et n'est jamais désigné seul. La position devait de toute façon être stockée pour que l'ordre des lignes survive à un rejeu.
 
 Un favori référence des aliments **vivants** : « mes flocons du matin » doit refléter la fiche courante quand on le rejoue. Il produit ensuite des `food_entry` qui, eux, figent leurs valeurs. La différence de traitement est intentionnelle — un modèle réutilisable d'un côté, un registre d'événements de l'autre.
+
+**Mais les six valeurs sont enregistrées quand même** ([D62](11-decisions.md)). Une ligne tapée à la main n'a pas de fiche derrière elle, et une fiche citée peut être supprimée : elles servent de contenu dans le premier cas, de repli dans le second. Sans elles, un favori pourrait rejouer une ligne sans le moindre chiffre.
+
+`dish.favorite_id` relie un plat du journal au favori dont il a été rejoué, en `SET NULL`. C'est lui qui rallume l'étoile en rouvrant un plat, et il **tombe dès qu'une ligne est modifiée** : le plat n'est plus celui que le favori décrit.
 
 ### `app_state`
 

@@ -240,7 +240,20 @@ data class EntryDraft(
     val date: LocalDate,
     val source: EntrySource,
     val lines: List<DraftLine>,
+    /**
+     * Le favori que ce brouillon rejoue, ou auquel le plat est rattaché.
+     *
+     * Posé en ouvrant un favori, et en rouvrant un plat qui en vient. Il **tombe dès
+     * qu'une ligne est touchée** — ajoutée, modifiée, supprimée : le brouillon cesse
+     * alors d'être celui que le favori décrit ([D62][decisions]).
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val favoriteId: FavoriteDishId? = null,
 ) {
+    /** Le même brouillon, détaché de son favori. Tout geste sur les lignes y passe. */
+    fun unlinked(): EntryDraft = if (favoriteId == null) this else copy(favoriteId = null)
+
     /** `true` quand ce brouillon modifie un plat déjà enregistré. */
     val editing: Boolean get() = dishId != null
 

@@ -62,6 +62,21 @@
     <string name="home_dish_menu">ouvrir le menu du plat</string>
     <string name="home_dish_menu_edit">Modifier</string>
     <string name="home_dish_menu_delete">Supprimer</string>
+    <string name="home_dish_menu_favorite">Mettre en favori</string>
+    <string name="home_dish_menu_unfavorite">Retirer des favoris</string>
+
+    <!-- L'étoile ouvre les plats déjà composés. Une icône seule : « Ajouter » reste
+         le geste principal, et c'est lui qui porte un libellé. -->
+    <string name="home_open_favorites">Vos plats favoris</string>
+
+    <!-- Le nom est proposé depuis les aliments du plat, puis librement réécrit : un
+         favori sans nom serait introuvable, et un champ vide ferait renoncer. -->
+    <string name="home_favorite_title">Enregistrer comme favori</string>
+    <string name="home_favorite_body">Vous le retrouverez sous ce nom pour le rejouer en deux gestes. Modifier une ligne l\'en retirera.</string>
+    <string name="home_favorite_name">Nom du plat</string>
+    <string name="home_favorite_name_taken">Un plat en favori porte déjà ce nom.</string>
+    <string name="home_favorite_confirm">Enregistrer</string>
+    <string name="home_favorite_cancel">Annuler</string>
 
     <!-- Un dialogue, là où le balayage d'une ligne se contente de sa barre : celui-ci
          emporte n lignes d'un coup, et le nombre est dit. -->

@@ -22,6 +22,18 @@ internal data class EntryActions(
     val onAddFood: () -> Unit,
     val onRemoveLine: (DraftLineId) -> Unit,
     val onSave: () -> Unit,
+    /**
+     * Met le plat en favori sous ce nom.
+     *
+     * Le nom vient de l'écran parce que c'est lui qui le fait saisir ; un nom déjà
+     * pris revient dans l'état, pas en valeur de retour ([D62][decisions]).
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val onFavorite: (String) -> Unit,
+    /** Éteindre l'étoile **supprime** le favori : c'est le seul chemin pour l'ôter. */
+    val onUnfavorite: () -> Unit,
+    val onDismissFavoriteError: () -> Unit,
     val onRetry: () -> Unit,
     val onClose: () -> Unit,
 )
