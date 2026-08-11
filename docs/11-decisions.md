@@ -78,7 +78,7 @@ Une entrée remplacée n'est **jamais** supprimée ni réécrite. Savoir ce qu'o
 
 **Conséquences.** Le repas est pré-sélectionné selon l'heure, donc la décision supplémentaire coûte zéro tap dans le cas courant.
 
-> **Remplacé par [D31](#d31--un-plat-pas-un-repas-nommé--validée).** Le raisonnement tenait tant qu'on regardait les sous-totaux ; à l'usage, la case à choisir arrive avant l'enregistrement et ne sert à rien. Le regroupement par plat donne les mêmes sous-totaux sans la question.
+> **Remplacé par [D31](#d31--un-plat-pas-un-repas-nommé---validée).** Le raisonnement tenait tant qu'on regardait les sous-totaux ; à l'usage, la case à choisir arrive avant l'enregistrement et ne sert à rien. Le regroupement par plat donne les mêmes sous-totaux sans la question.
 
 ---
 
@@ -220,7 +220,7 @@ Le document [08](08-design-system.md) se contredit sur deux points mineurs. Les 
 
 **L'ambre du `SourceBadge`.** Le document dit que la pastille de source est monochrome *parce que les six couleurs sont réservées aux macros*, puis que « Estimation IA » s'affiche **en ambre** — qui est la teinte des lipides. Retenu à ce stade : un rôle `warning` distinct, défini dans `NeonTheme`, visuellement ambré mais indépendant de la palette des macros.
 
-> **Remplacé par [D25](#d25--lestimation-ia-se-signale-par-une-forme-pas-par-une-couleur--validée).** Une septième couleur restait une septième couleur. Le badge se distingue désormais par la forme.
+> **Remplacé par [D25](#d25--lestimation-ia-se-signale-par-une-forme-pas-par-une-couleur---validée).** Une septième couleur restait une septième couleur. Le badge se distingue désormais par la forme.
 
 **Le fond du `NeonButton` principal.** Le document interdit le texte foncé sur aplat néon, puis décrit le bouton principal comme portant « un fond dégradé plein ». Un aplat néon plein imposerait précisément un texte foncé. Retenu : un dégradé de la teinte à faible opacité sur le fond sombre. Le bouton se distingue nettement des boutons à contour, et le néon reste l'élément clair de la paire.
 
@@ -256,11 +256,11 @@ Trois éléments décrits ailleurs dans la documentation sont volontairement abs
 
 | Absent | Raison | Quand |
 |---|---|---|
-| Les deux `productFlavors` `github` / `play` | Elles n'existent que pour compiler ou non le lien de don ([D09](#d09--deux-variantes-de-distribution--validée)). Aucune ligne de code ne les distingue encore, et une dimension de variante double le nombre de tâches Gradle. | Avec `DonationLinkProvider` |
+| Les deux `productFlavors` `github` / `play` | Elles n'existent que pour compiler ou non le lien de don ([D09](#d09--deux-variantes-de-distribution---validée)). Aucune ligne de code ne les distingue encore, et une dimension de variante double le nombre de tâches Gradle. | Avec `DonationLinkProvider` |
 | Tests d'image et rapport de couverture en CI | [10](10-qualite-et-livraison.md#intégration-continue) les prévoit dans le pipeline. Il n'y a rien à couvrir ni à figer : `:domain` ne contient que des interfaces. | Tranche 1 |
 | Les plugins de convention Gradle | Trois modules ne justifient pas une couche d'indirection pour dix lignes de configuration partagée. Elle est posée dans le `build.gradle.kts` racine. | Vers le sixième module |
 
-> **Échéance atteinte.** Les deux premières lignes restent d'actualité. La troisième est réglée par [D37](#d37--plugins-de-convention-gradle--validée) : le projet compte huit modules, et le bloc partagé était recopié cinq fois.
+> **Échéance atteinte.** Les deux premières lignes restent d'actualité. La troisième est réglée par [D37](#d37--plugins-de-convention-gradle---validée) : le projet compte huit modules, et le bloc partagé était recopié cinq fois.
 
 ---
 
@@ -318,7 +318,7 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 
 **Pourquoi le pointillé plutôt qu'une icône d'alerte.** Un triangle d'avertissement dit « attention, problème ». Une estimation n'est pas un problème, c'est une valeur moins précise. Un contour discontinu et une vague le disent sans dramatiser, et sans légende.
 
-**Conséquences.** Le rôle `warning` et tout le mécanisme `NeonExtendedColors` disparaissent du thème : Material 3 suffit. Le design system revient à exactement six teintes plus les fonds, ce qu'annonçait [D07](#d07--une-couleur-par-macro--validée).
+**Conséquences.** Le rôle `warning` et tout le mécanisme `NeonExtendedColors` disparaissent du thème : Material 3 suffit. Le design system revient à exactement six teintes plus les fonds, ce qu'annonçait [D07](#d07--une-couleur-par-macro---validée).
 
 ---
 
@@ -326,7 +326,7 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 
 **Contexte.** [04](04-sources-de-donnees.md) exigeait un `User-Agent` obligatoire tout en laissant un `<compte>` non résolu. Or Open Food Facts bloque les clients anonymes, et le symptôme ressemble à une panne réseau — le piège est signalé dans [12](12-plan-de-developpement.md) et resterait armé.
 
-**Choix.** `Hexaphore/<version> (github.com/hexaphore/hexaphore)`, l'organisation réservée en [D14](#d14--domaine-et-publication-reportés-après-la-05--validée).
+**Choix.** `Hexaphore/<version> (github.com/hexaphore/hexaphore)`, l'organisation réservée en [D14](#d14--domaine-et-publication-reportés-après-la-05---validée).
 
 **Raison.** Une organisation survit à un changement de propriétaire, à un passage en association et à un départ de son auteur ; un compte personnel, non. La version vient du `versionName`, pour qu'un signalement d'Open Food Facts désigne un binaire précis plutôt que « l'application ».
 
@@ -344,7 +344,7 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 
 **Conséquences.** Trois signaux redondants distinguent les deux familles : le suffixe `max` sur la valeur, le comportement de la jauge, et la phrase annoncée par TalkBack — « sur un objectif de » contre « sur une limite de ». Le paramètre `mode` de `MacroBar` disparaît de l'API publique : il n'y avait aucune raison légitime de le forcer.
 
-> **Le second signal est remplacé par [D47](#d47--les-six-macros-brillent--en-partie-remplacée-par-d48).** La nature reste portée par la macro, et c'est l'essentiel de cette entrée. Ce qui cède est l'**extinction** de la jauge sous le seuil : constaté sur appareil, trois macros allumées et trois éteintes se lisent comme un défaut d'affichage. Le repère de seuil et l'échelle élargie restent.
+> **Le second signal est remplacé par [D47](#d47--les-six-macros-brillent---en-partie-remplacée-par-d48).** La nature reste portée par la macro, et c'est l'essentiel de cette entrée. Ce qui cède est l'**extinction** de la jauge sous le seuil : constaté sur appareil, trois macros allumées et trois éteintes se lisent comme un défaut d'affichage. Le repère de seuil et l'échelle élargie restent.
 
 ---
 
@@ -380,11 +380,11 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 
 **Choix.** `DailyGoal.Placeholder` — 2 000 kcal et sa répartition, dans `:domain`.
 
-**Ce n'est pas un chiffre arbitraire.** La répartition suit les règles de [03](03-nutrition-calculs.md) pour un maintien à 2 000 kcal sur un poids de référence de 70 kg : protéines 1,6 g/kg, lipides 30 % des calories, fibres 14 g pour 1 000 kcal, glucides en solde une fois les fibres déduites. Le contrôle de cohérence retombe à 1 kcal près. L'appliquer ici sert aussi de première vérification de [D24](#d24--les-fibres-sont-déduites-du-solde-glucidique--validée).
+**Ce n'est pas un chiffre arbitraire.** La répartition suit les règles de [03](03-nutrition-calculs.md) pour un maintien à 2 000 kcal sur un poids de référence de 70 kg : protéines 1,6 g/kg, lipides 30 % des calories, fibres 14 g pour 1 000 kcal, glucides en solde une fois les fibres déduites. Le contrôle de cohérence retombe à 1 kcal près. L'appliquer ici sert aussi de première vérification de [D24](#d24--les-fibres-sont-déduites-du-solde-glucidique---validée).
 
 **Date de péremption.** Sa disparition est un critère de fin de la tranche 4, déjà écrit dans [12](12-plan-de-developpement.md). Un seul point du code le référence, et le nom `Placeholder` le désigne comme tel dans chaque complétion de l'IDE.
 
-> **Échéance tenue.** `DailyGoal.Placeholder` n'existe plus ([D55](#d55--lobjectif-est-calculé-daté-et-parfois-absent--validée)). `GetDaySummary` lit l'objectif **actif ce jour-là**, et `DaySummary.goal` est devenu nullable : une journée sans objectif ne se compare à rien plutôt que d'être jugée sur une règle qu'elle n'avait pas. Les valeurs elles-mêmes survivent dans `InMemoryGoals.maintenance`, où elles servent de décor de test — ce qui a disparu est le fait qu'un **écran** s'en serve.
+> **Échéance tenue.** `DailyGoal.Placeholder` n'existe plus ([D55](#d55--lobjectif-est-calculé-daté-et-parfois-absent---validée)). `GetDaySummary` lit l'objectif **actif ce jour-là**, et `DaySummary.goal` est devenu nullable : une journée sans objectif ne se compare à rien plutôt que d'être jugée sur une règle qu'elle n'avait pas. Les valeurs elles-mêmes survivent dans `InMemoryGoals.maintenance`, où elles servent de décor de test — ce qui a disparu est le fait qu'un **écran** s'en serve.
 
 ---
 
@@ -426,7 +426,7 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 
 **Écarté.** *Remplacer aussi les barres* : il aurait fallu réintroduire les chiffres en étiquettes autour de la figure, ce qui ne tient pas à 200 % de police. *Ajouter l'hexagone au-dessus de l'anneau* : la même information dite trois fois.
 
-**Le dépassement rétrécit la figure.** Le contour de l'objectif n'est pas la limite du dessin ; c'est le dessin entier qui se met à l'échelle pour que le plus grand débordement tienne. L'hexagone cible qui rapetisse **est** le signal. Plafonné à 200 % — sans quoi une saisie erronée à 2 000 % réduirait la cible à un point, précisément au moment où il faut la lire pour corriger. *(Plafond ramené à 150 % par [D47](#d47--les-six-macros-brillent--en-partie-remplacée-par-d48) : à 200 % la cible tombait à la moitié de sa taille, et un dépassement de moitié se voit déjà largement.)*
+**Le dépassement rétrécit la figure.** Le contour de l'objectif n'est pas la limite du dessin ; c'est le dessin entier qui se met à l'échelle pour que le plus grand débordement tienne. L'hexagone cible qui rapetisse **est** le signal. Plafonné à 200 % — sans quoi une saisie erronée à 2 000 % réduirait la cible à un point, précisément au moment où il faut la lire pour corriger. *(Plafond ramené à 150 % par [D47](#d47--les-six-macros-brillent---en-partie-remplacée-par-d48) : à 200 % la cible tombait à la moitié de sa taille, et un dépassement de moitié se voit déjà largement.)*
 
 **Conséquence structurante : un seul ordre angulaire.** [08](08-design-system.md#daltonisme) fixait pour les pastilles du calendrier un ordre différent de celui demandé ici. Deux ordres pour les mêmes six macros annuleraient le bénéfice recherché : la position ne renseigne que si elle est la même partout. L'ordre de l'hexagone devient donc celui de toute l'application — **calories, protéines, fibres, glucides, sucres, lipides, sens horaire depuis le haut** — et les barres de l'accueil s'y alignent.
 
@@ -474,7 +474,7 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 
 ## D37 — Plugins de convention Gradle · ✓ validée
 
-**Contexte.** [D21](#d21--ce-que-litération-0-ne-construit-pas--par-défaut) reportait la question « vers le sixième module ». Il y en a huit. Le bloc `android { compileSdk / minSdk / compileOptions }` et `kotlin { jvmTarget }` était recopié **à l'identique dans cinq** `build.gradle.kts`, et le module suivant en aurait produit un sixième exemplaire.
+**Contexte.** [D21](#d21--ce-que-litération-0-ne-construit-pas---par-défaut) reportait la question « vers le sixième module ». Il y en a huit. Le bloc `android { compileSdk / minSdk / compileOptions }` et `kotlin { jvmTarget }` était recopié **à l'identique dans cinq** `build.gradle.kts`, et le module suivant en aurait produit un sixième exemplaire.
 
 Ce n'est pas la répétition qui coûte, c'est ce qu'elle rend possible : une divergence entre deux copies ne se voit qu'en compilant celle qui a divergé. Un module resté en `compileSdk 34` compile parfaitement — jusqu'à ce qu'un autre utilise une API de 35.
 
@@ -522,11 +522,11 @@ Ce n'est pas la répétition qui coûte, c'est ce qu'elle rend possible : une di
 
 ## D40 — Ce que la tranche 2 ne construit pas · ✓ validée
 
-Trois éléments décrits ailleurs sont volontairement absents. Listés ici pour cesser d'être des oublis, comme [D21](#d21--ce-que-litération-0-ne-construit-pas--par-défaut) l'avait fait pour le socle.
+Trois éléments décrits ailleurs sont volontairement absents. Listés ici pour cesser d'être des oublis, comme [D21](#d21--ce-que-litération-0-ne-construit-pas---par-défaut) l'avait fait pour le socle.
 
 | Absent | Raison | Quand |
 |---|---|---|
-| Le port `CustomFoodStore` et le formulaire d'aliment personnel | [D34](#d34--la-table-food-attend-la-tranche-qui-la-remplit--par-défaut) a reporté la table `food` en tranche 3. Un aliment personnel n'a de sens que réutilisable, donc trouvable : sans recherche, il serait écrit dans une table que rien ne lit, derrière un port à une seule implémentation. C'est exactement l'abstraction préventive que le projet refuse. | Tranche 3, avec `food` et la recherche |
+| Le port `CustomFoodStore` et le formulaire d'aliment personnel | [D34](#d34--la-table-food-attend-la-tranche-qui-la-remplit---par-défaut) a reporté la table `food` en tranche 3. Un aliment personnel n'a de sens que réutilisable, donc trouvable : sans recherche, il serait écrit dans une table que rien ne lit, derrière un port à une seule implémentation. C'est exactement l'abstraction préventive que le projet refuse. | Tranche 3, avec `food` et la recherche |
 | Le choix de la date sur l'écran de validation | La saisie est possible aujourd'hui et dans le passé, mais **aucun écran ne mène à un jour passé** avant la tranche 7. Un sélecteur de date servirait à corriger un champ que rien ne peut encore mal remplir. La date est affichée, et vient de l'horloge. | Tranche 7, avec l'écran Journée |
 | La survie d'une saisie à la mort du processus | Le `ViewModel` couvre la rotation et le passage en arrière-plan, qui sont les cas fréquents. Persister le formulaire demande une représentation sérialisable des types du domaine, dans **chaque** écran de saisie — c'est un mécanisme transverse, pas une ligne à ajouter ici. Le construire pour un seul écran, c'est le construire deux fois. | Avec le deuxième écran qui a une saisie longue |
 
@@ -564,7 +564,7 @@ Trois éléments décrits ailleurs sont volontairement absents. Listés ici pour
 
 ## D43 — Les cas d'usage d'écriture parlent de plats · ✓ validée
 
-**Contexte.** [06](06-architecture.md#cas-dusage) et [12](12-plan-de-developpement.md) nomment `LogFoodEntry`, `UpdateFoodEntry`, `DeleteFoodEntry`. Ces noms datent d'avant [D31](#d31--un-plat-pas-un-repas-nommé--validée), qui a fait du **plat** l'unité de saisie.
+**Contexte.** [06](06-architecture.md#cas-dusage) et [12](12-plan-de-developpement.md) nomment `LogFoodEntry`, `UpdateFoodEntry`, `DeleteFoodEntry`. Ces noms datent d'avant [D31](#d31--un-plat-pas-un-repas-nommé---validée), qui a fait du **plat** l'unité de saisie.
 
 **Choix.** `LogDish`, `UpdateDish`, `DeleteEntry`, `RestoreDish`, `GetDishDraft`, `CreateDraft`. On enregistre un plat, on modifie un plat ; on supprime en revanche une **ligne**, parce que c'est bien une ligne qu'on balaie dans le journal.
 
@@ -631,7 +631,7 @@ Le `flowOn(dispatchers.default)` disparaît aussi de cet écran. Ce qu'il produi
 
 **Contexte.** Constaté sur appareil : trois macros allumées et trois éteintes ne se lisent pas comme une information mais comme un défaut d'affichage. L'utilisateur ne voit pas une règle nutritionnelle, il voit un rendu qui marche à moitié.
 
-**Ce que disait la règle précédente.** [D27](#d27--objectif-ou-limite--la-nature-appartient-à-la-macro--en-partie-remplacée-par-d47) : une limite reste sourde sous son seuil et ne s'allume qu'au dépassement. « Ne pas allumer une limite, c'est déjà réussir. » L'idée est juste ; ce qui ne tient pas est de la porter par l'**absence** d'un effet. Une absence ne se distingue pas d'une panne.
+**Ce que disait la règle précédente.** [D27](#d27--objectif-ou-limite--la-nature-appartient-à-la-macro---en-partie-remplacée-par-d47) : une limite reste sourde sous son seuil et ne s'allume qu'au dépassement. « Ne pas allumer une limite, c'est déjà réussir. » L'idée est juste ; ce qui ne tient pas est de la porter par l'**absence** d'un effet. Une absence ne se distingue pas d'une panne.
 
 **Choix.** Les six macros prennent leur teinte vive et leur lueur, à tout niveau, dans l'hexagone comme dans les barres. La distinction objectif / limite reste portée par `Macro` dans le domaine — c'est le cœur de D27 et il ne bouge pas — mais elle s'exprime désormais par ce qui est **écrit**, pas par ce qui est éteint : le suffixe `max` sur la valeur, le repère de seuil, l'échelle élargie à 125 %, et la phrase annoncée par TalkBack.
 
@@ -645,19 +645,19 @@ Le `flowOn(dispatchers.default)` disparaît aussi de cet écran. Ce qu'il produi
 
 **Reste ouvert.** Sur les barres, le repère de seuil et l'échelle à 125 % subsistent — ce ne sont pas des effets de néon et ils portent la seule distinction visuelle restante. Les retirer aussi rendrait une limite strictement indiscernable d'une cible hors du texte.
 
-> **Ce dernier point est remplacé par [D48](#d48--la-barre-pleine-vaut-lobjectif--validée).** L'échelle permanente à 125 % cède, et avec elle la dernière distinction visuelle entre une cible et une limite. Tout le reste de cette entrée — les six macros brillent, le plafond à 150 %, le dégradé linéaire, la lueur qui cesse de grandir — tient toujours.
+> **Ce dernier point est remplacé par [D48](#d48--la-barre-pleine-vaut-lobjectif---validée).** L'échelle permanente à 125 % cède, et avec elle la dernière distinction visuelle entre une cible et une limite. Tout le reste de cette entrée — les six macros brillent, le plafond à 150 %, le dégradé linéaire, la lueur qui cesse de grandir — tient toujours.
 
 ---
 
 ## D48 — La barre pleine vaut l'objectif · ✓ validée
 
-**Contexte.** [D47](#d47--les-six-macros-brillent--en-partie-remplacée-par-d48) avait laissé aux barres deux signaux visuels : une échelle élargie à 125 % sur les limites, et un repère planté au seuil. Ces deux-là étaient permanents — donc présents à zéro, alors qu'ils ne parlent que du dépassement.
+**Contexte.** [D47](#d47--les-six-macros-brillent---en-partie-remplacée-par-d48) avait laissé aux barres deux signaux visuels : une échelle élargie à 125 % sur les limites, et un repère planté au seuil. Ces deux-là étaient permanents — donc présents à zéro, alors qu'ils ne parlent que du dépassement.
 
 **Ce que ça produisait.** Une barre dont le remplissage ne se lisait pas seul. À 100 %, la jauge de sucres était aux quatre cinquièmes, et il fallait avoir compris le repère pour savoir que c'était le plafond et non 80 % de celui-ci. Le signal censé lever un doute en créait un.
 
 **Choix.** La barre pleine vaut l'objectif, pour les six macros. Au-delà, **l'échelle suit la valeur** : le remplissage recule à mesure que la quantité monte, et un repère apparaît là où l'objectif se situe désormais. En dessous, il n'y a rien à interpréter.
 
-**C'est le mécanisme de l'hexagone**, et il emprunte son plafond de 150 % pour la même raison — une saisie erronée à 2 000 % tasserait tout contre l'origine, précisément au moment où il faut lire la barre pour corriger ([D33](#d33--un-hexagone-en-tête-daccueil-et-un-seul-ordre-angulaire--validée)). Les deux composants disent désormais le dépassement de la même façon, ce qui est une raison de plus : ils sont l'un au-dessus de l'autre sur l'accueil.
+**C'est le mécanisme de l'hexagone**, et il emprunte son plafond de 150 % pour la même raison — une saisie erronée à 2 000 % tasserait tout contre l'origine, précisément au moment où il faut lire la barre pour corriger ([D33](#d33--un-hexagone-en-tête-daccueil-et-un-seul-ordre-angulaire---validée)). Les deux composants disent désormais le dépassement de la même façon, ce qui est une raison de plus : ils sont l'un au-dessus de l'autre sur l'accueil.
 
 **Ce qui est perdu, et qui est réel.** Plus rien de visuel ne distingue une limite d'une cible. C'est exactement ce que D47 refusait de céder. Restent le suffixe `max` sur la valeur et la phrase de TalkBack — deux canaux textuels, dont un seul est visible à l'œil. Un dépassement de sucres se voit désormais parce que la barre a rétréci, pas parce que c'était une limite.
 
@@ -665,8 +665,8 @@ Le `flowOn(dispatchers.default)` disparaît aussi de cet écran. Ce qu'il produi
 
 **Deux corrections d'atteinte, prises au même moment.**
 
-- **Le plat entier est la cible tactile de l'accueil.** Seules les lignes d'aliment l'étaient ; l'heure, la pastille, le total et les apports — la moitié de la surface — ne répondaient pas, sans que rien ne dise pourquoi. Le plat est l'unité de saisie ([D31](#d31--un-plat-pas-un-repas-nommé--validée)), donc l'unité de correction. Conséquence assumée : une cible tactile fusionne les nœuds d'accessibilité qu'elle contient, et un plat devient un seul arrêt de TalkBack au lieu de *n* + 4. La phrase de chaque ligne est ce qui rend cette annonce lisible, et c'est pour ça qu'elle reste.
-- **Enregistrer et Annuler flottent au-dessus de la liste.** En pied de défilement, ils s'éloignaient à mesure que le plat grossissait : à cinq lignes dépliées, enregistrer demandait de faire défiler un écran entier. La réserve laissée sous la liste est **mesurée** et non déclarée — une hauteur écrite en dur ferait passer le dernier champ sous les boutons à 200 % de police. L'explication de ce qui manque quitte l'affichage permanent pour redevenir la **réponse** du bouton indisponible à un appui, ce que [D28](#d28--un-bouton-indisponible-réagit-quand-même--validée) demandait déjà : épinglée, elle occuperait quatre lignes à chaque saisie neuve pour dire ce que les champs vides disent déjà.
+- **Le plat entier est la cible tactile de l'accueil.** Seules les lignes d'aliment l'étaient ; l'heure, la pastille, le total et les apports — la moitié de la surface — ne répondaient pas, sans que rien ne dise pourquoi. Le plat est l'unité de saisie ([D31](#d31--un-plat-pas-un-repas-nommé---validée)), donc l'unité de correction. Conséquence assumée : une cible tactile fusionne les nœuds d'accessibilité qu'elle contient, et un plat devient un seul arrêt de TalkBack au lieu de *n* + 4. La phrase de chaque ligne est ce qui rend cette annonce lisible, et c'est pour ça qu'elle reste.
+- **Enregistrer et Annuler flottent au-dessus de la liste.** En pied de défilement, ils s'éloignaient à mesure que le plat grossissait : à cinq lignes dépliées, enregistrer demandait de faire défiler un écran entier. La réserve laissée sous la liste est **mesurée** et non déclarée — une hauteur écrite en dur ferait passer le dernier champ sous les boutons à 200 % de police. L'explication de ce qui manque quitte l'affichage permanent pour redevenir la **réponse** du bouton indisponible à un appui, ce que [D28](#d28--un-bouton-indisponible-réagit-quand-même---validée) demandait déjà : épinglée, elle occuperait quatre lignes à chaque saisie neuve pour dire ce que les champs vides disent déjà.
 
 ---
 
@@ -680,7 +680,7 @@ Le `flowOn(dispatchers.default)` disparaît aussi de cet écran. Ce qu'il produi
 
 **Écarté.** *Embarquer SQLite* (requery, `androidx.sqlite` bundled) : garderait la lettre de la spécification, au prix de 4 à 5 Mo d'APK, d'une dépendance native, et d'une fabrique d'ouverture à rebrancher — ce qui toucherait aussi `hexaphore.db`. *Remonter `minSdk` à 29* : ne réglerait que la moitié du problème, celle qui n'était pas la plus grave.
 
-**Ce que ça gagne, en plus de fonctionner.** La normalisation est faite une fois, au build, par la JVM, dont la couverture Unicode dépasse largement le latin-1 auquel `remove_diacritics 2` se limite. Elle se teste en JVM pure. Et `œ` — l'un des trois exemples de [D23](#d23--recherche-dès-le-2ᵉ-caractère-après-une-pause-de-frappe--validée) — est traité, ce qu'aucun réglage de tokenizer n'aurait fait : `NFD` sépare une lettre de son accent, mais `œ` n'est pas un `o` accenté.
+**Ce que ça gagne, en plus de fonctionner.** La normalisation est faite une fois, au build, par la JVM, dont la couverture Unicode dépasse largement le latin-1 auquel `remove_diacritics 2` se limite. Elle se teste en JVM pure. Et `œ` — l'un des trois exemples de [D23](#d23--recherche-dès-le-2ᵉ-caractère-après-une-pause-de-frappe---validée) — est traité, ce qu'aucun réglage de tokenizer n'aurait fait : `NFD` sépare une lettre de son accent, mais `œ` n'est pas un `o` accenté.
 
 **Ce que ça coûte.** `bm25()` est une fonction de FTS5 : le classement est calculé côté Kotlin. Le coût est faible parce que [04](04-sources-de-donnees.md) exigeait déjà un second critère par-dessus BM25 — remontée des aliments courts et déjà consommés — et que c'est lui qui départage vraiment 3 484 libellés courts. `tokenize=simple` plutôt qu'`unicode61` pour la même raison que le reste : `name_search` est de l'ASCII minuscule séparé par des espaces, les deux tokenizers y font le même découpage, et `simple` est le seul dont la présence ne se discute pas.
 
@@ -690,18 +690,18 @@ Le `flowOn(dispatchers.default)` disparaît aussi de cet écran. Ce qu'il produi
 - **Le seuil de `<` est quelconque.** [04](04-sources-de-donnees.md) ne citait que `< 0,5`. Dépouillement du fichier réel : 250 seuils distincts, de `< 0,0001` à `< 700`, pour 16 000 valeurs. La règle est `< n → n / 2`, et l'exemple n'était qu'un exemple.
 - **Le code de constituant fait foi, l'intitulé le vérifie.** Désigner une colonne par son libellé accentué ferait dépendre l'import d'une chaîne qui bouge ; ne se fier qu'au code laisserait une renumérotation remplir les lipides avec autre chose. Les deux sont déclarés, et l'import échoue si l'un dément l'autre. C'est la seule vérification qui protège d'une erreur qu'aucun test ne verrait : la base se génère, l'application se lance, et les chiffres sont faux.
 
-**Un constat qui a changé une intention.** 143 aliments sur 3 484 n'ont pas d'énergie déterminée. L'intention était de les écarter — [D42](#d42--une-ligne-de-brouillon-porte-des-valeurs-absolues--par-défaut) dit qu'une fiche sans énergie n'est pas exploitable. Regardés de près, ce sont la feta, les câpres, la canneberge, le pruneau cuit, l'estragon frais. Les écarter aurait retiré des aliments courants du catalogue pour appliquer une règle écrite à propos d'une ligne tapée à la main. Ils restent, avec leur trou visible : c'est exactement le comportement que le projet demande partout ailleurs.
+**Un constat qui a changé une intention.** 143 aliments sur 3 484 n'ont pas d'énergie déterminée. L'intention était de les écarter — [D42](#d42--une-ligne-de-brouillon-porte-des-valeurs-absolues---par-défaut) dit qu'une fiche sans énergie n'est pas exploitable. Regardés de près, ce sont la feta, les câpres, la canneberge, le pruneau cuit, l'estragon frais. Les écarter aurait retiré des aliments courants du catalogue pour appliquer une règle écrite à propos d'une ligne tapée à la main. Ils restent, avec leur trou visible : c'est exactement le comportement que le projet demande partout ailleurs.
 
 ---
 
 ## D50 — Ce que la tranche 3 ne construit pas · ✓ validée
 
-Listés ici pour cesser d'être des oublis, comme [D21](#d21--ce-que-litération-0-ne-construit-pas--par-défaut) et [D40](#d40--ce-que-la-tranche-2-ne-construit-pas--validée) l'ont fait avant.
+Listés ici pour cesser d'être des oublis, comme [D21](#d21--ce-que-litération-0-ne-construit-pas---par-défaut) et [D40](#d40--ce-que-la-tranche-2-ne-construit-pas---validée) l'ont fait avant.
 
 | Absent | Raison | Quand |
 |---|---|---|
 | Les **plats** favoris (`favorite_dish`, `favorite_component`) | [02](02-parcours-et-ecrans.md#modale--recherche) dit « favoris : aliments **et** plats ». Les aliments favoris existent ; les plats demandent deux tables, une action « enregistrer comme favori » sur l'écran de validation, et un rejeu qui reconstruit un brouillon à partir de fiches vivantes. C'est une capacité, pas une case à cocher. | Avec la réutilisation d'un plat entier |
-| `food_serving`, les portions nommées d'un **aliment personnel** | Les portions de CIQUAL se lisent dans `ciqual_serving` par le code source, sans copie. Une fiche personnelle a `default_serving_g`, qui couvre le cas courant. Une table que rien ne remplirait serait exactement ce que [D34](#d34--la-table-food-attend-la-tranche-qui-la-remplit--par-défaut) refusait. | Quand un aliment personnel aura besoin de plusieurs portions |
+| `food_serving`, les portions nommées d'un **aliment personnel** | Les portions de CIQUAL se lisent dans `ciqual_serving` par le code source, sans copie. Une fiche personnelle a `default_serving_g`, qui couvre le cas courant. Une table que rien ne remplirait serait exactement ce que [D34](#d34--la-table-food-attend-la-tranche-qui-la-remplit---par-défaut) refusait. | Quand un aliment personnel aura besoin de plusieurs portions |
 | Les colonnes `density`, `is_liquid`, `user_edited_fields`, `fetched_at` de `food` | Même raison, appliquée colonne par colonne. La densité arrive avec le résolveur (tranche 6), les trois autres avec le cache Open Food Facts (tranche 5), qui est ce qui les remplit. La règle du projet préfère une colonne nullable ajoutée plus tard à une colonne vide ajoutée trop tôt. | Tranches 5 et 6 |
 | La suggestion « Chercher dans Open Food Facts » en dernière ligne de résultats | Elle suppose un client réseau, qui est le contenu de la tranche 5. Une ligne qui n'ouvre rien n'est pas une avance. | Tranche 5 |
 | Un brouillon **multi-lignes** transmis d'un écran à l'autre | La recherche produit une ligne, et une route la porte par son identifiant. La photo en produira cinq, et une route ne les portera pas : il faudra un brouillon en attente, partagé. Ajouter un argument de route par mode serait la première marche vers l'écran à quatre branches que le projet refuse. | Tranche 6 |
@@ -724,11 +724,11 @@ Listés ici pour cesser d'être des oublis, comme [D21](#d21--ce-que-litération
 
 **Ce que ça coûte.** Une fiche regardée puis abandonnée reste au catalogue, avec `last_used_at` nul — donc absente de « Récents », et indiscernable de la ligne de l'ANSES qu'elle est. Le coût est une ligne par aliment réellement ouvert, et il achète un identifiant qui désigne toujours quelque chose.
 
-**Le second défaut, et sa règle.** Les valeurs d'une ligne étaient calculées une fois, à sa naissance. Une ligne porte désormais sa **référence pour 100 g**, et changer la quantité ou l'unité recalcule. La référence est capturée à la naissance de la ligne et **reconstruite depuis les valeurs figées** quand on rouvre un plat : la règle de trois ne relit jamais la fiche, qui a pu être corrigée ou supprimée depuis ([D05](#d05--les-entrées-de-journal-figent-leurs-valeurs--validée)). Les valeurs affichées à l'ouverture restent exactement celles enregistrées, puisque la quantité n'a pas bougé.
+**Le second défaut, et sa règle.** Les valeurs d'une ligne étaient calculées une fois, à sa naissance. Une ligne porte désormais sa **référence pour 100 g**, et changer la quantité ou l'unité recalcule. La référence est capturée à la naissance de la ligne et **reconstruite depuis les valeurs figées** quand on rouvre un plat : la règle de trois ne relit jamais la fiche, qui a pu être corrigée ou supprimée depuis ([D05](#d05--les-entrées-de-journal-figent-leurs-valeurs---validée)). Les valeurs affichées à l'ouverture restent exactement celles enregistrées, puisque la quantité n'a pas bougé.
 
 **Une valeur corrigée à la main ne bouge plus**, ce que [02](02-parcours-et-ecrans.md#écran-de-validation-dentrée) demandait depuis la conception et que rien ne tenait. Vider un champ compte comme une correction : c'est une affirmation — « je ne sais pas » — et la quantité n'a pas à la contredire au gramme suivant. Le marqueur est posé par macro et par ligne.
 
-**Le point technique qui rend le recalcul visible.** Un champ de saisie tient son propre texte et ne relit sa valeur initiale qu'à la première composition ([D45](#d45--un-champ-de-saisie-tient-son-texte-lui-même--validée)). Sans un signal supplémentaire, le recalcul aurait mis à jour le brouillon **sans que l'écran bouge**. Chaque ligne porte donc un compteur de révisions, incrémenté par le recalcul et par lui seul : il sert de clé de composition aux six champs. Une frappe ne l'incrémente pas, donc le curseur ne bouge pas.
+**Le point technique qui rend le recalcul visible.** Un champ de saisie tient son propre texte et ne relit sa valeur initiale qu'à la première composition ([D45](#d45--un-champ-de-saisie-tient-son-texte-lui-même---validée)). Sans un signal supplémentaire, le recalcul aurait mis à jour le brouillon **sans que l'écran bouge**. Chaque ligne porte donc un compteur de révisions, incrémenté par le recalcul et par lui seul : il sert de clé de composition aux six champs. Une frappe ne l'incrémente pas, donc le curseur ne bouge pas.
 
 **Une seule porte pour ajouter.** L'accueil n'a plus qu'un bouton, et il ouvre la recherche. La saisie manuelle y est une action permanente plutôt qu'une porte à côté, et **elle crée une fiche** : un aliment tapé à la main se cherche, se reprend et se recalcule comme les autres. « Ajouter un aliment » depuis l'écran de saisie rouvre la même recherche, dont le choix revient au brouillon en cours par le canal que la navigation prévoit pour un résultat.
 
@@ -750,13 +750,13 @@ Listés ici pour cesser d'être des oublis, comme [D21](#d21--ce-que-litération
 
 **Ce que le test manquait.** Il écrivait dans le `SavedStateHandle` qu'il construisait lui-même, celui du `ViewModel` — donc il éprouvait un chemin qui n'existe nulle part. Il passait pendant que l'écran ne faisait rien. Les tests appellent désormais la méthode que la composable appelle, et trois cas de plus couvrent ce que la ligne ajoutée doit porter.
 
-**La recherche n'est plus une source.** `EntrySource.SEARCH` disparaît. Elle se confondait avec `MANUAL` : un même plat mêle couramment un aliment trouvé dans la table et un autre saisi à la main, et un plat porte **une** source ([D32](#d32--la-source-appartient-au-plat-et-ne-change-jamais--validée)) — distinguer les deux revenait à choisir laquelle mentir. Le typage reste, parce que ce qu'il devra dire un jour est autre chose : ce qui a été **proposé** par un modèle mérite un regard que ne mérite pas ce qu'on a composé soi-même, et `proposed` le porte déjà. Une base antérieure porte encore `SEARCH` ; elle se relit en `MANUAL`, ce que la lecture prudente du mapper faisait déjà.
+**La recherche n'est plus une source.** `EntrySource.SEARCH` disparaît. Elle se confondait avec `MANUAL` : un même plat mêle couramment un aliment trouvé dans la table et un autre saisi à la main, et un plat porte **une** source ([D32](#d32--la-source-appartient-au-plat-et-ne-change-jamais---validée)) — distinguer les deux revenait à choisir laquelle mentir. Le typage reste, parce que ce qu'il devra dire un jour est autre chose : ce qui a été **proposé** par un modèle mérite un regard que ne mérite pas ce qu'on a composé soi-même, et `proposed` le porte déjà. Une base antérieure porte encore `SEARCH` ; elle se relit en `MANUAL`, ce que la lecture prudente du mapper faisait déjà.
 
-**Les six valeurs sont des grammes entiers.** Personne ne compte les demi-grammes de lipides, et une décimale affichée est une précision promise que la source ne tient pas : CIQUAL donne 0,25 g de protéines pour une pomme parce que la mesure est sous le seuil de quantification, pas parce qu'elle vaut un quart de gramme. Le séparateur décimal quitte donc le clavier **et** le filtre de ces champs — l'accepter pour arrondir ensuite obligerait à réécrire le texte affiché, donc à repositionner le curseur ([D45](#d45--un-champ-de-saisie-tient-son-texte-lui-même--validée)).
+**Les six valeurs sont des grammes entiers.** Personne ne compte les demi-grammes de lipides, et une décimale affichée est une précision promise que la source ne tient pas : CIQUAL donne 0,25 g de protéines pour une pomme parce que la mesure est sous le seuil de quantification, pas parce qu'elle vaut un quart de gramme. Le séparateur décimal quitte donc le clavier **et** le filtre de ces champs — l'accepter pour arrondir ensuite obligerait à réécrire le texte affiché, donc à repositionner le curseur ([D45](#d45--un-champ-de-saisie-tient-son-texte-lui-même---validée)).
 
 **L'arrondi a lieu à l'aller, pas seulement à l'écran.** Ce qui est affiché est ce qui sera enregistré. Arrondir à la seule présentation ferait diverger le chiffre lu de celui écrit dans le journal — la définition d'un écran qui ment. La référence pour 100 g, elle, garde sa précision : c'est elle qui recalcule, et l'arrondir la ferait dériver à chaque changement de quantité. La quantité garde aussi ses décimales : 12,5 g d'huile est une pesée, pas une approximation.
 
-**Le rognage du plat disparaît de l'accueil.** [D48](#d48--la-barre-pleine-vaut-lobjectif--validée) avait ajouté des coins arrondis pour borner l'ondulation du tap. Ils coupaient la pastille de source et le total de calories, qui sont aux deux extrémités de la première ligne. L'ondulation déborde donc en rectangle, et c'est le prix à payer pour que rien ne soit tronqué.
+**Le rognage du plat disparaît de l'accueil.** [D48](#d48--la-barre-pleine-vaut-lobjectif---validée) avait ajouté des coins arrondis pour borner l'ondulation du tap. Ils coupaient la pastille de source et le total de calories, qui sont aux deux extrémités de la première ligne. L'ondulation déborde donc en rectangle, et c'est le prix à payer pour que rien ne soit tronqué.
 
 ---
 
@@ -772,7 +772,7 @@ Listés ici pour cesser d'être des oublis, comme [D21](#d21--ce-que-litération
 
 **Le flux vient du catalogue local, et lui seul.** La table de l'ANSES est livrée en lecture seule et ne change jamais ; elle est relue à chaque invalidation, ce qui coûte deux requêtes sur des libellés courts. C'est ce qui garde le dédoublonnage juste au moment précis où une fiche vient d'être copiée — sans quoi elle apparaîtrait deux fois pendant une image.
 
-**Un second défaut, de la même famille, que la correction a mis à nu.** Épingler un aliment de la table de l'ANSES **non encore copié** n'allumait aucune étoile, et pour une raison indépendante du flux : `setFavorite` recevait l'identifiant **provisoire** ([D51](#d51--une-seule-porte-et-la-quantité-qui-recalcule--validée)) et ne mettait à jour aucune ligne. L'écran verse donc la fiche au catalogue avant d'épingler, comme il le fait déjà pour la choisir. L'état épinglé est lu sur la fiche **rendue** par le catalogue, jamais sur celle qu'on affiche.
+**Un second défaut, de la même famille, que la correction a mis à nu.** Épingler un aliment de la table de l'ANSES **non encore copié** n'allumait aucune étoile, et pour une raison indépendante du flux : `setFavorite` recevait l'identifiant **provisoire** ([D51](#d51--une-seule-porte-et-la-quantité-qui-recalcule---validée)) et ne mettait à jour aucune ligne. L'écran verse donc la fiche au catalogue avant d'épingler, comme il le fait déjà pour la choisir. L'état épinglé est lu sur la fiche **rendue** par le catalogue, jamais sur celle qu'on affiche.
 
 ### Le faux était plus indulgent que le vrai, et c'est ça qu'il fallait corriger
 
@@ -783,7 +783,7 @@ Trois défauts de suite avaient la même forme, et **à chaque fois le test pass
 - **Le faux gagne une table de référence.** `InMemoryFoodCatalog(initial, reference)` : la seconde liste joue la table de l'ANSES — trouvable, jamais écrite, avec un identifiant provisoire **régénéré à chaque recherche**. Son `place` rapproche par `(source, source_ref)` et non par l'identifiant, comme le vrai. Sans cette moitié-là, le test qui attrape le défaut de l'étoile ne pouvait même pas s'écrire.
 - **Un jeu de tests de contrat, écrit une fois et exécuté deux fois.** `FoodCatalogContract` couvre **six des sept ports** du projet — c'est la même paire de classes qui les porte tous — et `RoomFoodCatalogTest` comme `InMemoryFoodCatalogTest` en héritent. Une propriété que le faux s'autorise à ne pas tenir devient une ligne rouge à côté d'une verte, et non une découverte sur l'appareil.
 
-**Il vit dans `:data:food`, pas dans `:core:testing`.** Les deux implémentations sont ainsi compilées et exécutées **côte à côte**, sous la même commande et dans le même rapport. En contrepartie, JUnit 4 et Robolectric entrent dans un second module — le contrat a besoin de Room, donc d'Android, et Robolectric est un lanceur JUnit 4. C'est l'extension de [D35](#d35--le-test-de-migration-tourne-sur-la-jvm-pas-sur-un-appareil--validée) et non sa contradiction : JUnit 4 reste cantonné aux modules qui ne peuvent pas s'en passer, et le moteur vintage les rassemble sous `./gradlew check`.
+**Il vit dans `:data:food`, pas dans `:core:testing`.** Les deux implémentations sont ainsi compilées et exécutées **côte à côte**, sous la même commande et dans le même rapport. En contrepartie, JUnit 4 et Robolectric entrent dans un second module — le contrat a besoin de Room, donc d'Android, et Robolectric est un lanceur JUnit 4. C'est l'extension de [D35](#d35--le-test-de-migration-tourne-sur-la-jvm-pas-sur-un-appareil---validée) et non sa contradiction : JUnit 4 reste cantonné aux modules qui ne peuvent pas s'en passer, et le moteur vintage les rassemble sous `./gradlew check`.
 
 **La table de l'ANSES n'est pas garnissable**, puisqu'elle est livrée dans l'APK. Les fiches de référence du contrat sont donc de **vraies lignes** — codes 13039, 13037, 39213 — et la sous-classe Room **vérifie que le code et l'intitulé concordent** avant de jouer quoi que ce soit. Sans ce contrôle, une fixture périmée rendrait zéro résultat et la moitié des cas passeraient en ne mesurant rien : exactement le vert qui a déjà coûté deux corrections.
 
@@ -805,7 +805,7 @@ Trois défauts de suite avaient la même forme, et **à chaque fois le test pass
 
 ### La catégorie descend jusqu'au domaine
 
-`Food.category` est un `FoodCategory?` du domaine, et le filtre est `FoodFilter`, une classe de `:domain` avec sa méthode `matches`. Un tag qui n'aurait été qu'une clause `WHERE` dans l'adaptateur ne s'éprouverait que sur un appareil, alors que **c'est une règle de ce que l'utilisateur voit**. Le SQL n'en est que l'accélération — sur 3 484 lignes, filtrer en Kotlin obligerait à toutes les lire pour en rendre trente — et le contrat de `FoodSearch` ([D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat--validée)) vérifie que les deux disent la même chose.
+`Food.category` est un `FoodCategory?` du domaine, et le filtre est `FoodFilter`, une classe de `:domain` avec sa méthode `matches`. Un tag qui n'aurait été qu'une clause `WHERE` dans l'adaptateur ne s'éprouverait que sur un appareil, alors que **c'est une règle de ce que l'utilisateur voit**. Le SQL n'en est que l'accélération — sur 3 484 lignes, filtrer en Kotlin obligerait à toutes les lire pour en rendre trente — et le contrat de `FoodSearch` ([D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée)) vérifie que les deux disent la même chose.
 
 **Deux familles, deux combinaisons.** Les rayons entre eux en **OU** : aucun aliment n'étant à la fois un fruit et un légume, l'intersection ne rendrait jamais rien. Les qualités en **ET** par-dessus : « Favori + Fruits » montre les fruits épinglés.
 
@@ -815,7 +815,7 @@ Trois défauts de suite avaient la même forme, et **à chaque fois le test pass
 
 Une fiche copiée au catalogue ne porte pas sa catégorie : elle est relue dans `ciqual.db` par `(source, source_ref)`, en un seul lot, exactement comme les portions le sont déjà.
 
-**Raison.** Une copie figerait la correspondance du jour où elle a été faite. Corriger un rayon dans `CiqualCategories` n'atteindrait jamais les fiches déjà copiées, et **aucune migration ne pourrait le rattraper** : les deux bases sont deux fichiers, et une migration Room ne lit pas l'autre. Le rayon est une propriété de la **référence**, pas de la copie — à l'inverse exact des six valeurs, que le journal fige exprès ([D05](#d05--les-entrées-de-journal-figent-leurs-valeurs--validée)).
+**Raison.** Une copie figerait la correspondance du jour où elle a été faite. Corriger un rayon dans `CiqualCategories` n'atteindrait jamais les fiches déjà copiées, et **aucune migration ne pourrait le rattraper** : les deux bases sont deux fichiers, et une migration Room ne lit pas l'autre. Le rayon est une propriété de la **référence**, pas de la copie — à l'inverse exact des six valeurs, que le journal fige exprès ([D05](#d05--les-entrées-de-journal-figent-leurs-valeurs---validée)).
 
 **Conséquence heureuse** : aucune colonne ajoutée à `food`, donc aucune migration, donc aucun problème de reprise sur une base existante. Le coût est une requête `IN (...)` par affichage.
 
@@ -845,19 +845,19 @@ Décision de l'auteur, appliquée telle quelle. **Contestation, pour mémoire** 
 
 ## D55 — L'objectif est calculé, daté, et parfois absent · ✓ validée
 
-**Contexte.** La tranche 4 remplace l'objectif en dur de [D30](#d30--objectif-provisoire-en-dur-avec-sa-date-de-péremption--par-défaut) par un calcul réel : profil, dépense, garde-fous, répartition. Trois questions se posaient en même temps, et c'est leur combinaison qui décide.
+**Contexte.** La tranche 4 remplace l'objectif en dur de [D30](#d30--objectif-provisoire-en-dur-avec-sa-date-de-péremption---par-défaut) par un calcul réel : profil, dépense, garde-fous, répartition. Trois questions se posaient en même temps, et c'est leur combinaison qui décide.
 
 ### Le calcul est découpé en quatre objets, pas en un
 
 `EnergyExpenditureCalculator`, `GoalSafetyPolicy`, `MacroDistributionPolicy`, puis `CalculateDailyGoal` qui les enchaîne et **ne décide de rien**. C'est ce qui permet d'éprouver un garde-fou sur ses deux bornes sans construire un profil complet : avec un profil réel, deux garde-fous mordent souvent ensemble, et le test ne dirait plus lequel.
 
-**L'exemple de référence de [03](03-nutrition-calculs.md#exemple-complet) passe au kcal près**, contrôle de cohérence compris : 576 + 630 + 70 + 1 248 = 2 524, soit 1 kcal d'arrondi sur 2 525. C'est ce contrôle qui avait révélé les 70 kcal de fibres distribuées deux fois ([D24](#d24--les-fibres-sont-déduites-du-solde-glucidique--validée)), et il est désormais un test permanent plutôt qu'une vérification faite une fois.
+**L'exemple de référence de [03](03-nutrition-calculs.md#exemple-complet) passe au kcal près**, contrôle de cohérence compris : 576 + 630 + 70 + 1 248 = 2 524, soit 1 kcal d'arrondi sur 2 525. C'est ce contrôle qui avait révélé les 70 kcal de fibres distribuées deux fois ([D24](#d24--les-fibres-sont-déduites-du-solde-glucidique---validée)), et il est désormais un test permanent plutôt qu'une vérification faite une fois.
 
-**Les grammes sont entiers, et le solde se calcule sur eux.** Calculer les glucides sur des valeurs non arrondies puis arrondir donnerait un contrôle de cohérence qui ne retombe pas sur ce qui est **affiché** — même raisonnement qu'en [D52](#d52--deux-savedstatehandle-une-seule-saisie-manuelle-des-grammes-entiers--validée), et il vaut pour l'objectif comme pour la saisie.
+**Les grammes sont entiers, et le solde se calcule sur eux.** Calculer les glucides sur des valeurs non arrondies puis arrondir donnerait un contrôle de cohérence qui ne retombe pas sur ce qui est **affiché** — même raisonnement qu'en [D52](#d52--deux-savedstatehandle-une-seule-saisie-manuelle-des-grammes-entiers---validée), et il vaut pour l'objectif comme pour la saisie.
 
 ### Une journée sans objectif n'est pas une journée à zéro
 
-`DaySummary.goal` devient **nullable**, et c'est la conséquence directe de [D04](#d04--objectifs-versionnés-plutôt-que-mis-à-jour-en-place--validée). Une journée notée avant que le premier objectif existe n'a rien à quoi se comparer ; lui appliquer l'objectif courant la jugerait sur une règle qu'elle n'avait pas. L'accueil affiche alors les six totaux **sans jauge** — ce qui a été mangé reste exact, c'est la comparaison qui manque — et propose les cinq questions.
+`DaySummary.goal` devient **nullable**, et c'est la conséquence directe de [D04](#d04--objectifs-versionnés-plutôt-que-mis-à-jour-en-place---validée). Une journée notée avant que le premier objectif existe n'a rien à quoi se comparer ; lui appliquer l'objectif courant la jugerait sur une règle qu'elle n'avait pas. L'accueil affiche alors les six totaux **sans jauge** — ce qui a été mangé reste exact, c'est la comparaison qui manque — et propose les cinq questions.
 
 **Écarté.** *Un objectif par défaut écrit à la migration* : l'accueil aurait toujours eu une jauge, au prix d'un objectif que personne n'a demandé et d'un mois d'historique repeint. *Garder un `Placeholder` non nul* : c'était exactement la dette qu'il fallait lever, et elle se serait réinstallée sous un autre nom.
 
@@ -875,7 +875,7 @@ Décision de l'auteur, appliquée telle quelle. **Contestation, pour mémoire** 
 |---|---|---|
 | L'écran de **réglages profil**, avec verrouillage des champs édités | La colonne `manual_fields` existe, le domaine la porte (`Goal.manualFields`), et le mapper la sérialise — mais **rien ne l'écrit encore**, faute d'écran d'édition. C'est une capacité à part entière : relire le profil, recalculer, et distinguer ce que l'utilisateur a fixé de ce que le calcul propose. | Tranche suivante |
 | L'**adaptation hebdomadaire** (`SuggestGoalAdjustment`) | Elle demande une moyenne mobile sur 7 jours et une mesure d'adhérence, donc un historique de pesées que personne n'a encore. [12](12-plan-de-developpement.md) la place en tranche 7, avec le journal de poids. | Tranche 7 |
-| Un jeu de tests de **contrat** pour `Profiles`, `WeightLog` et `Goals` | Le dispositif existe depuis [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat--validée) et ces trois ports ont deux implémentations chacun. Ils ne l'ont pas encore. | Avec les réglages profil |
+| ~~Un jeu de tests de **contrat** pour `Profiles`, `WeightLog` et `Goals`~~ | Le dispositif existe depuis [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée) et ces trois ports ont deux implémentations chacun. Ils ne l'ont pas encore. | **Fait**, et il a attrapé un défaut latent plus une règle que rien ne gardait ([D57](#d57--le-contrat-des-trois-ports-et-une-règle-que-deux-tris-masquaient---validée)) |
 
 **Ce que ça ne coûte pas.** La capacité annoncée par la tranche — « l'application connaît mon objectif » — est entière : on répond à cinq questions, l'objectif est calculé, il est daté, et chaque journée est jugée sur le sien.
 
@@ -883,7 +883,7 @@ Décision de l'auteur, appliquée telle quelle. **Contestation, pour mémoire** 
 
 ## D56 — L'onboarding ouvre l'application, exige ses réponses, et dit non à voix haute · ✓ validée
 
-**Contexte.** Constaté sur appareil : l'onboarding livré en [D55](#d55--lobjectif-est-calculé-daté-et-parfois-absent--validée) fonctionne et se traverse mal. Six défauts, tous d'ergonomie, aucun de calcul.
+**Contexte.** Constaté sur appareil : l'onboarding livré en [D55](#d55--lobjectif-est-calculé-daté-et-parfois-absent---validée) fonctionne et se traverse mal. Six défauts, tous d'ergonomie, aucun de calcul.
 
 ### L'application ouvre sur les questions
 
@@ -903,9 +903,9 @@ Rien ne s'affiche tant que la réponse n'est pas connue. Poser l'accueil puis sa
 
 ### Un refus se voit
 
-Appuyer sur « Continuer » sans avoir coché ne produisait **rien**. Le même défaut existait sur « Enregistrer » de l'écran de saisie, où [D48](#d48--la-barre-pleine-vaut-lobjectif--validée) avait pourtant prévu une explication : elle existait, sous forme d'un `labelSmall` gris glissé au-dessus des boutons — c'est-à-dire sous le pouce, au moment exact où l'œil est sur le bouton.
+Appuyer sur « Continuer » sans avoir coché ne produisait **rien**. Le même défaut existait sur « Enregistrer » de l'écran de saisie, où [D48](#d48--la-barre-pleine-vaut-lobjectif---validée) avait pourtant prévu une explication : elle existait, sous forme d'un `labelSmall` gris glissé au-dessus des boutons — c'est-à-dire sous le pouce, au moment exact où l'œil est sur le bouton.
 
-**Choix.** Les deux écrans répondent par une **barre**, et la phrase dit **ce qui** manque : « Renseignez votre date de naissance, votre sexe, votre taille et votre poids », pas « complétez le formulaire ». Le principe de [D28](#d28--un-bouton-indisponible-réagit-quand-même--validée) ne bouge pas — le bouton indisponible réagit et répond — c'est le canal qui change. Ce qui interrompt le regard est ce qui se lit.
+**Choix.** Les deux écrans répondent par une **barre**, et la phrase dit **ce qui** manque : « Renseignez votre date de naissance, votre sexe, votre taille et votre poids », pas « complétez le formulaire ». Le principe de [D28](#d28--un-bouton-indisponible-réagit-quand-même---validée) ne bouge pas — le bouton indisponible réagit et répond — c'est le canal qui change. Ce qui interrompt le regard est ce qui se lit.
 
 Une seule barre à la fois : trois appuis empilaient trois fois le même message, le troisième arrivant dix secondes plus tard.
 
@@ -933,6 +933,40 @@ Ce qui la remplace est meilleur : quand un garde-fou mord, la **date atteignable
 - **L'aperçu de rythme** que `docs/02` demandait depuis la conception : `GoalPlan.weeklyWeightChangeKg`, dérivé du budget retenu **après** garde-fous. Le rythme réel, pas celui qu'on espérait — un second calcul dans l'écran aurait fini par annoncer autre chose que l'étape suivante.
 
 **Conséquences.** `docs/02` est corrigé sur trois points, et l'un d'eux est un renoncement explicite. `OnboardingUiState.blocker` porte la règle de blocage : le `ViewModel` refuse d'avancer, l'écran s'en sert pour dire quoi, et les deux interrogent la même propriété — ils ne peuvent donc pas diverger.
+
+---
+
+## D57 — Le contrat des trois ports, et une règle que deux tris masquaient · ✓ validée
+
+**Contexte.** `Goals`, `Profiles` et `WeightLog` ont deux implémentations chacun depuis la tranche 4 et aucun jeu de tests partagé — la dette que [D55](#d55--lobjectif-est-calculé-daté-et-parfois-absent---validée) inscrivait en toutes lettres. Le dispositif de [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée) leur est appliqué tel quel : `ProfileStoreContract`, écrit une fois, joué sur les faux de `:core:testing` et sur `RoomProfileStore` sous Robolectric, côte à côte dans le même rapport.
+
+### Ce que le contrat a attrapé, du seul côté du faux
+
+`InMemoryWeightLog` ne gardait **qu'une pesée** — un `MutableStateFlow<WeightEntry?>`. Il tenait donc trois propriétés du port par accident : la limite ne bornait rien, le tri n'existait pas, et `observeLatest` rendait la dernière pesée **écrite** là où Room rend celle du jour le plus **récent**.
+
+La conséquence n'était pas cosmétique : rattraper le lendemain une pesée oubliée aurait fait recalculer l'objectif sur un poids périmé. Rien ne le disait, parce que le seul appelant — l'onboarding — n'écrit jamais qu'une pesée. C'est la forme exacte du défaut que [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée) a nommée, sur un autre port.
+
+### La découverte : une règle publiée que deux tris masquaient
+
+**La borne de fin exclue n'est pas observable par le port.** Vérifié en défaisant, ce qui est la seule façon de le savoir : passer la requête de `ended_at > :date` à `>=` laisse les 49 cas du contrat au vert. La raison est que `replace` clôt toujours un objectif à la date de début de son successeur — les deux périodes se touchent sans trou — et que le `ORDER BY started_at DESC LIMIT 1` rend alors le bon objectif de toute façon.
+
+Le même aveuglement existait côté domaine, par un autre mécanisme : `InMemoryGoals.observeGoalOn` filtre par `coversOn` puis prend le `maxByOrNull { startedAt }`. **Deux tris différents masquaient la même règle des deux côtés**, et `Goal.coversOn` — publique, avec son KDoc qui affirme la convention — n'avait aucun test.
+
+Ce qui la rend observable est un objectif clos **sans successeur qui reprenne le jour même**. `replace` n'en produit pas ; une sauvegarde restaurée le fera (tranche 8). La règle est éprouvée à deux endroits, hors contrat parce qu'elle n'y est pas atteignable : `GoalCoverageTest` interroge `coversOn` seule, et `GoalBoundsTest` écrit l'entité directement. Les deux tombent quand la borne est relâchée ; les cas voisins restent verts, faute de quoi une requête qui ne rendrait jamais rien passerait en ne mesurant rien.
+
+**C'est aussi un cas de figure de la tranche suivante.** Corriger son objectif le jour même clôt l'ancien à sa propre date de début : il ne couvre alors aucune journée, et le nouveau prend le jour entier. Le cas est éprouvé avant d'exister.
+
+### Ce que le contrat ne porte pas, et pourquoi
+
+**Le repli d'une énumération inconnue.** Les énumérations du domaine sont fermées : aucun appelant de `Profiles` ou de `Goals` ne peut soumettre une valeur que le mapper aurait à replier. Le seul chemin qui l'atteint est une base **déjà écrite** — une sauvegarde restaurée depuis une version plus récente, ou une rétrogradation. La propriété appartient donc à la sérialisation et non au port, et `ProfileMapperTest` l'éprouve en écrivant l'entité directement. Elle était documentée depuis la tranche 4 et rien ne la vérifiait, alors qu'un repli qui plante rend le profil inaccessible, donc l'application entière.
+
+**Écarté.** *Forcer ces deux propriétés dans le contrat* en ajoutant au port une écriture de bas niveau : ce serait élargir une interface du domaine pour les besoins d'un test, et le port cesserait de décrire ce que les appelants font.
+
+### Trois délégués plutôt qu'un
+
+`ProfileStoreView` prend `Profiles`, `WeightLog` et `Goals` séparément, là où `FoodCatalogView` n'a qu'un paramètre générique. Côté Room c'est le même objet trois fois ; côté mémoire ce sont trois classes distinctes. **Écarté** : *un `InMemoryProfileStore` unique* qui aurait porté les trois, pour la symétrie — il aurait imposé aux faux une forme d'assemblage qui n'existe que pour le test, alors que les écrans les injectent séparément.
+
+**Conséquences.** `InMemoryProfiles` et `InMemoryWeightLog` quittent le test d'onboarding pour `:core:testing`, où les autres modules peuvent s'en servir. Le `recorded` du faux devient `latest` et `entries` : il rendait la dernière écriture, il rend maintenant un journal trié, et le nom devait le dire. `DiaryRepository` reste le seul port à deux implémentations sans contrat.
 
 ---
 
