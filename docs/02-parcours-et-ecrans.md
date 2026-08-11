@@ -23,6 +23,8 @@ Onboarding (première ouverture uniquement)
 
 Une seule règle structurante : **les quatre modes de saisie se rejoignent sur le même écran de validation**. Un seul composant à concevoir, à tester et à corriger, et un geste identique quel que soit le chemin emprunté.
 
+Le nœud « Réglages » n'existe pas encore : quatre de ses cinq sections dépendent des tranches à venir, et l'accueil ouvre pour l'instant **directement** « Profil et objectifs » ([D59](11-decisions.md)).
+
 ---
 
 ## Onboarding
@@ -238,9 +240,13 @@ Si l'algorithme a une suggestion d'ajustement en attente, une carte apparaît en
 
 ## Réglages
 
-Écran simple à sections.
+Écran simple à sections. ~~L'accueil y mène, et les sections mènent aux écrans.~~ **Il n'existe pas encore** ([D59](11-decisions.md)) : quatre de ses cinq sections dépendent des tranches 6 et 8, et l'accueil ouvre donc directement la seule qui a du contenu. Le hub naîtra avec la deuxième.
 
-**Profil et objectifs** — toutes les données de l'onboarding, modifiables. Bouton « Recalculer mes objectifs » et édition manuelle des six valeurs. Un objectif édité à la main est marqué comme tel et n'est plus écrasé par un recalcul sans confirmation explicite.
+**Profil et objectifs** — toutes les données de l'onboarding, modifiables. ~~Bouton « Recalculer mes objectifs » et~~ édition manuelle des six valeurs. Les six compteurs suivent chaque correction **en direct** : le bouton de recalcul n'aurait rien eu à recalculer, et deux chemins de calcul finissent par annoncer deux chiffres ([D59](11-decisions.md)).
+
+Un objectif édité à la main est marqué comme tel et n'est plus écrasé par un recalcul sans confirmation explicite. La marque et la confirmation sont **la même pastille** : elle dit que le compteur est fixé, et c'est elle qu'on touche pour le rendre au calcul. Un compteur fixé affiche aussi ce que le calcul proposerait — sans ce repère, un chiffre verrouillé il y a trois semaines n'a plus de référence.
+
+Corriger ses objectifs **ouvre une nouvelle version**, il n'en modifie aucune ([D04](11-decisions.md)), et l'écran le dit en une phrase. Corriger son poids enregistre une pesée du jour ; le laisser tel quel n'en invente aucune.
 
 **Intelligence artificielle** — liste des fournisseurs. Pour chacun : clé API (masquée, avec bouton « Tester »), modèle, et pour le fournisseur générique, l'URL de base. Un fournisseur actif est désigné par défaut. En bas, compteur d'utilisation : appels et coût estimé par fournisseur, remise à zéro possible.
 

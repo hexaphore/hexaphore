@@ -4,13 +4,18 @@
     <!-- 1. Accueil. L'avertissement est à accepter pour continuer : c'est la seule
          étape bloquante des cinq. -->
     <string name="onboarding_welcome_title">Bienvenue dans Hexaphore</string>
-    <string name="onboarding_welcome_body">Six compteurs, calculés à partir de vos réponses. Cinq questions, et vous pouvez en sauter quatre.</string>
+    <!-- D56 : le « Passer » a disparu, et cette phrase le promettait encore. Un
+         objectif calculé sur des valeurs par défaut est l'objectif de quelqu'un
+         d'autre, affiché avec l'autorité d'un chiffre personnel. -->
+    <string name="onboarding_welcome_body">Six compteurs, calculés à partir de vos réponses. Cinq questions, une minute.</string>
     <string name="onboarding_disclaimer">Hexaphore est un outil de suivi personnel. Ce n\'est pas un dispositif médical et il ne remplace pas l\'avis d\'un professionnel de santé.</string>
 
     <!-- 2. Vous. Rien n'est pré-rempli : une valeur plausible affichée serait acceptée
          par distraction, et l'objectif serait celui de quelqu'un d'autre. -->
     <string name="onboarding_you_title">Vous</string>
-    <string name="onboarding_birth_date">Date de naissance (AAAA-MM-JJ)</string>
+    <!-- D56 : le champ ouvre un sélecteur, il ne se tape pas. Le format restait
+         demandé sous un champ qui n'accepte plus aucune frappe. -->
+    <string name="onboarding_birth_date">Date de naissance</string>
     <string name="onboarding_sex_label">Sexe</string>
     <string name="onboarding_sex_male">Homme</string>
     <string name="onboarding_sex_female">Femme</string>

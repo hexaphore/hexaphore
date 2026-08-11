@@ -279,3 +279,13 @@ Dans le code, on documente **pourquoi**, jamais **quoi** :
 ```
 
 KDoc obligatoire sur tout ce qui est public dans `:domain` et sur chaque port. Ailleurs, au jugé — un nom clair vaut mieux qu'un commentaire qui l'explique.
+
+### Les ancres de `docs/11`, et la seule autorité en la matière
+
+Un titre de décision finit par `· ✓ validée`. Les deux symboles **disparaissent** du slug, mais leurs **trois** espaces deviennent **trois** tirets : l'ancre est `#dNN--titre---validée`, et non `--validée`. Le tiret cadratin qui suit le numéro produit de même un double tiret. Cinquante liens ont été cassés pour cette raison.
+
+Ne pas deviner. La seule autorité est l'API de rendu, qui donne l'ancre exacte en une commande :
+
+```bash
+gh api -X POST markdown -f mode=markdown -f text='## D59 — Un titre · ✓ validée'
+```

@@ -873,7 +873,7 @@ Décision de l'auteur, appliquée telle quelle. **Contestation, pour mémoire** 
 
 | Absent | Raison | Quand |
 |---|---|---|
-| L'écran de **réglages profil**, avec verrouillage des champs édités | La colonne `manual_fields` existe, le domaine la porte (`Goal.manualFields`), et le mapper la sérialise — mais **rien ne l'écrit encore**, faute d'écran d'édition. C'est une capacité à part entière : relire le profil, recalculer, et distinguer ce que l'utilisateur a fixé de ce que le calcul propose. | Tranche suivante |
+| ~~L'écran de **réglages profil**, avec verrouillage des champs édités~~ | La colonne `manual_fields` existe, le domaine la porte (`Goal.manualFields`), et le mapper la sérialise — mais **rien ne l'écrit encore**, faute d'écran d'édition. C'est une capacité à part entière : relire le profil, recalculer, et distinguer ce que l'utilisateur a fixé de ce que le calcul propose. | **Fait** en [D59](#d59--le-profil-se-corrige-et-le-verrou-survit-au-recalcul---validée) |
 | L'**adaptation hebdomadaire** (`SuggestGoalAdjustment`) | Elle demande une moyenne mobile sur 7 jours et une mesure d'adhérence, donc un historique de pesées que personne n'a encore. [12](12-plan-de-developpement.md) la place en tranche 7, avec le journal de poids. | Tranche 7 |
 | ~~Un jeu de tests de **contrat** pour `Profiles`, `WeightLog` et `Goals`~~ | Le dispositif existe depuis [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée) et ces trois ports ont deux implémentations chacun. Ils ne l'ont pas encore. | **Fait**, et il a attrapé un défaut latent plus une règle que rien ne gardait ([D57](#d57--le-contrat-des-trois-ports-et-une-règle-que-deux-tris-masquaient---validée)) |
 
@@ -993,6 +993,52 @@ Le contrat éprouve aussi la règle la plus coûteuse du projet, celle que [D29]
 **Ce qu'il ne porte pas.** La suppression d'un plat vidé de sa dernière ligne : c'est `DeleteEntry` qui en décide, pas le port. Le port laisse un plat vide, des deux côtés, et le contrat l'affirme — si le port le faisait aussi, la règle serait tenue à deux endroits et il suffirait qu'un seul change.
 
 **Conséquences.** Les sept ports à deux implémentations sont couverts. Le dispositif de [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée) n'a plus de dette : tout port qui gagnera une seconde implémentation rejoint un mécanisme déjà en place dans trois modules.
+
+---
+
+## D59 — Le profil se corrige, et le verrou survit au recalcul · ✓ validée
+
+**Contexte.** La dernière capacité annoncée par la tranche 4 et non livrée ([D55](#d55--lobjectif-est-calculé-daté-et-parfois-absent---validée)) : relire son profil, le corriger, et distinguer ce que l'utilisateur a fixé de ce que le calcul propose. La colonne `goal.manual_fields` existait, `Goal.manualFields` la portait, `ProfileStoreContract` éprouvait son aller-retour — et **rien ne l'écrivait**, faute d'écran.
+
+### Pas d'écran « Réglages » au-dessus
+
+[02](02-parcours-et-ecrans.md#réglages) décrit cinq sections. Quatre dépendent des tranches 6 et 8 — fournisseurs d'IA, sauvegarde, apparence, à propos. L'accueil ouvre donc **directement** « Profil et objectifs », par une icône à côté du titre du jour.
+
+C'est le raisonnement de [D56](#d56--lonboarding-ouvre-lapplication-exige-ses-réponses-et-dit-non-à-voix-haute---validée) appliqué une seconde fois : un écran de transit qui ne désigne qu'une destination est un écran de trop, et quatre entrées qui n'ouvrent rien ne sont pas une avance. Le hub naîtra avec la deuxième section qui aura du contenu ; il coûtera alors une composable et un rappel de plus.
+
+### Un aperçu vivant, un seul bouton, un seul calcul
+
+[02](02-parcours-et-ecrans.md#réglages) promettait un bouton « Recalculer mes objectifs » **à côté** de l'édition manuelle des six valeurs. Il disparaît, et ce n'est pas un renoncement : les six compteurs suivent chaque correction en direct, comme aux cinq questions. Un bouton de recalcul n'aurait rien eu à recalculer que l'écran n'ait déjà fait.
+
+**Ce que ça achète est plus important que le bouton.** Il n'existe qu'**un** calcul, et c'est celui qui est affiché qui est écrit : `GoalRevision` porte les six chiffres que l'écran montrait au moment de l'appui, et `ReviseGoal` ne recalcule rien. Un cas d'usage qui aurait refait le calcul au moment d'écrire ouvrait la porte à enregistrer autre chose que ce qu'on venait de lire — un écart qui n'apparaît qu'une fois la ligne écrite. Même raison que l'aperçu de rythme de [D56](#d56--lonboarding-ouvre-lapplication-exige-ses-réponses-et-dit-non-à-voix-haute---validée).
+
+**Écarté.** *Le bouton explicite de `docs/02`* : il obligeait à afficher, entre la correction et l'appui, six chiffres qui ne correspondent plus au profil qu'on lit juste au-dessus. Un écran qui se contredit pendant quelques secondes apprend à ne pas croire ce qu'il affiche.
+
+### Le verrou est une pastille, et elle porte l'état **et** le geste
+
+Un compteur fixé à la main se signale par une pastille sélectionnée, et c'est la même pastille qu'on touche pour le rendre au calcul. C'est la « confirmation explicite » que [02](02-parcours-et-ecrans.md#réglages) exige avant qu'un recalcul reprenne la main. Un marqueur d'un côté et un bouton de l'autre auraient laissé croire à deux notions distinctes.
+
+**Quand un compteur est fixé, l'écran affiche aussi ce que le calcul proposerait.** Sans ce repère, un compteur verrouillé il y a trois semaines reste un chiffre sans référence, et on ne sait plus s'il vaut encore la peine d'être tenu.
+
+La règle elle-même est dans le domaine, en une fonction : `DailyGoal.overriddenBy`. Elle est éprouvée en la défaisant — neutralisée, un seul test tombe, et c'est celui qui la nomme.
+
+**Ce que ça ne fait pas, et c'est voulu.** Fixer les protéines sans toucher aux calories creuse l'écart que `GoalPlan.energyGap` mesure. Rien ne le signale à l'écran : **les calories font foi**, les macros sont des répartitions indicatives ([03](03-nutrition-calculs.md)), et cet écart-là est voulu par celui qui l'a saisi. Un avertissement transformerait une décision en faute.
+
+### Deux écritures qu'on n'écrit pas
+
+**Enregistrer sans avoir rien changé n'ouvre aucune version.** `Goal.sameAimAs` compare le cap — stratégie, poids visé, échéance, six chiffres, verrous — en ignorant l'identifiant, les dates de validité et la provenance, qui sont des faits sur la ligne et non sur le cap. Sans cette comparaison, ouvrir les réglages et ressortir écrirait une ligne de plus à chaque visite, et l'historique des changements de cap — la contrepartie qu'on paie en versionnant ([D04](#d04--objectifs-versionnés-plutôt-que-mis-à-jour-en-place---validée)) — deviendrait un journal de consultations.
+
+**Une pesée n'est écrite que si le poids a changé.** Le champ affiche la dernière mesure connue, parce que c'est elle qui entre dans le calcul ; la réécrire à la date du jour parce que l'écran a été ouvert affirmerait qu'on s'est pesé aujourd'hui, et la moyenne mobile sur sept jours de la tranche 7 compterait alors une mesure que personne n'a faite.
+
+Ces deux règles sont dans `ReviseGoal` et non dans l'écran : ce sont des règles sur ce qu'on enregistre, et un second appelant — une sauvegarde restaurée, une suggestion d'ajustement acceptée — les trouvera en place.
+
+### `GoalHorizon` monte dans `:domain`, les prédicats de complétude restent en double
+
+Deux écrans proposent désormais les mêmes échéances. Deux listes d'horizons finiraient par ne plus dire la même chose, et c'est un écart qu'aucun test ne signale : les deux écrans seraient verts, simplement pas d'accord. L'énumération quitte donc `:feature:onboarding`.
+
+`identityComplete` et `objectiveComplete`, en revanche, sont **réécrits** dans `:feature:settings`. Les mettre en commun demanderait de remanier `OnboardingAnswers`, qui porte en plus un avertissement à accepter et une étape courante ; c'est une duplication choisie, et son échéance est le jour où une troisième forme apparaîtra — la sauvegarde restaurée de la tranche 8, qui aura elle aussi à juger si un profil est complet.
+
+**Conséquences.** La tranche 4 est terminée. `manual_fields` cesse d'être une colonne que seul un test remplit. `:feature:settings` naît avec une seule section, et l'accueil gagne sa première porte secondaire. Deux textes de l'onboarding qui contredisaient encore [D56](#d56--lonboarding-ouvre-lapplication-exige-ses-réponses-et-dit-non-à-voix-haute---validée) sont corrigés au passage : « vous pouvez en sauter quatre » et le format `AAAA-MM-JJ` demandé sous un champ qui ouvre un sélecteur.
 
 ---
 
