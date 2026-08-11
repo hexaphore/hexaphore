@@ -37,6 +37,32 @@ Cinq, pas plus — ils sont lents et fragiles, on les réserve à ce qui ne doit
 
 Le scan et l'IA ne sont pas testés de bout en bout : ils dépendent de la caméra et d'un service tiers. Leurs adaptateurs sont testés unitairement contre des réponses enregistrées.
 
+### Les tests de contrat
+
+Un port qui gagne une seconde implémentation **rejoint un jeu de tests de contrat** : les cas sont écrits une fois et exécutés sur les deux implémentations, côte à côte dans le même rapport.
+
+Ce n'est pas une élégance. Quatre défauts livrés avaient la même forme — le faux était plus indulgent que le vrai, les tests étaient écrits contre le faux, et ils éprouvaient un chemin que l'application n'emprunte jamais ([D53](11-decisions.md#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée)). Une propriété que le faux s'autorise à ne pas tenir devient une ligne rouge à côté d'une verte, et non une découverte sur l'appareil.
+
+| Contrat | Ports couverts | Où |
+|---|---|---|
+| `FoodCatalogContract` | `FoodSearch`, `FoodLookup`, `RecentFoods`, `FavoriteFoods`, `FoodStore`, `FoodUsage` | `:data:food` |
+| `ProfileStoreContract` | `Profiles`, `WeightLog`, `Goals` | `:data:profile` |
+| `DiaryContract` | `DiaryRepository` | `:data:diary` |
+
+**Ils vivent dans le module de l'adaptateur, pas dans `:core:testing`** : c'est ce qui fait compiler et exécuter les deux implémentations sous la même commande. Placés dans `:core:testing`, ils n'auraient jamais vu Room.
+
+**Ce qu'un contrat ne peut pas porter.** Ce qui n'est pas atteignable par le port n'y a pas sa place, et l'y forcer demanderait d'élargir une interface du domaine pour les besoins d'un test. Deux exemples éprouvés ailleurs : le repli d'une énumération inconnue, qui suppose une base déjà écrite (`ProfileMapperTest`), et la borne de fin d'un objectif, qu'aucune séquence d'appels au port ne rend observable (`GoalBoundsTest`, `GoalCoverageTest` — voir [D57](11-decisions.md#d57--le-contrat-des-trois-ports-et-une-règle-que-deux-tris-masquaient---validée)).
+
+**Éprouver un flux, pas une relecture.** `firstAfter` dans `:core:testing` rend ce qu'un flux émet **après** une écriture. Une relecture après coup passerait même si le flux n'avait jamais ré-émis, c'est-à-dire même si le port était resté une lecture unique — le défaut d'origine. La fonction a ses propres tests : défaillante, elle rendrait vert tout ce qu'elle touche.
+
+### Deux moteurs de test, et lequel s'applique où
+
+**JUnit 5 partout, sauf dans les modules qui ont besoin de Robolectric** : `:core:database`, `:data:food`, `:data:profile`, `:data:diary`. Robolectric est un lanceur JUnit 4 ; ces modules déclarent donc `junit4` et le moteur `junit-vintage`, qui rassemble les deux sous `./gradlew check` ([D35](11-decisions.md#d35--le-test-de-migration-tourne-sur-la-jvm-pas-sur-un-appareil---validée), [D53](11-decisions.md#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée)).
+
+**Les assertions JUnit 4 prennent le message en premier argument, JUnit 5 en dernier.** C'est la faute la plus fréquente en passant d'un module à l'autre, et elle est silencieuse : `assertEquals(attendu, obtenu)` compile des deux côtés, seul le message part au mauvais endroit — jusqu'au jour où un `assertEquals("message", a, b)` compare le message à autre chose.
+
+Un test Robolectric voit les assets de `:core:database`, dont `ciqual.db`, grâce à `testOptions { unitTests.isIncludeAndroidResources = true }`. Sans cette ligne, le contrat exigerait un appareil, donc ne tournerait pas.
+
 ---
 
 ## Analyse statique
@@ -61,6 +87,71 @@ Ces règles vivent dans `build-logic/detekt-rules` et sont couvertes par leurs p
 **Après avoir modifié une règle, `./gradlew --stop`.** detekt s'exécute dans un worker dont le chargeur de classes est mis en cache par le démon Gradle, et le chemin du jar de règles ne change pas d'un build à l'autre : le démon continue donc d'appliquer l'ancienne version, sans rien signaler. Les tests du module, eux, voient toujours le code à jour — c'est ce décalage qui rend le piège coûteux. La CI n'est pas concernée, elle démarre sur un démon neuf.
 
 **Ce que l'outillage ne couvre pas.** La définition de « terminé » exige qu'aucune couleur, **durée ou dimension** ne soit codée en dur hors de `:core:designsystem`. Seules les couleurs sont vérifiées par une règle. Une règle sur les littéraux `.dp` et `.sp` a été écartée : en Compose, elle signale autant de faux positifs que de vrais, et une règle qu'on finit par désactiver est pire qu'une règle absente. Les durées et les dimensions restent donc tenues par la revue — c'est une faiblesse connue, écrite ici pour ne pas être découverte plus tard.
+
+### Les seuils qui mordent, et la réponse qui n'est pas de les relever
+
+`config/detekt/detekt.yml` ne déclare que les **écarts** à la configuration par défaut (`buildUponDefaultConfig = true`), ce qui fait qu'aucun de ces seuils n'y figure. Ils mordent quand même, et ce sont ceux qu'on rencontre :
+
+| Règle | Seuil | Ce qui surprend |
+|---|---|---|
+| `TooManyFunctions` | 11 | Compté **par classe et par fichier**. Onze échoue déjà — le seuil est un maximum, pas une borne atteignable. |
+| `LongMethod` | 60 lignes | |
+| `ReturnCount` | 2 | Un `?: return` de plus fait échouer. |
+| `MagicNumber` | — | Frappe les **arguments de constructeur d'énumération** : `LIGHT(1.375)` est un constat. |
+
+**La bonne réponse à `TooManyFunctions` est de sortir du type ce qui n'est pas une capacité de l'objet**, en fonctions privées de premier niveau — c'est ce que font `RoomFoodCatalog` et `InMemoryFoodCatalog`. Relever le seuil déplace le problème d'un cran et le rend invisible au suivant.
+
+Pour `MagicNumber` sur une énumération, la réponse est une constante de premier niveau nommée : les cinq facteurs d'`ActivityLevel` sont déclarés ainsi, et ils se retrouvent d'un coup d'œil le jour où une relecture de la littérature les fait bouger.
+
+**`MagicNumber` et `TooManyFunctions` ne s'appliquent pas aux jeux de sources de test**, qui en sont exclus par la configuration par défaut. Un contrat de vingt cas ne déclenche donc rien. `:core:testing` va plus loin et désactive `MagicNumber` sur son `main` : ses nombres sont des valeurs d'exemple, et `PAIN_COMPLET_KCAL_POUR_100G` ne dirait rien que la ligne ne dise déjà.
+
+ktlint suit le style `intellij_idea` ([D22](11-decisions.md#d22--style-ktlint--intellij_idea-pas-ktlint_official---par-défaut)). `./gradlew ktlintFormat` est sûr et rapide — mais il **reformate parfois une signature juste après qu'on l'a écrite**, donc on relit le diff avant de commiter.
+
+---
+
+## Travailler sur ce dépôt
+
+Les pièges déjà payés. Chacun a coûté au moins une session, et aucun ne se devine.
+
+### Éditer un fichier
+
+**Ne jamais réécrire un fichier Kotlin ou Markdown avec `Set-Content` ou `Out-File`.** Ces cmdlets mutilent les accents : un fichier accentué recopié ainsi devient illisible et il faut le restaurer depuis git. Utiliser l'éditeur, ou à défaut :
+
+```powershell
+[System.IO.File]::WriteAllText($p, $c, (New-Object System.Text.UTF8Encoding $false))
+```
+
+**Les messages de console et de commit sont en ASCII sans accents** ; le KDoc et ce dossier `docs/` sont en français accentué. La console Windows et les hooks Git ne garantissent pas l'encodage, une documentation si.
+
+### Gradle
+
+**Après avoir modifié une règle detekt, `./gradlew --stop`** — voir la section précédente, le démon garde l'ancien jar en cache.
+
+**Après avoir déplacé un fichier entre jeux de sources**, supprimer l'état incrémental du module :
+
+```bash
+rm -rf <module>/build/tmp/kotlin-classes <module>/build/kotlin
+```
+
+**Ne pas utiliser `--rerun`.** Sur ce projet, il régénère `domain/build/libs/domain.jar` **vide** — 261 octets, le manifeste seul — et tout module qui en dépend échoue ensuite sur des `Unresolved reference 'domain'` qui n'ont aucun rapport apparent avec ce qu'on venait de changer. Le remède est de supprimer le jar. Pour forcer une ré-exécution de tests, `cleanTest` fait le même travail sans le risque.
+
+**`includeBuild("build-logic")` est déclaré deux fois dans `settings.gradle.kts`, et ce n'est pas une redite.** Celle de `pluginManagement` rend les identifiants `hexaphore.*` résolubles ; celle de la racine substitue le projet local à la coordonnée `app.hexaphore.buildlogic:detekt-rules` que le build racine déclare en `detektPlugins`. Retirer l'une casse l'autre.
+
+**Le cache de configuration est actif.** Une lambda écrite dans un `build.gradle.kts` qui capture l'objet du script n'est pas sérialisable : les chemins se résolvent à la configuration, pas à l'exécution.
+
+**Les plugins de convention sont des classes Kotlin, pas des scripts précompilés** ([D37](11-decisions.md#d37--plugins-de-convention-gradle---validée)).
+
+**`gradlew` doit rester en mode `100755` dans l'index git**, sinon la CI ne peut pas l'exécuter.
+
+### Vérifier sur un appareil
+
+Il n'y a pas d'émulateur dans l'environnement de développement assisté : `./gradlew check` ne prouve que la compilation, les tests et leurs hypothèses. **Ce qui s'affiche n'est jamais prouvé par un vert**, et un compte rendu de travail dit ce que le vert ne prouve pas.
+
+```bash
+./gradlew installDebug
+```
+
+**Installer par-dessus, sans désinstaller d'abord**, quand la modification touche une migration Room ou la copie de `ciqual.db` : ces deux chemins ne s'éprouvent que sur une base déjà présente, et une désinstallation les rend intestables jusqu'à ce qu'un journal soit reconstruit à la main.
 
 ---
 
