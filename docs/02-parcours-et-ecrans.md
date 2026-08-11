@@ -91,7 +91,7 @@ Chaque ligne d'aliment montre nom, quantité, calories. **Pas de pastille par li
 
 - **Tap** → ouvre l'écran de validation du plat, en édition. La cible tactile est le plat **entier** — pastille, heure, total et apports compris, pas seulement ses lignes d'aliment ([D48](11-decisions.md)). Sans coins arrondis : ils tronquaient la pastille et le total ([D52](11-decisions.md)).
 - **Balayage vers la gauche** → supprimer, avec `Snackbar` d'annulation (5 s). Aucune suppression n'est immédiatement définitive.
-- **Appui long** → menu : dupliquer, déplacer vers un autre plat, enregistrer le plat comme favori.
+- **Appui long** → menu du plat : ~~dupliquer, déplacer vers un autre plat,~~ **Modifier**, **Supprimer** ([D61](11-decisions.md)). Supprimer emporte les *n* lignes d'un coup : un dialogue le demande d'abord et **dit le nombre**, puis la barre d'annulation reste offerte. « Modifier » double le tap volontairement — un menu dont la moitié des entrées manque oblige à se souvenir de quel geste sert à quoi. *Dupliquer et déplacer restent à faire ; « enregistrer comme favori » arrive avec les plats favoris.*
 
 ### Bouton d'ajout
 
@@ -200,6 +200,8 @@ Chaque ligne présente :
 
 En bas du défilement : total de la saisie, et son impact sur les compteurs du jour (« il vous restera 780 kcal »), avec **Ajouter un aliment** — qui rouvre la même recherche que le bouton de l'accueil, et dont le choix revient au brouillon en cours. **Enregistrer** et **Annuler** n'y sont pas : ils flottent au-dessus de la liste, côte à côte et toujours à l'image, parce qu'en pied de défilement ils s'éloignaient à mesure que le plat grossissait ([D48](11-decisions.md)). Les autres actions — **Supprimer une ligne**, **Enregistrer comme plat favori** — restent auprès de ce sur quoi elles portent.
 
+**Un plat relu et vidé de toutes ses lignes se supprime** ([D61](11-decisions.md)), et le bouton d'enregistrement le dit : il devient « Supprimer ce plat ». C'est la même règle que le balayage applique déjà à la dernière ligne d'un plat — un plat sans contenu n'est pas un plat à zéro calorie, c'est une saisie qui n'a pas eu lieu. Une saisie **neuve** vidée, elle, n'a rien à supprimer et reste non enregistrable.
+
 **Deux chemins pour supprimer une ligne**, et les deux sont nécessaires : une corbeille visible à droite du nom, et le balayage. Un geste sans représentation visible est introuvable pour qui ne le connaît pas, hors d'atteinte au lecteur d'écran, et difficile pour une main qui tient mal le téléphone. Le balayage reste le raccourci de celui qui le connaît, jamais le seul chemin vers une action destructrice.
 
 Cet écran est aussi celui qu'on obtient en tapant sur une ligne déjà enregistrée : même composant, en mode édition. Les macros affichées sont alors celles **figées à l'enregistrement**, pas celles recalculées depuis la source — un produit reformulé par son fabricant ne doit pas réécrire le passé.
@@ -267,7 +269,7 @@ Corriger ses objectifs **ouvre une nouvelle version**, il n'en modifie aucune ([
 **Restauration d'état.** Toute saisie en cours survit à une rotation, à un passage en arrière-plan et à la destruction du processus. Les états d'écran vivent dans un `ViewModel` avec `SavedStateHandle`.
 
 **Erreurs.** Trois niveaux et pas un de plus : `Snackbar` pour le récupérable (« Supprimé »
-+ Annuler), encart inline pour l'échec d'une action en cours (avec Réessayer), dialogue uniquement pour ce qui est destructif ou irréversible (restauration d'une sauvegarde, suppression d'un aliment utilisé dans l'historique) — **plus un écart assumé**, la confirmation d'un changement d'objectif, qui est le seul endroit où six lignes de chiffres doivent être lues avant d'écrire ([D60](11-decisions.md)).
++ Annuler), encart inline pour l'échec d'une action en cours (avec Réessayer), dialogue uniquement pour ce qui est destructif ou irréversible (restauration d'une sauvegarde, suppression d'un aliment utilisé dans l'historique) — **plus deux écarts assumés** : la confirmation d'un changement d'objectif, seul endroit où six lignes de chiffres doivent être lues avant d'écrire ([D60](11-decisions.md)), et la suppression d'un plat entier, où ce qui justifie le dialogue n'est pas l'irréversibilité mais le volume ([D61](11-decisions.md)).
 
 **Chargements.** Squelettes plutôt que roues, sauf pour les appels IA où l'attente est longue et mérite une animation assumée. Aucun écran bloquant.
 

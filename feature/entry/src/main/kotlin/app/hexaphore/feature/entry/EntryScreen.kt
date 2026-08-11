@@ -274,7 +274,16 @@ private fun DraftActions(
                     },
                 )
                 NeonButton(
-                    text = stringResource(if (state.saving) R.string.entry_saving else R.string.entry_save),
+                    // Le bouton dit ce qu'il va faire. Vide de ses lignes, un plat
+                    // relu se supprime a l'enregistrement : le libelle l'annonce
+                    // plutot que de laisser le plat disparaitre sous « Enregistrer ».
+                    text = stringResource(
+                        when {
+                            state.saving -> R.string.entry_saving
+                            state.emptying -> R.string.entry_delete_dish
+                            else -> R.string.entry_save
+                        },
+                    ),
                     onClick = { if (state.saveable) actions.onSave() else onIncomplete() },
                     modifier = Modifier.weight(1f),
                     style = NeonButtonStyle.FILLED,

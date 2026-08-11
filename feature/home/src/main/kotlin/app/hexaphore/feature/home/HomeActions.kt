@@ -16,6 +16,17 @@ import app.hexaphore.domain.diary.EntryId
 data class HomeActions(
     val onAddDish: () -> Unit,
     val onEditDish: (DishId) -> Unit,
+    /**
+     * Supprime le plat entier, ses *n* lignes avec lui.
+     *
+     * Atteint par l'appui long, et **confirmé par un dialogue** : le balayage retire
+     * une ligne et se rattrape à la barre, celui-ci en retire plusieurs d'un coup et
+     * mérite d'être voulu ([D61][decisions]). La barre reste offerte ensuite — la
+     * confirmation évite l'accident, la barre rattrape le regret.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val onDeleteDish: (Dish) -> Unit,
     val onDeleteEntry: (Dish, EntryId) -> Unit,
     val onUndo: () -> Unit,
     val onUndoExpired: () -> Unit,

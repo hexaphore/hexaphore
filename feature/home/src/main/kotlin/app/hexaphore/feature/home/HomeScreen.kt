@@ -64,6 +64,7 @@ fun HomeRoute(
             HomeActions(
                 onAddDish = onAddDish,
                 onEditDish = onEditDish,
+                onDeleteDish = viewModel::onDeleteDish,
                 onDeleteEntry = viewModel::onDeleteEntry,
                 onUndo = viewModel::onUndo,
                 onUndoExpired = viewModel::onUndoExpired,

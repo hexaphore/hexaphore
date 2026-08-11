@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.EntryId
+import app.hexaphore.domain.usecase.DeleteDish
 import app.hexaphore.domain.usecase.DeleteEntry
 import app.hexaphore.domain.usecase.GetDaySummary
 import app.hexaphore.domain.usecase.RestoreDish
@@ -42,6 +43,7 @@ class HomeViewModel @Inject constructor(
     getDaySummary: GetDaySummary,
     dispatchers: DispatcherProvider,
     private val deleteEntry: DeleteEntry,
+    private val deleteDish: DeleteDish,
     private val restoreDish: RestoreDish,
 ) : ViewModel() {
     /**
@@ -92,6 +94,22 @@ class HomeViewModel @Inject constructor(
     /** Relit le journal après un échec. */
     fun retry() {
         attempts.update { it + 1 }
+    }
+
+    /**
+     * Supprime le plat entier.
+     *
+     * Le plat part **immédiatement**, et c'est lui qui permet d'y revenir — même
+     * raisonnement que pour une ligne. La confirmation a déjà été demandée par
+     * l'écran ; la barre qui suit ne protège plus de l'accident mais du regret, et
+     * elle ne coûte rien puisque `RestoreDish` remet le plat et ses lignes en place.
+     */
+    fun onDeleteDish(dish: Dish) {
+        viewModelScope.launch {
+            runCatching { deleteDish(dish.id) }
+                // Pas d'annulation a proposer sur un echec : rien n'a ete supprime.
+                .onSuccess { undoable.value = dish }
+        }
     }
 
     fun onDeleteEntry(dish: Dish, entryId: EntryId) {

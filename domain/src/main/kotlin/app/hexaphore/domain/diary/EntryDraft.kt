@@ -245,12 +245,29 @@ data class EntryDraft(
     val editing: Boolean get() = dishId != null
 
     /**
+     * `true` quand ce brouillon, enregistré, **supprimerait** le plat qu'il modifie.
+     *
+     * Retirer les lignes une à une jusqu'à la dernière est une façon parfaitement
+     * naturelle de dire « ce plat n'a pas eu lieu », et c'est déjà ce que fait le
+     * balayage à l'accueil : `DeleteEntry` supprime le plat vidé de sa dernière ligne.
+     * Le même geste sur l'écran de validation butait au contraire sur un refus — « il
+     * faut au moins une ligne » — qui demandait de sortir et de recommencer autrement.
+     *
+     * Une saisie **neuve** vidée ne supprime rien : il n'y a rien à supprimer, et
+     * l'enregistrer n'aurait aucun sens. C'est [editing] qui fait la différence.
+     */
+    val emptying: Boolean get() = editing && lines.isEmpty()
+
+    /**
      * `true` quand l'enregistrement est possible.
      *
      * Toutes les lignes, et pas seulement une : une ligne à moitié remplie qu'on
      * enregistrerait silencieusement serait une donnée inventée.
+     *
+     * Un brouillon sans aucune ligne est enregistrable **s'il modifie un plat** : ce
+     * qu'il enregistre est alors la disparition de ce plat ([emptying]).
      */
-    val saveable: Boolean get() = lines.isNotEmpty() && lines.all { it.complete }
+    val saveable: Boolean get() = if (lines.isEmpty()) editing else lines.all { it.complete }
 
     /** L'énergie de la saisie, sur les seules lignes qui en portent une. */
     val kcal: Double get() = lines.sumOf { it.values.kcal ?: 0.0 }

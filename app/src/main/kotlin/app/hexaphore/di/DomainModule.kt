@@ -5,17 +5,14 @@ import app.hexaphore.domain.food.FoodStore
 import app.hexaphore.domain.food.FoodUsage
 import app.hexaphore.domain.goal.Goals
 import app.hexaphore.domain.identity.IdGenerator
-import app.hexaphore.domain.profile.Profiles
-import app.hexaphore.domain.profile.WeightLog
 import app.hexaphore.domain.time.Clock
-import app.hexaphore.domain.usecase.CalculateDailyGoal
 import app.hexaphore.domain.usecase.CreateDraft
+import app.hexaphore.domain.usecase.DeleteDish
 import app.hexaphore.domain.usecase.DeleteEntry
 import app.hexaphore.domain.usecase.GetDaySummary
 import app.hexaphore.domain.usecase.GetDishDraft
 import app.hexaphore.domain.usecase.LogDish
 import app.hexaphore.domain.usecase.RestoreDish
-import app.hexaphore.domain.usecase.ReviseGoal
 import app.hexaphore.domain.usecase.SaveCustomFood
 import app.hexaphore.domain.usecase.UpdateDish
 import dagger.Module
@@ -24,7 +21,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
 /**
- * Construction des cas d'usage.
+ * Construction des cas d'usage du **journal**.
  *
  * Ils vivent dans `:domain`, qui est du Kotlin pur et ne connaît donc pas Hilt —
  * c'est exactement la propriété qu'on veut. `:app` assemble : il sait quels ports
@@ -32,6 +29,13 @@ import dagger.hilt.components.SingletonComponent
  *
  * Un cas d'usage n'est pas un singleton : il ne porte aucun état, et l'instancier
  * coûte moins que de le retenir.
+ *
+ * **Séparé de [GoalUseCaseModule]** parce qu'un seul module atteignait le seuil de
+ * fonctions de detekt. La réponse du projet est de découper selon ce que les choses
+ * sont, pas de relever le seuil ([docs/10][qualite]) — et il se trouve que la coupure
+ * naturelle existait déjà : ces cas d'usage parlent de plats, les autres d'objectifs.
+ *
+ * [qualite]: docs/10-qualite-et-livraison.md
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -39,13 +43,6 @@ object DomainModule {
     @Provides
     fun getDaySummary(diary: DiaryRepository, goals: Goals, clock: Clock): GetDaySummary =
         GetDaySummary(diary, goals, clock)
-
-    @Provides
-    fun calculateDailyGoal(clock: Clock): CalculateDailyGoal = CalculateDailyGoal(clock)
-
-    @Provides
-    fun reviseGoal(profiles: Profiles, weights: WeightLog, goals: Goals, clock: Clock, ids: IdGenerator): ReviseGoal =
-        ReviseGoal(profiles, weights, goals, clock, ids)
 
     @Provides
     fun getDishDraft(diary: DiaryRepository, ids: IdGenerator): GetDishDraft = GetDishDraft(diary, ids)
@@ -65,6 +62,9 @@ object DomainModule {
 
     @Provides
     fun deleteEntry(diary: DiaryRepository): DeleteEntry = DeleteEntry(diary)
+
+    @Provides
+    fun deleteDish(diary: DiaryRepository): DeleteDish = DeleteDish(diary)
 
     @Provides
     fun restoreDish(diary: DiaryRepository): RestoreDish = RestoreDish(diary)

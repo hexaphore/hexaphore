@@ -25,6 +25,16 @@ internal sealed interface EntryUiState {
         val saving: Boolean = false,
     ) : EntryUiState {
         val saveable: Boolean get() = !saving && form.toDraft().saveable
+
+        /**
+         * `true` quand enregistrer **supprimerait** le plat, faute de ligne restante.
+         *
+         * L'écran s'en sert pour changer le libellé du bouton. Sans cela, retirer la
+         * dernière ligne puis appuyer sur « Enregistrer » ferait disparaître le plat
+         * sans que rien ne l'ait annoncé — et le geste est le même que celui qui, une
+         * ligne plus tôt, enregistrait une correction.
+         */
+        val emptying: Boolean get() = form.toDraft().emptying
     }
 
     /**
