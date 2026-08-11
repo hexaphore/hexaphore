@@ -1,5 +1,6 @@
 package app.hexaphore.data.profile
 
+import app.hexaphore.core.testing.firstAfter
 import app.hexaphore.domain.goal.DailyGoal
 import app.hexaphore.domain.goal.Goal
 import app.hexaphore.domain.goal.GoalId
@@ -11,15 +12,8 @@ import app.hexaphore.domain.profile.Sex
 import app.hexaphore.domain.profile.UnitSystem
 import app.hexaphore.domain.profile.UserProfile
 import app.hexaphore.domain.profile.WeightEntry
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -84,9 +78,9 @@ abstract class ProfileStoreContract {
         val magasin = store()
         magasin.save(PROFIL)
 
-        val apres = magasin.observeProfile().apres(
-            ecriture = { magasin.save(PROFIL_CORRIGE) },
-            attendu = { it == PROFIL_CORRIGE },
+        val apres = magasin.observeProfile().firstAfter(
+            write = { magasin.save(PROFIL_CORRIGE) },
+            matching = { it == PROFIL_CORRIGE },
         )
 
         assertEquals(PROFIL_CORRIGE, apres)
@@ -158,9 +152,9 @@ abstract class ProfileStoreContract {
         val magasin = store()
         magasin.record(WeightEntry(LUNDI, POIDS_INITIAL))
 
-        val apres = magasin.observeLatest().apres(
-            ecriture = { magasin.record(WeightEntry(MARDI, POIDS_CORRIGE)) },
-            attendu = { it?.date == MARDI },
+        val apres = magasin.observeLatest().firstAfter(
+            write = { magasin.record(WeightEntry(MARDI, POIDS_CORRIGE)) },
+            matching = { it?.date == MARDI },
         )
 
         assertEquals(WeightEntry(MARDI, POIDS_CORRIGE), apres)
@@ -272,39 +266,12 @@ abstract class ProfileStoreContract {
         val magasin = store()
         magasin.replace(PREMIER)
 
-        val apres = magasin.observeGoalOn(DEBUT_SECOND).apres(
-            ecriture = { magasin.replace(SECOND) },
-            attendu = { it?.id == SECOND.id },
+        val apres = magasin.observeGoalOn(DEBUT_SECOND).firstAfter(
+            write = { magasin.replace(SECOND) },
+            matching = { it?.id == SECOND.id },
         )
 
         assertEquals(SECOND.id, apres?.id)
-    }
-
-    // --- Outillage --------------------------------------------------------------
-
-    /**
-     * Ce que le flux rend **après** [ecriture], et non ce qu'il rendait avant.
-     *
-     * Écrit ainsi plutôt qu'en relisant après coup : une relecture passerait même si
-     * le flux n'avait jamais ré-émis, c'est-à-dire même si le port était resté une
-     * lecture unique. Ici, l'attente expire et le message le dit.
-     */
-    private suspend fun <T> Flow<T>.apres(ecriture: suspend () -> Unit, attendu: (T) -> Boolean): T = coroutineScope {
-        val recu = Channel<T>(Channel.UNLIMITED)
-        val collecte = launch(Dispatchers.Default) { collect { recu.send(it) } }
-        try {
-            withTimeout(DELAI_MILLIS) {
-                recu.receive()
-                ecriture()
-                var valeur = recu.receive()
-                while (!attendu(valeur)) valeur = recu.receive()
-                valeur
-            }
-        } catch (_: TimeoutCancellationException) {
-            error("le flux n a pas re-emis apres l ecriture : est-il encore une lecture unique ?")
-        } finally {
-            collecte.cancel()
-        }
     }
 
     protected companion object {
@@ -318,7 +285,6 @@ abstract class ProfileStoreContract {
 
         const val JOURNAL = 20
         const val DEUX = 2
-        const val DELAI_MILLIS = 5_000L
 
         const val TAILLE_CM = 182.0
         const val TAILLE_CORRIGEE_CM = 183.0

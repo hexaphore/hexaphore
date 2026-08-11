@@ -8,4 +8,10 @@ dependencies {
     // api : ce module expose des types du domaine dans ses signatures.
     api(projects.domain)
     implementation(libs.kotlinx.coroutines.core)
+
+    // Ce module ne contenait que des decors, qu'un test qui s'en sert eprouve de
+    // lui-meme. `firstAfter` est different : c'est un outil de verification, et un
+    // outil de verification defaillant rend vert tout ce qu'il touche.
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }

@@ -1,5 +1,6 @@
 package app.hexaphore.data.food
 
+import app.hexaphore.core.testing.firstAfter
 import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodCategory
 import app.hexaphore.domain.food.FoodFilter
@@ -7,15 +8,9 @@ import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodSource
 import app.hexaphore.domain.food.FoodTrait
 import app.hexaphore.domain.nutrition.NutrientValues
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -68,9 +63,9 @@ abstract class FoodCatalogContract {
         // parce qu'ils venaient d'une lecture unique.
         val catalogue = catalogue(stored = listOf(POMME_STOCKEE))
 
-        val apres = catalogue.chercher(POMME).apres(
-            ecriture = { catalogue.setFavorite(POMME_STOCKEE.id, true) },
-            attendu = { it.pomme?.favorite == true },
+        val apres = catalogue.chercher(POMME).firstAfter(
+            write = { catalogue.setFavorite(POMME_STOCKEE.id, true) },
+            matching = { it.pomme?.favorite == true },
         )
 
         assertTrue("l etoile n a pas suivi", apres.pomme!!.favorite)
@@ -80,9 +75,9 @@ abstract class FoodCatalogContract {
     fun `supprimer une fiche la retire des resultats sans relancer la recherche`() = runBlocking {
         val catalogue = catalogue(stored = listOf(POMME_PERSONNELLE))
 
-        val apres = catalogue.chercher(POMME_PERSONNELLE.name).apres(
-            ecriture = { catalogue.delete(POMME_PERSONNELLE.id) },
-            attendu = { liste -> liste.none { it.id == POMME_PERSONNELLE.id } },
+        val apres = catalogue.chercher(POMME_PERSONNELLE.name).firstAfter(
+            write = { catalogue.delete(POMME_PERSONNELLE.id) },
+            matching = { liste -> liste.none { it.id == POMME_PERSONNELLE.id } },
         )
 
         assertTrue("la fiche supprimee est restee affichee", apres.none { it.id == POMME_PERSONNELLE.id })
@@ -93,9 +88,9 @@ abstract class FoodCatalogContract {
         val catalogue = catalogue(reference = listOf(POIRE_DE_REFERENCE))
         val propose = catalogue.chercher(POIRE).first().poire!!
 
-        val apres = catalogue.chercher(POIRE).apres(
-            ecriture = { catalogue.place(propose) },
-            attendu = { it.poire?.id == propose.id },
+        val apres = catalogue.chercher(POIRE).firstAfter(
+            write = { catalogue.place(propose) },
+            matching = { it.poire?.id == propose.id },
         )
 
         assertEquals("la fiche versee devrait avoir remplace la proposition", propose.id, apres.poire!!.id)
@@ -135,12 +130,12 @@ abstract class FoodCatalogContract {
         val catalogue = catalogue(reference = listOf(POIRE_DE_REFERENCE))
         val propose = catalogue.chercher(POIRE).first().poire!!
 
-        val apres = catalogue.chercher(POIRE).apres(
-            ecriture = {
+        val apres = catalogue.chercher(POIRE).firstAfter(
+            write = {
                 val ecrite = catalogue.place(propose)
                 catalogue.setFavorite(ecrite.id, true)
             },
-            attendu = { it.poire?.favorite == true },
+            matching = { it.poire?.favorite == true },
         )
 
         assertTrue("l etoile n a pas suivi", apres.poire!!.favorite)
@@ -375,35 +370,6 @@ abstract class FoodCatalogContract {
 
     private val List<Food>.poire: Food? get() = firstOrNull { it.sourceRef == CODE_POIRE }
 
-    /**
-     * Ce que le flux rend **après** [ecriture], et non ce qu'il rendait avant.
-     *
-     * Écrit ainsi plutôt qu'en relisant après coup : une relecture passerait même si
-     * le flux n'avait jamais ré-émis, c'est-à-dire même si le défaut d'origine était
-     * toujours là. Ici, une lecture unique fait expirer l'attente, et le message le
-     * dit.
-     */
-    private suspend fun Flow<List<Food>>.apres(
-        ecriture: suspend () -> Unit,
-        attendu: (List<Food>) -> Boolean,
-    ): List<Food> = coroutineScope {
-        val recu = Channel<List<Food>>(Channel.UNLIMITED)
-        val collecte = launch(Dispatchers.Default) { collect { recu.send(it) } }
-        try {
-            withTimeout(DELAI_MILLIS) {
-                recu.receive()
-                ecriture()
-                var valeur = recu.receive()
-                while (!attendu(valeur)) valeur = recu.receive()
-                valeur
-            }
-        } catch (_: TimeoutCancellationException) {
-            error("le flux n a pas re-emis apres l ecriture : la recherche est-elle encore une lecture unique ?")
-        } finally {
-            collecte.cancel()
-        }
-    }
-
     protected companion object {
         /**
          * Trois vraies lignes de la table livrée.
@@ -482,6 +448,5 @@ abstract class FoodCatalogContract {
 
         /** Assez large pour que « Fruits » rende les 191 fruits de la table livrée. */
         const val PARCOURS = 1_000
-        const val DELAI_MILLIS = 5_000L
     }
 }
