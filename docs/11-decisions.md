@@ -966,7 +966,33 @@ Ce qui la rend observable est un objectif clos **sans successeur qui reprenne le
 
 `ProfileStoreView` prend `Profiles`, `WeightLog` et `Goals` séparément, là où `FoodCatalogView` n'a qu'un paramètre générique. Côté Room c'est le même objet trois fois ; côté mémoire ce sont trois classes distinctes. **Écarté** : *un `InMemoryProfileStore` unique* qui aurait porté les trois, pour la symétrie — il aurait imposé aux faux une forme d'assemblage qui n'existe que pour le test, alors que les écrans les injectent séparément.
 
-**Conséquences.** `InMemoryProfiles` et `InMemoryWeightLog` quittent le test d'onboarding pour `:core:testing`, où les autres modules peuvent s'en servir. Le `recorded` du faux devient `latest` et `entries` : il rendait la dernière écriture, il rend maintenant un journal trié, et le nom devait le dire. `DiaryRepository` reste le seul port à deux implémentations sans contrat.
+**Conséquences.** `InMemoryProfiles` et `InMemoryWeightLog` quittent le test d'onboarding pour `:core:testing`, où les autres modules peuvent s'en servir. Le `recorded` du faux devient `latest` et `entries` : il rendait la dernière écriture, il rend maintenant un journal trié, et le nom devait le dire. `DiaryRepository` reste le seul port à deux implémentations sans contrat — jusqu'à [D58](#d58--le-septième-port-et-un-champ-redondant-que-la-fixture-a-trahi---validée).
+
+---
+
+## D58 — Le septième port, et un champ redondant que la fixture a trahi · ✓ validée
+
+**Contexte.** `DiaryRepository` était le dernier port à deux implémentations sans contrat — celui que [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée) mettait de côté et que [D57](#d57--le-contrat-des-trois-ports-et-une-règle-que-deux-tris-masquaient---validée) a reconduit. C'est aussi le plus ancien, celui de la tranche 1 : ses deux côtés ont eu le plus de temps pour diverger sans que rien ne le dise.
+
+19 cas, joués sur `InMemoryDiaryRepository` et sur `RoomDiaryRepository`. `:data:diary` n'avait **aucun** test et n'était pas outillé pour Robolectric ; il l'est désormais, comme `:data:profile`.
+
+### `FoodEntry.dishId` est redondant, et les deux côtés n'en font pas le même usage
+
+C'est la découverte, et elle est venue de la **fixture**, pas d'un cas de test. Un plat porte ses lignes, et chaque ligne porte en plus l'identifiant de son plat. Le faux ne lit jamais ce champ — ses lignes vivent dans l'objet plat — là où Room s'en sert comme **clé de rattachement**.
+
+Conséquence : un `copy(id = …)` sur un plat, pour en fabriquer un second, produit un objet dont les lignes désignent encore le premier. Le faux l'accepte sans broncher ; la base le refuse, par violation de clé étrangère ou de clé primaire selon l'ordre d'écriture. Trois cas sont tombés du seul côté Room avant que la fixture soit corrigée.
+
+**Ce n'est pas un défaut du code de production** — aucun appelant ne fabrique un plat ainsi — mais c'est une arête sur laquelle on se coupe, et un test la nomme désormais : les lignes relues sont rattachées à leur plat. **Écarté** : *retirer `dishId` de `FoodEntry`*, qui supprimerait la redondance à la racine. C'est une modification du domaine pour un problème qui ne s'est manifesté que dans un test, et la tranche 5 n'a pas besoin de ça.
+
+### Ce que le contrat garde, éprouvé en le défaisant
+
+Deux fois, et du seul côté Room dans les deux cas : retirer `deleteEntriesOfDish` de la transaction d'écriture fait tomber deux tests — une ligne supprimée à l'écran resterait en base ; passer `ORDER BY logged_at` de `ASC` à `DESC` en fait tomber un.
+
+Le contrat éprouve aussi la règle la plus coûteuse du projet, celle que [D29](#d29--un-total-incomplet-se-signale-au-lieu-de-se-taire---validée) protège : une valeur inconnue reste inconnue et ne devient jamais zéro. La fixture pose des sucres à `0.0` **à côté** de fibres à `null`, dans la même ligne — c'est la paire qui rend la confusion visible si elle a lieu.
+
+**Ce qu'il ne porte pas.** La suppression d'un plat vidé de sa dernière ligne : c'est `DeleteEntry` qui en décide, pas le port. Le port laisse un plat vide, des deux côtés, et le contrat l'affirme — si le port le faisait aussi, la règle serait tenue à deux endroits et il suffirait qu'un seul change.
+
+**Conséquences.** Les sept ports à deux implémentations sont couverts. Le dispositif de [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée) n'a plus de dette : tout port qui gagnera une seconde implémentation rejoint un mécanisme déjà en place dans trois modules.
 
 ---
 
