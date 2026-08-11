@@ -131,7 +131,7 @@ class OnboardingViewModelTest {
 
         assertNull(profiles.saved)
         assertTrue(goals.all.isEmpty())
-        assertNull(weights.recorded)
+        assertNull(weights.latest)
     }
 
     @Test
@@ -145,8 +145,8 @@ class OnboardingViewModelTest {
 
         assertTrue(termine)
         assertEquals(Sex.MALE, profiles.saved?.sex)
-        assertEquals(88.0, weights.recorded?.weightKg)
-        assertEquals(AUJOURD_HUI, weights.recorded?.date, "la pesee est datee par l horloge, pas par LocalDate.now()")
+        assertEquals(88.0, weights.latest?.weightKg)
+        assertEquals(AUJOURD_HUI, weights.latest?.date, "la pesee est datee par l horloge, pas par LocalDate.now()")
 
         val objectif = goals.all.single()
         assertEquals(GoalOrigin.CALCULATED, objectif.origin)
