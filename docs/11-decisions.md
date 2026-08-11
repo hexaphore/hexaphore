@@ -881,6 +881,61 @@ Décision de l'auteur, appliquée telle quelle. **Contestation, pour mémoire** 
 
 ---
 
+## D56 — L'onboarding ouvre l'application, exige ses réponses, et dit non à voix haute · ✓ validée
+
+**Contexte.** Constaté sur appareil : l'onboarding livré en [D55](#d55--lobjectif-est-calculé-daté-et-parfois-absent--validée) fonctionne et se traverse mal. Six défauts, tous d'ergonomie, aucun de calcul.
+
+### L'application ouvre sur les questions
+
+Il fallait passer par l'accueil, y lire « pas encore d'objectif », et appuyer sur un bouton. Un écran de transit qui ne sert qu'à en désigner un autre est un écran de trop.
+
+`StartDestinationViewModel` lit **une seule fois** si un objectif court, et pose la destination de départ. La lecture est unique et non observée : `NavHost` reconstruit son graphe quand sa destination de départ change, ce qui **vide la pile de navigation** — l'objectif apparaissant à la fin de l'onboarding, un flux aurait fait se disputer deux mécanismes la même transition, avec un gagnant dépendant de l'ordre de recomposition.
+
+Rien ne s'affiche tant que la réponse n'est pas connue. Poser l'accueil puis sauter vers l'onboarding ferait clignoter un journal vide à **chaque** lancement.
+
+### Chaque étape exige ses champs
+
+[02](02-parcours-et-ecrans.md#onboarding) promettait un bouton « Passer » sur les quatre dernières étapes. Il disparaît.
+
+**Raison.** Un objectif calculé sur 30 ans, 170 cm et 70 kg est l'objectif de quelqu'un d'autre, et il s'affiche avec l'autorité d'un chiffre personnel. Les valeurs par défaut restent dans le code, mais comme garde-fou défensif — plus aucun parcours ne les atteint.
+
+**Ce que ça coûte, et c'est réel.** Il n'y a plus moyen d'entrer dans l'application sans avoir répondu. Le « utilisateur pressé » de la conception n'a plus de raccourci. C'est assumé : cette application ne sert à rien sans objectif, et la traversée dure une minute.
+
+### Un refus se voit
+
+Appuyer sur « Continuer » sans avoir coché ne produisait **rien**. Le même défaut existait sur « Enregistrer » de l'écran de saisie, où [D48](#d48--la-barre-pleine-vaut-lobjectif--validée) avait pourtant prévu une explication : elle existait, sous forme d'un `labelSmall` gris glissé au-dessus des boutons — c'est-à-dire sous le pouce, au moment exact où l'œil est sur le bouton.
+
+**Choix.** Les deux écrans répondent par une **barre**, et la phrase dit **ce qui** manque : « Renseignez votre date de naissance, votre sexe, votre taille et votre poids », pas « complétez le formulaire ». Le principe de [D28](#d28--un-bouton-indisponible-réagit-quand-même--validée) ne bouge pas — le bouton indisponible réagit et répond — c'est le canal qui change. Ce qui interrompt le regard est ce qui se lit.
+
+Une seule barre à la fois : trois appuis empilaient trois fois le même message, le troisième arrivant dix secondes plus tard.
+
+### Une date se choisit, elle ne se tape pas
+
+`NeonDateField` : un champ en lecture seule qui ouvre le sélecteur de Material 3. Demander « AAAA-MM-JJ » au clavier fait porter à l'utilisateur un format que la machine sait deviner — il se trompe d'un tiret, et le champ reste vide sans dire pourquoi.
+
+Trois points techniques qui ne vont pas de soi :
+
+- **Une surface transparente reçoit le tap.** `OutlinedTextField` ne relaie pas les clics en `readOnly`, et le désactiver le grise — ce qui dirait « indisponible » alors qu'il est utilisable.
+- **Le sélecteur raisonne en millisecondes UTC**, et il faut le prendre au mot. Convertir dans le fuseau local ferait basculer d'un jour toute personne à l'ouest de Greenwich : le 4 mars choisi reviendrait le 3.
+- **La grille des années est bornée** à 110 ans en arrière. Une naissance ne se cherche pas en feuilletant les mois.
+
+### L'échéance devient trois pastilles
+
+`docs/02` prévoyait « +3 mois / +6 mois / +12 mois / **date libre** ». La date libre disparaît : une échéance exacte n'a aucune valeur en soi, ce qui compte est le rythme, et « six mois » l'exprime aussi bien qu'un 14 février choisi au hasard.
+
+Ce qui la remplace est meilleur : quand un garde-fou mord, la **date atteignable** calculée par `GoalSafetyPolicy` apparaît en quatrième pastille. C'est la seule date arbitraire qui ait une justification.
+
+**Écarté.** *Garder la date libre repliée derrière un lien* : elle sert le cas du mariage ou des vacances, mais c'est un chemin de plus à tenir pour un objectif dont la précision est de toute façon illusoire à ±10 % près ([03](03-nutrition-calculs.md#métabolisme-de-base-bmr)).
+
+### Deux ajouts de confort, tirés de la conception
+
+- **L'hexagone remplit l'écran d'accueil.** La figure qui donne son nom à l'application existait déjà et n'apparaissait nulle part avant le premier repas noté. Une journée d'exemple, volontairement inégale — six quartiers identiques ressembleraient à un motif décoratif.
+- **L'aperçu de rythme** que `docs/02` demandait depuis la conception : `GoalPlan.weeklyWeightChangeKg`, dérivé du budget retenu **après** garde-fous. Le rythme réel, pas celui qu'on espérait — un second calcul dans l'écran aurait fini par annoncer autre chose que l'étape suivante.
+
+**Conséquences.** `docs/02` est corrigé sur trois points, et l'un d'eux est un renoncement explicite. `OnboardingUiState.blocker` porte la règle de blocage : le `ViewModel` refuse d'avancer, l'écran s'en sert pour dire quoi, et les deux interrogent la même propriété — ils ne peuvent donc pas diverger.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

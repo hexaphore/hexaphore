@@ -13,14 +13,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +41,7 @@ import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.domain.diary.DraftImpact
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.nutrition.Macro
+import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import kotlin.math.abs
@@ -130,6 +133,18 @@ private fun DraftEditor(state: EntryUiState.Content, actions: EntryActions) {
     val density = LocalDensity.current
     var actionsHeightPx by remember { mutableIntStateOf(0) }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val incomplete = stringResource(R.string.entry_incomplete_hint)
+    val onIncomplete: () -> Unit = {
+        scope.launch {
+            // Une seule barre a la fois : trois appuis empilaient trois fois le
+            // meme message, et le troisieme s'affichait dix secondes plus tard.
+            snackbarHostState.currentSnackbarData?.dismiss()
+            snackbarHostState.showSnackbar(incomplete)
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -163,9 +178,19 @@ private fun DraftEditor(state: EntryUiState.Content, actions: EntryActions) {
         DraftActions(
             state = state,
             actions = actions,
+            onIncomplete = onIncomplete,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .onSizeChanged { actionsHeightPx = it.height },
+        )
+
+        // Juste au-dessus de la barre d'actions, et non collee au bas de l'ecran :
+        // posee dessous, elle passerait sous les boutons flottants de D48.
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = with(density) { actionsHeightPx.toDp() }),
         )
     }
 }
@@ -213,10 +238,11 @@ private fun DraftFooter(state: EntryUiState.Content, actions: EntryActions) {
 /**
  * Les deux issues de l'écran, côte à côte et toujours à l'image.
  *
- * L'explication de ce qui manque n'est plus affichée en permanence : elle est la
- * **réponse** du bouton indisponible à un appui, ce que [D28][decisions] demandait
- * déjà. Épinglée en bas, elle occuperait quatre lignes à chaque saisie neuve — où
- * tous les champs sont vides — pour dire ce que les champs vides disent déjà.
+ * L'explication de ce qui manque est la **réponse** du bouton indisponible à un appui,
+ * ce que [D28][decisions] demandait déjà. Elle passe par une barre plutôt que par un
+ * texte glissé au-dessus des boutons : cette version-là existait, et elle était
+ * invisible — un `labelSmall` gris apparaissant sous le pouce au moment exact où l'œil
+ * est sur le bouton ([D56][decisions]).
  *
  * Annuler ne demande pas confirmation : il fait exactement ce que fait le retour
  * arrière, qui est là de toute façon. Un garde-fou sur l'un des deux chemins et pas
@@ -225,22 +251,17 @@ private fun DraftFooter(state: EntryUiState.Content, actions: EntryActions) {
  * [decisions]: docs/11-decisions.md
  */
 @Composable
-private fun DraftActions(state: EntryUiState.Content, actions: EntryActions, modifier: Modifier = Modifier) {
-    var explaining by remember { mutableStateOf(false) }
-    LaunchedEffect(state.saveable) { if (state.saveable) explaining = false }
-
+private fun DraftActions(
+    state: EntryUiState.Content,
+    actions: EntryActions,
+    onIncomplete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Surface(color = MaterialTheme.colorScheme.background, modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(horizontal = Spacing.screenMargin, vertical = Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            if (explaining && !state.saving) {
-                Text(
-                    text = stringResource(R.string.entry_incomplete_hint),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 NeonButton(
                     text = stringResource(R.string.entry_cancel),
@@ -254,7 +275,7 @@ private fun DraftActions(state: EntryUiState.Content, actions: EntryActions, mod
                 )
                 NeonButton(
                     text = stringResource(if (state.saving) R.string.entry_saving else R.string.entry_save),
-                    onClick = { if (state.saveable) actions.onSave() else explaining = true },
+                    onClick = { if (state.saveable) actions.onSave() else onIncomplete() },
                     modifier = Modifier.weight(1f),
                     style = NeonButtonStyle.FILLED,
                     availability = when {

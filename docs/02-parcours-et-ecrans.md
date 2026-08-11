@@ -27,11 +27,13 @@ Une seule règle structurante : **les quatre modes de saisie se rejoignent sur l
 
 ## Onboarding
 
-Cinq étapes, une question par écran, barre de progression en haut. Bouton « Passer » sur toutes les étapes sauf la première : un utilisateur pressé doit pouvoir arriver à l'accueil. Les champs sautés prennent une valeur par défaut raisonnable et sont signalés dans les réglages.
+Cinq étapes, une question par écran, barre de progression en haut. **L'application ouvre ici tant qu'aucun objectif ne court** ([D56](11-decisions.md)) : il n'y a pas d'écran intermédiaire à traverser pour arriver aux questions.
 
-**1. Accueil.** Nom de l'application, une phrase, un bouton. Affiche l'avertissement : *« Hexaphore est un outil de suivi personnel. Ce n'est pas un dispositif médical et il ne remplace pas l'avis d'un professionnel de santé. »* — à accepter pour continuer.
+~~Bouton « Passer » sur toutes les étapes sauf la première : un utilisateur pressé doit pouvoir arriver à l'accueil. Les champs sautés prennent une valeur par défaut raisonnable et sont signalés dans les réglages.~~ **Chaque étape exige ses champs** ([D56](11-decisions.md)). Un objectif calculé sur des valeurs par défaut est l'objectif de quelqu'un d'autre, affiché avec l'autorité d'un chiffre personnel. Un « Continuer » refusé affiche une barre qui dit **ce qui** manque — pas qu'il manque quelque chose.
 
-**2. Vous.** Date de naissance (sélecteur), sexe, taille, poids actuel.
+**1. Accueil.** Nom de l'application, une phrase, et l'**hexagone des macros** rempli d'une journée d'exemple : la figure qui donne son nom à l'application montre en une image ce qu'un paragraphe raconterait. Affiche l'avertissement : *« Hexaphore est un outil de suivi personnel. Ce n'est pas un dispositif médical et il ne remplace pas l'avis d'un professionnel de santé. »* — à accepter pour continuer, **la phrase entière étant la cible tactile** et non la seule case.
+
+**2. Vous.** Date de naissance (**vrai sélecteur de date**, jamais une saisie au format imposé), sexe, taille, poids actuel.
 
 Le sexe propose **Homme / Femme / Je préfère ne pas répondre**. La formule de Mifflin-St Jeor n'a que deux variantes ; la troisième option applique la moyenne des deux, et l'écran le dit : *« Nous utiliserons une estimation intermédiaire, que vous pourrez ajuster ensuite. »* Cacher ce détail produirait un chiffre inexplicable.
 
@@ -39,9 +41,9 @@ Unités : kg et cm par défaut, lb et ft/in disponibles dans les réglages, conv
 
 **3. Activité.** Cinq niveaux, chacun décrit par un exemple concret plutôt que par un adjectif. « Modérément actif » ne veut rien dire ; « sport 3 à 5 fois par semaine » se répond en une seconde.
 
-**4. Objectif.** Trois cartes : *Perdre du poids* · *Maintenir* · *Prendre du poids*. Puis poids cible (curseur pré-positionné sur une valeur plausible) et échéance (+3 mois / +6 mois / +12 mois / date libre).
+**4. Objectif.** Trois cartes : *Perdre du poids* · *Maintenir* · *Prendre du poids*. Puis poids cible et échéance — **trois pastilles seulement**, +3 mois / +6 mois / +12 mois. ~~date libre~~ La date libre disparaît ([D56](11-decisions.md)) : une échéance exacte n'a aucune valeur en soi, ce qui compte est le rythme.
 
-Un aperçu se met à jour en direct sous les curseurs : « ≈ 0,6 kg par semaine ». Si le rythme sort des bornes de sécurité ([03](03-nutrition-calculs.md#garde-fous)), l'écran ne bloque pas : il affiche la date atteignable la plus proche et propose de s'y caler en un tap.
+Un aperçu se met à jour en direct : « ≈ 0,6 kg par semaine », dérivé du budget retenu **après** garde-fous et non de l'échéance demandée. Si le rythme sort des bornes de sécurité ([03](03-nutrition-calculs.md#garde-fous)), l'écran ne bloque pas : la date atteignable apparaît en **quatrième pastille**, et un tap s'y cale.
 
 **5. Vos objectifs.** Les six chiffres calculés, chacun avec une phrase d'explication en une ligne. Bouton « Ajuster » vers l'édition manuelle, bouton « C'est parti » vers l'accueil.
 

@@ -100,6 +100,36 @@ class GoalCalculatorTest {
     }
 
     @Test
+    fun `le rythme annonce est celui que l objectif produit vraiment`() {
+        // L'apercu de docs/02, derive du budget retenu **apres** garde-fous : c'est le
+        // rythme reel qui interesse, pas celui qu'on esperait. -338 kcal/jour, soit
+        // 2 370 kcal/semaine, soit 0,31 kg.
+        val plan = calculate(HOMME, REFERENCE)
+
+        assertEquals(-0.31, plan.weeklyWeightChangeKg, RYTHME_TOLERANCE)
+    }
+
+    @Test
+    fun `un rythme borne suit le budget retenu et non l echeance demandee`() {
+        // 8 kg en 30 jours demanderait 2 053 kcal/jour de deficit ; les garde-fous
+        // ramenent a 716 (25 % du TDEE). Annoncer 1,87 kg/semaine serait annoncer un
+        // rythme que l'objectif ne produira pas.
+        val presse = REFERENCE.copy(targetDate = AUJOURD_HUI.plusDays(30))
+
+        val plan = calculate(HOMME, presse)
+
+        assertTrue(plan.capped)
+        assertEquals(-0.65, plan.weeklyWeightChangeKg, RYTHME_TOLERANCE)
+    }
+
+    @Test
+    fun `un maintien ne fait bouger le poids d aucun gramme`() {
+        val plan = calculate(HOMME, GoalRequest(GoalStrategy.MAINTAIN, currentWeightKg = POIDS_ACTUEL))
+
+        assertEquals(0.0, plan.weeklyWeightChangeKg, RYTHME_TOLERANCE)
+    }
+
+    @Test
     fun `les sucres ne sont pas comptes en plus des glucides`() {
         // Ils y sont inclus. Les additionner ferait deborder le controle de 252 kcal
         // sur cet exemple, et c'est exactement la forme de l'erreur que D24 decrit.
@@ -134,5 +164,8 @@ class GoalCalculatorTest {
 
         /** « Quelques kcal, jamais davantage » — docs/03 dit l'arrondi, pas plus. */
         const val ARRONDI_MAXIMAL = 4.0
+
+        /** Le rythme s'affiche à deux décimales : il se vérifie à la même précision. */
+        const val RYTHME_TOLERANCE = 0.01
     }
 }

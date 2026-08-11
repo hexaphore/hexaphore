@@ -54,7 +54,22 @@ data class GoalPlan(
      * [decisions]: docs/11-decisions.md
      */
     val energyGap: Double get() = goal.macroEnergy - goal.kcal
+
+    /**
+     * Le rythme que cet objectif produit, en kg par semaine. Négatif en perte.
+     *
+     * C'est l'aperçu que [docs/02][parcours] demande sous les choix d'échéance —
+     * « ≈ 0,6 kg par semaine ». Dérivé du budget retenu **après** garde-fous, et non
+     * de l'échéance demandée : c'est le rythme réel qui intéresse, pas celui qu'on
+     * espérait. Un second calcul dans l'écran aurait fini par annoncer autre chose.
+     *
+     * [parcours]: docs/02-parcours-et-ecrans.md
+     */
+    val weeklyWeightChangeKg: Double
+        get() = (goal.kcal - tdee) * DAYS_PER_WEEK / KCAL_PER_KILOGRAM
 }
+
+private const val DAYS_PER_WEEK = 7.0
 
 /**
  * Le calcul d'un objectif quotidien, de bout en bout.

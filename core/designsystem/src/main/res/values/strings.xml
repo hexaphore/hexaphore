@@ -25,6 +25,12 @@
          s'annonce comme n'importe quel bouton et l'appui semble sans effet. -->
     <string name="ds_button_unavailable">indisponible</string>
 
+    <!-- Sélecteur de date. Une date se choisit, elle ne se tape pas : demander
+         « AAAA-MM-JJ » au clavier fait porter à l'utilisateur un format que la
+         machine sait deviner. -->
+    <string name="ds_date_confirm">Valider</string>
+    <string name="ds_date_cancel">Annuler</string>
+
     <string name="ds_unit_gram_short">g</string>
     <string name="ds_unit_gram_spoken">grammes</string>
     <string name="ds_unit_millilitre_short">ml</string>
