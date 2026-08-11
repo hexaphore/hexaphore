@@ -137,11 +137,11 @@ C'est le vrai premier jalon : à la fin de cette tranche, **l'application est ut
 - Chaque garde-fou est testé sur ses deux bornes.
 - Une journée passée est comparée à l'objectif **actif ce jour-là**.
 - ~~L'objectif codé en dur de la tranche 1 a disparu, et la dette correspondante est rayée.~~ **Fait** : `DailyGoal.Placeholder` n'existe plus, `GetDaySummary` lit l'objectif actif du jour, et `DaySummary.goal` est nullable ([D55](11-decisions.md)).
-- On relit et corrige son profil ; un recalcul suit, et un compteur fixé à la main y **survit** et se voit comme tel ([D59](11-decisions.md)).
+- On relit et corrige son profil ; un recalcul suit, et un objectif **saisi à la main** y survit et se voit comme tel ([D59](11-decisions.md), [D60](11-decisions.md)).
 
 **Piège** : mettre à jour un objectif en place « parce que c'est plus simple ». Voir [D04](11-decisions.md).
 
-> **Livrée.** Le calcul, les tables versionnées, les cinq étapes et les réglages profil. L'exemple de [03](03-nutrition-calculs.md#exemple-complet) passe au kcal près, chaque garde-fou est éprouvé sur ses deux bornes, et `manual_fields` cesse d'être une colonne que seul un test remplit. Ce que la tranche ne construit pas est écrit en [D55](11-decisions.md) et [D59](11-decisions.md).
+> **Livrée.** Le calcul, les tables versionnées, les cinq étapes et les réglages profil. L'exemple de [03](03-nutrition-calculs.md#exemple-complet) passe au kcal près, et chaque garde-fou est éprouvé sur ses deux bornes. La colonne `manual_fields` a vécu le temps d'une décision : le verrou par compteur est devenu un mode porté par `origin`, et elle est partie en migration 3 → 4 ([D60](11-decisions.md)). Ce que la tranche ne construit pas est écrit en [D55](11-decisions.md) et [D59](11-decisions.md).
 
 ---
 
