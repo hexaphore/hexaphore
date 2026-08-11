@@ -1,6 +1,8 @@
 package app.hexaphore.feature.settings
 
 import androidx.compose.runtime.Immutable
+import app.hexaphore.domain.goal.DailyGoal
+import app.hexaphore.domain.goal.GoalOrigin
 import app.hexaphore.domain.goal.GoalStrategy
 import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.profile.ActivityLevel
@@ -17,10 +19,11 @@ import java.time.LocalDate
  * un formulaire qui refuserait de représenter cet état obligerait à réécrire dedans un
  * chiffre que l'utilisateur vient d'effacer.
  *
- * [manual] porte les compteurs fixés à la main. **La présence de la clé est le
- * verrou**, la valeur n'est que le chiffre : un compteur verrouillé dont le champ vient
- * d'être vidé garde donc sa clé, avec `null` pour valeur, et c'est ce qui permet de le
- * signaler au lieu de le déverrouiller en douce.
+ * [manual] est le mode, et c'est lui qui décide de tout le reste ([D60][decisions]).
+ * En calculé, les six chiffres viennent du profil et de l'échéance ; en manuel, ils
+ * viennent de [macros] et plus rien ne les recalcule.
+ *
+ * [decisions]: docs/11-decisions.md
  */
 @Immutable
 internal data class ProfileForm(
@@ -32,7 +35,9 @@ internal data class ProfileForm(
     val strategy: GoalStrategy? = null,
     val targetWeightKg: Double? = null,
     val targetDate: LocalDate? = null,
-    val manual: Map<Macro, Double?> = emptyMap(),
+    val manual: Boolean = false,
+    /** Les six chiffres saisis, en mode manuel. Une valeur nulle est un champ vidé. */
+    val macros: Map<Macro, Double?> = emptyMap(),
 ) {
     /**
      * Ce sans quoi aucun calcul n'est possible.
@@ -41,40 +46,54 @@ internal data class ProfileForm(
      * l'onboarding la porte sur son propre type de réponses, qui compte en plus un
      * avertissement à accepter et une étape courante. Les mettre en commun demanderait
      * de remanier ce type-là, ce dont cette tranche n'a pas besoin — c'est une
-     * duplication choisie, et elle est écrite en [D59][decisions].
+     * duplication choisie, écrite en [D59][decisions].
      *
      * [decisions]: docs/11-decisions.md
      */
     val identityComplete: Boolean
         get() = birthDate != null && sex != null && heightCm != null && currentWeightKg != null
 
-    /** Le maintien n'a ni poids cible ni échéance : il n'y a rien à atteindre. */
-    val objectiveComplete: Boolean
-        get() = when (strategy) {
-            null -> false
-            GoalStrategy.MAINTAIN -> true
-            else -> targetWeightKg != null && targetDate != null
-        }
+    /**
+     * Le poids visé et l'échéance sont-ils exigés ?
+     *
+     * En calculé, oui — sans eux l'écart calorique vaudrait zéro et « perdre du poids »
+     * produirait un objectif de maintien sous une étiquette qui ment. En **manuel**,
+     * non : ils décrivent le cap annoncé mais ne pilotent aucun des six chiffres, et
+     * exiger une date qui ne sert à rien serait exiger pour la forme ([D60][decisions]).
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val horizonRequired: Boolean get() = !manual && strategy != null && strategy != GoalStrategy.MAINTAIN
 
-    /** Ce compteur est-il fixé à la main ? La clé est le verrou, pas la valeur. */
-    fun locked(macro: Macro): Boolean = macro in manual
+    val horizonComplete: Boolean get() = !horizonRequired || (targetWeightKg != null && targetDate != null)
+
+    /** Les six chiffres saisis, ou `null` si l'un d'eux manque. */
+    fun typedGoal(): DailyGoal? = Macro.entries.fold<Macro, DailyGoal?>(EMPTY_GOAL) { goal, macro ->
+        goal?.let { current -> macros[macro]?.let { current.with(macro, it) } }
+    }
 }
+
+private val EMPTY_GOAL = DailyGoal(kcal = 0.0, protein = 0.0, carbs = 0.0, sugars = 0.0, fat = 0.0, fiber = 0.0)
 
 /** Ce qui empêche d'enregistrer. L'écran le traduit en phrase, l'état ne connaît pas les ressources. */
 internal enum class ProfileBlocker {
     IDENTITY,
     ACTIVITY,
-    OBJECTIVE,
-    EMPTY_COUNTER,
+    STRATEGY,
+    HORIZON,
+    EMPTY_MACRO,
 }
 
 /**
  * L'état de l'écran « Profil et objectifs ».
  *
- * [plan] est recalculé à chaque correction, et c'est ce qui fait de cet écran un seul
- * calcul plutôt que deux. Il vaut `null` tant qu'un champ manque : afficher six chiffres
- * dérivés d'un formulaire incomplet reviendrait à montrer l'objectif de quelqu'un
- * d'autre, exactement ce que [D56][decisions] a retiré de l'onboarding.
+ * [editing] est la première chose que l'écran regarde : **on consulte par défaut**, et
+ * le crayon est la seule porte vers la modification ([D60][decisions]). Un écran de
+ * réglages en édition permanente invite à corriger ce qu'on venait seulement relire.
+ *
+ * [plan] est recalculé à chaque correction et vaut `null` tant qu'un champ manque.
+ * En mode manuel il continue d'être calculé — c'est ce qui permet de revenir au calcul
+ * sans quitter l'écran — mais il ne décide plus des six chiffres.
  *
  * [decisions]: docs/11-decisions.md
  */
@@ -85,8 +104,13 @@ internal data class ProfileUiState(
     val loaded: Boolean = false,
     /** La lecture du profil ou de l'objectif a échoué ([D39][decisions]). */
     val unreadable: Boolean = false,
+    val editing: Boolean = false,
     val form: ProfileForm = ProfileForm(),
+    /** Les six chiffres tels qu'ils sont **enregistrés**. Ce à quoi la confirmation compare. */
+    val saved: DailyGoal? = null,
     val plan: GoalPlan? = null,
+    /** La correction en attente de confirmation, `null` le reste du temps. */
+    val pending: DailyGoal? = null,
     val saving: Boolean = false,
     val failed: Boolean = false,
 ) {
@@ -101,22 +125,23 @@ internal data class ProfileUiState(
         get() = when {
             !form.identityComplete -> ProfileBlocker.IDENTITY
             form.activityLevel == null -> ProfileBlocker.ACTIVITY
-            !form.objectiveComplete -> ProfileBlocker.OBJECTIVE
-            form.manual.values.any { it == null } -> ProfileBlocker.EMPTY_COUNTER
+            form.strategy == null -> ProfileBlocker.STRATEGY
+            !form.horizonComplete -> ProfileBlocker.HORIZON
+            form.manual && form.typedGoal() == null -> ProfileBlocker.EMPTY_MACRO
             else -> null
         }
 
     val canSave: Boolean get() = blocker == null && !saving
 
     /**
-     * Ce qu'un compteur vaudra une fois enregistré.
+     * Les six chiffres tels qu'ils seront enregistrés.
      *
-     * Le chiffre fixé à la main quand il y en a un, celui du calcul sinon. C'est la
-     * même règle que [app.hexaphore.domain.goal.DailyGoal.overriddenBy], appliquée à
-     * l'affichage — et c'est délibérément la seule chose que l'écran en redit : la
-     * valeur écrite, elle, vient du domaine.
+     * Manuel : ce qui a été tapé. Calculé : ce que le profil produit. C'est la seule
+     * fois où le mode se lit dans le code de l'écran, et tout le reste en découle.
      */
-    fun shown(macro: Macro): Double? = if (form.locked(macro)) form.manual[macro] else plan?.goal?.get(macro)
+    val daily: DailyGoal? get() = if (form.manual) form.typedGoal() else plan?.goal
+
+    val origin: GoalOrigin get() = if (form.manual) GoalOrigin.MANUAL else GoalOrigin.CALCULATED
 }
 
 /**
@@ -139,8 +164,17 @@ internal fun ProfileForm.toProfile(): UserProfile? = when {
     )
 }
 
+/**
+ * La demande, telle que le calcul et l'enregistrement la lisent.
+ *
+ * Le poids visé et l'échéance y figurent **même en mode manuel**, où ils ne pilotent
+ * rien : ils décrivent le cap annoncé, et c'est de là que le journal de poids tirera sa
+ * trajectoire ([D60][decisions]).
+ *
+ * [decisions]: docs/11-decisions.md
+ */
 internal fun ProfileForm.toRequest(): GoalRequest? =
-    if (currentWeightKg != null && strategy != null && objectiveComplete) {
+    if (currentWeightKg != null && strategy != null && horizonComplete) {
         GoalRequest(
             strategy = strategy,
             currentWeightKg = currentWeightKg,
@@ -150,7 +184,3 @@ internal fun ProfileForm.toRequest(): GoalRequest? =
     } else {
         null
     }
-
-/** Les compteurs fixés **et renseignés**. Un champ vidé bloque l'enregistrement, il n'écrit pas `null`. */
-internal fun ProfileForm.manualValues(): Map<Macro, Double> =
-    manual.mapNotNull { (macro, value) -> value?.let { macro to it } }.toMap()

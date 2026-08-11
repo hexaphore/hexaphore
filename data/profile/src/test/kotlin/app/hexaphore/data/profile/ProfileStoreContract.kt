@@ -6,7 +6,6 @@ import app.hexaphore.domain.goal.Goal
 import app.hexaphore.domain.goal.GoalId
 import app.hexaphore.domain.goal.GoalOrigin
 import app.hexaphore.domain.goal.GoalStrategy
-import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.profile.ActivityLevel
 import app.hexaphore.domain.profile.Sex
 import app.hexaphore.domain.profile.UnitSystem
@@ -180,29 +179,6 @@ abstract class ProfileStoreContract {
     }
 
     @Test
-    fun `les compteurs fixes a la main survivent a l aller-retour`() = runBlocking {
-        // La propriete dont depend le verrouillage des reglages profil : un recalcul
-        // ne doit pas reecrire un compteur fixe par l'utilisateur, et il ne peut pas
-        // le savoir si l'ensemble ne revient pas de la base.
-        val magasin = store()
-
-        magasin.replace(PREMIER.copy(manualFields = setOf(Macro.PROTEIN, Macro.FAT)))
-
-        assertEquals(setOf(Macro.PROTEIN, Macro.FAT), magasin.observeCurrent().first()!!.manualFields)
-    }
-
-    @Test
-    fun `un objectif sans compteur fixe se relit sans compteur fixe`() = runBlocking {
-        // Le cas limite de la serialisation : une chaine vide decoupee rend une
-        // chaine vide, et non rien du tout.
-        val magasin = store()
-
-        magasin.replace(PREMIER)
-
-        assertEquals(emptySet<Macro>(), magasin.observeCurrent().first()!!.manualFields)
-    }
-
-    @Test
     fun `remplacer clot le precedent, et il n en reste qu un de courant`() = runBlocking {
         val magasin = store()
         magasin.replace(PREMIER)
@@ -331,7 +307,17 @@ abstract class ProfileStoreContract {
             daily = QUOTIDIEN,
         )
 
-        /** Un cap différent, avec ce que le premier n'a pas : une cible et une échéance. */
+        /**
+         * Un cap différent, avec ce que le premier n'a pas : une cible et une échéance.
+         *
+         * Et **saisi à la main tout en portant une cible**, ce qui n'est pas une
+         * incohérence de fixture : depuis [D60][decisions], le poids visé et l'échéance
+         * décrivent le cap annoncé, dont le journal de poids tire sa trajectoire, sans
+         * piloter les six chiffres. C'est la combinaison la plus facile à perdre dans un
+         * aller-retour, donc celle que le contrat fait voyager.
+         *
+         * [decisions]: docs/11-decisions.md
+         */
         val SECOND = Goal(
             id = GoalId("goal-second"),
             startedAt = DEBUT_SECOND,

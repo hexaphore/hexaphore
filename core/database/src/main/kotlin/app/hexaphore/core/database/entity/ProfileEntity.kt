@@ -84,6 +84,10 @@ data class WeightEntryEntity(
  * l'index porte donc sur une **colonne calculée** qui vaut `1` pour l'objectif actif
  * et l'identifiant sinon — deux lignes actives entreraient alors en collision.
  *
+ * `origin` porte à lui seul la provenance des six chiffres. La colonne `manual_fields`,
+ * qui listait les compteurs figés à l'intérieur d'un objectif calculé, est partie en
+ * migration 3 → 4 : le verrou par compteur est devenu un mode ([D60][decisions]).
+ *
  * [decisions]: docs/11-decisions.md
  */
 @Entity(
@@ -131,9 +135,6 @@ data class GoalEntity(
     val fatG: Double,
     @ColumnInfo(name = "fiber_g")
     val fiberG: Double,
-    /** Les compteurs fixés à la main, séparés par des virgules. Vide si aucun. */
-    @ColumnInfo(name = "manual_fields")
-    val manualFields: String,
     @ColumnInfo(name = "created_at")
     val createdAt: Long,
 ) {
