@@ -1,5 +1,6 @@
 package app.hexaphore.data.diary
 
+import app.hexaphore.core.testing.firstAfter
 import app.hexaphore.domain.diary.DiaryRepository
 import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.DishId
@@ -7,15 +8,8 @@ import app.hexaphore.domain.diary.EntryId
 import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.diary.FoodEntry
 import app.hexaphore.domain.nutrition.Macros
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -237,9 +231,9 @@ abstract class DiaryContract {
     fun `la journee se dement apres une ecriture`() = runBlocking {
         val diary = journal()
 
-        val apres = diary.observeDay(LUNDI).apres(
-            ecriture = { diary.save(petitDejeuner(LUNDI)) },
-            attendu = { it.isNotEmpty() },
+        val apres = diary.observeDay(LUNDI).firstAfter(
+            write = { diary.save(petitDejeuner(LUNDI)) },
+            matching = { it.isNotEmpty() },
         )
 
         assertEquals(listOf(PLAT), apres.map { it.id })
@@ -250,9 +244,9 @@ abstract class DiaryContract {
         val diary = journal()
         diary.save(petitDejeuner(LUNDI))
 
-        val apres = diary.observeDay(LUNDI).apres(
-            ecriture = { diary.deleteDish(PLAT) },
-            attendu = { it.isEmpty() },
+        val apres = diary.observeDay(LUNDI).firstAfter(
+            write = { diary.deleteDish(PLAT) },
+            matching = { it.isEmpty() },
         )
 
         assertTrue(apres.isEmpty())
@@ -265,40 +259,15 @@ abstract class DiaryContract {
         val diary = journal()
         diary.save(petitDejeuner(LUNDI))
 
-        val apres = diary.observeDay(LUNDI).apres(
-            ecriture = { diary.deleteEntry(SANS_FIBRES) },
-            attendu = { jour -> jour.firstOrNull()?.entries?.size == 1 },
+        val apres = diary.observeDay(LUNDI).firstAfter(
+            write = { diary.deleteEntry(SANS_FIBRES) },
+            matching = { jour -> jour.firstOrNull()?.entries?.size == 1 },
         )
 
         assertEquals(listOf(LIGNE), apres.single().entries.map { it.id })
     }
 
     // --- Outillage --------------------------------------------------------------
-
-    /**
-     * Ce que le flux rend **après** [ecriture], et non ce qu'il rendait avant.
-     *
-     * Une relecture après coup passerait même si le flux n'avait jamais ré-émis,
-     * c'est-à-dire même si le port était devenu une lecture unique. Ici, l'attente
-     * expire et le message le dit.
-     */
-    private suspend fun <T> Flow<T>.apres(ecriture: suspend () -> Unit, attendu: (T) -> Boolean): T = coroutineScope {
-        val recu = Channel<T>(Channel.UNLIMITED)
-        val collecte = launch(Dispatchers.Default) { collect { recu.send(it) } }
-        try {
-            withTimeout(DELAI_MILLIS) {
-                recu.receive()
-                ecriture()
-                var valeur = recu.receive()
-                while (!attendu(valeur)) valeur = recu.receive()
-                valeur
-            }
-        } catch (_: TimeoutCancellationException) {
-            error("le flux n a pas re-emis apres l ecriture : est-il encore une lecture unique ?")
-        } finally {
-            collecte.cancel()
-        }
-    }
 
     /**
      * Deux lignes, dont une **sans valeur de fibres**.
@@ -366,6 +335,5 @@ abstract class DiaryContract {
         val SANS_FIBRES = EntryId("${PLAT.value}$SAUCE")
 
         const val DEUX_LIGNES = 2
-        const val DELAI_MILLIS = 5_000L
     }
 }

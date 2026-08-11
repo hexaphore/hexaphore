@@ -54,25 +54,41 @@ JDK 17 et le SDK Android (plateforme 35). Aucune clé, aucun compte, aucun secre
 ```
 ./gradlew check          # ktlint, detekt, Android Lint, tests
 ./gradlew assembleDebug  # APK de développement
+./gradlew installDebug   # installe sur l'appareil branché
 ```
 
-Le projet est bâti sur Gradle 8.10 et AGP 8.7 ; le choix du palier et la marche à suivre pour en changer sont expliqués en [D15](docs/11-decisions.md#d15--chaîne-de-construction-alignée-sur-loutillage-installé--par-défaut). Toutes les versions vivent dans `gradle/libs.versions.toml` — aucune n'est écrite dans un `build.gradle.kts`.
+`installDebug` **installe par-dessus** plutôt que de remplacer. C'est ce qu'il faut : une migration Room et la recopie de `ciqual.db` ne s'éprouvent que sur une base déjà présente, et désinstaller d'abord les rend intestables. Les pièges de ce genre sont rassemblés dans [10](docs/10-qualite-et-livraison.md#travailler-sur-ce-dépôt).
+
+Le projet est bâti sur Gradle 8.10 et AGP 8.7 ; le choix du palier et la marche à suivre pour en changer sont expliqués en [D15](docs/11-decisions.md#d15--chaîne-de-construction-alignée-sur-loutillage-installé---par-défaut). Toutes les versions vivent dans `gradle/libs.versions.toml` — aucune n'est écrite dans un `build.gradle.kts`.
 
 Trois règles [detekt](build-logic/detekt-rules) maison font échouer le build sur ce que la relecture laisse passer : une couleur écrite hors du design system, un import Android dans `:domain`, une lecture directe de l'horloge système.
 
 ### Modules
 
+Quatorze, nés au fur et à mesure qu'ils avaient un fichier à contenir.
+
 | Module | Rôle |
 |---|---|
-| `:app` | Application, graphe Hilt, galerie des composants |
-| `:domain` | Kotlin pur — modèles et ports. Aucune dépendance Android, et le build le vérifie. |
+| `:app` | Application, graphe Hilt, navigation |
+| `:domain` | Kotlin pur — modèles, ports, calculs. Aucune dépendance Android, et le build le vérifie. |
+| `:core:common` | Implémentations de `Clock`, `DispatcherProvider`, `IdGenerator` |
 | `:core:designsystem` | Palette néon, thème, animations, composants Compose |
+| `:core:database` | Room, migrations, schémas exportés, et la table de l'ANSES en lecture seule |
+| `:core:testing` | Premières implémentations des ports, et les décors partagés |
+| `:data:diary` | Le journal alimentaire |
+| `:data:food` | Le catalogue d'aliments |
+| `:data:profile` | Profil, journal de poids, objectifs versionnés |
+| `:feature:home` | L'accueil et son hexagone |
+| `:feature:entry` | L'écran de validation, point de convergence des modes de saisie |
+| `:feature:search` | La recherche et le bandeau de rayons |
+| `:feature:onboarding` | Les cinq questions |
+| `:tooling:ciqual-import` | Convertit le XML de l'ANSES en `ciqual.db`. Le seul module qui n'entre dans aucun APK. |
 
-Les treize autres modules de [06](docs/06-architecture.md) naîtront quand ils auront un fichier à contenir.
+`build-logic` s'y ajoute sans y figurer : c'est un build inclus, qui porte les plugins de convention et les règles detekt. Le découpage et ses raisons sont en [06](docs/06-architecture.md).
 
 ## Licence
 
-Code sous **GPL-3.0**. Voir [11-decisions.md](docs/11-decisions.md#d10--licence-gpl-30) pour le raisonnement.
+Code sous **GPL-3.0**. Voir [11-decisions.md](docs/11-decisions.md#d10--licence-gpl-30---par-défaut) pour le raisonnement.
 
 Les données embarquées ou consultées ont leurs propres licences, respectées et créditées :
 
