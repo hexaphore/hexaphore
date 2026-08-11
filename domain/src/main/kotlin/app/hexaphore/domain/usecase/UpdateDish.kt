@@ -19,6 +19,12 @@ import app.hexaphore.domain.identity.IdGenerator
  * il a été corrigé. La remettre à jour ferait sauter le plat en bas de la journée à
  * chaque relecture.
  *
+ * **Un brouillon vidé de ses lignes supprime le plat.** C'est la même règle que
+ * `DeleteEntry` applique déjà à la dernière ligne d'un plat, et elle vaut ici pour la
+ * même raison : un plat sans contenu n'est pas un plat à zéro calorie, c'est une saisie
+ * qui n'a pas eu lieu. La faire tenir aux deux endroits évite qu'un même geste — retirer
+ * les lignes une à une — réussisse par un chemin et se fasse refuser par l'autre.
+ *
  * [decisions]: docs/11-decisions.md
  *
  * @see docs/06-architecture.md
@@ -28,18 +34,23 @@ class UpdateDish(private val diary: DiaryRepository, private val ids: IdGenerato
      * @throws IllegalArgumentException si le brouillon est incomplet ou ne désigne
      *   aucun plat.
      * @throws IllegalStateException si le plat désigné n'existe plus — supprimé
-     *   depuis un autre écran pendant l'édition.
+     *   depuis un autre écran pendant l'édition. Le cas ne se pose pas pour un
+     *   brouillon vidé : supprimer ce qui a déjà disparu n'a rien à vérifier.
      */
     suspend operator fun invoke(draft: EntryDraft) {
         require(draft.saveable) { "Brouillon incomplet : chaque ligne demande un nom, une quantite et une energie." }
         val id = requireNotNull(draft.dishId) { "Brouillon sans plat d'origine : utiliser LogDish." }
 
-        val existing = checkNotNull(diary.dish(id)) { "Plat introuvable : ${id.value}" }
-        diary.save(
-            existing.copy(
-                date = draft.date,
-                entries = draft.toEntries(id, ids),
-            ),
-        )
+        if (draft.lines.isEmpty()) {
+            diary.deleteDish(id)
+        } else {
+            val existing = checkNotNull(diary.dish(id)) { "Plat introuvable : ${id.value}" }
+            diary.save(
+                existing.copy(
+                    date = draft.date,
+                    entries = draft.toEntries(id, ids),
+                ),
+            )
+        }
     }
 }

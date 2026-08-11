@@ -1,7 +1,8 @@
 package app.hexaphore.feature.home
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -9,13 +10,21 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -61,8 +70,12 @@ internal fun DishList(dishes: List<DishSummary>, zone: ZoneId, actions: HomeActi
  *
  * [decisions]: docs/11-decisions.md
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DishBlock(summary: DishSummary, zone: ZoneId, timeFormatter: DateTimeFormatter, actions: HomeActions) {
+    var menuOpen by remember { mutableStateOf(false) }
+    var confirming by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -70,30 +83,31 @@ private fun DishBlock(summary: DishSummary, zone: ZoneId, timeFormatter: DateTim
             // le total de calories, qui sont aux deux extremites de la premiere
             // ligne. L'ondulation deborde donc en rectangle, ce qui est le prix a
             // payer pour que rien ne soit tronque.
-            .clickable(
+            .combinedClickable(
                 onClickLabel = stringResource(R.string.home_dish_edit),
+                onLongClickLabel = stringResource(R.string.home_dish_menu),
+                onLongClick = { menuOpen = true },
                 onClick = { actions.onEditDish(summary.dish.id) },
             ),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SourceBadge(source = summary.dish.source)
-            Text(
-                text = timeFormatter.format(summary.dish.loggedAt.atZone(zone)),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = stringResource(R.string.home_dish_kcal, summary.totals[Macro.CALORIES].value.roundToInt()),
-                style = MaterialTheme.typography.labelLarge,
-                color = NeonTheme.macros[Macro.CALORIES].base,
+        DishMenu(
+            expanded = menuOpen,
+            onDismiss = { menuOpen = false },
+            onEdit = { actions.onEditDish(summary.dish.id) },
+            onDelete = { confirming = true },
+        )
+        if (confirming) {
+            DeleteDishConfirmation(
+                lines = summary.entries.size,
+                onConfirm = {
+                    confirming = false
+                    actions.onDeleteDish(summary.dish)
+                },
+                onDismiss = { confirming = false },
             )
         }
+        DishHeader(summary, zone, timeFormatter)
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         summary.entries.forEach { entry ->
             SwipeToDelete(
@@ -105,6 +119,79 @@ private fun DishBlock(summary: DishSummary, zone: ZoneId, timeFormatter: DateTim
         }
         DishMacros(summary)
     }
+}
+
+/** La pastille de source, l'heure, et le total du plat. */
+@Composable
+private fun DishHeader(summary: DishSummary, zone: ZoneId, timeFormatter: DateTimeFormatter) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SourceBadge(source = summary.dish.source)
+        Text(
+            text = timeFormatter.format(summary.dish.loggedAt.atZone(zone)),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = stringResource(R.string.home_dish_kcal, summary.totals[Macro.CALORIES].value.roundToInt()),
+            style = MaterialTheme.typography.labelLarge,
+            color = NeonTheme.macros[Macro.CALORIES].base,
+        )
+    }
+}
+
+/**
+ * Le menu de l'appui long : modifier, supprimer.
+ *
+ * **Il double le tap plutôt que de le remplacer.** Le tap ouvre la modification, qui
+ * reste le geste courant ; l'appui long donne accès à ce qui n'a pas sa place sur la
+ * surface du plat. « Modifier » y figure quand même — un menu dont la moitié des
+ * entrées manque oblige à se souvenir de quel geste sert à quoi.
+ */
+@Composable
+private fun DishMenu(expanded: Boolean, onDismiss: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.home_dish_menu_edit)) },
+            onClick = {
+                onDismiss()
+                onEdit()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.home_dish_menu_delete)) },
+            onClick = {
+                onDismiss()
+                onDelete()
+            },
+        )
+    }
+}
+
+/**
+ * La confirmation avant de supprimer un plat entier.
+ *
+ * Un dialogue, là où le balayage d'une ligne se contente de sa barre d'annulation :
+ * celui-ci emporte *n* lignes d'un coup, et le nombre est dit. La barre reste offerte
+ * ensuite — la confirmation évite l'accident, la barre rattrape le regret.
+ */
+@Composable
+private fun DeleteDishConfirmation(lines: Int, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.home_dish_delete_title)) },
+        text = { Text(pluralStringResource(R.plurals.home_dish_delete_body, lines, lines)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text(stringResource(R.string.home_dish_delete_confirm)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.home_dish_delete_cancel)) }
+        },
+    )
 }
 
 private val DishSummary.entries: List<FoodEntry> get() = dish.entries

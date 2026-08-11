@@ -1088,6 +1088,38 @@ Corriger sa taille de quatre centimètres déplace un objectif quotidien. À la 
 
 ---
 
+## D61 — Un plat vidé se supprime, et l'appui long ouvre ses actions · ✓ validée
+
+**Contexte.** Deux gestes que l'application refusait ou n'offrait pas, constatés à l'usage.
+
+### Retirer la dernière ligne d'un plat le supprime, partout
+
+`DeleteEntry` supprimait déjà le plat vidé de sa dernière ligne — c'était sa règle dès la tranche 2. L'écran de validation, lui, opposait un refus : `EntryDraft.saveable` exigeait au moins une ligne, donc « Enregistrer » restait indisponible et expliquait qu'il en fallait une.
+
+Le même geste réussissait donc par un chemin et échouait par l'autre, pour une règle que le projet avait déjà tranchée : **un plat sans contenu n'est pas un plat à zéro calorie, c'est une saisie qui n'a pas eu lieu.** `UpdateDish` supprime désormais quand le brouillon est vide.
+
+**Une saisie neuve vidée ne supprime rien**, faute d'avoir quoi que ce soit à supprimer, et c'est `EntryDraft.editing` qui fait la différence. Sans elle, « Enregistrer » serait devenu actif sur un écran où l'on n'a encore rien tapé.
+
+**Le bouton change de libellé** — « Supprimer ce plat » — dès qu'il ne reste aucune ligne. Laisser « Enregistrer » ferait disparaître le plat sous un mot qui annonce le contraire, et le geste est exactement celui qui, une ligne plus tôt, enregistrait une correction.
+
+### L'appui long ouvre un menu, et il double le tap
+
+Le plat entier est une cible tactile depuis [D48](#d48--la-barre-pleine-vaut-lobjectif---validée), et le tap ouvre la modification. L'appui long ouvre un menu — **Modifier**, **Supprimer** — qui donne accès à ce qui n'a pas sa place sur la surface du plat.
+
+« Modifier » y figure bien qu'il double le tap : un menu dont la moitié des entrées manque oblige à se souvenir de quel geste sert à quoi, et c'est exactement ce qu'un menu sert à éviter.
+
+### Supprimer un plat se confirme, et reste annulable
+
+Le balayage d'une ligne se contente de sa barre d'annulation. Supprimer un plat en emporte *n* d'un coup : un dialogue le demande d'abord, et **il dit le nombre**.
+
+**C'est un écart avec [02](02-parcours-et-ecrans.md#comportements-transverses)**, qui réserve le dialogue au destructif et à l'irréversible — or une suppression annulable pendant cinq secondes ne l'est pas. Il est assumé : ce qui distingue ce cas du balayage n'est pas la réversibilité, c'est le volume.
+
+**La barre reste offerte ensuite**, et les deux ne font pas double emploi : la confirmation évite l'accident, la barre rattrape le regret. Le mécanisme existait déjà — `RestoreDish` remet le plat et ses lignes en place — et le retirer aurait été enlever une sécurité pour n'en gagner aucune.
+
+**Conséquences.** `DeleteDish` naît comme cas d'usage, pour un seul appel de port : un `:feature` ne voit que des cas d'usage, et l'exception se serait payée à la première règle qu'on aurait voulu y mettre. `DomainModule` se scinde en deux — journal et objectif — parce qu'il atteignait le seuil de fonctions de detekt ; la coupure existait déjà dans la lecture.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

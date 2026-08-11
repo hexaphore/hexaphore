@@ -56,6 +56,24 @@
     <!-- Le plat entier est tapable. Ce libellé est ce que TalkBack annonce après
          « appuyer deux fois pour » : sans lui, il dirait « activer ». -->
     <string name="home_dish_edit">modifier ce plat</string>
+
+    <!-- L'appui long double le tap plutôt que de le remplacer : le tap ouvre la
+         modification, le menu donne accès à ce qui n'a pas sa place sur le plat. -->
+    <string name="home_dish_menu">ouvrir le menu du plat</string>
+    <string name="home_dish_menu_edit">Modifier</string>
+    <string name="home_dish_menu_delete">Supprimer</string>
+
+    <!-- Un dialogue, là où le balayage d'une ligne se contente de sa barre : celui-ci
+         emporte n lignes d'un coup, et le nombre est dit. -->
+    <string name="home_dish_delete_title">Supprimer ce plat ?</string>
+    <!-- Le nombre figure dans les deux formes : en français, « one » couvre aussi
+         zéro, et un message sans son chiffre y deviendrait faux. -->
+    <plurals name="home_dish_delete_body">
+        <item quantity="one">%1$d ligne sera retirée de votre journée. Vous pourrez annuler juste après.</item>
+        <item quantity="other">%1$d lignes seront retirées de votre journée. Vous pourrez annuler juste après.</item>
+    </plurals>
+    <string name="home_dish_delete_confirm">Supprimer</string>
+    <string name="home_dish_delete_cancel">Annuler</string>
     <string name="home_entry_quantity">%1$s %2$s</string>
     <string name="home_entry_kcal">%1$d kcal</string>
 

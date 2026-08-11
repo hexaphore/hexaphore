@@ -7,6 +7,7 @@ import app.hexaphore.core.testing.SampleDiary
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.nutrition.Macro
+import app.hexaphore.domain.usecase.DeleteDish
 import app.hexaphore.domain.usecase.DeleteEntry
 import app.hexaphore.domain.usecase.GetDaySummary
 import app.hexaphore.domain.usecase.RestoreDish
@@ -16,6 +17,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -175,10 +177,46 @@ class HomeViewModelTest {
         assertNull(viewModel.pendingUndo.value)
     }
 
+    @Test
+    fun `supprimer un plat retire ses lignes ensemble, et reste annulable`() = runTest(dispatcher) {
+        // L'appui long porte sur le plat, donc l'action aussi : les n lignes partent
+        // d'un coup. La barre reste offerte -- la confirmation, demandee par l'ecran,
+        // evite l'accident ; la barre rattrape le regret.
+        val diary = InMemoryDiaryRepository(SampleDiary.day(jour))
+        val viewModel = viewModel(diary, FixedClock.atNoon(jour))
+        val plat = viewModel.uiState.filterIsInstance<HomeUiState.Content>().first().summary.dishes.first().dish
+
+        viewModel.onDeleteDish(plat)
+        advanceUntilIdle()
+
+        assertEquals(2, diary.dishes.size, "le plat entier devait partir")
+        assertEquals(plat, viewModel.pendingUndo.value, "et rester rattrapable")
+
+        viewModel.onUndo()
+        advanceUntilIdle()
+
+        assertEquals(3, diary.dishes.size, "annuler remet le plat et ses lignes")
+    }
+
+    @Test
+    fun `un echec de suppression du plat ne propose rien a annuler`() = runTest(dispatcher) {
+        // Rien n'a ete supprime : proposer « Annuler » laisserait croire le contraire.
+        val diary = InMemoryDiaryRepository(SampleDiary.day(jour))
+        val viewModel = viewModel(diary, FixedClock.atNoon(jour))
+        val plat = viewModel.uiState.filterIsInstance<HomeUiState.Content>().first().summary.dishes.first().dish
+        diary.failure = IllegalStateException("base illisible")
+
+        viewModel.onDeleteDish(plat)
+        advanceUntilIdle()
+
+        assertNull(viewModel.pendingUndo.value)
+    }
+
     private fun viewModel(diary: InMemoryDiaryRepository, clock: FixedClock) = HomeViewModel(
         getDaySummary = GetDaySummary(diary, InMemoryGoals(listOf(InMemoryGoals.maintenance(jour))), clock),
         dispatchers = TestDispatchers(dispatcher),
         deleteEntry = DeleteEntry(diary),
+        deleteDish = DeleteDish(diary),
         restoreDish = RestoreDish(diary),
     )
 

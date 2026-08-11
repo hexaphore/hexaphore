@@ -11,7 +11,9 @@ import app.hexaphore.domain.diary.brouillon
 import app.hexaphore.domain.diary.ligne
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
@@ -90,6 +92,44 @@ class UpdateDishTest {
         updateDish(relu.copy(lines = corrige))
 
         assertEquals(sauceAvant, diary.dishes.single().entries.last())
+    }
+
+    @Test
+    fun `vider un plat de ses lignes le supprime`() = runTest {
+        // Retirer les lignes une a une jusqu'a la derniere est une facon naturelle de
+        // dire « ce plat n'a pas eu lieu ». Le balayage de l'accueil le permettait
+        // deja par `DeleteEntry` ; l'ecran de validation opposait un refus.
+        val id = logDish(brouillon(ligne("a"), ligne("b")))
+        val relu = getDishDraft(id)!!
+
+        updateDish(relu.copy(lines = emptyList()))
+
+        assertTrue(diary.dishes.isEmpty(), "le plat vide devait disparaitre, pas rester a zero calorie")
+    }
+
+    @Test
+    fun `un plat vide est enregistrable, une saisie neuve vide ne l est pas`() = runTest {
+        // La difference tient a ce qu'il y a a supprimer. Sans elle, « Enregistrer »
+        // deviendrait actif sur un ecran de saisie ou l'on n'a encore rien tape.
+        val id = logDish(brouillon(ligne("a")))
+        val relu = getDishDraft(id)!!
+
+        assertTrue(relu.copy(lines = emptyList()).saveable, "un plat relu et vide se supprime")
+        assertTrue(relu.copy(lines = emptyList()).emptying)
+        assertFalse(brouillon().saveable, "une saisie neuve vide n a rien a ecrire")
+    }
+
+    @Test
+    fun `vider un plat deja disparu ne leve pas`() = runTest {
+        // Supprimer ce qui n'existe plus n'a rien a verifier, et lever ici forcerait
+        // l'ecran a traiter en echec un etat qui est exactement celui qu'il visait.
+        val id = logDish(brouillon(ligne("a")))
+        val relu = getDishDraft(id)!!
+        diary.deleteDish(id)
+
+        updateDish(relu.copy(lines = emptyList()))
+
+        assertTrue(diary.dishes.isEmpty())
     }
 
     @Test
