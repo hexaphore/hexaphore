@@ -11,10 +11,12 @@ import app.hexaphore.feature.entry.EntryDestination
 import app.hexaphore.feature.entry.entryScreen
 import app.hexaphore.feature.entry.navigateToEntry
 import app.hexaphore.feature.entry.navigateToEntryFor
+import app.hexaphore.feature.entry.navigateToEntryForFavorite
 import app.hexaphore.feature.home.HomeDestination
 import app.hexaphore.feature.home.homeScreen
 import app.hexaphore.feature.onboarding.OnboardingDestination
 import app.hexaphore.feature.onboarding.onboardingScreen
+import app.hexaphore.feature.search.navigateToFavorites
 import app.hexaphore.feature.search.navigateToManualEntry
 import app.hexaphore.feature.search.navigateToSearch
 import app.hexaphore.feature.search.navigateToSearchForDraft
@@ -72,6 +74,7 @@ private fun HexaphoreNavHost(startDestination: Any, modifier: Modifier = Modifie
             // ecran de reglages qui ne designerait qu'une destination serait un
             // ecran de transit (D59).
             onOpenProfile = { navController.navigateToProfile() },
+            onOpenFavorites = { navController.navigateToFavorites() },
         )
         onboardingScreen(
             // L'onboarding s'efface derriere l'accueil : y revenir par le bouton
@@ -110,6 +113,13 @@ private fun HexaphoreNavHost(startDestination: Any, modifier: Modifier = Modifie
                 }
             },
             onManualEntry = { name, addToDraft -> navController.navigateToManualEntry(name, addToDraft) },
+            // Choisir un favori ouvre la validation, prerempli et modifiable : un
+            // favori est un modele, pas un raccourci d'ecriture. La liste s'efface
+            // derriere, comme la recherche.
+            onPickFavorite = { favoriteId ->
+                navController.popBackStack(HomeDestination, inclusive = false)
+                navController.navigateToEntryForFavorite(favoriteId)
+            },
             onClose = { navController.popBackStack() },
         )
     }

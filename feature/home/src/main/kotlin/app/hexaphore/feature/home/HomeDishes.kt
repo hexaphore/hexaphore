@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,11 +49,19 @@ import kotlin.math.roundToInt
  * Pas de repas nommés : un plat est une saisie, et l'heure suffit à le situer.
  */
 @Composable
-internal fun DishList(dishes: List<DishSummary>, zone: ZoneId, actions: HomeActions) {
+internal fun DishList(
+    dishes: List<DishSummary>,
+    zone: ZoneId,
+    actions: HomeActions,
+    favoriteNameTaken: Boolean,
+    onDismissFavoriteError: () -> Unit,
+) {
     val timeFormatter = remember { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT) }
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
-        dishes.forEach { dish -> DishBlock(dish, zone, timeFormatter, actions) }
+        dishes.forEach { dish ->
+            DishBlock(dish, zone, timeFormatter, actions, favoriteNameTaken, onDismissFavoriteError)
+        }
     }
 }
 
@@ -72,9 +81,19 @@ internal fun DishList(dishes: List<DishSummary>, zone: ZoneId, actions: HomeActi
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DishBlock(summary: DishSummary, zone: ZoneId, timeFormatter: DateTimeFormatter, actions: HomeActions) {
+@Suppress("LongParameterList")
+private fun DishBlock(
+    summary: DishSummary,
+    zone: ZoneId,
+    timeFormatter: DateTimeFormatter,
+    actions: HomeActions,
+    favoriteNameTaken: Boolean,
+    onDismissFavoriteError: () -> Unit,
+) {
     var menuOpen by remember { mutableStateOf(false) }
     var confirming by remember { mutableStateOf(false) }
+    var naming by remember { mutableStateOf(false) }
+    val favorite = summary.dish.favoriteId != null
 
     Column(
         modifier = Modifier
@@ -93,20 +112,24 @@ private fun DishBlock(summary: DishSummary, zone: ZoneId, timeFormatter: DateTim
     ) {
         DishMenu(
             expanded = menuOpen,
+            favorite = favorite,
             onDismiss = { menuOpen = false },
             onEdit = { actions.onEditDish(summary.dish.id) },
             onDelete = { confirming = true },
+            // Retirer ne demande pas de nom : le favori est deja designe par le
+            // plat. Le mettre en demande un, et c'est la boite qui le fait saisir.
+            onToggleFavorite = { if (favorite) actions.onToggleFavorite(summary.dish, null) else naming = true },
         )
-        if (confirming) {
-            DeleteDishConfirmation(
-                lines = summary.entries.size,
-                onConfirm = {
-                    confirming = false
-                    actions.onDeleteDish(summary.dish)
-                },
-                onDismiss = { confirming = false },
-            )
-        }
+        DishDialogs(
+            summary = summary,
+            actions = actions,
+            naming = naming,
+            confirming = confirming,
+            favoriteNameTaken = favoriteNameTaken,
+            onNamingChange = { naming = it },
+            onConfirmingChange = { confirming = it },
+            onDismissFavoriteError = onDismissFavoriteError,
+        )
         DishHeader(summary, zone, timeFormatter)
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         summary.entries.forEach { entry ->
@@ -118,6 +141,54 @@ private fun DishBlock(summary: DishSummary, zone: ZoneId, timeFormatter: DateTim
             }
         }
         DishMacros(summary)
+    }
+}
+
+/**
+ * Les deux boîtes du plat : nommer un favori, confirmer une suppression.
+ *
+ * Sorties de [DishBlock] pour que celui-ci reste lisible — il portait déjà le clic, le
+ * clic long, le menu, l'en-tête, les lignes et les apports.
+ */
+@Composable
+@Suppress("LongParameterList")
+private fun DishDialogs(
+    summary: DishSummary,
+    actions: HomeActions,
+    naming: Boolean,
+    confirming: Boolean,
+    favoriteNameTaken: Boolean,
+    onNamingChange: (Boolean) -> Unit,
+    onConfirmingChange: (Boolean) -> Unit,
+    onDismissFavoriteError: () -> Unit,
+) {
+    val favorite = summary.dish.favoriteId != null
+
+    if (naming) {
+        FavoriteNameDialog(
+            proposal = summary.entries.take(PROPOSED_NAME_PARTS).joinToString(", ") { it.displayName },
+            nameTaken = favoriteNameTaken,
+            onConfirm = { actions.onToggleFavorite(summary.dish, it) },
+            onDismiss = {
+                onNamingChange(false)
+                onDismissFavoriteError()
+            },
+        )
+    }
+    // La boite se referme des que le plat porte son favori : c'est le seul signal
+    // fiable que l'ecriture a abouti.
+    LaunchedEffect(favorite) {
+        if (favorite) onNamingChange(false)
+    }
+    if (confirming) {
+        DeleteDishConfirmation(
+            lines = summary.entries.size,
+            onConfirm = {
+                onConfirmingChange(false)
+                actions.onDeleteDish(summary.dish)
+            },
+            onDismiss = { onConfirmingChange(false) },
+        )
     }
 }
 
@@ -153,13 +224,33 @@ private fun DishHeader(summary: DishSummary, zone: ZoneId, timeFormatter: DateTi
  * entrées manque oblige à se souvenir de quel geste sert à quoi.
  */
 @Composable
-private fun DishMenu(expanded: Boolean, onDismiss: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun DishMenu(
+    expanded: Boolean,
+    favorite: Boolean,
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onToggleFavorite: () -> Unit,
+) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         DropdownMenuItem(
             text = { Text(stringResource(R.string.home_dish_menu_edit)) },
             onClick = {
                 onDismiss()
                 onEdit()
+            },
+        )
+        DropdownMenuItem(
+            text = {
+                Text(
+                    stringResource(
+                        if (favorite) R.string.home_dish_menu_unfavorite else R.string.home_dish_menu_favorite,
+                    ),
+                )
+            },
+            onClick = {
+                onDismiss()
+                onToggleFavorite()
             },
         )
         DropdownMenuItem(
@@ -293,6 +384,8 @@ private fun EntryRow(entry: FoodEntry) {
 }
 
 /** Les cinq macros affichées par plat. Les calories ont déjà leur chiffre en tête. */
+private const val PROPOSED_NAME_PARTS = 3
+
 private val CHIP_MACROS = listOf(Macro.PROTEIN, Macro.CARBS, Macro.SUGARS, Macro.FAT, Macro.FIBER)
 
 internal val Macro.initialRes: Int

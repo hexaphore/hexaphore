@@ -1,7 +1,9 @@
 package app.hexaphore.di
 
 import app.hexaphore.data.diary.RoomDiaryRepository
+import app.hexaphore.data.diary.RoomFavoriteDishes
 import app.hexaphore.domain.diary.DiaryRepository
+import app.hexaphore.domain.diary.FavoriteDishes
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,4 +31,16 @@ object DiaryModule {
     @Provides
     @Singleton
     fun diaryRepository(implementation: RoomDiaryRepository): DiaryRepository = implementation
+
+    /**
+     * Les plats favoris, second port de ce module.
+     *
+     * Séparé de [DiaryRepository] parce qu'un favori n'est pas une entrée de journal :
+     * l'un est un modèle réutilisable qui suit les fiches vivantes, l'autre un registre
+     * d'événements qui fige ses valeurs ([D62][decisions]).
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    @Provides
+    fun favoriteDishes(store: RoomFavoriteDishes): FavoriteDishes = store
 }

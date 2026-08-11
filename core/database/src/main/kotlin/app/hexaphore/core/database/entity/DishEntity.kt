@@ -2,6 +2,7 @@ package app.hexaphore.core.database.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
@@ -24,7 +25,15 @@ import androidx.room.PrimaryKey
     tableName = "dish",
     // L'accueil lit une journée et l'affiche dans l'ordre : c'est l'index qui rend
     // cette lecture immédiate, et c'est la requête la plus fréquente de l'application.
-    indices = [Index(value = ["date", "logged_at"])],
+    indices = [Index(value = ["date", "logged_at"]), Index(value = ["favorite_id"])],
+    foreignKeys = [
+        ForeignKey(
+            entity = FavoriteDishEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["favorite_id"],
+            onDelete = ForeignKey.SET_NULL,
+        ),
+    ],
 )
 data class DishEntity(
     @PrimaryKey
@@ -36,6 +45,18 @@ data class DishEntity(
     val source: String,
     @ColumnInfo(name = "logged_at")
     val loggedAt: Long,
+    /**
+     * Le favori dont ce plat a été rejoué, s'il en vient d'un.
+     *
+     * En `SET NULL` : supprimer un favori **délie** les plats qui en venaient au lieu
+     * de les effacer. Un journal est un registre d'événements, et le modèle qui a servi
+     * à composer un repas n'a pas à emporter le repas en disparaissant — c'est la même
+     * règle que pour un aliment personnel supprimé ([D62][decisions]).
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    @ColumnInfo(name = "favorite_id")
+    val favoriteId: String? = null,
     @ColumnInfo(name = "created_at")
     val createdAt: Long,
     @ColumnInfo(name = "updated_at")

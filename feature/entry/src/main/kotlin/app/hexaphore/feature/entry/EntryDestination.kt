@@ -6,6 +6,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import app.hexaphore.domain.diary.DishId
+import app.hexaphore.domain.diary.FavoriteDishId
 import app.hexaphore.domain.food.FoodId
 import kotlinx.serialization.Serializable
 
@@ -30,7 +31,12 @@ import kotlinx.serialization.Serializable
  * serait la première marche vers l'écran à quatre branches que le projet refuse.
  */
 @Serializable
-data class EntryDestination(val dishId: String? = null, val foodId: String? = null) {
+data class EntryDestination(
+    val dishId: String? = null,
+    val foodId: String? = null,
+    /** Le favori à rejouer, quand la saisie part de la liste des favoris. */
+    val favoriteId: String? = null,
+) {
     companion object {
         /**
          * Le nom sous lequel l'argument arrive dans le `SavedStateHandle`.
@@ -48,6 +54,9 @@ data class EntryDestination(val dishId: String? = null, val foodId: String? = nu
 
         /** Idem, pour la fiche d'où part une saisie neuve. */
         internal val FOOD_ID: String = EntryDestination::foodId.name
+
+        /** Idem, pour le favori qu'une saisie rejoue. */
+        internal val FAVORITE_ID: String = EntryDestination::favoriteId.name
 
         /**
          * La clé sous laquelle la recherche dépose la fiche choisie pour cet écran.
@@ -79,6 +88,10 @@ fun NavController.navigateToEntry(dishId: DishId? = null) {
 }
 
 /** Ouvre une saisie neuve, préremplie depuis une fiche d'aliment. */
+fun NavController.navigateToEntryForFavorite(favoriteId: FavoriteDishId) {
+    navigate(EntryDestination(favoriteId = favoriteId.value))
+}
+
 fun NavController.navigateToEntryFor(foodId: FoodId) {
     navigate(EntryDestination(foodId = foodId.value))
 }

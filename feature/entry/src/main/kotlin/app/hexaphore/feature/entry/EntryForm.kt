@@ -6,6 +6,7 @@ import app.hexaphore.domain.diary.DraftLineId
 import app.hexaphore.domain.diary.EntryDraft
 import app.hexaphore.domain.diary.EntryId
 import app.hexaphore.domain.diary.EntrySource
+import app.hexaphore.domain.diary.FavoriteDishId
 import app.hexaphore.domain.diary.QuantityUnit
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.nutrition.Macro
@@ -30,16 +31,33 @@ internal data class EntryForm(
     val date: LocalDate,
     val source: EntrySource,
     val lines: List<EntryFormLine>,
+    /**
+     * Le favori que ce brouillon rejoue, ou auquel le plat est rattaché.
+     *
+     * C'est lui qui allume l'étoile, et il **tombe dès qu'une ligne est touchée** :
+     * le brouillon cesse alors d'être celui que le favori décrit ([D62][decisions]).
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val favoriteId: FavoriteDishId? = null,
 ) {
     fun toDraft(): EntryDraft = EntryDraft(
         dishId = dishId,
         date = date,
         source = source,
         lines = lines.map { it.toDraftLine() },
+        favoriteId = favoriteId,
     )
 
+    /**
+     * Une ligne a bougé : le lien vers le favori tombe.
+     *
+     * Toute retouche y passe — corriger, ajouter, supprimer. Le lien ne se rétablit
+     * pas en revenant en arrière, et c'est assumé : comparer le brouillon courant à
+     * celui d'origine ferait dépendre l'étoile d'une égalité sur des flottants.
+     */
     fun update(id: DraftLineId, transform: (EntryFormLine) -> EntryFormLine): EntryForm =
-        copy(lines = lines.map { if (it.id == id) transform(it) else it })
+        copy(lines = lines.map { if (it.id == id) transform(it) else it }, favoriteId = null)
 
     companion object {
         fun of(draft: EntryDraft): EntryForm = EntryForm(
@@ -47,6 +65,7 @@ internal data class EntryForm(
             date = draft.date,
             source = draft.source,
             lines = draft.lines.map(EntryFormLine::of),
+            favoriteId = draft.favoriteId,
         )
     }
 }

@@ -2,15 +2,22 @@ package app.hexaphore.feature.home
 
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryDiaryRepository
+import app.hexaphore.core.testing.InMemoryFavoriteDishes
 import app.hexaphore.core.testing.InMemoryGoals
 import app.hexaphore.core.testing.SampleDiary
+import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.usecase.DeleteDish
 import app.hexaphore.domain.usecase.DeleteEntry
 import app.hexaphore.domain.usecase.GetDaySummary
+import app.hexaphore.domain.usecase.GetDishDraft
+import app.hexaphore.domain.usecase.RemoveFavoriteDish
 import app.hexaphore.domain.usecase.RestoreDish
+import app.hexaphore.domain.usecase.SaveFavoriteDish
+import app.hexaphore.domain.usecase.ToggleDishFavorite
+import app.hexaphore.domain.usecase.UpdateDish
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -218,7 +225,15 @@ class HomeViewModelTest {
         deleteEntry = DeleteEntry(diary),
         deleteDish = DeleteDish(diary),
         restoreDish = RestoreDish(diary),
+        toggleFavorite = ToggleDishFavorite(
+            drafts = GetDishDraft(diary, SequentialIdGenerator("ligne")),
+            update = UpdateDish(diary, SequentialIdGenerator("ligne")),
+            save = SaveFavoriteDish(favoris, SequentialIdGenerator("fav")),
+            remove = RemoveFavoriteDish(favoris),
+        ),
     )
+
+    private val favoris = InMemoryFavoriteDishes()
 
     /** Tout sur le dispatcher de test : aucun vrai pool de threads dans un test. */
     private class TestDispatchers(private val dispatcher: CoroutineDispatcher) : DispatcherProvider {

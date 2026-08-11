@@ -4,6 +4,7 @@ import app.hexaphore.domain.diary.DiaryRepository
 import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.diary.EntryDraft
+import app.hexaphore.domain.diary.FavoriteDishes
 import app.hexaphore.domain.diary.toEntries
 import app.hexaphore.domain.food.FoodUsage
 import app.hexaphore.domain.identity.IdGenerator
@@ -29,6 +30,7 @@ import app.hexaphore.domain.time.Clock
 class LogDish(
     private val diary: DiaryRepository,
     private val foodUsage: FoodUsage,
+    private val favorites: FavoriteDishes,
     private val clock: Clock,
     private val ids: IdGenerator,
 ) {
@@ -49,6 +51,12 @@ class LogDish(
         // jamais fonctionne.
         foodUsage.remember(draft.foods, now)
 
+        // Un favori rejoue remonte dans la liste, au meme endroit et pour la meme
+        // raison que les fiches : cette liste dit ce qu'on mange, pas ce qu'on a
+        // consulte. Marquer au choix du favori la ferait remonter sur un plat
+        // finalement abandonne.
+        draft.favoriteId?.let { favorites.markUsed(it) }
+
         diary.save(
             Dish(
                 id = id,
@@ -56,6 +64,7 @@ class LogDish(
                 source = draft.source,
                 loggedAt = now,
                 entries = draft.toEntries(id, ids),
+                favoriteId = draft.favoriteId,
             ),
         )
         return id

@@ -700,7 +700,7 @@ Listés ici pour cesser d'être des oublis, comme [D21](#d21--ce-que-litération
 
 | Absent | Raison | Quand |
 |---|---|---|
-| Les **plats** favoris (`favorite_dish`, `favorite_component`) | [02](02-parcours-et-ecrans.md#modale--recherche) dit « favoris : aliments **et** plats ». Les aliments favoris existent ; les plats demandent deux tables, une action « enregistrer comme favori » sur l'écran de validation, et un rejeu qui reconstruit un brouillon à partir de fiches vivantes. C'est une capacité, pas une case à cocher. | Avec la réutilisation d'un plat entier |
+| ~~Les **plats** favoris (`favorite_dish`, `favorite_component`)~~ | [02](02-parcours-et-ecrans.md#modale--recherche) dit « favoris : aliments **et** plats ». Les aliments favoris existent ; les plats demandent deux tables, une action « enregistrer comme favori » sur l'écran de validation, et un rejeu qui reconstruit un brouillon à partir de fiches vivantes. C'est une capacité, pas une case à cocher. | **Fait** en [D62](#d62--un-favori-est-un-modèle-vivant-et-l-étoile-est-son-seul-interrupteur---validée) |
 | `food_serving`, les portions nommées d'un **aliment personnel** | Les portions de CIQUAL se lisent dans `ciqual_serving` par le code source, sans copie. Une fiche personnelle a `default_serving_g`, qui couvre le cas courant. Une table que rien ne remplirait serait exactement ce que [D34](#d34--la-table-food-attend-la-tranche-qui-la-remplit---par-défaut) refusait. | Quand un aliment personnel aura besoin de plusieurs portions |
 | Les colonnes `density`, `is_liquid`, `user_edited_fields`, `fetched_at` de `food` | Même raison, appliquée colonne par colonne. La densité arrive avec le résolveur (tranche 6), les trois autres avec le cache Open Food Facts (tranche 5), qui est ce qui les remplit. La règle du projet préfère une colonne nullable ajoutée plus tard à une colonne vide ajoutée trop tôt. | Tranches 5 et 6 |
 | La suggestion « Chercher dans Open Food Facts » en dernière ligne de résultats | Elle suppose un client réseau, qui est le contenu de la tranche 5. Une ligne qui n'ouvre rien n'est pas une avance. | Tranche 5 |
@@ -1117,6 +1117,50 @@ Le balayage d'une ligne se contente de sa barre d'annulation. Supprimer un plat 
 **La barre reste offerte ensuite**, et les deux ne font pas double emploi : la confirmation évite l'accident, la barre rattrape le regret. Le mécanisme existait déjà — `RestoreDish` remet le plat et ses lignes en place — et le retirer aurait été enlever une sécurité pour n'en gagner aucune.
 
 **Conséquences.** `DeleteDish` naît comme cas d'usage, pour un seul appel de port : un `:feature` ne voit que des cas d'usage, et l'exception se serait payée à la première règle qu'on aurait voulu y mettre. `DomainModule` se scinde en deux — journal et objectif — parce qu'il atteignait le seuil de fonctions de detekt ; la coupure existait déjà dans la lecture.
+
+---
+
+## D62 — Un favori est un modèle vivant, et l'étoile est son seul interrupteur · ✓ validée
+
+**Contexte.** La dette la plus ancienne de [D50](#d50--ce-que-la-tranche-3-ne-construit-pas---validée) : [02](02-parcours-et-ecrans.md#modale--recherche) promet « favoris : aliments **et** plats », et seuls les aliments existaient. Cinq questions se posaient ensemble, et c'est leur combinaison qui décide.
+
+### Un favori porte un nom, proposé puis réécrit
+
+[07](07-modele-de-donnees.md) le disait déjà : « c'est le seul endroit où un nom est demandé ». Il est **proposé** depuis les trois premiers aliments — « Flocons, Lait, Banane » — et librement réécrit en « Petit-déj ».
+
+**Écarté.** *Un nom entièrement dérivé des lignes* : aucune saisie, un geste de moins, mais deux plats aux mêmes aliments et aux quantités différentes porteraient le même nom et ne se distingueraient plus. *Un champ vide* : on renonce à l'étoile une fois sur deux.
+
+**Le nom est unique**, à la casse et aux accents près — deux « Petit-déj » dans une liste ne se distinguent plus, et choisir devient un pari. L'unicité porte sur le nom **normalisé** par la fonction de [D49](#d49--la-recherche-normalise-à-limport-pas-au-tokenizer---validée), et elle est tenue **deux fois** : le cas d'usage la vérifie pour pouvoir répondre une phrase, l'index unique la garantit. C'est le raisonnement de `goal.active_key` ([D55](#d55--lobjectif-est-calculé-daté-et-parfois-absent---validée)) : une règle tenue par la seule discipline d'écriture n'en est pas une.
+
+### Hybride : la fiche quand il y en a une, les valeurs sinon
+
+Un composant référence une fiche **vivante** quand la ligne en vient d'une : rejouer « mes flocons du matin » reflète la fiche courante, ce que [07](07-modele-de-donnees.md) demandait. Une ligne tapée à la main n'a pas de fiche derrière elle, et ses valeurs sont donc figées.
+
+**Les six valeurs sont enregistrées dans les deux cas**, et c'est ce qui rend le favori increvable : contenu d'une ligne sans fiche, et **repli** le jour où la fiche citée est supprimée. Sans elles, un favori pourrait rejouer une ligne sans le moindre chiffre.
+
+**Écarté.** *L'instantané pur* — le favori copie tout et ne suit rien : le plus prévisible, mais corriger une fiche ne corrigerait jamais les plats qui la citent, ce que `docs/07` voulait précisément éviter. *Le strict* — refuser un plat contenant une ligne sans fiche : fidèle au modèle, mais l'étoile refuserait sur un critère **invisible**, puisque rien à l'écran ne distingue une ligne tapée d'une ligne issue d'une fiche.
+
+### Le lien plat ↔ favori est une colonne, et il tombe à la première retouche
+
+`dish.favorite_id` dit de quel favori un plat a été rejoué. Sans lui, rien ne pourrait rallumer l'étoile en rouvrant un plat, ni répondre à « ce plat est-il un favori ? ».
+
+**Il tombe dès qu'une ligne est touchée** — ajoutée, corrigée, supprimée. Le brouillon cesse alors d'être celui que le favori décrit, et l'étoile s'éteint. Le lien **ne se rétablit pas** en revenant en arrière, et c'est assumé : comparer le brouillon courant à celui d'origine ferait dépendre l'étoile d'une égalité sur des flottants.
+
+**Le favori d'origine, lui, survit.** C'est ce qui donne son sens au refus « Un plat en favori porte déjà ce nom » quand on rallume l'étoile après avoir modifié un plat rejoué.
+
+**Supprimer un favori délie les plats qui en venaient**, par `ON DELETE SET NULL` : un journal est un registre d'événements, et le modèle qui a servi à composer un repas n'a pas à emporter le repas en disparaissant. Même règle que pour un aliment personnel supprimé.
+
+### Éteindre l'étoile supprime le favori
+
+C'est le **seul** chemin pour retirer un plat de la liste. La liste des favoris ne sert qu'à en choisir un ; lui ajouter un geste de suppression aurait fait deux endroits pour la même décision, donc deux endroits à tenir d'accord.
+
+### Ce que la migration 4 → 5 a coûté
+
+`dish` est **recréée**. Ajouter une colonne se fait bien en `ALTER TABLE ADD COLUMN`, mais pas une clé étrangère — SQLite ne sait pas en ajouter une après coup. Room exécute ses migrations avec `PRAGMA foreign_keys = FALSE`, ce qui rend le `DROP` / `RENAME` sûr, et le test de la cascade `dish → food_entry` — écrit en tranche 1 — couvre le cas sans avoir été retouché.
+
+**Conséquences.** `FavoriteDishes` naît **avec** son jeu de tests de contrat, 13 cas joués des deux côtés : c'est la règle de [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée), et l'écrire après coup aurait laissé le temps aux deux implémentations de diverger. Il a payé tout de suite — le faux comparait les noms bruts.
+
+Le seuil de paramètres de detekt a forcé trois regroupements dans les `ViewModel`, et les trois sont des gains : `OpenDraft` rassemble les **quatre entrées** de l'écran de validation — plat, favori, fiche, rien — que la tranche 6 aurait encore multipliées ; `SaveDraft` retire à l'écran le choix entre créer et corriger ; `ToggleDishFavorite` porte la bascule et son ordre d'écriture. Le point de convergence que [12](12-plan-de-developpement.md) désigne depuis la conception existe enfin comme un objet, et non comme une suite de branches.
 
 ---
 

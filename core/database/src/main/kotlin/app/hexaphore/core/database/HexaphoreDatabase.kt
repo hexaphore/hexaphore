@@ -6,10 +6,13 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import app.hexaphore.core.database.dao.DiaryDao
+import app.hexaphore.core.database.dao.FavoriteDishDao
 import app.hexaphore.core.database.dao.FoodDao
 import app.hexaphore.core.database.dao.GoalDao
 import app.hexaphore.core.database.dao.ProfileDao
 import app.hexaphore.core.database.entity.DishEntity
+import app.hexaphore.core.database.entity.FavoriteComponentEntity
+import app.hexaphore.core.database.entity.FavoriteDishEntity
 import app.hexaphore.core.database.entity.FoodEntity
 import app.hexaphore.core.database.entity.FoodEntryEntity
 import app.hexaphore.core.database.entity.GoalEntity
@@ -30,6 +33,8 @@ import app.hexaphore.core.database.entity.WeightEntryEntity
     entities = [
         DishEntity::class,
         FoodEntryEntity::class,
+        FavoriteDishEntity::class,
+        FavoriteComponentEntity::class,
         FoodEntity::class,
         ProfileEntity::class,
         WeightEntryEntity::class,
@@ -43,12 +48,14 @@ abstract class HexaphoreDatabase : RoomDatabase() {
 
     abstract fun foodDao(): FoodDao
 
+    abstract fun favoriteDishDao(): FavoriteDishDao
+
     abstract fun profileDao(): ProfileDao
 
     abstract fun goalDao(): GoalDao
 
     companion object {
-        const val VERSION = 4
+        const val VERSION = 5
 
         const val NAME = "hexaphore.db"
 
@@ -59,7 +66,7 @@ abstract class HexaphoreDatabase : RoomDatabase() {
          * première vraie migration s'y ajoute au lieu d'inaugurer un mécanisme, et
          * elle est validée par un test déjà écrit contre un schéma déjà versionné.
          */
-        val MIGRATIONS: List<Migration> = listOf(Migration1To2, Migration2To3, Migration3To4)
+        val MIGRATIONS: List<Migration> = listOf(Migration1To2, Migration2To3, Migration3To4, Migration4To5)
 
         /**
          * Construit la base.

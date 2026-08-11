@@ -4,6 +4,7 @@ import android.content.Context
 import app.hexaphore.core.database.HexaphoreDatabase
 import app.hexaphore.core.database.ciqual.CiqualDatabase
 import app.hexaphore.core.database.dao.DiaryDao
+import app.hexaphore.core.database.dao.FavoriteDishDao
 import app.hexaphore.core.database.dao.FoodDao
 import app.hexaphore.core.database.dao.GoalDao
 import app.hexaphore.core.database.dao.ProfileDao
@@ -50,4 +51,7 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun ciqualDatabase(@ApplicationContext context: Context): CiqualDatabase = CiqualDatabase(context)
+
+    @Provides
+    fun favoriteDishDao(database: HexaphoreDatabase): FavoriteDishDao = database.favoriteDishDao()
 }

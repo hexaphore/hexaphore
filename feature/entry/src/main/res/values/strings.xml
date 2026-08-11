@@ -40,6 +40,19 @@
     <!-- Un plat relu et vidé de ses lignes se supprime : le bouton le dit, plutôt
          que de laisser le plat disparaître sous le libellé « Enregistrer ». -->
     <string name="entry_delete_dish">Supprimer ce plat</string>
+
+    <!-- L'étoile met le plat en favori. Une seule icône pour les deux états :
+         material-icons-core n'a pas de contour, et la teinte ne travaille jamais
+         seule — l'état est annoncé à TalkBack. -->
+    <string name="entry_favorite">Plat favori</string>
+    <string name="entry_favorite_on">dans vos favoris</string>
+    <string name="entry_favorite_off">pas dans vos favoris</string>
+    <string name="entry_favorite_title">Enregistrer comme favori</string>
+    <string name="entry_favorite_body">Vous le retrouverez sous ce nom pour le rejouer en deux gestes. Modifier une ligne l\'en retirera.</string>
+    <string name="entry_favorite_name">Nom du plat</string>
+    <string name="entry_favorite_name_taken">Un plat en favori porte déjà ce nom.</string>
+    <string name="entry_favorite_confirm">Enregistrer</string>
+    <string name="entry_favorite_cancel">Annuler</string>
     <!-- Le pendant d'Enregistrer, et le double du retour arrière. Pas « Fermer » :
          cette paire de boutons se lit ensemble, et « Annuler » dit ce qu'il advient
          de la saisie là où « Fermer » ne dit que ce qu'il advient de l'écran. -->

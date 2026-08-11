@@ -2,6 +2,7 @@ package app.hexaphore.domain.usecase
 
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryDiaryRepository
+import app.hexaphore.core.testing.InMemoryFavoriteDishes
 import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.domain.diary.EntryDraft
@@ -19,11 +20,12 @@ import org.junit.jupiter.api.assertThrows
 
 class UpdateDishTest {
     private val diary = InMemoryDiaryRepository()
+    private val favoris = InMemoryFavoriteDishes()
     private val catalogue = InMemoryFoodCatalog()
     private val clock = FixedClock.atNoon(JOUR)
     private val ids = SequentialIdGenerator()
 
-    private val logDish = LogDish(diary, catalogue, clock, ids)
+    private val logDish = LogDish(diary, catalogue, favoris, clock, ids)
     private val getDishDraft = GetDishDraft(diary, ids)
     private val updateDish = UpdateDish(diary, ids)
 

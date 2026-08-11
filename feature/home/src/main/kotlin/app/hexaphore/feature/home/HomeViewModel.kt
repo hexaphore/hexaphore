@@ -7,8 +7,10 @@ import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.EntryId
 import app.hexaphore.domain.usecase.DeleteDish
 import app.hexaphore.domain.usecase.DeleteEntry
+import app.hexaphore.domain.usecase.FavoriteOutcome
 import app.hexaphore.domain.usecase.GetDaySummary
 import app.hexaphore.domain.usecase.RestoreDish
+import app.hexaphore.domain.usecase.ToggleDishFavorite
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,6 +47,7 @@ class HomeViewModel @Inject constructor(
     private val deleteEntry: DeleteEntry,
     private val deleteDish: DeleteDish,
     private val restoreDish: RestoreDish,
+    private val toggleFavorite: ToggleDishFavorite,
 ) : ViewModel() {
     /**
      * Le déclencheur de relecture.
@@ -89,6 +92,8 @@ class HomeViewModel @Inject constructor(
      */
     private val undoable = MutableStateFlow<Dish?>(null)
 
+    private val nameTaken = MutableStateFlow(false)
+
     val pendingUndo: StateFlow<Dish?> = undoable.asStateFlow()
 
     /** Relit le journal après un échec. */
@@ -118,6 +123,28 @@ class HomeViewModel @Inject constructor(
                 // Pas d'annulation a proposer sur un echec : rien n'a ete supprime.
                 .onSuccess { undoable.value = dish }
         }
+    }
+
+    /**
+     * Bascule le plat dans les favoris, ou l'en retire.
+     *
+     * Le nom vient de l'écran, qui le fait saisir ; `null` veut dire « retire-le ».
+     * Un nom déjà pris remonte dans [favoriteNameTaken] plutôt que par une valeur de
+     * retour, pour que la boîte reste ouverte avec le nom refusé dedans.
+     */
+    fun onToggleFavorite(dish: Dish, name: String?) {
+        nameTaken.value = false
+        viewModelScope.launch {
+            val outcome = runCatching { toggleFavorite(dish, name) }.getOrNull()
+            nameTaken.value = outcome is FavoriteOutcome.NameTaken
+        }
+    }
+
+    /** Le nom proposé était déjà pris : l'écran le dit et laisse corriger. */
+    val favoriteNameTaken: StateFlow<Boolean> get() = nameTaken.asStateFlow()
+
+    fun onDismissFavoriteError() {
+        nameTaken.value = false
     }
 
     fun onUndo() {

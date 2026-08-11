@@ -32,6 +32,8 @@ class GetDishDraft(private val diary: DiaryRepository, private val ids: IdGenera
             dishId = dish.id,
             date = dish.date,
             source = dish.source,
+            // C'est lui qui rallume l'etoile. Il tombera a la premiere ligne touchee.
+            favoriteId = dish.favoriteId,
             lines = dish.entries.map { entry ->
                 DraftLine(
                     id = DraftLineId(ids.next()),

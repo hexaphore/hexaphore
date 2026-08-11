@@ -2,6 +2,7 @@ package app.hexaphore.domain.usecase
 
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryDiaryRepository
+import app.hexaphore.core.testing.InMemoryFavoriteDishes
 import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.core.testing.InMemoryGoals
 import app.hexaphore.core.testing.SequentialIdGenerator
@@ -38,11 +39,12 @@ import java.time.LocalDate
  */
 class FoodEditingTest {
     private val diary = InMemoryDiaryRepository()
+    private val favoris = InMemoryFavoriteDishes()
     private val catalogue = InMemoryFoodCatalog(listOf(PATES))
     private val clock = FixedClock.atNoon(JOUR)
     private val ids = SequentialIdGenerator()
 
-    private val logDish = LogDish(diary, catalogue, clock, ids)
+    private val logDish = LogDish(diary, catalogue, favoris, clock, ids)
     private val getDaySummary = GetDaySummary(diary, InMemoryGoals(listOf(InMemoryGoals.maintenance(JOUR))), clock)
     private val getDishDraft = GetDishDraft(diary, ids)
     private val saveCustomFood = SaveCustomFood(catalogue, ids)
@@ -94,7 +96,7 @@ class FoodEditingTest {
         // est vraiment mange : copier 3 484 lignes a l'installation gonflerait la
         // base et la recherche avec 99 % de contenu jamais utilise.
         val catalogueVide = InMemoryFoodCatalog()
-        val logDish = LogDish(diary, catalogueVide, clock, ids)
+        val logDish = LogDish(diary, catalogueVide, favoris, clock, ids)
 
         logDish(brouillonDe(PATES))
 
@@ -107,7 +109,7 @@ class FoodEditingTest {
     @Test
     fun `un plat tape a la main ne verse rien au catalogue`() = runTest {
         val catalogueVide = InMemoryFoodCatalog()
-        val logDish = LogDish(diary, catalogueVide, clock, ids)
+        val logDish = LogDish(diary, catalogueVide, favoris, clock, ids)
 
         logDish(
             EntryDraft(

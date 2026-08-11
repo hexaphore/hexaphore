@@ -87,4 +87,14 @@
     <string name="custom_error_body">L\'écriture n\'a pas abouti. Votre saisie est conservée telle quelle.</string>
     <string name="custom_error_retry">Réessayer</string>
 
+    <!-- Les plats favoris. Cette liste ne sert qu'à choisir : retirer un favori se
+         fait par l'étoile de l'écran de validation, là où on l'a mis. -->
+    <string name="favorites_title">Vos plats favoris</string>
+    <string name="favorites_search">Chercher un plat</string>
+    <string name="favorites_pick">rejouer ce plat</string>
+    <string name="favorites_close">Retour</string>
+    <string name="favorites_empty">Aucun plat favori pour l\'instant. Composez un plat, puis touchez l\'étoile en haut de l\'écran pour le retrouver ici.</string>
+    <string name="favorites_none_matching">Aucun favori ne porte ce nom.</string>
+    <string name="favorites_error">La lecture de vos favoris n\'a pas abouti. Rien n\'a été modifié.</string>
+
 </resources>
