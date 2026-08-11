@@ -5,6 +5,7 @@ import app.hexaphore.core.testing.InMemoryGoals
 import app.hexaphore.core.testing.InMemoryProfiles
 import app.hexaphore.core.testing.InMemoryWeightLog
 import app.hexaphore.core.testing.SequentialIdGenerator
+import app.hexaphore.domain.goal.DailyGoal
 import app.hexaphore.domain.goal.Goal
 import app.hexaphore.domain.goal.GoalId
 import app.hexaphore.domain.goal.GoalOrigin
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -37,11 +39,10 @@ import java.time.LocalDate
 /**
  * L'écran des réglages profil : ce qu'il relit, ce qu'il recalcule, ce qu'il écrit.
  *
- * L'écran lui-même n'est pas éprouvé ici — il n'y a pas d'émulateur. Ce qui l'est,
- * c'est ce dont il dépend et qui casserait en silence : le formulaire ouvre sur ce qui
- * est **enregistré** et non sur des valeurs par défaut, un compteur fixé reste fixé
- * pendant qu'on corrige le reste, et un refus d'enregistrer dit lequel des quatre
- * manques il oppose.
+ * L'écran lui-même n'est pas éprouvé ici — il n'y a pas d'émulateur. Ce qui l'est, c'est
+ * ce dont il dépend et qui casserait en silence : on **consulte** avant de modifier, un
+ * objectif saisi à la main ne bouge pas quand le profil change, et une correction qui
+ * déplace les six chiffres ne s'écrit pas sans avoir été montrée.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class ProfileViewModelTest {
@@ -59,126 +60,189 @@ internal class ProfileViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     @Test
-    fun `l ecran ouvre sur ce qui est enregistre`() = runTest(dispatcher) {
-        // Et non sur des valeurs par defaut : c'est un ecran de correction, pas de
-        // creation, et un champ pre-rempli d'un chiffre plausible serait accepte par
-        // distraction (D56).
+    fun `l ecran ouvre en consultation, sur ce qui est enregistre`() = runTest(dispatcher) {
+        // On relit avant de corriger. Un ecran de reglages en edition permanente
+        // invite a modifier ce qu'on venait seulement verifier (D60).
         val viewModel = viewModel(objectifCourant())
-        val form = viewModel.uiState.value.form
-
-        assertTrue(viewModel.uiState.value.loaded)
-        assertEquals(PROFIL.birthDate, form.birthDate)
-        assertEquals(Sex.MALE, form.sex)
-        assertEquals(182.0, form.heightCm)
-        assertEquals(POIDS, form.currentWeightKg, "le poids vient du journal de pesees, pas du profil")
-        assertEquals(ActivityLevel.MODERATE, form.activityLevel)
-        assertEquals(GoalStrategy.LOSE, form.strategy)
-        assertEquals(2_525.0, viewModel.uiState.value.plan?.goal?.kcal, "l exemple de reference de docs/03")
-    }
-
-    @Test
-    fun `un compteur deja fixe rouvre verrouille, avec sa valeur`() = runTest(dispatcher) {
-        // Le verrou est en base depuis la tranche 4 (`goal.manual_fields`) et rien ne
-        // l'ecrivait. C'est ce test qui dit qu'il fait desormais l'aller-retour.
-        val viewModel = viewModel(objectifCourant(manual = mapOf(Macro.PROTEIN to 150.0)))
         val state = viewModel.uiState.value
 
-        assertTrue(state.form.locked(Macro.PROTEIN))
-        assertEquals(150.0, state.shown(Macro.PROTEIN), "le chiffre affiche est celui qui a ete fixe")
-        assertFalse(state.form.locked(Macro.CARBS))
+        assertTrue(state.loaded)
+        assertFalse(state.editing, "l ecran ouvre en consultation")
+        assertEquals(PROFIL.birthDate, state.form.birthDate)
+        assertEquals(POIDS, state.form.currentWeightKg, "le poids vient du journal de pesees, pas du profil")
+        assertEquals(2_525.0, state.daily?.kcal, "l exemple de reference de docs/03")
     }
 
     @Test
-    fun `corriger le profil deplace les compteurs libres et laisse le verrouille`() = runTest(dispatcher) {
-        // Le coeur de l'ecran, vu depuis l'ecran : c'est la meme regle que
-        // ReviseGoalTest eprouve a l'ecriture, ici sur ce qui s'affiche pendant
-        // qu'on tape. Les deux doivent dire la meme chose, sinon on enregistre
-        // autre chose que ce qu'on a lu.
-        val viewModel = viewModel(objectifCourant(manual = mapOf(Macro.PROTEIN to 150.0)))
-        val avant = viewModel.uiState.value
+    fun `le crayon est la seule porte vers la modification`() = runTest(dispatcher) {
+        val viewModel = viewModel(objectifCourant())
 
-        viewModel.onForm(avant.form.copy(heightCm = 178.0))
+        viewModel.onEdit()
+
+        assertTrue(viewModel.uiState.value.editing)
+    }
+
+    @Test
+    fun `un objectif saisi a la main rouvre en manuel, avec ses six chiffres`() = runTest(dispatcher) {
+        // L'aller-retour de `origin` en base : c'est lui qui decide du mode, et sans
+        // lui l'ecran rouvrirait en calcule et proposerait de tout recalculer.
+        val viewModel = viewModel(objectifManuel())
+        val state = viewModel.uiState.value
+
+        assertTrue(state.form.manual)
+        assertEquals(SAISI_A_LA_MAIN, state.daily)
+    }
+
+    @Test
+    fun `en saisie manuelle, corriger le profil ne bouge aucun compteur`() = runTest(dispatcher) {
+        // Le coeur de D60, vu de l'ecran. La taille change, donc la depense change,
+        // donc le plan change -- et les six chiffres, eux, ne bougent pas d'un gramme.
+        val viewModel = viewModel(objectifManuel())
+        viewModel.onEdit()
+        val avant = viewModel.uiState.value.plan?.goal
+
+        viewModel.onForm(viewModel.uiState.value.form.copy(heightCm = 178.0))
 
         val apres = viewModel.uiState.value
-        assertEquals(150.0, apres.shown(Macro.PROTEIN), "un compteur fixe ne bouge pas")
-        assertNotEquals(
-            avant.shown(Macro.CALORIES),
-            apres.shown(Macro.CALORIES),
-            "les compteurs libres, eux, suivent le profil",
-        )
+        assertEquals(SAISI_A_LA_MAIN, apres.daily, "un objectif manuel n est le resultat d aucun calcul")
+        assertNotEquals(avant, apres.plan?.goal, "le calcul, lui, a bien suivi le profil corrige")
     }
 
     @Test
-    fun `fixer un compteur part du chiffre propose, et le rendre au calcul le libere`() = runTest(dispatcher) {
+    fun `en objectif calcule, corriger le profil deplace les six compteurs`() = runTest(dispatcher) {
+        // La contrepartie, et elle compte autant : un mode manuel qui figerait aussi
+        // le mode calcule passerait le test d'a cote sans rien protoger.
         val viewModel = viewModel(objectifCourant())
-        val propose = viewModel.uiState.value.plan?.goal?.protein
+        viewModel.onEdit()
+        val avant = viewModel.uiState.value.daily
 
-        viewModel.onLock(Macro.PROTEIN)
-
-        assertTrue(viewModel.uiState.value.form.locked(Macro.PROTEIN))
-        assertEquals(propose, viewModel.uiState.value.form.manual[Macro.PROTEIN], "on corrige de quelques grammes")
-
-        viewModel.onRelease(Macro.PROTEIN)
-
-        assertFalse(viewModel.uiState.value.form.locked(Macro.PROTEIN))
-        assertEquals(propose, viewModel.uiState.value.shown(Macro.PROTEIN))
-    }
-
-    @Test
-    fun `un compteur fixe mais vide refuse l enregistrement, et dit lequel`() = runTest(dispatcher) {
-        // Vider le champ ne doit pas deverrouiller en douce : le verrou reste, et
-        // c'est le bouton qui refuse en disant quoi (D28).
-        val viewModel = viewModel(objectifCourant())
-        viewModel.onLock(Macro.PROTEIN)
-
-        viewModel.onCounterChange(Macro.PROTEIN, null)
-
-        assertTrue(viewModel.uiState.value.form.locked(Macro.PROTEIN), "le verrou tient")
-        assertEquals(ProfileBlocker.EMPTY_COUNTER, viewModel.uiState.value.blocker)
-        assertFalse(viewModel.uiState.value.canSave)
-    }
-
-    @Test
-    fun `un champ d identite vide refuse l enregistrement`() = runTest(dispatcher) {
-        val viewModel = viewModel(objectifCourant())
-
-        viewModel.onForm(viewModel.uiState.value.form.copy(heightCm = null))
-
-        assertEquals(ProfileBlocker.IDENTITY, viewModel.uiState.value.blocker)
-        assertNull(viewModel.uiState.value.plan, "sans taille, aucun chiffre ne s affiche")
-    }
-
-    @Test
-    fun `choisir le maintien efface le poids cible et l echeance`() = runTest(dispatcher) {
-        // Les garder ferait calculer un ecart calorique pour une strategie qui n'en
-        // veut pas : l'utilisateur verrait un deficit sous une etiquette « maintien ».
-        val viewModel = viewModel(objectifCourant())
-
-        viewModel.onForm(viewModel.uiState.value.form.copy(strategy = GoalStrategy.MAINTAIN))
-
-        val form = viewModel.uiState.value.form
-        assertNull(form.targetWeightKg)
-        assertNull(form.targetDate)
-        assertNull(viewModel.uiState.value.blocker, "un maintien n exige ni cible ni echeance")
-    }
-
-    @Test
-    fun `enregistrer ouvre une nouvelle version et referme l ecran`() = runTest(dispatcher) {
-        val viewModel = viewModel(objectifCourant())
         viewModel.onForm(viewModel.uiState.value.form.copy(heightCm = 178.0))
-        viewModel.onLock(Macro.PROTEIN)
+
+        assertNotEquals(avant, viewModel.uiState.value.daily)
+    }
+
+    @Test
+    fun `basculer en manuel part des chiffres affiches, revenir au calcul les jette`() = runTest(dispatcher) {
+        // Ce qu'on veut corriger est presque toujours ce qui est la, de quelques
+        // grammes. Et garder la saisie apres un retour au calcul la ferait
+        // reapparaitre au prochain aller-retour, sans que rien ne dise d'ou elle sort.
+        val viewModel = viewModel(objectifCourant())
+        viewModel.onEdit()
+        val propose = viewModel.uiState.value.plan?.goal
+
+        viewModel.onManual(true)
+
+        assertEquals(propose, viewModel.uiState.value.daily, "la saisie part du chiffre propose")
+
+        viewModel.onMacroChange(Macro.PROTEIN, 150.0)
+        viewModel.onManual(false)
+
+        assertTrue(viewModel.uiState.value.form.macros.isEmpty())
+        assertEquals(propose, viewModel.uiState.value.daily, "le calcul a repris la main")
+    }
+
+    @Test
+    fun `un compteur vide refuse l enregistrement, et dit lequel`() = runTest(dispatcher) {
+        val viewModel = viewModel(objectifManuel())
+        viewModel.onEdit()
+
+        viewModel.onMacroChange(Macro.PROTEIN, null)
+
+        assertEquals(ProfileBlocker.EMPTY_MACRO, viewModel.uiState.value.blocker)
+        assertFalse(viewModel.uiState.value.canSave)
+        assertNull(viewModel.uiState.value.daily)
+    }
+
+    @Test
+    fun `en manuel, le poids cible et l echeance ne sont plus exiges`() = runTest(dispatcher) {
+        // Ils restent modifiables et enregistres -- le journal de poids en tirera sa
+        // trajectoire -- mais ils ne pilotent plus les six chiffres. Exiger une date
+        // qui ne sert a rien serait exiger pour la forme.
+        val viewModel = viewModel(objectifManuel())
+        viewModel.onEdit()
+
+        viewModel.onForm(viewModel.uiState.value.form.copy(targetDate = null))
+
+        assertNull(viewModel.uiState.value.blocker)
+        assertTrue(viewModel.uiState.value.canSave)
+    }
+
+    @Test
+    fun `en objectif calcule, l echeance reste exigee`() = runTest(dispatcher) {
+        val viewModel = viewModel(objectifCourant())
+        viewModel.onEdit()
+
+        viewModel.onForm(viewModel.uiState.value.form.copy(targetDate = null))
+
+        assertEquals(ProfileBlocker.HORIZON, viewModel.uiState.value.blocker)
+    }
+
+    @Test
+    fun `enregistrer demande confirmation quand les six chiffres changent`() = runTest(dispatcher) {
+        // Corriger sa taille de quatre centimetres deplace un objectif quotidien. Ca
+        // ne se decouvre pas sur l'accueil le lendemain.
+        val viewModel = viewModel(objectifCourant())
+        viewModel.onEdit()
+        viewModel.onForm(viewModel.uiState.value.form.copy(heightCm = 178.0))
         var referme = false
 
         viewModel.onSave { referme = true }
         advanceUntilIdle()
 
+        assertNotNull(viewModel.uiState.value.pending, "la correction attend d avoir ete montree")
+        assertFalse(referme)
+        assertEquals(1, goals.all.size, "rien n est ecrit avant la confirmation")
+    }
+
+    @Test
+    fun `confirmer ouvre une nouvelle version et referme l ecran`() = runTest(dispatcher) {
+        val viewModel = viewModel(objectifCourant())
+        viewModel.onEdit()
+        viewModel.onForm(viewModel.uiState.value.form.copy(heightCm = 178.0))
+        viewModel.onSave { }
+        var referme = false
+
+        viewModel.onConfirm { referme = true }
+        advanceUntilIdle()
+
         assertTrue(referme)
+        assertNull(viewModel.uiState.value.pending)
         assertEquals(2, goals.all.size, "D04 : une ligne de plus, jamais celle qui court modifiee")
-        val neuf = goals.all.single { it.active }
-        assertEquals(AUJOURD_HUI, neuf.startedAt)
-        assertEquals(GoalOrigin.MANUAL, neuf.origin)
-        assertEquals(setOf(Macro.PROTEIN), neuf.manualFields)
         assertEquals(178.0, profiles.saved?.heightCm)
+    }
+
+    @Test
+    fun `renoncer a la confirmation garde les corrections et n ecrit rien`() = runTest(dispatcher) {
+        val viewModel = viewModel(objectifCourant())
+        viewModel.onEdit()
+        viewModel.onForm(viewModel.uiState.value.form.copy(heightCm = 178.0))
+        viewModel.onSave { }
+
+        viewModel.onDismissConfirmation()
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.pending)
+        assertEquals(178.0, viewModel.uiState.value.form.heightCm, "la correction est conservee telle quelle")
+        assertEquals(1, goals.all.size)
+    }
+
+    @Test
+    fun `basculer en manuel a chiffres identiques enregistre sans confirmation`() = runTest(dispatcher) {
+        // Les six chiffres ne bougent pas : il n'y a rien a montrer, et un dialogue
+        // qui repete ce qu'on vient de lire s'apprend a fermer sans le lire. Le
+        // changement de mode, lui, est bien une nouvelle version.
+        val viewModel = viewModel(objectifCourant())
+        viewModel.onEdit()
+        viewModel.onManual(true)
+        var referme = false
+
+        viewModel.onSave { referme = true }
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.pending, "aucun chiffre ne change, donc rien a annoncer")
+        assertTrue(referme)
+        assertEquals(2, goals.all.size)
+        assertEquals(GoalOrigin.MANUAL, goals.all.single { it.active }.origin)
     }
 
     @Test
@@ -194,16 +258,18 @@ internal class ProfileViewModelTest {
     @Test
     fun `un echec d ecriture se dit et conserve les corrections`() = runTest(dispatcher) {
         val viewModel = viewModel(objectifCourant())
+        viewModel.onEdit()
         viewModel.onForm(viewModel.uiState.value.form.copy(heightCm = 178.0))
+        viewModel.onSave { }
         goals.failure = true
         var referme = false
 
-        viewModel.onSave { referme = true }
+        viewModel.onConfirm { referme = true }
         advanceUntilIdle()
 
         assertFalse(referme, "l ecran ne se referme pas sur un echec")
         assertTrue(viewModel.uiState.value.failed)
-        assertEquals(178.0, viewModel.uiState.value.form.heightCm, "la correction est conservee telle quelle")
+        assertEquals(178.0, viewModel.uiState.value.form.heightCm)
     }
 
     // --- Montage -----------------------------------------------------------------
@@ -220,15 +286,18 @@ internal class ProfileViewModelTest {
         )
     }
 
-    private fun objectifCourant(manual: Map<Macro, Double> = emptyMap()) = Goal(
+    private fun objectifCourant() = objectif(GoalOrigin.CALCULATED, calculate(PROFIL, DEMANDE).goal)
+
+    private fun objectifManuel() = objectif(GoalOrigin.MANUAL, SAISI_A_LA_MAIN)
+
+    private fun objectif(origin: GoalOrigin, daily: DailyGoal) = Goal(
         id = GoalId("goal-initial"),
         startedAt = AUJOURD_HUI.minusMonths(1),
-        origin = if (manual.isEmpty()) GoalOrigin.CALCULATED else GoalOrigin.MANUAL,
+        origin = origin,
         strategy = DEMANDE.strategy,
         targetWeightKg = DEMANDE.targetWeightKg,
         targetDate = DEMANDE.targetDate,
-        daily = calculate(PROFIL, DEMANDE).goal.overriddenBy(manual),
-        manualFields = manual.keys,
+        daily = daily,
     )
 
     private companion object {
@@ -248,6 +317,16 @@ internal class ProfileViewModelTest {
             currentWeightKg = POIDS,
             targetWeightKg = 80.0,
             targetDate = AUJOURD_HUI.plusDays(182),
+        )
+
+        /** Six chiffres ronds, que le calcul ne produirait pour personne. */
+        val SAISI_A_LA_MAIN = DailyGoal(
+            kcal = 2_000.0,
+            protein = 150.0,
+            carbs = 200.0,
+            sugars = 40.0,
+            fat = 60.0,
+            fiber = 30.0,
         )
     }
 }

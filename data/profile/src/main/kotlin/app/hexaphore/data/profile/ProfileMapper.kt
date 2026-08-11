@@ -8,7 +8,6 @@ import app.hexaphore.domain.goal.Goal
 import app.hexaphore.domain.goal.GoalId
 import app.hexaphore.domain.goal.GoalOrigin
 import app.hexaphore.domain.goal.GoalStrategy
-import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.profile.ActivityLevel
 import app.hexaphore.domain.profile.Sex
 import app.hexaphore.domain.profile.UnitSystem
@@ -71,7 +70,6 @@ internal fun GoalEntity.toDomain() = Goal(
         fat = fatG,
         fiber = fiberG,
     ),
-    manualFields = manualFields.toMacros(),
 )
 
 internal fun Goal.toEntity(now: Long) = GoalEntity(
@@ -92,16 +90,5 @@ internal fun Goal.toEntity(now: Long) = GoalEntity(
     sugarG = daily.sugars,
     fatG = daily.fat,
     fiberG = daily.fiber,
-    manualFields = manualFields.joinToString(",") { it.name },
     createdAt = now,
 )
-
-/**
- * Les compteurs fixés à la main, relus depuis leur forme sérialisée.
- *
- * Un nom inconnu est **ignoré** plutôt que de faire échouer la lecture : perdre le
- * verrou d'un compteur fait qu'un recalcul le réécrira, ce qui est ennuyeux ; rendre
- * l'objectif illisible ferait perdre les six.
- */
-private fun String.toMacros(): Set<Macro> =
-    split(',').mapNotNullTo(mutableSetOf()) { name -> Macro.entries.firstOrNull { it.name == name.trim() } }

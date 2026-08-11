@@ -242,11 +242,15 @@ Si l'algorithme a une suggestion d'ajustement en attente, une carte apparaît en
 
 Écran simple à sections. ~~L'accueil y mène, et les sections mènent aux écrans.~~ **Il n'existe pas encore** ([D59](11-decisions.md)) : quatre de ses cinq sections dépendent des tranches 6 et 8, et l'accueil ouvre donc directement la seule qui a du contenu. Le hub naîtra avec la deuxième.
 
-**Profil et objectifs** — toutes les données de l'onboarding, modifiables. ~~Bouton « Recalculer mes objectifs » et~~ édition manuelle des six valeurs. Les six compteurs suivent chaque correction **en direct** : le bouton de recalcul n'aurait rien eu à recalculer, et deux chemins de calcul finissent par annoncer deux chiffres ([D59](11-decisions.md)).
+**Profil et objectifs** — toutes les données de l'onboarding. **On les consulte d'abord** : l'écran ouvre en lecture, et un crayon ouvre la modification ([D60](11-decisions.md)). Un écran de réglages entièrement saisissable invite à corriger ce qu'on venait relire.
 
-Un objectif édité à la main est marqué comme tel et n'est plus écrasé par un recalcul sans confirmation explicite. La marque et la confirmation sont **la même pastille** : elle dit que le compteur est fixé, et c'est elle qu'on touche pour le rendre au calcul. Un compteur fixé affiche aussi ce que le calcul proposerait — sans ce repère, un chiffre verrouillé il y a trois semaines n'a plus de référence.
+~~Bouton « Recalculer mes objectifs » et~~ édition manuelle des six valeurs. Le bouton de recalcul disparaît : les six compteurs suivent chaque correction **en direct**, et deux chemins de calcul finissent par annoncer deux chiffres ([D59](11-decisions.md)).
 
-Corriger ses objectifs **ouvre une nouvelle version**, il n'en modifie aucune ([D04](11-decisions.md)), et l'écran le dit en une phrase. Corriger son poids enregistre une pesée du jour ; le laisser tel quel n'en invente aucune.
+~~Un objectif édité à la main est marqué comme tel et n'est plus écrasé par un recalcul sans confirmation explicite.~~ **Un interrupteur bascule entre objectif calculé et objectif saisi à la main** ([D60](11-decisions.md)). Calculé, les six compteurs suivent le profil, le poids visé et l'échéance. Saisi, ils deviennent six champs et plus rien ne les recalcule. Il n'y a pas de troisième état : un compteur figé à l'intérieur d'un objectif calculé obligeait l'écran à l'expliquer six fois, et le poids cible à piloter trois compteurs sur six.
+
+En saisie manuelle, le poids cible et l'échéance **restent modifiables mais ne pilotent plus rien**, et l'écran le dit. Ils décrivent le cap annoncé, dont le journal de poids tire sa trajectoire.
+
+Corriger ses objectifs **ouvre une nouvelle version**, il n'en modifie aucune ([D04](11-decisions.md)), et l'écran le dit en une phrase. Quand les six chiffres changent, une boîte les affiche **face aux anciens** avant d'écrire — seul écart assumé à la règle des dialogues ci-dessous. Corriger son poids enregistre une pesée du jour ; le laisser tel quel n'en invente aucune.
 
 **Intelligence artificielle** — liste des fournisseurs. Pour chacun : clé API (masquée, avec bouton « Tester »), modèle, et pour le fournisseur générique, l'URL de base. Un fournisseur actif est désigné par défaut. En bas, compteur d'utilisation : appels et coût estimé par fournisseur, remise à zéro possible.
 
@@ -263,7 +267,7 @@ Corriger ses objectifs **ouvre une nouvelle version**, il n'en modifie aucune ([
 **Restauration d'état.** Toute saisie en cours survit à une rotation, à un passage en arrière-plan et à la destruction du processus. Les états d'écran vivent dans un `ViewModel` avec `SavedStateHandle`.
 
 **Erreurs.** Trois niveaux et pas un de plus : `Snackbar` pour le récupérable (« Supprimé »
-+ Annuler), encart inline pour l'échec d'une action en cours (avec Réessayer), dialogue uniquement pour ce qui est destructif ou irréversible (restauration d'une sauvegarde, suppression d'un aliment utilisé dans l'historique).
++ Annuler), encart inline pour l'échec d'une action en cours (avec Réessayer), dialogue uniquement pour ce qui est destructif ou irréversible (restauration d'une sauvegarde, suppression d'un aliment utilisé dans l'historique) — **plus un écart assumé**, la confirmation d'un changement d'objectif, qui est le seul endroit où six lignes de chiffres doivent être lues avant d'écrire ([D60](11-decisions.md)).
 
 **Chargements.** Squelettes plutôt que roues, sauf pour les appels IA où l'attente est longue et mérite une animation assumée. Aucun écran bloquant.
 

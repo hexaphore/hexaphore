@@ -2,6 +2,8 @@ package app.hexaphore.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.hexaphore.domain.goal.DailyGoal
+import app.hexaphore.domain.goal.GoalOrigin
 import app.hexaphore.domain.goal.GoalStrategy
 import app.hexaphore.domain.goal.Goals
 import app.hexaphore.domain.nutrition.Macro
@@ -28,14 +30,12 @@ import javax.inject.Inject
  * arrière. C'est le même raisonnement qu'en [D56][decisions] pour la destination de
  * départ — ce qui se décide à l'ouverture se lit à l'ouverture.
  *
- * **Le plan est recalculé à chaque correction**, comme aux cinq questions, et c'est ce
- * qui garantit qu'il n'existe qu'**un** calcul. Le bouton « Recalculer mes objectifs »
- * que [docs/02][parcours] prévoyait disparaît donc : il ne recalculerait rien que
- * l'écran n'ait déjà fait, et deux chemins de calcul finissent par annoncer deux
- * chiffres ([D59][decisions]).
+ * **Deux modes, et un seul décide des six chiffres** ([D60][decisions]). En calculé,
+ * ils suivent le profil en direct ; en manuel, ils viennent de la saisie et **aucun
+ * recalcul n'y touche**. Le plan continue d'être calculé dans les deux cas, parce que
+ * revenir au calcul ne doit pas demander de quitter l'écran.
  *
  * [decisions]: docs/11-decisions.md
- * [parcours]: docs/02-parcours-et-ecrans.md
  */
 @HiltViewModel
 internal class ProfileViewModel @Inject constructor(
@@ -54,7 +54,9 @@ internal class ProfileViewModel @Inject constructor(
             val outcome = runCatching { read() }
             state.update { current ->
                 outcome.fold(
-                    onSuccess = { current.copy(loaded = true, form = it).recalculated() },
+                    onSuccess = { (form, saved) ->
+                        current.copy(loaded = true, form = form, saved = saved).planned(calculate)
+                    },
                     // Un echec de lecture se dit (D39). Presenter un formulaire vide
                     // laisserait croire qu'aucun profil n'existe, et l'enregistrer
                     // ecraserait celui qui est en base.
@@ -62,6 +64,11 @@ internal class ProfileViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    /** Le crayon. C'est la seule porte vers la modification, switch de mode compris. */
+    fun onEdit() {
+        state.update { it.copy(editing = true) }
     }
 
     /**
@@ -77,39 +84,59 @@ internal class ProfileViewModel @Inject constructor(
         } else {
             form
         }
-        state.update { it.copy(form = cleaned).recalculated() }
+        state.update { it.copy(form = cleaned).planned(calculate) }
     }
 
     /**
-     * Fixe un compteur à la valeur que le calcul propose aujourd'hui.
+     * Bascule entre objectif calculé et objectif saisi à la main.
      *
-     * Il part de cette valeur-là et non d'un champ vide : ce qu'on veut corriger est
-     * presque toujours le chiffre affiché, de quelques grammes.
+     * Passer en manuel **part des six chiffres affichés** plutôt que de six champs
+     * vides : ce qu'on veut corriger est presque toujours ce qui est là, de quelques
+     * grammes. Revenir au calcul les jette — les garder ferait réapparaître une vieille
+     * saisie au prochain aller-retour, sans que rien ne dise d'où elle sort.
      */
-    fun onLock(macro: Macro) {
-        val proposed = state.value.plan?.goal?.get(macro) ?: return
-        state.update { it.withManual(macro, proposed) }
+    fun onManual(manual: Boolean) {
+        state.update { current ->
+            val macros = if (manual) current.plan?.goal.toMacros() else emptyMap()
+            current.copy(form = current.form.copy(manual = manual, macros = macros))
+        }
     }
 
-    /** Rend un compteur au calcul. C'est la « confirmation explicite » de docs/02. */
-    fun onRelease(macro: Macro) {
-        state.update { it.copy(form = it.form.copy(manual = it.form.manual - macro)) }
-    }
-
-    fun onCounterChange(macro: Macro, value: Double?) {
-        state.update { it.withManual(macro, value) }
+    fun onMacroChange(macro: Macro, value: Double?) {
+        state.update { it.copy(form = it.form.copy(macros = it.form.macros + (macro to value))) }
     }
 
     /**
-     * Écrit le profil corrigé, la pesée s'il y a lieu, et un **nouvel** objectif.
+     * Demande à enregistrer.
      *
-     * Rien n'est écrit tant que le formulaire est incomplet : le bouton refuse et la
-     * barre dit quoi ([D28][decisions]).
+     * **Si les six chiffres changent, l'écran le dit avant d'écrire** : la correction
+     * part en attente et la boîte de confirmation les montre face aux anciens. Corriger
+     * sa taille de deux centimètres déplace un objectif quotidien, et c'est le genre de
+     * conséquence qu'on ne doit pas découvrir sur l'accueil.
      *
-     * [decisions]: docs/11-decisions.md
+     * Quand ils ne changent pas, il n'y a rien à annoncer et l'écriture part
+     * directement — un dialogue qui répète ce qu'on vient de lire s'apprend à fermer
+     * sans le lire.
      */
     fun onSave(onDone: () -> Unit) {
-        val revision = state.value.toRevision()?.takeIf { state.value.canSave } ?: return
+        val current = state.value
+        val next = current.daily?.takeIf { current.canSave } ?: return
+        if (next == current.saved) write(next, onDone) else state.update { it.copy(pending = next) }
+    }
+
+    fun onConfirm(onDone: () -> Unit) {
+        val pending = state.value.pending ?: return
+        state.update { it.copy(pending = null) }
+        write(pending, onDone)
+    }
+
+    /** Renoncer à la confirmation ramène au formulaire, corrections intactes. */
+    fun onDismissConfirmation() {
+        state.update { it.copy(pending = null) }
+    }
+
+    private fun write(daily: DailyGoal, onDone: () -> Unit) {
+        val revision = state.value.revisionFor(daily) ?: return
         state.update { it.copy(saving = true, failed = false) }
 
         viewModelScope.launch {
@@ -119,12 +146,12 @@ internal class ProfileViewModel @Inject constructor(
         }
     }
 
-    private suspend fun read(): ProfileForm {
+    private suspend fun read(): Pair<ProfileForm, DailyGoal?> {
         val profile = profiles.observeProfile().first()
         val weight = weights.observeLatest().first()
         val goal = goals.observeCurrent().first()
 
-        return ProfileForm(
+        val form = ProfileForm(
             birthDate = profile?.birthDate,
             sex = profile?.sex,
             heightCm = profile?.heightCm,
@@ -135,34 +162,38 @@ internal class ProfileViewModel @Inject constructor(
             strategy = goal?.strategy,
             targetWeightKg = goal?.targetWeightKg,
             targetDate = goal?.targetDate,
-            manual = goal?.manualFields?.associateWith { goal.daily[it] }.orEmpty(),
+            manual = goal?.origin == GoalOrigin.MANUAL,
+            macros = if (goal?.origin == GoalOrigin.MANUAL) goal.daily.toMacros() else emptyMap(),
         )
-    }
-
-    private fun ProfileUiState.recalculated(): ProfileUiState {
-        val profile = form.toProfile()
-        val request = form.toRequest()
-        return copy(plan = if (profile != null && request != null) calculate(profile, request) else null)
-    }
-
-    private fun ProfileUiState.withManual(macro: Macro, value: Double?): ProfileUiState =
-        copy(form = form.copy(manual = form.manual + (macro to value)))
-
-    private fun ProfileUiState.toRevision(): GoalRevision? {
-        val profile = form.toProfile()
-        val request = form.toRequest()
-        val computed = plan
-        return if (profile != null && request != null && computed != null) {
-            GoalRevision(
-                profile = profile,
-                request = request,
-                // Ce que l'ecran affiche a cet instant, et non un recalcul fait au
-                // moment d'ecrire : ce qui est montre est ce qui est ecrit.
-                calculated = computed.goal,
-                manual = form.manualValues(),
-            )
-        } else {
-            null
-        }
+        return form to goal?.daily
     }
 }
+
+// Hors de la classe : ce sont des conversions d'etat, pas des capacites de l'ecran.
+// C'est aussi la reponse du projet au seuil de fonctions de detekt -- sortir ce qui
+// n'appartient pas au type plutot que relever le seuil (docs/10).
+
+/**
+ * Ce que le calcul propose pour ce formulaire, ou `null` s'il y manque une réponse.
+ *
+ * Calculé **même en mode manuel** : c'est ce qui permet de revenir au calcul sans
+ * quitter l'écran, et de montrer au passage ce qu'il proposerait.
+ */
+private fun ProfileUiState.planned(calculate: CalculateDailyGoal): ProfileUiState {
+    val profile = form.toProfile()
+    val request = form.toRequest()
+    return copy(plan = if (profile != null && request != null) calculate(profile, request) else null)
+}
+
+private fun ProfileUiState.revisionFor(daily: DailyGoal): GoalRevision? {
+    val profile = form.toProfile()
+    val request = form.toRequest()
+    return if (profile != null && request != null) {
+        GoalRevision(profile = profile, request = request, daily = daily, origin = origin)
+    } else {
+        null
+    }
+}
+
+private fun DailyGoal?.toMacros(): Map<Macro, Double?> =
+    this?.let { goal -> Macro.entries.associateWith { goal[it] } }.orEmpty()

@@ -2,12 +2,16 @@ package app.hexaphore.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import app.hexaphore.core.designsystem.component.DraftTextField
 import app.hexaphore.core.designsystem.component.NeonChip
@@ -20,9 +24,20 @@ import app.hexaphore.domain.profile.ActivityLevel
 import app.hexaphore.domain.profile.Sex
 import app.hexaphore.domain.usecase.GoalPlan
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import kotlin.math.abs
+
+/** Le formulaire, une fois le crayon ouvert. */
+@Composable
+internal fun ProfileEditor(state: ProfileUiState, actions: ProfileActions) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+        Body(stringResource(R.string.profile_history_note))
+        YouSection(state.form, state.today, actions.onForm)
+        ActivitySection(state.form, actions.onForm)
+        ObjectiveSection(state.form, state.today, state.plan, actions.onForm)
+        CountersSection(state, actions)
+        if (state.failed) Body(stringResource(R.string.profile_save_failed))
+    }
+}
 
 /**
  * **Vous.** Les quatre réponses dont le calcul de la dépense a besoin.
@@ -33,7 +48,7 @@ import kotlin.math.abs
  * aucune, et l'écran le dit.
  */
 @Composable
-internal fun YouSection(form: ProfileForm, today: LocalDate, onForm: (ProfileForm) -> Unit) {
+private fun YouSection(form: ProfileForm, today: LocalDate, onForm: (ProfileForm) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         SectionTitle(stringResource(R.string.profile_you_title))
 
@@ -71,7 +86,7 @@ internal fun YouSection(form: ProfileForm, today: LocalDate, onForm: (ProfileFor
 
 /** **Votre activité.** Cinq niveaux, chacun décrit par un exemple concret. */
 @Composable
-internal fun ActivitySection(form: ProfileForm, onForm: (ProfileForm) -> Unit) {
+private fun ActivitySection(form: ProfileForm, onForm: (ProfileForm) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         SectionTitle(stringResource(R.string.profile_activity_title))
         Body(stringResource(R.string.profile_activity_body))
@@ -89,12 +104,17 @@ internal fun ActivitySection(form: ProfileForm, onForm: (ProfileForm) -> Unit) {
  *
  * L'échéance en cours s'affiche **telle qu'elle est**, en toutes lettres, et les trois
  * pastilles servent à la déplacer. Elle a été choisie un autre jour : la traduire en
- * « dans 6 mois » la ferait glisser de la durée écoulée depuis, ce qui est faux, et
- * l'arrondir à la pastille la plus proche serait pire — l'écran annoncerait un rythme
- * qui n'est pas celui qui court.
+ * « dans 6 mois » la ferait glisser de la durée écoulée depuis, ce qui est faux.
+ *
+ * **En saisie manuelle, ces deux champs restent modifiables mais ne pilotent plus
+ * rien**, et une phrase le dit ([D60][decisions]). Les masquer aurait fait disparaître
+ * le cap annoncé, dont le journal de poids tire sa trajectoire ; les laisser sans rien
+ * dire aurait laissé croire qu'une correction d'échéance déplace les six compteurs.
+ *
+ * [decisions]: docs/11-decisions.md
  */
 @Composable
-internal fun ObjectiveSection(form: ProfileForm, today: LocalDate, plan: GoalPlan?, onForm: (ProfileForm) -> Unit) {
+private fun ObjectiveSection(form: ProfileForm, today: LocalDate, plan: GoalPlan?, onForm: (ProfileForm) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         SectionTitle(stringResource(R.string.profile_objective_title))
 
@@ -106,6 +126,8 @@ internal fun ObjectiveSection(form: ProfileForm, today: LocalDate, plan: GoalPla
         )
 
         if (form.strategy != null && form.strategy != GoalStrategy.MAINTAIN) {
+            if (form.manual) Body(stringResource(R.string.profile_manual_horizon_note))
+
             NumberField(
                 value = form.targetWeightKg,
                 label = stringResource(R.string.profile_target_weight),
@@ -116,7 +138,10 @@ internal fun ObjectiveSection(form: ProfileForm, today: LocalDate, plan: GoalPla
             Body(stringResource(R.string.profile_horizon_label))
             Horizons(form, today, plan, onForm)
 
-            if (plan != null) {
+            // Le rythme et les garde-fous decrivent ce que le calcul ferait : en
+            // saisie manuelle, ils annonceraient un objectif qui n'est pas celui
+            // qu'on enregistre.
+            if (plan != null && !form.manual) {
                 if (form.targetDate != null) Body(stringResource(R.string.profile_pace, abs(plan.weeklyWeightChangeKg)))
                 plan.reachableOn?.let { Body(stringResource(R.string.profile_capped, it.formatLong())) }
                 if (plan.carbsBelowMinimum) Body(stringResource(R.string.profile_carbs_low))
@@ -138,13 +163,39 @@ private fun Horizons(form: ProfileForm, today: LocalDate, plan: GoalPlan?, onFor
     }
     // La date que les garde-fous ont calculee, quand ils ont mordu. Elle ne
     // correspond a aucune des trois, donc elle merite sa propre pastille.
-    plan?.reachableOn?.let { date ->
-        NeonChip(
-            label = stringResource(R.string.profile_horizon_reachable, date.formatLong()),
-            selected = form.targetDate == date,
-            onClick = { onForm(form.copy(targetDate = date)) },
-            modifier = Modifier.fillMaxWidth(),
-        )
+    if (!form.manual) {
+        plan?.reachableOn?.let { date ->
+            NeonChip(
+                label = stringResource(R.string.profile_horizon_reachable, date.formatLong()),
+                selected = form.targetDate == date,
+                onClick = { onForm(form.copy(targetDate = date)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+/**
+ * Le switch qui bascule d'un objectif calculé à un objectif saisi à la main.
+ *
+ * **La ligne entière est la cible tactile**, comme l'avertissement de l'onboarding :
+ * une cible de 24 dp à droite d'une phrase est une cible qu'on rate, et TalkBack
+ * annonce ainsi une seule case à cocher au lieu de deux.
+ */
+@Composable
+internal fun ModeSwitch(manual: Boolean, onManual: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(value = manual, role = Role.Switch, onValueChange = onManual)
+            .padding(vertical = Spacing.xs),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Body(stringResource(R.string.profile_mode_switch))
+        // `onCheckedChange = null` : le switch ne recoit plus le clic, c'est la ligne
+        // qui le porte. Sans cela, TalkBack annoncerait deux cibles pour une decision.
+        Switch(checked = manual, onCheckedChange = null)
     }
 }
 
@@ -177,56 +228,6 @@ private fun <T> ChoiceColumn(options: List<T>, selected: T?, label: @Composable 
     }
 }
 
-@Composable
-internal fun SectionTitle(text: String) {
-    Text(text = text, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
-}
-
-@Composable
-internal fun Body(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-}
-
 /** Bornes de la grille des années, en années révolues avant aujourd'hui. */
 private const val OLDEST_YEARS = 110
 private const val YOUNGEST_YEARS = 13
-
-internal fun formatDecimal(value: Double): String =
-    if (value % 1.0 == 0.0) value.toInt().toString() else value.toString()
-
-/** « 14 mars 2027 » et non « 2027-03-14 » : l'ISO n'existe que pour le stockage. */
-internal fun LocalDate.formatLong(): String = format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
-
-private val Sex.labelRes: Int
-    get() = when (this) {
-        Sex.MALE -> R.string.profile_sex_male
-        Sex.FEMALE -> R.string.profile_sex_female
-        Sex.UNSPECIFIED -> R.string.profile_sex_unspecified
-    }
-
-private val ActivityLevel.labelRes: Int
-    get() = when (this) {
-        ActivityLevel.SEDENTARY -> R.string.profile_activity_sedentary
-        ActivityLevel.LIGHT -> R.string.profile_activity_light
-        ActivityLevel.MODERATE -> R.string.profile_activity_moderate
-        ActivityLevel.ACTIVE -> R.string.profile_activity_active
-        ActivityLevel.VERY_ACTIVE -> R.string.profile_activity_very_active
-    }
-
-private val GoalStrategy.labelRes: Int
-    get() = when (this) {
-        GoalStrategy.LOSE -> R.string.profile_strategy_lose
-        GoalStrategy.MAINTAIN -> R.string.profile_strategy_maintain
-        GoalStrategy.GAIN -> R.string.profile_strategy_gain
-    }
-
-private val GoalHorizon.labelRes: Int
-    get() = when (this) {
-        GoalHorizon.THREE_MONTHS -> R.string.profile_horizon_three
-        GoalHorizon.SIX_MONTHS -> R.string.profile_horizon_six
-        GoalHorizon.TWELVE_MONTHS -> R.string.profile_horizon_twelve
-    }

@@ -6,7 +6,6 @@ import app.hexaphore.domain.goal.GoalId
 import app.hexaphore.domain.goal.GoalOrigin
 import app.hexaphore.domain.goal.Goals
 import app.hexaphore.domain.identity.IdGenerator
-import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.profile.Profiles
 import app.hexaphore.domain.profile.UserProfile
 import app.hexaphore.domain.profile.WeightEntry
@@ -18,23 +17,31 @@ import java.time.LocalDate
 /**
  * Une correction du profil, telle que l'écran la présente.
  *
- * [calculated] vient de l'appelant et n'est **pas** recalculé ici, contrairement à ce
- * qu'un cas d'usage ferait d'ordinaire. L'écran affiche les six chiffres en direct
- * pendant qu'on corrige sa taille ou son échéance : les recalculer au moment d'écrire
- * ouvrirait la possibilité d'enregistrer autre chose que ce qui était affiché, et cet
- * écart-là n'apparaîtrait qu'une fois la ligne écrite. Ce qui est montré est ce qui est
- * écrit — même raison que l'aperçu de rythme de [D56][decisions].
+ * [daily] vient de l'appelant et n'est **pas** recalculé ici, contrairement à ce qu'un
+ * cas d'usage ferait d'ordinaire. Deux raisons, et la seconde est la plus forte.
  *
- * [manual] porte les compteurs que l'utilisateur a fixés lui-même, et leur valeur.
- * Ce sont eux qui priment sur [calculated] ; la carte vide est le cas courant.
+ * D'abord, l'écran affiche les six chiffres en direct pendant qu'on corrige sa taille
+ * ou son échéance : les recalculer au moment d'écrire ouvrirait la possibilité
+ * d'enregistrer autre chose que ce qui était affiché — un écart qui n'apparaîtrait
+ * qu'une fois la ligne écrite. Ce qui est montré est ce qui est écrit, comme l'aperçu
+ * de rythme de [D56][decisions].
+ *
+ * Ensuite, un objectif **manuel** n'est le résultat d'aucun calcul ([D60][decisions]).
+ * Un cas d'usage qui calculerait lui-même n'aurait aucun moyen de produire ces
+ * six chiffres-là, et il faudrait lui passer quand même — donc revenir ici.
+ *
+ * [origin] est le mode, et il décide de tout le reste : `CALCULATED` suit le profil,
+ * `MANUAL` ne suit plus rien. [GoalRequest.targetWeightKg] et
+ * [GoalRequest.targetDate] restent enregistrés dans les deux cas, parce qu'ils
+ * décrivent le cap annoncé — mais en mode manuel, ils ne pilotent aucun des six.
  *
  * [decisions]: docs/11-decisions.md
  */
 data class GoalRevision(
     val profile: UserProfile,
     val request: GoalRequest,
-    val calculated: DailyGoal,
-    val manual: Map<Macro, Double> = emptyMap(),
+    val daily: DailyGoal,
+    val origin: GoalOrigin,
 )
 
 /**
@@ -91,23 +98,12 @@ class ReviseGoal(
     }
 }
 
-/**
- * La provenance suit le contenu : dès qu'un compteur est fixé à la main, l'objectif
- * entier est marqué [GoalOrigin.MANUAL].
- *
- * C'est ce que [docs/02][parcours] demande — « un objectif édité à la main est marqué
- * comme tel » — et c'est aussi ce qui rend la marque réversible : rendre le dernier
- * compteur au calcul suffit à faire redevenir l'objectif calculé.
- *
- * [parcours]: docs/02-parcours-et-ecrans.md
- */
 private fun GoalRevision.toGoal(id: GoalId, today: LocalDate) = Goal(
     id = id,
     startedAt = today,
-    origin = if (manual.isEmpty()) GoalOrigin.CALCULATED else GoalOrigin.MANUAL,
+    origin = origin,
     strategy = request.strategy,
     targetWeightKg = request.targetWeightKg,
     targetDate = request.targetDate,
-    daily = calculated.overriddenBy(manual),
-    manualFields = manual.keys.toSet(),
+    daily = daily,
 )

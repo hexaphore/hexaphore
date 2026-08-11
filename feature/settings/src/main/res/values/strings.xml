@@ -3,6 +3,9 @@
 
     <string name="profile_title">Profil et objectifs</string>
     <string name="profile_close">Retour</string>
+    <!-- On consulte par défaut : le crayon est la seule porte vers la modification. -->
+    <string name="profile_edit">Modifier</string>
+    <string name="profile_cancel">Annuler les modifications</string>
 
     <!-- D04 rendu visible : corriger un objectif n'en modifie aucun, il en ouvre un
          nouveau. Sans cette phrase, l'utilisateur croirait repeindre son mois. -->
@@ -47,17 +50,18 @@
     <string name="profile_capped">Ce rythme dépasserait les bornes de sécurité. À un rythme sûr, votre poids cible serait atteint vers le %1$s.</string>
     <string name="profile_carbs_low">À ce niveau de calories, il reste peu de glucides une fois les protéines, les lipides et les fibres couverts. Un objectif un peu plus haut serait plus tenable.</string>
 
-    <!-- Un compteur fixé à la main survit à tous les recalculs qui suivront. La
-         pastille porte l'état et le geste : elle marque le verrou et elle le défait. -->
+    <!-- Le mode. Un objectif est calculé OU saisi à la main, sans entre-deux : c'est
+         ce qui décide si une correction de profil a le droit de déplacer les six. -->
     <string name="profile_counters_title">Vos six compteurs</string>
-    <string name="profile_counters_body">Fixez un compteur pour qu\'aucun recalcul ne le réécrive. Les cinq autres continueront de suivre votre profil.</string>
+    <string name="profile_mode_switch">Les saisir moi-même</string>
+    <string name="profile_mode_calculated">Calculés à partir de votre profil, de votre poids cible et de votre échéance. Corriger l\'un des trois les déplace.</string>
+    <string name="profile_mode_manual">Vous les fixez. Aucune correction de profil ne les recalculera.</string>
+    <!-- Le poids cible et l'échéance restent enregistrés, mais ils ne pilotent plus
+         rien : le dire vaut mieux que de laisser deux champs faire croire le contraire. -->
+    <string name="profile_manual_horizon_note">En saisie manuelle, votre poids cible et votre échéance n\'entrent plus dans le calcul de vos compteurs. Ils restent enregistrés comme le cap que vous visez.</string>
     <string name="profile_counters_unavailable">Complétez les champs ci-dessus pour voir vos six compteurs.</string>
-    <string name="profile_counter_locked">Fixé à la main</string>
-    <!-- Six pastilles au même libellé seraient six cases identiques pour TalkBack. -->
-    <string name="profile_counter_locked_a11y">%1$s : fixé à la main</string>
     <string name="profile_counter_line">%1$s : %2$d %3$s</string>
     <string name="profile_counter_field">%1$s (%2$s)</string>
-    <string name="profile_counter_proposed">Le calcul proposerait %1$d %2$s.</string>
 
     <string name="profile_unit_kcal">kcal</string>
     <string name="profile_unit_gram">g</string>
@@ -69,12 +73,36 @@
     <string name="profile_macro_fat">Lipides</string>
     <string name="profile_macro_fiber">Fibres</string>
 
+    <!-- Consultation : une ligne par réponse, sans champ ni bordure. -->
+    <string name="profile_line">%1$s : %2$s</string>
+    <string name="profile_label_birth">Date de naissance</string>
+    <string name="profile_label_sex">Sexe</string>
+    <string name="profile_label_height">Taille</string>
+    <string name="profile_label_weight">Poids actuel</string>
+    <string name="profile_label_activity">Activité</string>
+    <string name="profile_label_strategy">Objectif</string>
+    <string name="profile_label_target">Poids cible</string>
+    <string name="profile_label_horizon">Échéance</string>
+    <string name="profile_value_cm">%1$s cm</string>
+    <string name="profile_value_kg">%1$s kg</string>
+    <string name="profile_value_unknown">non renseigné</string>
+
+    <!-- Ce qui change, montré avant d'écrire. Corriger sa taille de deux centimètres
+         déplace un objectif quotidien : ça ne se découvre pas sur l'accueil. -->
+    <string name="profile_confirm_title">Vos objectifs changent</string>
+    <string name="profile_confirm_body">Ces compteurs remplaceront les vôtres à partir d\'aujourd\'hui. Les journées déjà notées gardent ceux qui couraient ce jour-là.</string>
+    <string name="profile_confirm_line">%1$s : %2$d → %3$d %4$s</string>
+    <string name="profile_confirm_line_new">%1$s : %2$d %3$s</string>
+    <string name="profile_confirm_accept">Enregistrer</string>
+    <string name="profile_confirm_cancel">Revenir</string>
+
     <!-- La réponse du bouton indisponible à un appui. Elle dit ce qui manque, pas
          qu'il manque quelque chose : « complétez le formulaire » n'aide personne. -->
     <string name="profile_blocked_identity">Renseignez votre date de naissance, votre sexe, votre taille et votre poids.</string>
     <string name="profile_blocked_activity">Choisissez le niveau qui décrit le mieux vos semaines.</string>
-    <string name="profile_blocked_objective">Choisissez un objectif, puis un poids cible et une échéance.</string>
-    <string name="profile_blocked_counter">Un compteur fixé à la main est vide. Renseignez-le, ou rendez-le au calcul.</string>
+    <string name="profile_blocked_strategy">Choisissez un objectif : perdre, maintenir ou prendre du poids.</string>
+    <string name="profile_blocked_horizon">Renseignez un poids cible et une échéance.</string>
+    <string name="profile_blocked_macro">Un de vos six compteurs est vide. Renseignez-le, ou revenez aux compteurs calculés.</string>
 
     <string name="profile_save">Enregistrer</string>
     <string name="profile_saving">Enregistrement…</string>

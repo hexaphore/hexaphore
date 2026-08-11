@@ -133,6 +133,8 @@ Les pièges déjà payés. Chacun a coûté au moins une session, et aucun ne se
 rm -rf <module>/build/tmp/kotlin-classes <module>/build/kotlin
 ```
 
+**Une nouvelle version de schéma Room demande un build avant que le test de migration la voie.** Les schémas exportés sont un `assets.srcDir` du jeu de sources de test, et la fusion des assets peut passer avant que KSP ait écrit le `N.json` neuf : le premier `test` après un changement de `VERSION` échoue alors sur un `FileNotFoundException` qui ne dit rien de la migration. Relancer suffit — il n'y a rien à corriger.
+
 **Ne pas utiliser `--rerun`.** Sur ce projet, il régénère `domain/build/libs/domain.jar` **vide** — 261 octets, le manifeste seul — et tout module qui en dépend échoue ensuite sur des `Unresolved reference 'domain'` qui n'ont aucun rapport apparent avec ce qu'on venait de changer. Le remède est de supprimer le jar. Pour forcer une ré-exécution de tests, `cleanTest` fait le même travail sans le risque.
 
 **`includeBuild("build-logic")` est déclaré deux fois dans `settings.gradle.kts`, et ce n'est pas une redite.** Celle de `pluginManagement` rend les identifiants `hexaphore.*` résolubles ; celle de la racine substitue le projet local à la coordonnée `app.hexaphore.buildlogic:detekt-rules` que le build racine déclare en `detektPlugins`. Retirer l'une casse l'autre.

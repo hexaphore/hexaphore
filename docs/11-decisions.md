@@ -873,7 +873,7 @@ Décision de l'auteur, appliquée telle quelle. **Contestation, pour mémoire** 
 
 | Absent | Raison | Quand |
 |---|---|---|
-| ~~L'écran de **réglages profil**, avec verrouillage des champs édités~~ | La colonne `manual_fields` existe, le domaine la porte (`Goal.manualFields`), et le mapper la sérialise — mais **rien ne l'écrit encore**, faute d'écran d'édition. C'est une capacité à part entière : relire le profil, recalculer, et distinguer ce que l'utilisateur a fixé de ce que le calcul propose. | **Fait** en [D59](#d59--le-profil-se-corrige-et-le-verrou-survit-au-recalcul---validée) |
+| ~~L'écran de **réglages profil**, avec verrouillage des champs édités~~ | La colonne `manual_fields` existe, le domaine la porte (`Goal.manualFields`), et le mapper la sérialise — mais **rien ne l'écrit encore**, faute d'écran d'édition. C'est une capacité à part entière : relire le profil, recalculer, et distinguer ce que l'utilisateur a fixé de ce que le calcul propose. | **Fait** en [D59](#d59--le-profil-se-corrige-et-le-verrou-survit-au-recalcul---en-partie-remplacée-par-d60), sous la forme que [D60](#d60--un-objectif-est-calculé-ou-saisi-et-on-consulte-avant-de-corriger---validée) lui a donnée |
 | L'**adaptation hebdomadaire** (`SuggestGoalAdjustment`) | Elle demande une moyenne mobile sur 7 jours et une mesure d'adhérence, donc un historique de pesées que personne n'a encore. [12](12-plan-de-developpement.md) la place en tranche 7, avec le journal de poids. | Tranche 7 |
 | ~~Un jeu de tests de **contrat** pour `Profiles`, `WeightLog` et `Goals`~~ | Le dispositif existe depuis [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée) et ces trois ports ont deux implémentations chacun. Ils ne l'ont pas encore. | **Fait**, et il a attrapé un défaut latent plus une règle que rien ne gardait ([D57](#d57--le-contrat-des-trois-ports-et-une-règle-que-deux-tris-masquaient---validée)) |
 
@@ -996,7 +996,7 @@ Le contrat éprouve aussi la règle la plus coûteuse du projet, celle que [D29]
 
 ---
 
-## D59 — Le profil se corrige, et le verrou survit au recalcul · ✓ validée
+## D59 — Le profil se corrige, et le verrou survit au recalcul · ⊘ en partie remplacée par D60
 
 **Contexte.** La dernière capacité annoncée par la tranche 4 et non livrée ([D55](#d55--lobjectif-est-calculé-daté-et-parfois-absent---validée)) : relire son profil, le corriger, et distinguer ce que l'utilisateur a fixé de ce que le calcul propose. La colonne `goal.manual_fields` existait, `Goal.manualFields` la portait, `ProfileStoreContract` éprouvait son aller-retour — et **rien ne l'écrivait**, faute d'écran.
 
@@ -1039,6 +1039,52 @@ Deux écrans proposent désormais les mêmes échéances. Deux listes d'horizons
 `identityComplete` et `objectiveComplete`, en revanche, sont **réécrits** dans `:feature:settings`. Les mettre en commun demanderait de remanier `OnboardingAnswers`, qui porte en plus un avertissement à accepter et une étape courante ; c'est une duplication choisie, et son échéance est le jour où une troisième forme apparaîtra — la sauvegarde restaurée de la tranche 8, qui aura elle aussi à juger si un profil est complet.
 
 **Conséquences.** La tranche 4 est terminée. `manual_fields` cesse d'être une colonne que seul un test remplit. `:feature:settings` naît avec une seule section, et l'accueil gagne sa première porte secondaire. Deux textes de l'onboarding qui contredisaient encore [D56](#d56--lonboarding-ouvre-lapplication-exige-ses-réponses-et-dit-non-à-voix-haute---validée) sont corrigés au passage : « vous pouvez en sauter quatre » et le format `AAAA-MM-JJ` demandé sous un champ qui ouvre un sélecteur.
+
+---
+
+## D60 — Un objectif est calculé ou saisi, et on consulte avant de corriger · ✓ validée
+
+**Contexte.** L'écran livré en [D59](#d59--le-profil-se-corrige-et-le-verrou-survit-au-recalcul---en-partie-remplacée-par-d60) fonctionne et se lit mal. Quatre reproches, tous d'ergonomie, dont deux touchent au modèle de données.
+
+### Le verrou par compteur devient un **mode**
+
+[D59](#d59--le-profil-se-corrige-et-le-verrou-survit-au-recalcul---en-partie-remplacée-par-d60) permettait de figer les protéines à l'intérieur d'un objectif calculé. C'était le prolongement direct de la colonne `manual_fields`, et c'était un troisième état : ni calculé, ni saisi — calculé *sauf trois*. L'écran devait l'expliquer six fois, une par ligne, et le poids cible pilotait trois compteurs sur six sans que rien ne dise lesquels.
+
+**Choix.** Un objectif est **calculé** ou **saisi à la main**, et un interrupteur bascule de l'un à l'autre. Passer en manuel ouvre les six champs, en partant des chiffres affichés. `GoalOrigin` portait déjà la distinction ; elle devient la seule.
+
+**Écarté.** *Garder `manualFields` rempli des six* : aucune migration, mais `origin` et l'ensemble auraient dit la même chose de deux façons, et rien n'aurait empêché une ligne où les deux se contredisent — la redondance que [D58](#d58--le-septième-port-et-un-champ-redondant-que-la-fixture-a-trahi---validée) a nommée, réintroduite volontairement. *Garder le grain fin sous le mode* : la souplesse survivait, le troisième état aussi.
+
+**La colonne part donc en migration 3 → 4**, et la table est recréée : `ALTER TABLE … DROP COLUMN` n'existe dans SQLite que depuis la 3.35, livrée avec Android 14, et le projet descend à `minSdk 26`.
+
+**Ce que la migration a appris.** Les index ne suivent pas une table renommée. Les oublier laisse la migration réussir, laisse le schéma exporté valide — `runMigrationsAndValidate` **ne l'a pas vu** — et fait disparaître l'invariant « au plus un objectif actif » chez ceux qui migrent, chez eux seulement. C'est un test de comportement qui l'attrape, pas la validation de schéma : la vérification a été faite en retirant la ligne.
+
+### Le poids cible reste, et l'écran dit qu'il ne pilote plus rien
+
+En saisie manuelle, le poids visé et l'échéance ne produisent plus aucun chiffre. Ils restent pourtant modifiables et enregistrés : ils décrivent le **cap annoncé**, et c'est de là que le journal de poids tirera sa trajectoire en pointillés (tranche 7).
+
+Deux champs qui ne font rien sans le dire feraient croire qu'une correction d'échéance déplace les compteurs ; une phrase le dit donc à l'endroit exact où la question se pose. Ils cessent aussi d'être **exigés** en mode manuel — exiger une date qui ne sert à rien serait exiger pour la forme.
+
+**Écarté.** *Les masquer* : le cap disparaîtrait de l'écran et de la trajectoire. *Les effacer à la bascule* : revenir au calcul obligerait à tout ressaisir.
+
+### On consulte, et le crayon ouvre la modification
+
+L'écran ouvre en **lecture** : des lignes, pas des champs. Un écran de réglages entièrement saisissable invite à corriger ce qu'on venait relire, et n'offre aucun moment où l'on puisse simplement vérifier un chiffre.
+
+Le crayon commande **tout**, interrupteur de mode compris. Laisser la bascule active en consultation aurait ouvert l'édition de fait — les six champs apparaissent — c'est-à-dire deux portes vers le même état, dont une qui ne se déclare pas.
+
+### Un changement d'objectif se montre avant de s'écrire
+
+Corriger sa taille de quatre centimètres déplace un objectif quotidien. À la validation, si les six chiffres changent, une boîte les affiche **face aux anciens** et rien n'est écrit tant qu'elle n'a pas été acceptée.
+
+**C'est un écart avec [02](02-parcours-et-ecrans.md#comportements-transverses)**, qui réserve le dialogue au destructif et à l'irréversible, et il est assumé : il n'y a aucun autre endroit où poser six lignes de chiffres. Une barre n'en porterait pas trois, et un encart replié sous les champs serait sous le pouce — le défaut exact que [D56](#d56--lonboarding-ouvre-lapplication-exige-ses-réponses-et-dit-non-à-voix-haute---validée) a corrigé. L'action reste réversible, mais elle ouvre une version de l'objectif, et c'est cela qu'on annonce.
+
+**La boîte n'apparaît que si les six chiffres bougent.** Basculer en manuel sans rien retoucher écrit une nouvelle version — `origin` a changé, donc le cap a changé — mais sans dialogue : un dialogue qui répète ce qu'on vient de lire s'apprend à fermer sans le lire, et il ne protégerait plus rien le jour où il aurait quelque chose à dire.
+
+### Ce que `sameAimAs` compare désormais
+
+`origin` entre dans la comparaison. Deux objectifs qui portent les mêmes six chiffres ne disent pas la même chose selon leur provenance : le premier suivra la prochaine correction de profil, le second non. Sans cela, la bascule vers le manuel n'aurait rien écrit et serait perdue au retour à l'écran.
+
+**Conséquences.** `Goal.manualFields` et `DailyGoal.overriddenBy` disparaissent ; `DailyGoal.with` reste, et sert maintenant à construire un objectif manuel compteur par compteur. La règle « un recalcul ne réécrit pas ce qui est saisi » change de forme sans changer de fond : elle était une fusion dans le domaine, elle est maintenant l'absence de calcul — `ReviseGoal` écrit les six chiffres **tels quels**, et un test le prouve en lui passant des chiffres qu'aucun calcul ne produirait.
 
 ---
 

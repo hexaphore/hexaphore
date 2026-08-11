@@ -82,18 +82,20 @@ Index sur `date DESC` : toutes les lectures sont des fenêtres récentes.
 | `id` | TEXT PK | |
 | `started_at` | TEXT | date de prise d'effet |
 | `ended_at` | TEXT NULL | `NULL` = objectif courant |
-| `origin` | TEXT | `CALCULATED` · `MANUAL` · `ADJUSTMENT` |
+| `origin` | TEXT | `CALCULATED` · `MANUAL` · `ADJUSTMENT` — **d'où viennent les six chiffres** |
 | `target_weight_kg` | REAL NULL | |
 | `target_date` | TEXT NULL | |
 | `strategy` | TEXT | `LOSE` · `MAINTAIN` · `GAIN` |
 | `kcal` | INTEGER | |
 | `protein_g`, `carb_g`, `sugar_g`, `fat_g`, `fiber_g` | REAL | |
-| `manual_fields` | TEXT | liste des champs édités à la main, séparés par `,` |
+| ~~`manual_fields`~~ | TEXT | liste des champs édités à la main, séparés par `,` — **retirée en migration 3 → 4** |
 | `created_at` | INTEGER | |
 
-`manual_fields` protège le travail de l'utilisateur : un recalcul ne réécrit pas un champ qu'il a fixé lui-même, sauf accord explicite.
+~~`manual_fields` protège le travail de l'utilisateur : un recalcul ne réécrit pas un champ qu'il a fixé lui-même, sauf accord explicite.~~ C'est **`origin` qui porte cette protection**, et il la porte pour l'objectif entier ([D60](11-decisions.md)) : un objectif est calculé — il suit le profil, le poids visé et l'échéance — ou saisi à la main, et alors plus rien ne le recalcule. Le verrou par compteur a existé le temps d'une décision ; il obligeait l'écran à expliquer un troisième état et le poids cible à piloter trois compteurs sur six.
 
-**Invariant** : au plus une ligne avec `ended_at IS NULL`. Vérifié par un index unique partiel et par un test de migration.
+`target_weight_kg` et `target_date` restent renseignés en mode manuel, où ils ne pilotent rien : ils décrivent le **cap annoncé**, dont le journal de poids tire sa trajectoire.
+
+**Invariant** : au plus une ligne avec `ended_at IS NULL`. Tenu par l'index unique sur `active_key`, et éprouvé par un test de migration — la validation de schéma de Room ne voit pas un index perdu dans une recréation de table.
 
 ### `food`
 

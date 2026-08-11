@@ -10,7 +10,6 @@ import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.core.testing.TestDispatchers
 import app.hexaphore.domain.goal.GoalOrigin
 import app.hexaphore.domain.goal.GoalStrategy
-import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.profile.ActivityLevel
 import app.hexaphore.domain.profile.Sex
 import app.hexaphore.domain.profile.UnitSystem
@@ -108,24 +107,6 @@ class ProfileMapperTest {
         assertEquals(GoalStrategy.MAINTAIN, objectif.strategy)
     }
 
-    @Test
-    fun `un compteur fixe inconnu est ignore, les autres survivent`() = runBlocking {
-        // Perdre un verrou fait qu'un recalcul reecrira ce compteur, ce qui est
-        // ennuyeux. Rendre l'objectif illisible ferait perdre les six.
-        ecrireObjectif(manualFields = "PROTEIN,VITAMINE_C,FAT")
-
-        assertEquals(setOf(Macro.PROTEIN, Macro.FAT), magasin.observeCurrent().first()!!.manualFields)
-    }
-
-    @Test
-    fun `un objectif sans compteur fixe rend un ensemble vide`() = runBlocking {
-        // La chaine vide decoupee sur une virgule rend une chaine vide, et non rien
-        // du tout : sans le repli, l'ensemble contiendrait un element fantome.
-        ecrireObjectif(manualFields = "")
-
-        assertEquals(emptySet<Macro>(), magasin.observeCurrent().first()!!.manualFields)
-    }
-
     private suspend fun ecrireProfil(
         sex: String = Sex.MALE.name,
         activityLevel: String = ActivityLevel.MODERATE.name,
@@ -145,7 +126,6 @@ class ProfileMapperTest {
     private suspend fun ecrireObjectif(
         origin: String = GoalOrigin.CALCULATED.name,
         strategy: String = GoalStrategy.MAINTAIN.name,
-        manualFields: String = "",
     ) = base.goalDao().insert(
         GoalEntity(
             id = "goal-relu",
@@ -162,7 +142,6 @@ class ProfileMapperTest {
             sugarG = 50.0,
             fatG = 67.0,
             fiberG = 28.0,
-            manualFields = manualFields,
             createdAt = INSTANT_MILLIS,
         ),
     )

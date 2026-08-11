@@ -273,6 +273,64 @@ class MigrationTest {
         }
     }
 
+    // --- Version 3 -> 4 : le verrou par compteur devient un mode ---------------
+
+    @Test
+    fun `un objectif ecrit avant la version 4 se relit apres, avec ses six chiffres`() {
+        // La table est recreee sans `manual_fields` : SQLite ne sait pas supprimer une
+        // colonne sous minSdk 26. Une recopie perd tout ce qu'on a oublie de nommer, et
+        // ce sont les six chiffres qui comptent -- ils ne doivent pas bouger d'un gramme.
+        helper.createDatabase(TEST_DATABASE, 3).use { it.seedGoalVersionThree() }
+
+        migrate().use { database ->
+            database.query(
+                "SELECT origin, strategy, kcal, protein_g, fiber_g, target_weight_kg FROM goal WHERE id = 'g1'",
+            ).use { row ->
+                assertTrue("l objectif a disparu dans la recopie", row.moveToFirst())
+                assertEquals("CALCULATED", row.getString(0))
+                assertEquals("LOSE", row.getString(1))
+                assertEquals(2525.0, row.getDouble(2), 0.0)
+                assertEquals(144.0, row.getDouble(3), 0.0)
+                assertEquals(35.0, row.getDouble(4), 0.0)
+                assertEquals(80.0, row.getDouble(5), 0.0)
+            }
+        }
+    }
+
+    @Test
+    fun `l objectif clos garde sa date de fin apres la recopie`() {
+        // Un objectif clos et un objectif courant : c'est la paire qui fait tomber une
+        // recopie qui aurait decale une colonne, puisque `ended_at` et `active_key`
+        // sont les deux seules a differer entre eux.
+        helper.createDatabase(TEST_DATABASE, 3).use { database ->
+            database.seedGoalVersionThree(id = "g1", endedAt = "2026-06-01")
+            database.seedGoalVersionThree(id = "g2", endedAt = null)
+        }
+
+        migrate().use { database ->
+            assertEquals(2, database.count("goal"))
+            database.query("SELECT ended_at, active_key FROM goal WHERE id = 'g1'").use { row ->
+                row.moveToFirst()
+                assertEquals("2026-06-01", row.getString(0))
+                assertEquals("g1", row.getString(1))
+            }
+        }
+    }
+
+    @Test
+    fun `l index qui interdit deux objectifs actifs survit a la recreation de la table`() {
+        // Le piege de cette migration. Les index ne suivent pas une table renommee :
+        // les oublier laisse la migration reussir, et l'invariant « au plus un objectif
+        // actif » disparait chez ceux qui migrent, chez eux seulement.
+        helper.createDatabase(TEST_DATABASE, 3).use { it.seedGoalVersionThree() }
+
+        migrate().use { database ->
+            val doublon = runCatching { database.seedGoal(id = "g2", startedAt = "2026-06-01", endedAt = null) }
+
+            assertTrue("le second objectif actif aurait du etre refuse", doublon.isFailure)
+        }
+    }
+
     // --- Outillage ------------------------------------------------------------
 
     /**
@@ -358,12 +416,35 @@ class MigrationTest {
             INSERT INTO goal (
                 id, started_at, ended_at, active_key, origin, strategy,
                 target_weight_kg, target_date,
-                kcal, protein_g, carb_g, sugar_g, fat_g, fiber_g, manual_fields, created_at
-            ) VALUES (?, ?, ?, ?, 'CALCULATED', 'LOSE', 80.0, '2027-02-08', ?, 144.0, 312.0, 63.0, 70.0, 35.0, '', 1000)
+                kcal, protein_g, carb_g, sugar_g, fat_g, fiber_g, created_at
+            ) VALUES (?, ?, ?, ?, 'CALCULATED', 'LOSE', 80.0, '2027-02-08', ?, 144.0, 312.0, 63.0, 70.0, 35.0, 1000)
             """.trimIndent(),
             // `active_key` vaut 1 tant que l'objectif court, l'identifiant une fois
             // clos : c'est ce qui fait entrer deux objectifs actifs en collision.
             arrayOf(id, startedAt, endedAt, if (endedAt == null) "1" else id, kcal),
+        )
+    }
+
+    /**
+     * Un objectif tel que la **version 3** l'écrivait, `manual_fields` compris.
+     *
+     * Deux compteurs y sont déclarés fixés à la main. C'est le seul état que la colonne
+     * ait jamais pu prendre en base, et c'est celui sur lequel la migration 3 → 4 doit
+     * être éprouvée : une base vide traverserait n'importe quelle recopie.
+     */
+    private fun SupportSQLiteDatabase.seedGoalVersionThree(id: String = "g1", endedAt: String? = null) {
+        execSQL(
+            """
+            INSERT INTO goal (
+                id, started_at, ended_at, active_key, origin, strategy,
+                target_weight_kg, target_date,
+                kcal, protein_g, carb_g, sugar_g, fat_g, fiber_g, manual_fields, created_at
+            ) VALUES (
+                ?, '2026-01-01', ?, ?, 'CALCULATED', 'LOSE', 80.0, '2027-02-08',
+                2525.0, 144.0, 312.0, 63.0, 70.0, 35.0, 'PROTEIN,FAT', 1000
+            )
+            """.trimIndent(),
+            arrayOf(id, endedAt, if (endedAt == null) "1" else id),
         )
     }
 

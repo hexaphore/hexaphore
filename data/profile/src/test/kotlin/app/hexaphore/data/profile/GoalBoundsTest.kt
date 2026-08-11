@@ -112,7 +112,6 @@ class GoalBoundsTest {
             sugarG = 50.0,
             fatG = 67.0,
             fiberG = 28.0,
-            manualFields = "",
             createdAt = MAINTENANT.toEpochMilli(),
         ),
     )
