@@ -48,7 +48,7 @@ internal class OnboardingViewModel @Inject constructor(
     private val clock: Clock,
     private val ids: IdGenerator,
 ) : ViewModel() {
-    private val state = MutableStateFlow(OnboardingUiState())
+    private val state = MutableStateFlow(OnboardingUiState(today = clock.today()))
     val uiState: StateFlow<OnboardingUiState> = state
 
     /**

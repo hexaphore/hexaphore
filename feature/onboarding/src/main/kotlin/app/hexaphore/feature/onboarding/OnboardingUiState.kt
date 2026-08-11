@@ -14,7 +14,7 @@ import java.time.LocalDate
  * décalage d'indice se corrigerait en silence sur le mauvais écran.
  */
 enum class OnboardingStep {
-    /** Nom, une phrase, un bouton, et l'avertissement à accepter. */
+    /** Nom, la figure des six compteurs, et l'avertissement à accepter. */
     WELCOME,
 
     /** Date de naissance, sexe, taille, poids actuel. */
@@ -38,15 +38,60 @@ enum class OnboardingStep {
 }
 
 /**
+ * Ce qui manque pour franchir l'étape courante.
+ *
+ * Une énumération et non un booléen : un bouton qui refuse sans dire pourquoi est
+ * exactement le défaut qu'on corrige. C'est l'écran qui traduit en phrase — `:feature`
+ * connaît les ressources, l'état non.
+ */
+enum class OnboardingBlocker {
+    DISCLAIMER,
+    IDENTITY,
+    ACTIVITY,
+    OBJECTIVE,
+}
+
+/**
+ * Les échéances proposées, en mois.
+ *
+ * **Trois pastilles plutôt qu'un calendrier.** Une date d'échéance exacte n'a aucune
+ * valeur en soi : ce qui compte est le rythme, et « six mois » l'exprime aussi bien
+ * qu'un 14 février choisi au hasard. La « date libre » que [docs/02][parcours]
+ * prévoyait disparaît ([D56][decisions]) ; ce qui la remplace est la **date
+ * atteignable** que les garde-fous calculent, proposée en quatrième pastille quand
+ * l'échéance demandée est intenable.
+ *
+ * [parcours]: docs/02-parcours-et-ecrans.md
+ * [decisions]: docs/11-decisions.md
+ */
+enum class GoalHorizon(val months: Long) {
+    THREE_MONTHS(THREE),
+    SIX_MONTHS(SIX),
+    TWELVE_MONTHS(TWELVE),
+    ;
+
+    fun dateFrom(today: LocalDate): LocalDate = today.plusMonths(months)
+
+    companion object {
+        /** L'horizon que porte une date, s'il correspond exactement à l'une des trois. */
+        fun of(today: LocalDate, date: LocalDate?): GoalHorizon? =
+            date?.let { chosen -> entries.firstOrNull { it.dateFrom(today) == chosen } }
+    }
+}
+
+// Trois, six, douze : le trimestre, le semestre et l'annee. Ecrits ici plutot que
+// poses dans le constructeur, parce que ce sont les seules valeurs de ce fichier
+// qu'un changement d'avis ferait bouger.
+private const val THREE = 3L
+private const val SIX = 6L
+private const val TWELVE = 12L
+
+/**
  * Ce que l'utilisateur a répondu jusqu'ici.
  *
  * **Tout est nullable, et rien n'est pré-rempli d'une valeur plausible.** Un poids par
  * défaut à 70 kg serait accepté par distraction, et l'objectif calculé serait celui de
- * quelqu'un d'autre. Les étapes sautées prennent leur valeur par défaut **au moment du
- * calcul**, pas dans le formulaire, et les réglages signalent ensuite lesquelles
- * ([docs/02][parcours]).
- *
- * [parcours]: docs/02-parcours-et-ecrans.md
+ * quelqu'un d'autre.
  */
 @Immutable
 data class OnboardingAnswers(
@@ -82,12 +127,19 @@ data class OnboardingAnswers(
 /**
  * L'état de l'écran d'onboarding.
  *
- * [plan] n'est calculé qu'à la dernière étape, et il est recalculé à chaque
- * modification : c'est ce qui permet à l'aperçu de rythme — « ≈ 0,6 kg par semaine » —
- * de suivre les curseurs sans qu'un second calcul existe quelque part.
+ * [plan] est recalculé à chaque réponse : c'est ce qui permet à l'écran de résultat de
+ * suivre sans qu'un second calcul existe quelque part.
  */
 @Immutable
 data class OnboardingUiState(
+    /**
+     * La journée de l'horloge, portée par l'état plutôt que relue par l'écran.
+     *
+     * Les trois pastilles d'échéance et les bornes du sélecteur de date en dépendent.
+     * Un `LocalDate.now()` dans une composable serait la seule lecture d'horloge non
+     * injectée du projet, et elle rendrait ces écrans invérifiables.
+     */
+    val today: LocalDate,
     val step: OnboardingStep = OnboardingStep.WELCOME,
     val answers: OnboardingAnswers = OnboardingAnswers(),
     val plan: GoalPlan? = null,
@@ -95,17 +147,28 @@ data class OnboardingUiState(
     val failed: Boolean = false,
 ) {
     /**
-     * L'étape courante est-elle franchissable ?
+     * Ce qui manque ici, ou `null` si l'étape est franchissable.
      *
-     * Seule la première est bloquante au sens strict — l'avertissement doit être
-     * accepté. Les autres se sautent, et [docs/02][parcours] le demande explicitement :
-     * un utilisateur pressé doit pouvoir arriver à l'accueil.
+     * **Chaque étape exige ses champs** ([D56][decisions]). [docs/02][parcours]
+     * promettait un bouton « Passer » sur les quatre dernières ; il disparaît, parce
+     * qu'un objectif calculé sur des valeurs par défaut est l'objectif de quelqu'un
+     * d'autre, affiché avec l'autorité d'un chiffre personnel.
      *
+     * Une seule règle, lue à deux endroits : le `ViewModel` refuse d'avancer, l'écran
+     * s'en sert pour dire quoi. Les deux interrogent cette propriété, donc ils ne
+     * peuvent pas diverger.
+     *
+     * [decisions]: docs/11-decisions.md
      * [parcours]: docs/02-parcours-et-ecrans.md
      */
-    val canContinue: Boolean
-        get() = when (step) {
-            OnboardingStep.WELCOME -> answers.disclaimerAccepted
-            else -> true
+    val blocker: OnboardingBlocker?
+        get() = when {
+            step == OnboardingStep.WELCOME && !answers.disclaimerAccepted -> OnboardingBlocker.DISCLAIMER
+            step == OnboardingStep.ABOUT_YOU && !answers.identityComplete -> OnboardingBlocker.IDENTITY
+            step == OnboardingStep.ACTIVITY && answers.activityLevel == null -> OnboardingBlocker.ACTIVITY
+            step == OnboardingStep.OBJECTIVE && !answers.objectiveComplete -> OnboardingBlocker.OBJECTIVE
+            else -> null
         }
+
+    val canContinue: Boolean get() = blocker == null
 }

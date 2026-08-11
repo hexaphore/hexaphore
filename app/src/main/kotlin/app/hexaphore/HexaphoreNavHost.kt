@@ -1,7 +1,10 @@
 package app.hexaphore
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import app.hexaphore.feature.entry.EntryDestination
@@ -30,10 +33,32 @@ import app.hexaphore.feature.search.searchScreens
  * @see docs/06-architecture.md
  */
 @Composable
-fun HexaphoreNavHost(modifier: Modifier = Modifier) {
+fun HexaphoreNavHost(modifier: Modifier = Modifier, viewModel: StartDestinationViewModel = hiltViewModel()) {
+    val start by viewModel.destination.collectAsStateWithLifecycle()
+
+    // Rien tant qu'on ne sait pas. Poser l'accueil puis sauter vers l'onboarding
+    // ferait clignoter un journal vide a chaque lancement.
+    val destination = start ?: return
+
+    HexaphoreNavHost(
+        startDestination = if (destination == StartDestination.ONBOARDING) OnboardingDestination else HomeDestination,
+        modifier = modifier,
+    )
+}
+
+/**
+ * Le graphe proprement dit, avec sa destination de départ posée.
+ *
+ * Séparé pour que le `NavHost` soit construit **une seule fois**, avec un départ déjà
+ * connu : changer `startDestination` après coup ne fait rien — Compose Navigation ne le
+ * relit pas — et la seule façon d'en tenir compte serait de recréer le contrôleur, donc
+ * de perdre la pile.
+ */
+@Composable
+private fun HexaphoreNavHost(startDestination: Any, modifier: Modifier = Modifier) {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = HomeDestination, modifier = modifier) {
+    NavHost(navController = navController, startDestination = startDestination, modifier = modifier) {
         homeScreen(
             // Un seul bouton, et il ouvre la recherche : la saisie manuelle y est
             // une branche, puisqu'un aliment tape a la main devient une fiche.
@@ -44,8 +69,15 @@ fun HexaphoreNavHost(modifier: Modifier = Modifier) {
         onboardingScreen(
             // L'onboarding s'efface derriere l'accueil : y revenir par le bouton
             // « retour » du systeme reposerait cinq questions auxquelles on vient de
-            // repondre.
-            onDone = { navController.popBackStack(HomeDestination, inclusive = false) },
+            // repondre. `popUpTo(0)` vide la pile entiere, y compris quand
+            // l'onboarding **etait** la destination de depart -- cas de la premiere
+            // ouverture, ou il n'y a rien derriere lui vers quoi revenir.
+            onDone = {
+                navController.navigate(HomeDestination) {
+                    popUpTo(0) { inclusive = true }
+                    launchSingleTop = true
+                }
+            },
         )
         entryScreen(
             onAddFood = { navController.navigateToSearchForDraft() },

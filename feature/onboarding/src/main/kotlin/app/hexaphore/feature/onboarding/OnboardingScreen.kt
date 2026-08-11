@@ -5,26 +5,30 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.hexaphore.core.designsystem.component.NeonButton
+import app.hexaphore.core.designsystem.component.NeonButtonAvailability
 import app.hexaphore.core.designsystem.component.NeonButtonStyle
 import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.domain.goal.DailyGoal
 import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.usecase.GoalPlan
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /** Les cinq étapes, branchées sur le graphe d'injection. */
@@ -49,19 +53,30 @@ internal fun OnboardingRoute(onDone: () -> Unit, viewModel: OnboardingViewModel 
 /**
  * Une question par écran, barre de progression en haut.
  *
- * **« Passer » est disponible partout sauf à la première étape.** Un utilisateur
- * pressé doit pouvoir arriver à l'accueil ; les champs sautés prennent une valeur par
- * défaut au moment du calcul, jamais dans le formulaire ([docs/02][parcours]).
+ * **Chaque étape exige ses champs** ([D56][decisions]), et le refus se voit : appuyer
+ * sur « Continuer » alors qu'il manque quelque chose affiche une barre qui dit **quoi**.
+ * Un bouton qui ne fait rien laisse croire que l'application n'a pas reçu l'appui — et
+ * c'est exactement ce que [D28][decisions] interdisait déjà.
  *
- * [parcours]: docs/02-parcours-et-ecrans.md
+ * La barre plutôt qu'un texte sous les boutons : la version discrète existait, et elle
+ * était invisible. Ce qui interrompt le regard est ce qui se lit.
+ *
+ * [decisions]: docs/11-decisions.md
  */
 @Composable
 internal fun OnboardingScreen(state: OnboardingUiState, actions: OnboardingActions) {
-    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val blocked = state.blocker?.let { stringResource(it.messageRes) }
+
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .safeDrawingPadding()
+                .padding(padding)
                 .padding(horizontal = Spacing.screenMargin),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
@@ -78,21 +93,34 @@ internal fun OnboardingScreen(state: OnboardingUiState, actions: OnboardingActio
             ) {
                 when (state.step) {
                     OnboardingStep.WELCOME -> WelcomeStep(state.answers, actions.onAnswers)
-                    OnboardingStep.ABOUT_YOU -> AboutYouStep(state.answers, actions.onAnswers)
+                    OnboardingStep.ABOUT_YOU -> AboutYouStep(state.answers, state.today, actions.onAnswers)
                     OnboardingStep.ACTIVITY -> ActivityStep(state.answers, actions.onAnswers)
-                    OnboardingStep.OBJECTIVE -> ObjectiveStep(state.answers, actions.onAnswers)
+                    OnboardingStep.OBJECTIVE ->
+                        ObjectiveStep(state.answers, state.today, state.plan, actions.onAnswers)
+
                     OnboardingStep.RESULT -> ResultStep(state.plan, actions)
                 }
                 if (state.failed) Body(stringResource(R.string.onboarding_save_failed))
             }
 
-            Navigation(state, actions)
+            Navigation(
+                state = state,
+                actions = actions,
+                onBlocked = {
+                    scope.launch {
+                        // `dismissPrevious` implicite : une seule barre a la fois,
+                        // sinon trois appuis empilent trois messages identiques.
+                        snackbarHostState.currentSnackbarData?.dismiss()
+                        snackbarHostState.showSnackbar(blocked.orEmpty())
+                    }
+                },
+            )
         }
     }
 }
 
 @Composable
-private fun Navigation(state: OnboardingUiState, actions: OnboardingActions) {
+private fun Navigation(state: OnboardingUiState, actions: OnboardingActions, onBlocked: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -104,15 +132,26 @@ private fun Navigation(state: OnboardingUiState, actions: OnboardingActions) {
                 text = stringResource(R.string.onboarding_start),
                 onClick = actions.onFinish,
                 modifier = Modifier.fillMaxWidth(),
+                style = NeonButtonStyle.FILLED,
+                availability = if (state.saving) {
+                    NeonButtonAvailability.DISABLED
+                } else {
+                    NeonButtonAvailability.AVAILABLE
+                },
             )
         } else {
             NeonButton(
                 text = stringResource(R.string.onboarding_next),
-                onClick = actions.onNext,
+                // Le bouton indisponible reagit et **repond** : c'est lui qui
+                // declenche l'explication, pas un texte permanent (D28, D48).
+                onClick = { if (state.canContinue) actions.onNext() else onBlocked() },
                 modifier = Modifier.fillMaxWidth(),
-                // Un bouton indisponible reagit quand meme (D28) : il ne se contente
-                // pas d'etre gris, il repond a l'appui.
-                style = if (state.canContinue) NeonButtonStyle.FILLED else NeonButtonStyle.OUTLINED,
+                style = NeonButtonStyle.FILLED,
+                availability = if (state.canContinue) {
+                    NeonButtonAvailability.AVAILABLE
+                } else {
+                    NeonButtonAvailability.UNAVAILABLE
+                },
             )
         }
         if (state.step != OnboardingStep.WELCOME) {
@@ -146,7 +185,7 @@ private fun ResultStep(plan: GoalPlan?, actions: OnboardingActions) {
         StepTitle(stringResource(R.string.onboarding_result_title))
 
         plan.reachableOn?.let { date ->
-            Body(stringResource(R.string.onboarding_capped, date.toString()))
+            Body(stringResource(R.string.onboarding_capped, date.formatLong()))
             NeonButton(
                 text = stringResource(R.string.onboarding_use_reachable_date),
                 onClick = actions.onUseReachableDate,
@@ -172,6 +211,14 @@ private fun GoalLines(goal: DailyGoal) {
         }
     }
 }
+
+private val OnboardingBlocker.messageRes: Int
+    get() = when (this) {
+        OnboardingBlocker.DISCLAIMER -> R.string.onboarding_blocked_disclaimer
+        OnboardingBlocker.IDENTITY -> R.string.onboarding_blocked_identity
+        OnboardingBlocker.ACTIVITY -> R.string.onboarding_blocked_activity
+        OnboardingBlocker.OBJECTIVE -> R.string.onboarding_blocked_objective
+    }
 
 private val Macro.lineRes: Int
     get() = when (this) {

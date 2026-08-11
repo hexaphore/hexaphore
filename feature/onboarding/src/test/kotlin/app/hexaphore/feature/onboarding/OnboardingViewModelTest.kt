@@ -71,14 +71,59 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `les quatre etapes suivantes se sautent`() = runTest(dispatcher) {
+    fun `chaque etape exige ses champs`() = runTest(dispatcher) {
+        // D56 : le « Passer » de docs/02 disparait. Un objectif calcule sur des
+        // valeurs par defaut est l'objectif de quelqu'un d'autre, affiche avec
+        // l'autorite d'un chiffre personnel.
         val viewModel = viewModel()
         viewModel.onAnswers(OnboardingAnswers(disclaimerAccepted = true))
 
         repeat(OnboardingStep.COUNT) { viewModel.onNext() }
 
+        assertEquals(OnboardingStep.ABOUT_YOU, viewModel.uiState.value.step, "l identite n est pas remplie")
+        assertEquals(OnboardingBlocker.IDENTITY, viewModel.uiState.value.blocker)
+    }
+
+    @Test
+    fun `l identite complete debloque l etape suivante, et ainsi de suite`() = runTest(dispatcher) {
+        val viewModel = viewModel()
+
+        viewModel.onAnswers(REPONSES.copy(activityLevel = null, strategy = null))
+        viewModel.onNext()
+        viewModel.onNext()
+
+        assertEquals(OnboardingStep.ACTIVITY, viewModel.uiState.value.step)
+        assertEquals(OnboardingBlocker.ACTIVITY, viewModel.uiState.value.blocker, "un niveau reste a choisir")
+
+        viewModel.onAnswers(REPONSES.copy(strategy = null))
+        viewModel.onNext()
+
+        assertEquals(OnboardingStep.OBJECTIVE, viewModel.uiState.value.step)
+        assertEquals(OnboardingBlocker.OBJECTIVE, viewModel.uiState.value.blocker)
+    }
+
+    @Test
+    fun `toutes les reponses menent au resultat`() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        viewModel.onAnswers(REPONSES)
+
+        repeat(OnboardingStep.COUNT) { viewModel.onNext() }
+
         assertEquals(OnboardingStep.RESULT, viewModel.uiState.value.step)
-        assertNotNull(viewModel.uiState.value.plan, "les valeurs par defaut doivent produire un objectif")
+        assertNull(viewModel.uiState.value.blocker)
+        assertNotNull(viewModel.uiState.value.plan)
+    }
+
+    @Test
+    fun `un objectif de maintien n exige ni poids cible ni echeance`() = runTest(dispatcher) {
+        // Il n'y a rien a atteindre : exiger une echeance ferait bloquer sur un champ
+        // que la strategie n'affiche meme pas.
+        val viewModel = viewModel()
+
+        viewModel.onAnswers(REPONSES.copy(strategy = GoalStrategy.MAINTAIN))
+        repeat(OnboardingStep.COUNT) { viewModel.onNext() }
+
+        assertEquals(OnboardingStep.RESULT, viewModel.uiState.value.step)
     }
 
     @Test
@@ -143,6 +188,22 @@ class OnboardingViewModelTest {
 
         assertEquals(plan.reachableOn, viewModel.uiState.value.answers.targetDate)
         assertFalse(viewModel.uiState.value.plan!!.capped, "se caler sur la date proposee doit lever le garde-fou")
+    }
+
+    @Test
+    fun `les trois echeances proposees sont des dates, pas un calendrier`() = runTest(dispatcher) {
+        // D56 : trois pastilles remplacent la saisie d'une date. Ce test tient la
+        // correspondance entre une pastille et la date qu'elle pose -- sans quoi
+        // « dans 6 mois » pourrait en poser trois.
+        assertEquals(AUJOURD_HUI.plusMonths(3), GoalHorizon.THREE_MONTHS.dateFrom(AUJOURD_HUI))
+        assertEquals(AUJOURD_HUI.plusMonths(6), GoalHorizon.SIX_MONTHS.dateFrom(AUJOURD_HUI))
+        assertEquals(AUJOURD_HUI.plusMonths(12), GoalHorizon.TWELVE_MONTHS.dateFrom(AUJOURD_HUI))
+
+        assertEquals(GoalHorizon.SIX_MONTHS, GoalHorizon.of(AUJOURD_HUI, AUJOURD_HUI.plusMonths(6)))
+        assertNull(
+            GoalHorizon.of(AUJOURD_HUI, AUJOURD_HUI.plusDays(103)),
+            "une date atteignable ne correspond a aucune pastille, et elle a la sienne",
+        )
     }
 
     @Test
