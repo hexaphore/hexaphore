@@ -19,6 +19,8 @@ import app.hexaphore.feature.search.navigateToManualEntry
 import app.hexaphore.feature.search.navigateToSearch
 import app.hexaphore.feature.search.navigateToSearchForDraft
 import app.hexaphore.feature.search.searchScreens
+import app.hexaphore.feature.settings.navigateToProfile
+import app.hexaphore.feature.settings.profileScreen
 
 /**
  * Le graphe de navigation.
@@ -65,6 +67,11 @@ private fun HexaphoreNavHost(startDestination: Any, modifier: Modifier = Modifie
             onAddDish = { navController.navigateToSearch() },
             onEditDish = { dishId -> navController.navigateToEntry(dishId) },
             onSetUpGoal = { navController.navigate(OnboardingDestination) },
+            // Directement sur « Profil et objectifs » : les quatre autres sections
+            // de docs/02 n'ont pas de contenu avant les tranches 6 et 8, et un
+            // ecran de reglages qui ne designerait qu'une destination serait un
+            // ecran de transit (D59).
+            onOpenProfile = { navController.navigateToProfile() },
         )
         onboardingScreen(
             // L'onboarding s'efface derriere l'accueil : y revenir par le bouton
@@ -83,6 +90,7 @@ private fun HexaphoreNavHost(startDestination: Any, modifier: Modifier = Modifie
             onAddFood = { navController.navigateToSearchForDraft() },
             onClose = { navController.popBackStack() },
         )
+        profileScreen(onClose = { navController.popBackStack() })
         searchScreens(
             onPick = { foodId, addToDraft ->
                 if (addToDraft) {

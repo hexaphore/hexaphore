@@ -27,6 +27,36 @@ data class DailyGoal(
         Macro.FIBER -> fiber
     }
 
+    /** Remplace un compteur, les cinq autres inchangés. */
+    fun with(macro: Macro, value: Double): DailyGoal = when (macro) {
+        Macro.CALORIES -> copy(kcal = value)
+        Macro.PROTEIN -> copy(protein = value)
+        Macro.CARBS -> copy(carbs = value)
+        Macro.SUGARS -> copy(sugars = value)
+        Macro.FAT -> copy(fat = value)
+        Macro.FIBER -> copy(fiber = value)
+    }
+
+    /**
+     * Ce que le calcul propose, **sauf** là où l'utilisateur a tranché.
+     *
+     * C'est la règle qui protège le travail de l'utilisateur : un recalcul déclenché
+     * par une correction de taille ou de poids ne réécrit pas un compteur qu'il a fixé
+     * lui-même ([Goal.manualFields]). Sans elle, corriger un chiffre du profil ferait
+     * disparaître en silence un objectif de protéines choisi trois semaines plus tôt —
+     * et rien à l'écran ne dirait qu'il vient d'être remplacé.
+     *
+     * L'application n'est pas rendue **incohérente** pour autant : les calories font
+     * foi et les macros sont des répartitions indicatives ([docs/03][calculs]). Fixer
+     * les protéines sans toucher aux calories creuse simplement l'écart que
+     * [app.hexaphore.domain.usecase.GoalPlan.energyGap] mesure, et c'est un écart
+     * voulu par celui qui l'a saisi.
+     *
+     * [calculs]: docs/03-nutrition-calculs.md
+     */
+    fun overriddenBy(manual: Map<Macro, Double>): DailyGoal =
+        manual.entries.fold(this) { goal, (macro, value) -> goal.with(macro, value) }
+
     /**
      * Ce que les quatre macros énergétiques représentent, en kcal.
      *

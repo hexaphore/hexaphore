@@ -86,3 +86,9 @@ include(":feature:search")
 // quoi. Il porte trois ports que rien d'autre ne lit.
 include(":data:profile")
 include(":feature:onboarding")
+
+// :feature:settings naît avec la seule section qui a du contenu, « Profil et
+// objectifs ». Les quatre autres que docs/02 prevoit dependent des tranches 6 et 8 ;
+// le hub qui les rassemble naitra avec la deuxieme, faute de quoi il serait un ecran
+// de transit vers une destination unique.
+include(":feature:settings")

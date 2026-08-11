@@ -58,7 +58,7 @@ La flèche du bas remonte : `:data` dépend de `:domain`, jamais l'inverse. Un `
 :feature:entry              Écran de validation
 :feature:search             Recherche, récents, favoris, aliment personnel
 :feature:weight
-:feature:settings
+:feature:settings           Profil et objectifs, recalcul, compteurs fixés à la main
 
 :tooling:ciqual-import      Tâche Gradle : XML ANSES → SQLite (hors APK)
 ```

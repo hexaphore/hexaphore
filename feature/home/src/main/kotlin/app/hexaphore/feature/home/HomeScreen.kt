@@ -2,12 +2,17 @@ package app.hexaphore.feature.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -42,7 +47,12 @@ import kotlin.math.roundToInt
 
 /** L'accueil, branché sur le graphe d'injection. */
 @Composable
-fun HomeRoute(onAddDish: () -> Unit, onEditDish: (DishId) -> Unit, onSetUpGoal: () -> Unit) {
+fun HomeRoute(
+    onAddDish: () -> Unit,
+    onEditDish: (DishId) -> Unit,
+    onSetUpGoal: () -> Unit,
+    onOpenProfile: () -> Unit,
+) {
     val viewModel: HomeViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val pendingUndo by viewModel.pendingUndo.collectAsStateWithLifecycle()
@@ -50,7 +60,7 @@ fun HomeRoute(onAddDish: () -> Unit, onEditDish: (DishId) -> Unit, onSetUpGoal: 
     HomeScreen(
         state = state,
         pendingUndo = pendingUndo,
-        actions = remember(viewModel, onAddDish, onEditDish, onSetUpGoal) {
+        actions = remember(viewModel, onAddDish, onEditDish, onSetUpGoal, onOpenProfile) {
             HomeActions(
                 onAddDish = onAddDish,
                 onEditDish = onEditDish,
@@ -59,6 +69,7 @@ fun HomeRoute(onAddDish: () -> Unit, onEditDish: (DishId) -> Unit, onSetUpGoal: 
                 onUndoExpired = viewModel::onUndoExpired,
                 onRetry = viewModel::retry,
                 onSetUpGoal = onSetUpGoal,
+                onOpenProfile = onOpenProfile,
             )
         },
     )
@@ -117,11 +128,26 @@ fun HomeScreen(state: HomeUiState, pendingUndo: Dish?, actions: HomeActions, mod
                 .padding(horizontal = Spacing.screenMargin),
             verticalArrangement = Arrangement.spacedBy(Spacing.xl),
         ) {
-            Text(
-                text = stringResource(R.string.home_title),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.home_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                // Une icone seule, sans libelle : c'est la porte la moins frequentee
+                // de l'ecran, et le titre du jour doit rester ce qu'on lit en premier.
+                IconButton(onClick = actions.onOpenProfile) {
+                    Icon(
+                        imageVector = Icons.Filled.Person,
+                        contentDescription = stringResource(R.string.home_open_profile),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
 
             when (state) {
                 HomeUiState.Loading -> Unit

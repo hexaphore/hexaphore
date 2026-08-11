@@ -60,4 +60,24 @@ data class Goal(
      * deux objectifs, et le résumé du jour dépendrait de l'ordre de lecture.
      */
     fun coversOn(date: LocalDate): Boolean = !date.isBefore(startedAt) && (endedAt == null || date.isBefore(endedAt))
+
+    /**
+     * Le même cap que [other] ?
+     *
+     * L'identifiant, les deux dates de validité et la provenance sont exclus : ce sont
+     * des faits sur la **ligne**, pas sur le cap qu'elle décrit. Deux lignes écrites à
+     * six mois d'écart peuvent viser exactement la même chose.
+     *
+     * Cette comparaison existe pour que [D04][decisions] garde son sens. Ouvrir les
+     * réglages et appuyer sur « Enregistrer » sans avoir rien changé écrirait sinon une
+     * version de plus à chaque visite, et l'historique des changements de cap — la
+     * contrepartie qu'on paie en versionnant — cesserait d'en être un.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    fun sameAimAs(other: Goal): Boolean = strategy == other.strategy &&
+        targetWeightKg == other.targetWeightKg &&
+        targetDate == other.targetDate &&
+        daily == other.daily &&
+        manualFields == other.manualFields
 }

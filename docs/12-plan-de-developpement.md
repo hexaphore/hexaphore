@@ -129,7 +129,7 @@ C'est le vrai premier jalon : à la fin de cette tranche, **l'application est ut
 - `:domain` : `EnergyExpenditureCalculator`, `MacroDistributionPolicy`, `GoalSafetyPolicy`, `CalculateDailyGoal`.
 - Tables `profile`, `weight_entry`, et `goal` **versionnée**.
 - `:feature:onboarding` : les cinq étapes.
-- Réglages profil, recalcul, édition manuelle avec verrouillage des champs édités.
+- `:feature:settings` : réglages profil, recalcul, édition manuelle avec verrouillage des champs édités.
 
 **Terminé quand**
 
@@ -137,10 +137,11 @@ C'est le vrai premier jalon : à la fin de cette tranche, **l'application est ut
 - Chaque garde-fou est testé sur ses deux bornes.
 - Une journée passée est comparée à l'objectif **actif ce jour-là**.
 - ~~L'objectif codé en dur de la tranche 1 a disparu, et la dette correspondante est rayée.~~ **Fait** : `DailyGoal.Placeholder` n'existe plus, `GetDaySummary` lit l'objectif actif du jour, et `DaySummary.goal` est nullable ([D55](11-decisions.md)).
+- On relit et corrige son profil ; un recalcul suit, et un compteur fixé à la main y **survit** et se voit comme tel ([D59](11-decisions.md)).
 
 **Piège** : mettre à jour un objectif en place « parce que c'est plus simple ». Voir [D04](11-decisions.md).
 
-> **Livrée en partie.** Le calcul, les tables versionnées et les cinq étapes sont là ; l'exemple de [03](03-nutrition-calculs.md#exemple-complet) passe au kcal près et chaque garde-fou est éprouvé sur ses deux bornes. **Les réglages profil, avec le verrouillage des champs édités, restent à faire** — la colonne `manual_fields` existe et le domaine la porte, mais aucun écran ne l'écrit. Voir [D55](11-decisions.md).
+> **Livrée.** Le calcul, les tables versionnées, les cinq étapes et les réglages profil. L'exemple de [03](03-nutrition-calculs.md#exemple-complet) passe au kcal près, chaque garde-fou est éprouvé sur ses deux bornes, et `manual_fields` cesse d'être une colonne que seul un test remplit. Ce que la tranche ne construit pas est écrit en [D55](11-decisions.md) et [D59](11-decisions.md).
 
 ---
 
