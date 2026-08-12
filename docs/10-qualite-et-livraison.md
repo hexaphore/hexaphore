@@ -123,6 +123,10 @@ Les pièges déjà payés. Chacun a coûté au moins une session, et aucun ne se
 
 **Les messages de console et de commit sont en ASCII sans accents** ; le KDoc et ce dossier `docs/` sont en français accentué. La console Windows et les hooks Git ne garantissent pas l'encodage, une documentation si.
 
+**Ne jamais réécrire un `strings.xml` par un script.** Toute apostrophe y est échappée — `Aujourd\'hui` — et un `replace` sur des chaînes contenant des antislashs mange l'échappement une ligne sur deux, y compris sur les lignes qu'on ne visait pas. Le fichier reste un XML valide et le module compile ; c'est `mergeDebugResources` qui échoue, en désignant des ressources **intactes** dans un artefact de `build/`, avec un message qui parle d'`Invalid unicode escape sequence`. On cherche alors la faute là où elle n'est pas.
+
+Ces fichiers s'éditent à la main. En cas de doute, `git checkout HEAD -- <fichier>` puis réappliquer : c'est plus rapide que de retrouver quels antislashs manquent.
+
 ### Gradle
 
 **Après avoir modifié une règle detekt, `./gradlew --stop`** — voir la section précédente, le démon garde l'ancien jar en cache.
