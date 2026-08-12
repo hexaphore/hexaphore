@@ -145,6 +145,26 @@ rm -rf <module>/build/tmp/kotlin-classes <module>/build/kotlin
 
 **Le cache de configuration est actif.** Une lambda écrite dans un `build.gradle.kts` qui capture l'objet du script n'est pas sérialisable : les chemins se résolvent à la configuration, pas à l'exécution.
 
+**Le cache de build peut retenir un APK amputé, et `clean` ne le défait pas.** Constaté : l'application plantait à l'ouverture du scan sur `NoClassDefFoundError: RoomFoodCatalog`, alors que la classe était bien compilée, bien présente dans le `classes.jar` de l'AAR et bien dexée par le module. Elle disparaissait à la **fusion** — `:app:mergeLibDexDebug` — dont le résultat fautif avait été **enregistré dans le cache de build** et se restaurait à chaque build, `clean` compris. Le cache vit dans `~/.gradle/caches/build-cache-1`, hors du projet ; c'est pour ça que `clean` n'y peut rien.
+
+Ce qui rend ce piège coûteux : **le vert ne bouge pas**. `check` compile, teste et passe ; c'est l'APK seul qui est amputé, et le défaut ne se voit qu'à l'exécution, sur la première classe manquante qu'on demande.
+
+Le diagnostic tient en deux commandes. Comparer ce qu'un module a dexé avec ce que l'APK définit :
+
+```bash
+./gradlew clean assembleDebug --no-build-cache
+```
+
+Si l'APK est sain sans le cache et amputé avec, l'entrée fautive se nomme :
+
+```bash
+./gradlew clean assembleDebug --info | grep "cache entry for task ':app:mergeLibDexDebug'"
+```
+
+Le fichier `~/.gradle/caches/build-cache-1/<clé>` se supprime seul, sans vider les 25 000 autres entrées — elles sont partagées avec les autres projets de la machine.
+
+**La vérification qui compte porte sur la table `class_defs` du dex**, et non sur une recherche de chaîne : un nom de classe apparaît aussi dans le dex qui la *référence*. Dans le cas constaté, les dix-huit classes **internes** de `RoomFoodCatalog` étaient présentes et la classe englobante absente — une recherche naïve aurait conclu qu'elle était là.
+
 **Les plugins de convention sont des classes Kotlin, pas des scripts précompilés** ([D37](11-decisions.md#d37--plugins-de-convention-gradle---validée)).
 
 **`gradlew` doit rester en mode `100755` dans l'index git**, sinon la CI ne peut pas l'exécuter.
