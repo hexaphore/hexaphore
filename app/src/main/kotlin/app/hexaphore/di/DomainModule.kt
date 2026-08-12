@@ -2,7 +2,6 @@ package app.hexaphore.di
 
 import app.hexaphore.domain.diary.DiaryRepository
 import app.hexaphore.domain.diary.FavoriteDishes
-import app.hexaphore.domain.food.FoodStore
 import app.hexaphore.domain.food.FoodUsage
 import app.hexaphore.domain.goal.Goals
 import app.hexaphore.domain.identity.IdGenerator
@@ -14,7 +13,6 @@ import app.hexaphore.domain.usecase.GetDaySummary
 import app.hexaphore.domain.usecase.GetDishDraft
 import app.hexaphore.domain.usecase.LogDish
 import app.hexaphore.domain.usecase.RestoreDish
-import app.hexaphore.domain.usecase.SaveCustomFood
 import app.hexaphore.domain.usecase.SaveDraft
 import app.hexaphore.domain.usecase.UpdateDish
 import dagger.Module
@@ -32,10 +30,11 @@ import dagger.hilt.components.SingletonComponent
  * Un cas d'usage n'est pas un singleton : il ne porte aucun état, et l'instancier
  * coûte moins que de le retenir.
  *
- * **Séparé de [GoalUseCaseModule]** parce qu'un seul module atteignait le seuil de
- * fonctions de detekt. La réponse du projet est de découper selon ce que les choses
- * sont, pas de relever le seuil ([docs/10][qualite]) — et il se trouve que la coupure
- * naturelle existait déjà : ces cas d'usage parlent de plats, les autres d'objectifs.
+ * **Séparé de [GoalUseCaseModule] puis de [FoodUseCaseModule]**, chaque fois parce
+ * qu'un seul module atteignait le seuil de fonctions de detekt. La réponse du projet
+ * est de découper selon ce que les choses sont, pas de relever le seuil
+ * ([docs/10][qualite]) — et les deux fois, la coupure existait déjà dans la lecture :
+ * ces cas d'usage parlent de plats, les autres d'objectifs et de fiches.
  *
  * [qualite]: docs/10-qualite-et-livraison.md
  */
@@ -51,9 +50,6 @@ object DomainModule {
 
     @Provides
     fun createDraft(clock: Clock, ids: IdGenerator): CreateDraft = CreateDraft(clock, ids)
-
-    @Provides
-    fun saveCustomFood(store: FoodStore, ids: IdGenerator): SaveCustomFood = SaveCustomFood(store, ids)
 
     @Provides
     fun logDish(

@@ -50,13 +50,14 @@ class RoomFoodCatalogTest : FoodCatalogContract() {
 
         val catalogue = RoomFoodCatalog(
             dao = base.foodDao(),
+            marks = base.foodMarksDao(),
             ciqual = ciqual,
             ids = SequentialIdGenerator("provisoire"),
             clock = FixedClock(MAINTENANT),
             dispatchers = TestDispatchers(Dispatchers.IO),
         )
         runBlocking { stored.forEach { catalogue.save(it) } }
-        return FoodCatalogView(catalogue)
+        return FoodCatalogView(catalogue, RoomBarcodeLookup(base.foodDao(), TestDispatchers(Dispatchers.IO)))
     }
 
     /**

@@ -411,6 +411,60 @@ class MigrationTest {
         }
     }
 
+    // --- Version 5 -> 6 : le cache d'Open Food Facts prend date ----------------
+
+    @Test
+    fun `un aliment ecrit avant le cache garde ses valeurs et n en gagne aucune`() {
+        // Deux colonnes ajoutees par ALTER TABLE, sans recopie. Ce qu'on verifie est
+        // que les fiches existantes restent a NULL : un `0` par defaut sur is_liquid
+        // affirmerait « solide » de 3 484 aliments que personne n'a regardes.
+        helper.createDatabase(TEST_DATABASE, 1).close()
+
+        migrate().use { database ->
+            database.seedFood(id = "f1", source = "CIQUAL", reference = "13039")
+
+            database.query("SELECT name, kcal_100, is_liquid, fetched_at FROM food WHERE id = 'f1'").use { row ->
+                assertTrue("la fiche a disparu", row.moveToFirst())
+                assertEquals("Riz basmati cuit", row.getString(0))
+                assertEquals(155.0, row.getDouble(1), 0.0)
+                assertTrue("« on ne sait pas » n est pas « solide »", row.isNull(2))
+                assertTrue("une date de recuperation a ete inventee", row.isNull(3))
+            }
+        }
+    }
+
+    @Test
+    fun `l index qui interdit le doublon au double scan survit a la migration`() {
+        // Un ALTER TABLE ne touche pas les index -- mais c'est une propriete du chemin
+        // choisi, pas du resultat. Une migration future qui recopierait cette table la
+        // perdrait sans que la validation de schema le voie (D60), et le double scan
+        // d'un meme produit ferait deux fiches.
+        helper.createDatabase(TEST_DATABASE, 1).close()
+
+        migrate().use { database ->
+            database.seedFood(id = "f1", source = "OFF", reference = "5449000000996")
+            val doublon = runCatching { database.seedFood(id = "f2", source = "OFF", reference = "5449000000996") }
+
+            assertTrue("le doublon au double scan aurait du etre refuse", doublon.isFailure)
+        }
+    }
+
+    @Test
+    fun `un aliment personnel et un produit en cache partagent un code-barres`() {
+        // On cree la fiche hors ligne, on rescanne connecte : les deux existent, et
+        // l'index unique porte sur le couple (source, source_ref), donc les laisse
+        // cohabiter. C'est ce que `byBarcode` departage, en donnant la main a celle
+        // que l'utilisateur a saisie.
+        helper.createDatabase(TEST_DATABASE, 1).close()
+
+        migrate().use { database ->
+            database.seedFood(id = "f1", source = "CUSTOM", reference = "5449000000996")
+            database.seedFood(id = "f2", source = "OFF", reference = "5449000000996")
+
+            assertEquals(2, database.count("food"))
+        }
+    }
+
     // --- Outillage ------------------------------------------------------------
 
     /**

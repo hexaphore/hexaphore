@@ -2,6 +2,7 @@ package app.hexaphore.data.food
 
 import app.hexaphore.core.database.ciqual.CiqualDatabase
 import app.hexaphore.core.database.dao.FoodDao
+import app.hexaphore.core.database.dao.FoodMarksDao
 import app.hexaphore.core.database.entity.FoodEntity
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.food.FavoriteFoods
@@ -35,6 +36,9 @@ import javax.inject.Singleton
  * pas pour forcer cinq objets. L'écran de recherche ne voit que [FoodSearch], et son
  * test n'a donc pas besoin d'un faux à quinze méthodes.
  *
+ * Le septième, `BarcodeLookup`, vit dans [RoomBarcodeLookup] : c'est la seule lecture
+ * qui ait à savoir que `source_ref` range deux espaces de noms dans une même colonne.
+ *
  * **Une seule instance.** L'ouverture de la base de l'ANSES recopie un asset de
  * 824 Ko au premier appel ; cinq instances feraient cinq copies concurrentes du
  * même fichier.
@@ -44,6 +48,7 @@ import javax.inject.Singleton
 @Singleton
 class RoomFoodCatalog @Inject constructor(
     private val dao: FoodDao,
+    private val marks: FoodMarksDao,
     private val ciqual: CiqualDatabase,
     private val ids: IdGenerator,
     private val clock: Clock,
@@ -98,13 +103,13 @@ class RoomFoodCatalog @Inject constructor(
     }
 
     override fun observeRecent(limit: Int): Flow<List<Food>> =
-        dao.observeRecent(limit).map(ciqual::withServingsAndCategories).flowOn(dispatchers.io)
+        marks.observeRecent(limit).map(ciqual::withServingsAndCategories).flowOn(dispatchers.io)
 
     override fun observeFavorites(): Flow<List<Food>> =
-        dao.observeFavorites().map(ciqual::withServingsAndCategories).flowOn(dispatchers.io)
+        marks.observeFavorites().map(ciqual::withServingsAndCategories).flowOn(dispatchers.io)
 
     override suspend fun setFavorite(id: FoodId, favorite: Boolean) = withContext(dispatchers.io) {
-        dao.setFavorite(id.value, favorite, clock.now().toEpochMilli())
+        marks.setFavorite(id.value, favorite, clock.now().toEpochMilli())
     }
 
     /**
@@ -145,7 +150,7 @@ class RoomFoodCatalog @Inject constructor(
             // connue defairait une correction apportee a un aliment personnel, avec
             // les valeurs qu'un brouillon ouvert depuis dix minutes porte encore.
             val stored = place(food)
-            dao.markUsed(stored.id.value, at.toEpochMilli())
+            marks.markUsed(stored.id.value, at.toEpochMilli())
         }
     }
 }

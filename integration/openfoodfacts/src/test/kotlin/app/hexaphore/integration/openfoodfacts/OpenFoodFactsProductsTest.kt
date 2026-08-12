@@ -63,6 +63,29 @@ class OpenFoodFactsProductsTest {
         assertEquals(539.0, food.per100g.kcal)
         assertEquals(58.4, food.per100g.sugars)
         assertEquals(15.0, food.defaultServingG)
+        assertEquals(false, food.isLiquid)
+    }
+
+    @Test
+    fun `une portion en millilitres marque le produit comme liquide`() = runTest {
+        server.enqueue(ok("""{"product_name":"Cola","serving_size":"33 cl"}"""))
+
+        val food = (products().byBarcode(nutella) as ProductLookup.Found).food
+
+        assertEquals(true, food.isLiquid)
+        assertEquals(330.0, food.defaultServingG)
+    }
+
+    @Test
+    fun `sans portion ecrite, on ne sait pas si le produit est liquide`() = runTest {
+        // `null` et non `false` : la fiche ne le dit pas, et l'affirmer serait
+        // inventer. Rien ne le rattrapera ensuite -- le cache ne redemande pas.
+        server.enqueue(ok("""{"product_name":"Quelque chose","serving_quantity":30}"""))
+
+        val food = (products().byBarcode(nutella) as ProductLookup.Found).food
+
+        assertNull(food.isLiquid)
+        assertEquals(30.0, food.defaultServingG)
     }
 
     @Test

@@ -36,11 +36,15 @@ fun interface ProductSource {
  */
 sealed interface ProductLookup {
     /**
-     * La fiche telle qu'Open Food Facts la publie, sans identifiant définitif.
+     * La fiche, à l'un de ses deux âges.
      *
-     * Elle porte un identifiant provisoire, comme un résultat de la table de l'ANSES
-     * avant son versement au catalogue ([D51][decisions]) : c'est `FoodStore.place`
-     * qui rend celui qui compte, et lui seul qui sait si la fiche y était déjà.
+     * **Rendue par ce port**, elle porte un identifiant provisoire — comme un résultat
+     * de la table de l'ANSES avant son versement au catalogue ([D51][decisions]).
+     * **Rendue par `LookupBarcode`**, elle est celle du catalogue, avec son identifiant
+     * définitif et ses compteurs. Le port propose, le cas d'usage verse.
+     *
+     * Un seul type pour les deux, parce que l'écran ne voit que le second et n'a aucune
+     * raison de connaître le premier.
      *
      * [decisions]: docs/11-decisions.md
      */

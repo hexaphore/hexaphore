@@ -161,7 +161,7 @@ C'est le vrai premier jalon : à la fin de cette tranche, **l'application est ut
 
 **Piège** : oublier le `User-Agent`. Open Food Facts bloque les clients anonymes, et le symptôme ressemble à une panne réseau.
 
-> **En cours.** Le client Open Food Facts existe — `Barcode` et le port `ProductSource` dans le domaine, `:integration:openfoodfacts` avec sa correspondance, son en-tête obligatoire et son retrait exponentiel, éprouvés devant un vrai serveur local ([D63](11-decisions.md#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée)). **Rien ne l'appelle encore** : la mise en cache dans `food` et l'écran de scan sont les deux étapes suivantes.
+> **En cours.** Le client Open Food Facts ([D63](11-decisions.md#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée)), puis le cache : `LookupBarcode` lit le catalogue avant le réseau, une fiche récupérée y est versée avec sa date, et `is_liquid` et `fetched_at` arrivent en migration 5 → 6 ([D64](11-decisions.md#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée)). **Aucun écran n'y mène encore** : `:integration:scanner` et la modale de scan sont l'étape suivante, et la suggestion « Chercher dans Open Food Facts » celle d'après.
 
 ---
 

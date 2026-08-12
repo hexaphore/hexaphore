@@ -1,6 +1,8 @@
 package app.hexaphore.di
 
+import app.hexaphore.data.food.RoomBarcodeLookup
 import app.hexaphore.data.food.RoomFoodCatalog
+import app.hexaphore.domain.food.BarcodeLookup
 import app.hexaphore.domain.food.FavoriteFoods
 import app.hexaphore.domain.food.FoodLookup
 import app.hexaphore.domain.food.FoodSearch
@@ -13,9 +15,9 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
 /**
- * Le catalogue d'aliments : six ports, un adaptateur.
+ * Le catalogue d'aliments : sept ports, deux adaptateurs.
  *
- * Les six liaisons désignent la **même instance** : `RoomFoodCatalog` porte
+ * Six des sept liaisons désignent la **même instance** : `RoomFoodCatalog` porte
  * `@Singleton` et son constructeur est injecté, donc Hilt le construit lui-même. Le
  * fournir ici en plus créerait un cycle — une liaison qui se demanderait elle-même.
  *
@@ -35,6 +37,13 @@ object FoodModule {
 
     @Provides
     fun foodLookup(catalog: RoomFoodCatalog): FoodLookup = catalog
+
+    /**
+     * Le seul port du catalogue qui ne vienne pas de la même classe : voir
+     * [RoomBarcodeLookup].
+     */
+    @Provides
+    fun barcodeLookup(lookup: RoomBarcodeLookup): BarcodeLookup = lookup
 
     @Provides
     fun recentFoods(catalog: RoomFoodCatalog): RecentFoods = catalog

@@ -1,6 +1,16 @@
 package app.hexaphore.integration.openfoodfacts
 
 /**
+ * Une portion lue sur l'emballage : ce qu'elle pèse, et si elle était écrite en
+ * volume.
+ *
+ * L'unité voyage avec la masse parce que c'est la **seule** occasion de l'apprendre :
+ * Open Food Facts ne déclare nulle part qu'un produit est liquide, et une fois la
+ * fiche mise en cache, plus rien ne le dit.
+ */
+internal data class Serving(val grams: Double, val liquid: Boolean)
+
+/**
  * Ce que pèse la portion écrite sur l'emballage, en grammes, ou `null`.
  *
  * `serving_size` est un champ **libre**, rempli à la main par des contributeurs :
@@ -22,13 +32,18 @@ package app.hexaphore.integration.openfoodfacts
  *
  * [sources]: docs/04-sources-de-donnees.md
  */
-internal fun gramsOfServing(text: String?): Double? = text
+internal fun servingOf(text: String?): Serving? = text
     ?.let(MEASURE::find)
     ?.let { match ->
         val amount = match.groupValues[AMOUNT_GROUP].replace(',', '.').toDoubleOrNull()
-        val factor = GRAMS_PER_UNIT[match.groupValues[UNIT_GROUP].lowercase()]
-        if (amount != null && factor != null) amount * factor else null
-    }?.takeIf { it > 0.0 }
+        val unit = match.groupValues[UNIT_GROUP].lowercase()
+        val factor = GRAMS_PER_UNIT[unit]
+        if (amount != null && factor != null && amount * factor > 0.0) {
+            Serving(grams = amount * factor, liquid = unit in VOLUME_UNITS)
+        } else {
+            null
+        }
+    }
 
 private const val AMOUNT_GROUP = 1
 private const val UNIT_GROUP = 2
@@ -53,3 +68,6 @@ private val GRAMS_PER_UNIT: Map<String, Double> = mapOf(
     "dl" to GRAMS_PER_DECILITRE,
     "l" to GRAMS_PER_KILO,
 )
+
+/** Celles qui trahissent une boisson. C'est le seul indice que la fiche en donne. */
+private val VOLUME_UNITS = setOf("ml", "cl", "dl", "l")
