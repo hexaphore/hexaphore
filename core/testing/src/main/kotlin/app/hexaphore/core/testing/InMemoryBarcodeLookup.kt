@@ -18,11 +18,21 @@ import app.hexaphore.domain.food.FoodSource
  *
  * Les deux règles ci-dessous ne se devinent ni l'une ni l'autre, et c'est pour ça que
  * le contrat les éprouve des deux côtés.
+ *
+ * **Il échoue quand le catalogue est déclaré illisible**, comme `RoomBarcodeLookup`
+ * échouerait sur une base qu'on ne peut pas ouvrir. Sans cela, un test qui prétend
+ * éprouver ce cas mesure autre chose : il tombe sur un catalogue simplement vide, et
+ * c'est la source distante qui répond à sa place.
  */
 class InMemoryBarcodeLookup(private val catalogue: InMemoryFoodCatalog) : BarcodeLookup {
-    override suspend fun byBarcode(code: Barcode): Food? = catalogue.all
-        // Un code de la table de l'ANSES n'est pas un code-barres.
-        .filter { it.sourceRef == code.value && it.source != FoodSource.CIQUAL }
-        // Ce que l'utilisateur a saisi lui-meme passe devant un produit en cache.
-        .minByOrNull { if (it.source == FoodSource.CUSTOM) 0 else 1 }
+    override suspend fun byBarcode(code: Barcode): Food? {
+        check(!catalogue.failure) { "Catalogue illisible" }
+        return byBarcodeIn(catalogue.all, code)
+    }
 }
+
+private fun byBarcodeIn(catalogue: List<Food>, code: Barcode): Food? = catalogue
+    // Un code de la table de l'ANSES n'est pas un code-barres.
+    .filter { it.sourceRef == code.value && it.source != FoodSource.CIQUAL }
+    // Ce que l'utilisateur a saisi lui-meme passe devant un produit en cache.
+    .minByOrNull { if (it.source == FoodSource.CUSTOM) 0 else 1 }

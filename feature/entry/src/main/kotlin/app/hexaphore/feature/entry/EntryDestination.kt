@@ -36,6 +36,18 @@ data class EntryDestination(
     val foodId: String? = null,
     /** Le favori à rejouer, quand la saisie part de la liste des favoris. */
     val favoriteId: String? = null,
+    /**
+     * La fiche d'un produit **scanné**, déjà versée au catalogue.
+     *
+     * Un argument de plus que [foodId] pour la même charge, et ce n'est pas une
+     * redite : ce qui diffère est la **source** du plat, `BARCODE` au lieu de
+     * `MANUAL`, et elle ne se réécrit jamais ([D32][decisions]). Une seule route
+     * pour les deux obligerait l'écran à deviner d'où vient la fiche, c'est-à-dire à
+     * connaître les modes de saisie — précisément ce qu'il ne fait pas.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val scannedFoodId: String? = null,
 ) {
     companion object {
         /**
@@ -57,6 +69,9 @@ data class EntryDestination(
 
         /** Idem, pour le favori qu'une saisie rejoue. */
         internal val FAVORITE_ID: String = EntryDestination::favoriteId.name
+
+        /** Idem, pour le produit qu'un scan vient de verser au catalogue. */
+        internal val SCANNED_FOOD_ID: String = EntryDestination::scannedFoodId.name
 
         /**
          * La clé sous laquelle la recherche dépose la fiche choisie pour cet écran.
@@ -94,6 +109,11 @@ fun NavController.navigateToEntryForFavorite(favoriteId: FavoriteDishId) {
 
 fun NavController.navigateToEntryFor(foodId: FoodId) {
     navigate(EntryDestination(foodId = foodId.value))
+}
+
+/** Ouvre une saisie neuve sur un produit scanné : même écran, autre pastille. */
+fun NavController.navigateToEntryForScan(foodId: FoodId) {
+    navigate(EntryDestination(scannedFoodId = foodId.value))
 }
 
 /**

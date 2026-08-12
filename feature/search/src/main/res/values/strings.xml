@@ -3,6 +3,9 @@
 
     <string name="search_field_label">Chercher un aliment</string>
 
+    <!-- Le code lu par le scan, quand le formulaire vient d'un produit introuvable. -->
+    <string name="custom_barcode_kept">Code-barres conservé : %1$s</string>
+
     <!-- Avant toute frappe : ce qu'on mange souvent, et ce qu'on a épinglé. -->
     <string name="search_recent">Récents</string>
     <string name="search_favorites">Favoris</string>

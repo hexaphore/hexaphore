@@ -19,6 +19,7 @@ data object HomeDestination
  */
 fun NavGraphBuilder.homeScreen(
     onAddDish: () -> Unit,
+    onScan: () -> Unit,
     onEditDish: (DishId) -> Unit,
     onSetUpGoal: () -> Unit,
     onOpenProfile: () -> Unit,
@@ -27,6 +28,7 @@ fun NavGraphBuilder.homeScreen(
     composable<HomeDestination> {
         HomeRoute(
             onAddDish = onAddDish,
+            onScan = onScan,
             onEditDish = onEditDish,
             onSetUpGoal = onSetUpGoal,
             onOpenProfile = onOpenProfile,

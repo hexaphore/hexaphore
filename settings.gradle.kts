@@ -106,3 +106,4 @@ include(":integration:openfoodfacts")
 // c'est une surface, et l'abstraire demanderait au domaine de connaitre un type de
 // vue. Le module fournit la surface et le decodage ; l'ecran garde le reste.
 include(":integration:scanner")
+include(":feature:scan")

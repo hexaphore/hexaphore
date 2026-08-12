@@ -59,6 +59,8 @@ internal class EntryViewModel @Inject constructor(
     private val foodId: FoodId? = savedStateHandle.get<String>(EntryDestination.FOOD_ID)?.let(::FoodId)
     private val favoriteId: FavoriteDishId? =
         savedStateHandle.get<String>(EntryDestination.FAVORITE_ID)?.let(::FavoriteDishId)
+    private val scannedFoodId: FoodId? =
+        savedStateHandle.get<String>(EntryDestination.SCANNED_FOOD_ID)?.let(::FoodId)
 
     private val form = MutableStateFlow<EntryForm?>(null)
     private val status = MutableStateFlow(Status.LOADING)
@@ -222,6 +224,7 @@ internal class EntryViewModel @Inject constructor(
     private fun origin(): DraftOrigin = when {
         dishId != null -> DraftOrigin.Dish(dishId)
         favoriteId != null -> DraftOrigin.Favorite(favoriteId)
+        scannedFoodId != null -> DraftOrigin.Scanned(scannedFoodId)
         else -> DraftOrigin.New(foodId)
     }
 

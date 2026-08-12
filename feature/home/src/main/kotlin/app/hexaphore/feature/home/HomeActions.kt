@@ -15,6 +15,14 @@ import app.hexaphore.domain.diary.EntryId
 @Immutable
 data class HomeActions(
     val onAddDish: () -> Unit,
+    /**
+     * Ouvre la modale de scan.
+     *
+     * Le troisième bouton et non le premier : « Ajouter » reste le geste principal,
+     * parce que la recherche porte aussi la saisie manuelle et couvre donc tout ce
+     * qui n'a pas de code-barres.
+     */
+    val onScan: () -> Unit,
     val onEditDish: (DishId) -> Unit,
     /**
      * Supprime le plat entier, ses *n* lignes avec lui.

@@ -5,6 +5,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import app.hexaphore.feature.entry.EntryDestination
@@ -12,12 +14,16 @@ import app.hexaphore.feature.entry.entryScreen
 import app.hexaphore.feature.entry.navigateToEntry
 import app.hexaphore.feature.entry.navigateToEntryFor
 import app.hexaphore.feature.entry.navigateToEntryForFavorite
+import app.hexaphore.feature.entry.navigateToEntryForScan
 import app.hexaphore.feature.home.HomeDestination
 import app.hexaphore.feature.home.homeScreen
 import app.hexaphore.feature.onboarding.OnboardingDestination
 import app.hexaphore.feature.onboarding.onboardingScreen
+import app.hexaphore.feature.scan.navigateToScan
+import app.hexaphore.feature.scan.scanScreen
 import app.hexaphore.feature.search.navigateToFavorites
 import app.hexaphore.feature.search.navigateToManualEntry
+import app.hexaphore.feature.search.navigateToManualEntryFor
 import app.hexaphore.feature.search.navigateToSearch
 import app.hexaphore.feature.search.navigateToSearchForDraft
 import app.hexaphore.feature.search.searchScreens
@@ -67,6 +73,7 @@ private fun HexaphoreNavHost(startDestination: Any, modifier: Modifier = Modifie
             // Un seul bouton, et il ouvre la recherche : la saisie manuelle y est
             // une branche, puisqu'un aliment tape a la main devient une fiche.
             onAddDish = { navController.navigateToSearch() },
+            onScan = { navController.navigateToScan() },
             onEditDish = { dishId -> navController.navigateToEntry(dishId) },
             onSetUpGoal = { navController.navigate(OnboardingDestination) },
             // Directement sur « Profil et objectifs » : les quatre autres sections
@@ -89,38 +96,78 @@ private fun HexaphoreNavHost(startDestination: Any, modifier: Modifier = Modifie
                 }
             },
         )
-        entryScreen(
-            onAddFood = { navController.navigateToSearchForDraft() },
-            onClose = { navController.popBackStack() },
-        )
         profileScreen(onClose = { navController.popBackStack() })
-        searchScreens(
-            onPick = { foodId, addToDraft ->
-                if (addToDraft) {
-                    // Le choix revient a l'ecran qui l'a demande, par le canal que
-                    // la navigation prevoit pour un resultat. Ouvrir une seconde
-                    // validation aurait perdu le plat en cours.
-                    navController.previousBackStackEntry
-                        ?.savedStateHandle
-                        ?.set(EntryDestination.PICKED_FOOD, foodId.value)
-                    navController.popBackStack()
-                } else {
-                    // La recherche s'efface derriere la validation : revenir en
-                    // arriere depuis un plat en cours doit rendre l'accueil, pas une
-                    // liste de resultats qu'on a deja quittee.
-                    navController.popBackStack(HomeDestination, inclusive = false)
-                    navController.navigateToEntryFor(foodId)
-                }
-            },
-            onManualEntry = { name, addToDraft -> navController.navigateToManualEntry(name, addToDraft) },
-            // Choisir un favori ouvre la validation, prerempli et modifiable : un
-            // favori est un modele, pas un raccourci d'ecriture. La liste s'efface
-            // derriere, comme la recherche.
-            onPickFavorite = { favoriteId ->
-                navController.popBackStack(HomeDestination, inclusive = false)
-                navController.navigateToEntryForFavorite(favoriteId)
-            },
-            onClose = { navController.popBackStack() },
-        )
+        captureScreens(navController)
     }
+}
+
+/**
+ * Les trois modes de saisie, et l'écran où ils se rejoignent.
+ *
+ * Ensemble parce qu'ils partagent une règle et une seule : **ils s'effacent derrière
+ * la validation**. Revenir en arrière depuis un plat en cours doit rendre l'accueil,
+ * jamais l'aperçu caméra ou la liste de résultats qu'on vient de quitter. Écrits au
+ * milieu des autres destinations, les trois `popBackStack` se lisaient comme trois
+ * précautions séparées.
+ *
+ * C'est la traduction en graphe de ce que [docs/02][parcours] pose en tête : les
+ * quatre modes de saisie convergent sur un seul écran. Le quatrième — l'IA — s'y
+ * ajoutera sans que le reste du graphe bouge.
+ *
+ * [parcours]: docs/02-parcours-et-ecrans.md
+ */
+private fun NavGraphBuilder.captureScreens(navController: NavHostController) {
+    entryScreen(
+        onAddFood = { navController.navigateToSearchForDraft() },
+        onClose = { navController.popBackStack() },
+    )
+    scanScreen(
+        // La modale s'efface derriere la validation, comme la recherche : revenir
+        // en arriere depuis un plat en cours doit rendre l'accueil, pas un
+        // apercu camera qu'on a deja quitte.
+        onProduct = { foodId ->
+            navController.popBackStack(HomeDestination, inclusive = false)
+            navController.navigateToEntryForScan(foodId)
+        },
+        // Le code lu voyage avec : c'est ce qui fait que l'aliment cree sera
+        // reconnu au prochain scan, et que le produit cesse d'etre un cas
+        // particulier apres une seule saisie.
+        onCreateFood = { barcode ->
+            navController.popBackStack(HomeDestination, inclusive = false)
+            navController.navigateToManualEntryFor(barcode)
+        },
+        onSearchByName = {
+            navController.popBackStack(HomeDestination, inclusive = false)
+            navController.navigateToSearch()
+        },
+        onClose = { navController.popBackStack() },
+    )
+    searchScreens(
+        onPick = { foodId, addToDraft ->
+            if (addToDraft) {
+                // Le choix revient a l'ecran qui l'a demande, par le canal que
+                // la navigation prevoit pour un resultat. Ouvrir une seconde
+                // validation aurait perdu le plat en cours.
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.set(EntryDestination.PICKED_FOOD, foodId.value)
+                navController.popBackStack()
+            } else {
+                // La recherche s'efface derriere la validation : revenir en
+                // arriere depuis un plat en cours doit rendre l'accueil, pas une
+                // liste de resultats qu'on a deja quittee.
+                navController.popBackStack(HomeDestination, inclusive = false)
+                navController.navigateToEntryFor(foodId)
+            }
+        },
+        onManualEntry = { name, addToDraft -> navController.navigateToManualEntry(name, addToDraft) },
+        // Choisir un favori ouvre la validation, prerempli et modifiable : un
+        // favori est un modele, pas un raccourci d'ecriture. La liste s'efface
+        // derriere, comme la recherche.
+        onPickFavorite = { favoriteId ->
+            navController.popBackStack(HomeDestination, inclusive = false)
+            navController.navigateToEntryForFavorite(favoriteId)
+        },
+        onClose = { navController.popBackStack() },
+    )
 }
