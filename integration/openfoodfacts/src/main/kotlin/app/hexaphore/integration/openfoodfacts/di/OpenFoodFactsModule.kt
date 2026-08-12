@@ -1,8 +1,10 @@
 package app.hexaphore.integration.openfoodfacts.di
 
 import app.hexaphore.domain.concurrency.DispatcherProvider
+import app.hexaphore.domain.food.ProductSearch
 import app.hexaphore.domain.food.ProductSource
 import app.hexaphore.domain.identity.IdGenerator
+import app.hexaphore.domain.time.Clock
 import app.hexaphore.integration.openfoodfacts.ClientIdentity
 import app.hexaphore.integration.openfoodfacts.OPEN_FOOD_FACTS_BASE_URL
 import app.hexaphore.integration.openfoodfacts.OpenFoodFactsApi
@@ -40,8 +42,23 @@ internal object OpenFoodFactsModule {
     @Singleton
     fun api(client: OkHttpClient): OpenFoodFactsApi = openFoodFactsApi(OPEN_FOOD_FACTS_BASE_URL, client)
 
+    /**
+     * **Une seule instance pour deux ports.** Les deux interrogent le même service
+     * avec le même client ; les séparer côté domaine sert les appelants — l'écran de
+     * scan ne voit que le code-barres — pas le nombre d'objets.
+     */
     @Provides
     @Singleton
-    fun products(api: OpenFoodFactsApi, ids: IdGenerator, dispatchers: DispatcherProvider): ProductSource =
-        OpenFoodFactsProducts(api = api, ids = ids, dispatchers = dispatchers)
+    fun products(
+        api: OpenFoodFactsApi,
+        ids: IdGenerator,
+        clock: Clock,
+        dispatchers: DispatcherProvider,
+    ): OpenFoodFactsProducts = OpenFoodFactsProducts(api, ids, clock, dispatchers)
+
+    @Provides
+    fun productSource(products: OpenFoodFactsProducts): ProductSource = products
+
+    @Provides
+    fun productSearch(products: OpenFoodFactsProducts): ProductSearch = products
 }

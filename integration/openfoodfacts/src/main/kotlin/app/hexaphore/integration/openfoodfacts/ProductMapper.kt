@@ -8,6 +8,7 @@ import app.hexaphore.domain.nutrition.NutrientValues
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import java.time.Instant
 
 /**
  * Un kilocalorie vaut 4,184 kilojoules. Nommé parce qu'il apparaît deux fois et que
@@ -26,6 +27,11 @@ private const val KJ_PER_KCAL = 4.184
  * souvent dans cette base, et les mettre à zéro ferait paraître complète une journée
  * qui ne l'est pas.
  *
+ * **La date de récupération est posée ici**, et non par l'appelant. C'est le module
+ * qui interroge le service qui sait quand il l'a fait ; la laisser à un cas d'usage
+ * obligerait **chaque** chemin de récupération à y penser, et le second — la recherche
+ * par nom — a montré que ça s'oublie.
+ *
  * **La référence enregistrée est le code demandé, pas celui que la réponse renvoie.**
  * C'est ce code-là que le prochain scan présentera au catalogue local ; y ranger la
  * variante publiée par le service rendrait le cache muet au deuxième passage, et ça
@@ -34,7 +40,7 @@ private const val KJ_PER_KCAL = 4.184
  * [sources]: docs/04-sources-de-donnees.md
  * [decisions]: docs/11-decisions.md
  */
-internal fun ProductDto.toFood(barcode: Barcode, id: FoodId): Food? = displayName()?.let { name ->
+internal fun ProductDto.toFood(barcode: Barcode, id: FoodId, fetchedAt: Instant): Food? = displayName()?.let { name ->
     Food(
         id = id,
         source = FoodSource.OFF,
@@ -48,8 +54,20 @@ internal fun ProductDto.toFood(barcode: Barcode, id: FoodId): Food? = displayNam
         per100g = nutriments.toNutrientValues(),
         defaultServingG = defaultServing(),
         isLiquid = servingOf(servingSize)?.liquid,
+        fetchedAt = fetchedAt,
     )
 }
+
+/**
+ * La même fiche, mais dont le code vient de la **réponse** et non de la demande.
+ *
+ * C'est le cas de la recherche par nom : on n'a pas présenté de code, le service en
+ * rend un. `null` quand il n'est pas lisible — sans code canonique, la fiche ne peut
+ * ni être mise en cache sans doublon ni être retrouvée par un scan, et elle
+ * reviendrait du réseau à chaque recherche.
+ */
+internal fun ProductDto.toFound(id: FoodId, fetchedAt: Instant): Food? =
+    code?.let(Barcode::of)?.let { barcode -> toFood(barcode, id, fetchedAt) }
 
 /**
  * Le nom français d'abord, l'international ensuite.

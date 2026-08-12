@@ -168,7 +168,7 @@ Recherche locale sur trois sources fusionnées et ordonnées :
 
 1. aliments personnels et produits déjà scannés (ce que l'utilisateur mange vraiment),
 2. CIQUAL,
-3. suggestion « Chercher *« … »* dans Open Food Facts » en dernière ligne, si le réseau est disponible.
+3. suggestion « Chercher *« … »* dans Open Food Facts » en dernière ligne. ~~si le réseau est disponible~~ — **elle est offerte quoi qu'il arrive** ([D67](11-decisions.md#d67--la-recherche-par-nom-se-demande-et-la-date-appartient-à-celui-qui-récupère---validée)) : un test de connectivité ment, un portail captif se déclare connecté, et une ligne qui disparaît sans raison visible déroute plus qu'une phrase qui dit « pas de connexion ». Elle part sur un **tap** et jamais à la frappe : la recherche locale coûte une lecture SQLite, celle-ci un aller-retour réseau.
 
 Accents et casse ignorés (« creme brulee » trouve « crème brûlée »). Chaque résultat affiche nom, marque éventuelle, et calories pour 100 g — assez pour choisir sans ouvrir.
 

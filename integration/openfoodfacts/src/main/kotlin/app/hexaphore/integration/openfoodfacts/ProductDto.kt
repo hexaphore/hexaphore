@@ -16,6 +16,14 @@ import kotlinx.serialization.json.JsonElement
 internal data class ProductEnvelope(val status: Int = 0, val product: ProductDto? = null)
 
 /**
+ * L'enveloppe de la recherche par nom.
+ *
+ * Pas d'état ici : le service rend une liste, et une liste vide **est** une réponse.
+ */
+@Serializable
+internal data class SearchEnvelope(val products: List<ProductDto> = emptyList())
+
+/**
  * Un produit, tel qu'Open Food Facts le publie.
  *
  * **Tous les champs sont facultatifs, sans exception.** Ce n'est pas de la prudence :

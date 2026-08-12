@@ -6,6 +6,8 @@ import app.hexaphore.domain.food.FoodCategory
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodSource
 import app.hexaphore.domain.food.FoodTrait
+import app.hexaphore.domain.food.ProductResults
+import app.hexaphore.domain.food.ProductSearch
 import app.hexaphore.domain.nutrition.NutrientValues
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -344,9 +346,89 @@ class SearchViewModelTest {
         assertEquals(setOf(FoodTrait.FAVORITE), viewModel.filter.value.traits)
     }
 
+    // --- La suggestion Open Food Facts -----------------------------------------
+
+    @Test
+    fun `la recherche distante ne part pas toute seule`() = runTest(dispatcher) {
+        // La regle qui la distingue de la recherche locale : celle-ci coute un
+        // aller-retour reseau, et huit requetes pour taper « chocolat » seraient huit
+        // de trop. La ligne est offerte, elle attend qu'on la touche.
+        val appels = mutableListOf<String>()
+        val viewModel = viewModel(
+            ProductSearch { query, _ ->
+                appels += query
+                ProductResults.Found(emptyList())
+            },
+        )
+
+        viewModel.onQueryChange("nutella")
+        advanceUntilIdle()
+
+        assertEquals(emptyList<String>(), appels, "le reseau a ete interroge a la frappe")
+        assertEquals(RemoteSearch.Offered, viewModel.remote.value)
+    }
+
+    @Test
+    fun `un tap va chercher le nom tape`() = runTest(dispatcher) {
+        val viewModel = viewModel(ProductSearch { _, _ -> ProductResults.Found(listOf(NUTELLA)) })
+        viewModel.onQueryChange("nutella")
+
+        viewModel.onSearchRemotely()
+        advanceUntilIdle()
+
+        assertEquals(RemoteSearch.Results(listOf(NUTELLA)), viewModel.remote.value)
+    }
+
+    @Test
+    fun `changer la requete retire les resultats distants`() = runTest(dispatcher) {
+        // Sans cela, des produits d'un mot qu'on vient d'effacer resteraient affiches
+        // sous la liste locale du mot suivant.
+        val viewModel = viewModel(ProductSearch { _, _ -> ProductResults.Found(listOf(NUTELLA)) })
+        viewModel.onQueryChange("nutella")
+        viewModel.onSearchRemotely()
+        advanceUntilIdle()
+
+        viewModel.onQueryChange("riz")
+
+        assertEquals(RemoteSearch.Offered, viewModel.remote.value)
+    }
+
+    @Test
+    fun `un service injoignable le dit, sans faire disparaitre la ligne`() = runTest(dispatcher) {
+        // La ligne est offerte meme hors ligne : un test de connectivite ment, et une
+        // ligne qui disparait sans raison visible deroute plus qu'une phrase.
+        val viewModel = viewModel(ProductSearch { _, _ -> ProductResults.Unreachable })
+        viewModel.onQueryChange("nutella")
+
+        viewModel.onSearchRemotely()
+        advanceUntilIdle()
+
+        assertEquals(RemoteSearch.Unreachable, viewModel.remote.value)
+    }
+
+    @Test
+    fun `une recherche distante sur un mot trop court ne part pas`() = runTest(dispatcher) {
+        // Le meme seuil que la recherche locale : un caractere ne designe rien, et le
+        // service rendrait des centaines de produits au hasard.
+        val appels = mutableListOf<String>()
+        val viewModel = viewModel(
+            ProductSearch { query, _ ->
+                appels += query
+                ProductResults.Found(emptyList())
+            },
+        )
+        viewModel.onQueryChange("n")
+
+        viewModel.onSearchRemotely()
+        advanceUntilIdle()
+
+        assertEquals(emptyList<String>(), appels)
+    }
+
     // --- Outillage ------------------------------------------------------------
 
-    private fun viewModel() = SearchViewModel(catalogue, catalogue, catalogue, catalogue)
+    private fun viewModel(distant: ProductSearch = ProductSearch { _, _ -> ProductResults.Unreachable }) =
+        SearchViewModel(catalogue, catalogue, catalogue, distant, catalogue)
 
     /**
      * Un `ViewModel` dont l'état est collecté.
@@ -369,6 +451,16 @@ class SearchViewModelTest {
     private companion object {
         /** Juste avant l'échéance de l'anti-rebond, en millisecondes. */
         const val BEFORE_DEADLINE = 100L
+
+        /** Un produit tel que la source distante le rend : identifiant provisoire, date posée. */
+        val NUTELLA = Food(
+            id = FoodId("off-1"),
+            source = FoodSource.OFF,
+            sourceRef = "3017620422003",
+            name = "Nutella",
+            brand = "Ferrero",
+            per100g = NutrientValues(kcal = 539.0),
+        )
 
         val RIZ = Food(
             id = FoodId("f-riz"),

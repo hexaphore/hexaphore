@@ -1,6 +1,5 @@
 package app.hexaphore.domain.usecase
 
-import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryBarcodeLookup
 import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.domain.food.Barcode
@@ -64,14 +63,15 @@ class LookupBarcodeTest {
     }
 
     @Test
-    fun `la fiche mise en cache porte la date du jour`() = runTest {
-        // Sans elle, le rafraichissement de la tranche 6 n'aurait aucun age a comparer,
-        // et il faudrait reinterroger le service pour chaque produit deja en cache.
+    fun `la date de recuperation traverse la mise en cache`() = runTest {
+        // Elle est posee par le module qui interroge le service -- lui seul sait quand
+        // il l'a fait -- et ce cas verifie qu'elle survit a l'ecriture. Sans elle, le
+        // rafraichissement de la tranche 6 n'aurait aucun age a comparer.
         val catalogue = InMemoryFoodCatalog()
 
         lookup(catalogue, SourceComptee(ProductLookup.Found(JUS_PUBLIE)))(CODE)
 
-        assertEquals(MAINTENANT, InMemoryBarcodeLookup(catalogue).byBarcode(CODE)?.fetchedAt)
+        assertEquals(RECUPERE_LE, InMemoryBarcodeLookup(catalogue).byBarcode(CODE)?.fetchedAt)
     }
 
     @Test
@@ -126,7 +126,6 @@ class LookupBarcodeTest {
         catalogue = InMemoryBarcodeLookup(catalogue),
         products = reseau,
         store = catalogue,
-        clock = FixedClock(MAINTENANT),
     )
 
     /** Une source distante qui compte combien de fois on l'a dérangée. */
@@ -142,9 +141,9 @@ class LookupBarcodeTest {
 
     private companion object {
         val CODE: Barcode = requireNotNull(Barcode.of("5449000000996"))
-        val MAINTENANT: Instant = Instant.parse("2026-08-12T09:00:00Z")
+        val RECUPERE_LE: Instant = Instant.parse("2026-08-12T09:00:00Z")
 
-        /** Telle que le service la publie : identifiant provisoire, aucune date. */
+        /** Telle que le service la publie : identifiant provisoire, date de récupération posée. */
         val JUS_PUBLIE = Food(
             id = FoodId("provisoire"),
             source = FoodSource.OFF,
@@ -152,11 +151,9 @@ class LookupBarcodeTest {
             name = "Boisson gazeuse",
             per100g = NutrientValues(kcal = 42.0),
             isLiquid = true,
+            fetchedAt = RECUPERE_LE,
         )
 
-        val JUS_EN_CACHE = JUS_PUBLIE.copy(
-            id = FoodId("f-jus"),
-            fetchedAt = Instant.parse("2026-07-01T08:00:00Z"),
-        )
+        val JUS_EN_CACHE = JUS_PUBLIE.copy(id = FoodId("f-jus"))
     }
 }

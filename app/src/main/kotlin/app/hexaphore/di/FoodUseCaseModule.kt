@@ -4,7 +4,6 @@ import app.hexaphore.domain.food.BarcodeLookup
 import app.hexaphore.domain.food.FoodStore
 import app.hexaphore.domain.food.ProductSource
 import app.hexaphore.domain.identity.IdGenerator
-import app.hexaphore.domain.time.Clock
 import app.hexaphore.domain.usecase.LookupBarcode
 import app.hexaphore.domain.usecase.SaveCustomFood
 import dagger.Module
@@ -33,10 +32,6 @@ object FoodUseCaseModule {
     fun saveCustomFood(store: FoodStore, ids: IdGenerator): SaveCustomFood = SaveCustomFood(store, ids)
 
     @Provides
-    fun lookupBarcode(
-        catalogue: BarcodeLookup,
-        products: ProductSource,
-        store: FoodStore,
-        clock: Clock,
-    ): LookupBarcode = LookupBarcode(catalogue, products, store, clock)
+    fun lookupBarcode(catalogue: BarcodeLookup, products: ProductSource, store: FoodStore): LookupBarcode =
+        LookupBarcode(catalogue, products, store)
 }

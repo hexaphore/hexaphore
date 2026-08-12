@@ -25,5 +25,12 @@ internal data class SearchActions(
     val onToggleCategory: (FoodCategory) -> Unit,
     val onToggleTrait: (FoodTrait) -> Unit,
     val onManualEntry: (String) -> Unit,
+    /**
+     * Va chercher ce nom chez Open Food Facts.
+     *
+     * Sur un tap, jamais à la frappe : la recherche locale coûte une lecture SQLite,
+     * celle-ci un aller-retour réseau.
+     */
+    val onSearchRemotely: () -> Unit,
     val onClose: () -> Unit,
 )

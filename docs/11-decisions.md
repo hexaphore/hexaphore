@@ -1352,6 +1352,46 @@ C'est la troisième occurrence de cette forme dans la tranche, après [D63](#d63
 
 ---
 
+## D67 — La recherche par nom se demande, et la date appartient à celui qui récupère · ✓ validée
+
+**Contexte.** La dernière dette de [D50](#d50--ce-que-la-tranche-3-ne-construit-pas---validée) : la suggestion « Chercher dans Open Food Facts » en dernière ligne de résultats. Elle voisine le scan dans cette liste et n'a rien de commun avec lui — c'est une recherche **par nom**, donc un second point d'appel et une seconde liste.
+
+### Elle part sur un tap, jamais à la frappe
+
+La recherche locale part 120 ms après la dernière touche parce qu'elle coûte une lecture SQLite ([D23](#d23--recherche-dès-le-2ᵉ-caractère-après-une-pause-de-frappe---validée)). Celle-ci coûte un aller-retour réseau : huit requêtes pour taper « chocolat » seraient huit de trop, et Open Food Facts a une limite de courtoisie qu'on n'a aucune raison d'approcher.
+
+Le seuil de deux caractères reste, lui : un caractère ne désigne rien, et le service rendrait des centaines de produits au hasard.
+
+### La ligne est offerte même hors ligne
+
+**Écart avec [02](02-parcours-et-ecrans.md#modale--recherche)**, qui la conditionne à « si le réseau est disponible ». Un test de connectivité ment — un portail captif se déclare connecté — et une ligne qui disparaît sans raison visible déroute plus qu'une phrase qui dit « pas de connexion ». La ligne reste, et l'issue parle.
+
+**Aucun retrait exponentiel** non plus, contrairement au code-barres : la recherche part d'un tap délibéré et l'écran montre déjà son résultat. Faire attendre une seconde et demie avant de dire « pas de connexion » ne gagnerait rien.
+
+### `RemoteSearch` vit à côté de `SearchUiState`, pas dedans
+
+Elle se pose **par-dessus** les résultats locaux plutôt qu'à leur place. La faire entrer dans l'état d'écran obligerait `Results` et `Empty` à la porter toutes les deux, et les trois autres variantes à expliquer pourquoi elles ne l'ont pas. C'est le même arrangement que `query` et `filter`, et pour la même raison — le `ViewModel` le disait déjà de son bandeau de pastilles.
+
+**Quatre états et non trois** : « offerte » et « rien trouvé » ne disent pas la même chose, et les confondre ferait reproposer une recherche qu'on vient de faire. Une liste vide **est** une réponse.
+
+**Elle repart à zéro dès que la requête change**, sans quoi des produits d'un mot qu'on vient d'effacer resteraient affichés sous la liste locale du mot suivant.
+
+### Un produit dont le code n'est pas lisible est écarté
+
+Sans code canonique ([D63](#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée)), une fiche ne peut ni être mise en cache sans doublon, ni être retrouvée par un scan : elle serait une ligne qu'on ne peut choisir qu'une fois, et qui reviendrait du réseau à chaque recherche. La liste en perd quelques-unes ; elle n'en garde aucune qu'on ne puisse rejouer.
+
+### La date de récupération change de main, et c'est le second appelant qui l'a montré
+
+[D64](#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée) la posait dans `LookupBarcode`. Un second chemin de récupération est apparu — la recherche par nom — et il ne passe pas par ce cas d'usage : les fiches qu'il rend seraient entrées au catalogue **sans âge**, et le rafraîchissement de la tranche 6 n'aurait rien à comparer.
+
+Elle est donc posée par le module qui interroge le service, qui est le seul à savoir quand il l'a fait. La règle cesse d'être une chose dont chaque appelant doit se souvenir.
+
+C'est aussi ce que `docs/06` appelle un signal : une propriété que deux chemins doivent tenir séparément appartient à ce qu'ils ont en commun.
+
+**Conséquences.** `OpenFoodFactsProducts` porte les deux ports — même service, même client, et la séparation sert les appelants, pas le nombre d'objets. `cgi/search.pl` et non `api/v2/search` : le second filtre sur des étiquettes et n'accepte pas de texte libre. Deux seuils de detekt ont forcé deux découpages, et les deux sont des gains : la suggestion a son fichier — c'est une **source** de plus, pas un morceau de l'écran de recherche — et le constructeur de flux de résultats sort du `ViewModel`, parce que c'est une façon de construire un flux et non une chose que l'écran déclenche. **La tranche 5 est complète.**
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

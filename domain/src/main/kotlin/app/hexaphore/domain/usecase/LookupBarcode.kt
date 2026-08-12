@@ -2,11 +2,9 @@ package app.hexaphore.domain.usecase
 
 import app.hexaphore.domain.food.Barcode
 import app.hexaphore.domain.food.BarcodeLookup
-import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodStore
 import app.hexaphore.domain.food.ProductLookup
 import app.hexaphore.domain.food.ProductSource
-import app.hexaphore.domain.time.Clock
 
 /**
  * Ce qu'un code-barres désigne : le catalogue d'abord, le réseau ensuite.
@@ -22,6 +20,10 @@ import app.hexaphore.domain.time.Clock
  * source est embarquée et toujours disponible, ici elle est à l'autre bout d'un
  * réseau. Ne pas écrire reviendrait à redemander le même produit à chaque scan.
  *
+ * **La date de récupération est posée par le module qui interroge le service**, pas
+ * ici : c'est lui qui sait quand il l'a fait, et la recherche par nom l'a montré en
+ * ajoutant un second chemin de récupération que ce cas d'usage ne traverse pas.
+ *
  * Elle n'apparaît pas pour autant dans « Récents » : `last_used_at` reste nul tant que
  * rien n'a été mangé, et cette liste dit ce qu'on mange, pas ce qu'on a regardé.
  *
@@ -32,7 +34,6 @@ class LookupBarcode(
     private val catalogue: BarcodeLookup,
     private val products: ProductSource,
     private val store: FoodStore,
-    private val clock: Clock,
 ) {
     suspend operator fun invoke(code: Barcode): ProductLookup =
         catalogue.byBarcode(code)?.let(ProductLookup::Found) ?: fetch(code)
@@ -47,9 +48,7 @@ class LookupBarcode(
      * [decisions]: docs/11-decisions.md
      */
     private suspend fun fetch(code: Barcode): ProductLookup = when (val found = products.byBarcode(code)) {
-        is ProductLookup.Found -> ProductLookup.Found(store.place(found.food.dated()))
+        is ProductLookup.Found -> ProductLookup.Found(store.place(found.food))
         else -> found
     }
-
-    private fun Food.dated(): Food = copy(fetchedAt = clock.now())
 }

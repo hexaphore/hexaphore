@@ -1,6 +1,5 @@
 package app.hexaphore.feature.scan
 
-import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryBarcodeLookup
 import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.domain.food.Barcode
@@ -20,7 +19,6 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.time.Instant
 
 /**
  * La seule part de l'écran de scan qui s'éprouve sans appareil.
@@ -117,13 +115,11 @@ class ScanViewModelTest {
             catalogue = InMemoryBarcodeLookup(catalogue),
             products = distant,
             store = catalogue,
-            clock = FixedClock(MAINTENANT),
         ),
     )
 
     private companion object {
         val CODE: Barcode = requireNotNull(Barcode.of("5449000000996"))
-        val MAINTENANT: Instant = Instant.parse("2026-08-12T09:00:00Z")
 
         val JUS = Food(
             id = FoodId("f-jus"),
