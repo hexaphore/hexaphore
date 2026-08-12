@@ -1308,6 +1308,50 @@ C'est la vérification que [D62](#d62--un-favori-est-un-modèle-vivant-et-létoi
 
 ---
 
+## D66 — La modale de scan, et les trois modes de saisie réunis dans le graphe · ✓ validée
+
+**Contexte.** Ce qui manquait pour que « Je scanne » existe : un écran. Il est presque entièrement invérifiable ici — pas d'émulateur, pas de caméra — et c'est ce constat qui a décidé de sa forme.
+
+### Ce qui pouvait être un `ViewModel` en est un, et le reste est mince
+
+`ScanViewModel` ne connaît ni la caméra ni le réseau : il reçoit un `Barcode` déjà confirmé par l'anti-rebond et le passe à `LookupBarcode`, qui décide seul de l'ordre ([D64](#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée)). Quatre états, six cas de test sur la JVM. Tout ce qui reste dans la composable — l'aperçu, la permission, la lampe, le retour haptique — n'a aucun équivalent hors appareil, et il n'y a donc **rien** à y mettre qui puisse s'y cacher.
+
+**La permission n'est pas dans le `ViewModel`.** C'est un état de l'appareil ; l'y faire entrer demanderait un `Context`, donc ferait perdre la seule chose que cet écran ait de vérifiable.
+
+**La garde « une lecture à la fois » est tenue deux fois** — dans `SteadyBarcode` et dans le `ViewModel`. Ce n'est pas une redite : la première appartient au décodeur et disparaîtrait avec lui, la seconde appartient à l'écran. Deux codes lus coup sur coup ouvriraient sinon deux fiches.
+
+**Un catalogue illisible aboutit à `Unreachable`.** Ce n'est pas exact — une base qui refuse de se lire n'est pas un réseau absent — mais le geste utile est le même : créer la fiche à la main. Sans ce repli, l'exception remonterait et l'écran resterait bloqué sur « Recherche… ».
+
+### La permission est demandée à l'ouverture, sans écran d'explication devant
+
+L'écran n'a **aucun** contenu sans caméra. Faire tapoter une explication avant la seule question qui compte serait un écran de transit de plus — le raisonnement de [D56](#d56--lonboarding-ouvre-lapplication-exige-ses-réponses-et-dit-non-à-voix-haute---validée) et [D59](#d59--le-profil-se-corrige-et-le-verrou-survit-au-recalcul---en-partie-remplacée-par-d60), appliqué une troisième fois. L'explication apparaît **après** un refus, avec le seul chemin qui reste : les réglages système, puisque Android ne rouvre pas sa boîte une fois la permission refusée deux fois.
+
+### Le graphe se scinde sur ce que `docs/02` pose en tête
+
+`captureScreens` regroupe validation, scan et recherche. Ils partagent une règle et une seule : **ils s'effacent derrière la validation**. Revenir en arrière depuis un plat en cours doit rendre l'accueil, jamais l'aperçu caméra ou la liste de résultats qu'on vient de quitter.
+
+Le seuil de longueur de detekt a posé la question ; la réponse n'est pas mécanique. Écrits au milieu des autres destinations, les trois `popBackStack` se lisaient comme trois précautions séparées. Regroupés, ils sont la traduction en graphe de la règle structurante de [02](02-parcours-et-ecrans.md) — les modes de saisie convergent sur un seul écran — et le quatrième s'y ajoutera sans que le reste bouge.
+
+### Le code lu voyage jusqu'au formulaire
+
+C'est ce qui fait tenir le dernier critère de la tranche. `CustomFoodDestination` gagne un argument, et le champ **s'affiche sans s'éditer** : ce code n'a pas été tapé, il a été lu. Le rendre modifiable ferait porter à la fiche un code qui n'est pas celui de l'emballage qu'on a devant soi, et le prochain scan ne la retrouverait pas.
+
+### Un glyphe de code-barres, dessiné
+
+`material-icons-core` n'en a pas — le même manque que `StarBorder` en [D62](#d62--un-favori-est-un-modèle-vivant-et-létoile-est-son-seul-interrupteur---validée), et la même réponse : tracer plutôt qu'ajouter la bibliothèque étendue pour un seul glyphe, ou en détourner un qui veut dire autre chose. Des barres de largeurs inégales, parce que cinq traits réguliers se lisent comme un menu.
+
+**Le bouton est le troisième, pas le premier.** « Ajouter » reste le geste principal : la recherche porte aussi la saisie manuelle, donc couvre tout ce qui n'a pas de code-barres. Toujours pas l'arc de quatre actions de [02](02-parcours-et-ecrans.md) — les deux modes d'IA n'existent pas, et un bouton qui n'ouvre rien n'est pas une avance.
+
+### Un troisième test qui passait sans sa règle, et ce qu'il a révélé
+
+« Un catalogue illisible aboutit à la même porte de sortie » ne mesurait rien : `InMemoryBarcodeLookup` lisait la réserve du faux **sans regarder son drapeau d'échec**, donc le cas tombait sur un catalogue simplement vide, et c'est la source distante qui répondait à sa place. Le repli neutralisé, le test restait vert.
+
+C'est la troisième occurrence de cette forme dans la tranche, après [D63](#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée) et [D64](#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée), et la cause est chaque fois la même : **le faux était plus indulgent que le vrai** — le diagnostic de [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée), qui se vérifie encore. `RoomBarcodeLookup` échoue sur une base qu'on ne peut pas ouvrir ; son pendant en mémoire ne le pouvait pas. Il le peut désormais.
+
+**Conséquences.** `:feature:scan` déclare `implementation(projects.integration.scanner)`, la seule dépendance d'un `:feature` vers un `:integration` du projet. Elle est écrite dans son `build.gradle.kts` pour se faire remarquer en revue, et sa raison est en [D65](#d65--le-décodeur-est-un-module-à-part-et-sa-seule-règle-tient-sur-la-jvm---validée). **La tranche 5 est fonctionnellement complète**, sauf la suggestion « Chercher dans Open Food Facts » de [D50](#d50--ce-que-la-tranche-3-ne-construit-pas---validée), qui est une recherche **par nom** — un second point d'appel et une seconde liste de résultats, donc sa propre livraison.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

@@ -54,6 +54,7 @@ La flèche du bas remonte : `:data` dépend de `:domain`, jamais l'inverse. Un `
 :integration:scanner        CameraX + ML Kit, et la seule composable d un adaptateur
 
 :feature:onboarding
+:feature:scan               Modale de scan, ses quatre etats
 :feature:home               Accueil, journée, calendrier
 :feature:entry              Écran de validation
 :feature:search             Recherche, récents, favoris, aliment personnel
@@ -132,7 +133,7 @@ L'interface fourre-tout `FoodRepository` est refusée. À la place, quatre ports
 
 ```kotlin
 fun interface FoodLookup      { suspend fun byId(id: FoodId): Food? }
-fun interface BarcodeLookup   { suspend fun byBarcode(code: String): Food? }
+fun interface BarcodeLookup   { suspend fun byBarcode(code: Barcode): Food? }
 interface     FoodSearch      { fun search(q: String, f: FoodFilter, limit: Int): Flow<List<Food>> }
 interface     RecentFoods     { fun observeRecent(limit: Int): Flow<List<Food>> }
 interface     FavoriteFoods   { fun observeFavorites(): Flow<List<Food>>

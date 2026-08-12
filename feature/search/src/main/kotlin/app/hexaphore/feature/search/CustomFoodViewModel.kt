@@ -3,6 +3,7 @@ package app.hexaphore.feature.search
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.hexaphore.domain.food.Barcode
 import app.hexaphore.domain.food.CustomFoodDraft
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.nutrition.Macro
@@ -34,8 +35,19 @@ internal class CustomFoodViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val saveCustomFood: SaveCustomFood,
 ) : ViewModel() {
+    /**
+     * Le code-barres est relu **une fois** et ne devient jamais un champ : il n'a pas
+     * été tapé, il a été lu, et le laisser modifier ferait porter à la fiche un code
+     * qui n'est pas celui de l'emballage qu'on a devant soi.
+     */
+    private val barcode: Barcode? =
+        savedStateHandle.get<String>(CustomFoodDestination.BARCODE)?.let(Barcode::of)
+
     private val form = MutableStateFlow(
-        CustomFoodForm(name = savedStateHandle.get<String>(CustomFoodDestination.NAME).orEmpty()),
+        CustomFoodForm(
+            name = savedStateHandle.get<String>(CustomFoodDestination.NAME).orEmpty(),
+            barcode = barcode,
+        ),
     )
     private val status = MutableStateFlow(Status.EDITING)
 
@@ -93,10 +105,13 @@ internal data class CustomFoodForm(
     val brand: String = "",
     val serving: String = "",
     val macros: Map<Macro, String> = emptyMap(),
+    /** Lu, jamais tapé : il s'affiche et ne s'édite pas. */
+    val barcode: Barcode? = null,
 ) {
     fun toDraft(): CustomFoodDraft = CustomFoodDraft(
         name = name,
         brand = brand,
+        barcode = barcode,
         // Un champ vide vaut inconnu, jamais zero. C'est la regle du projet,
         // appliquee la ou elle est le plus facile a trahir : il suffirait de lire
         // un champ vide comme « 0 » pour eviter tout traitement du cas nul.

@@ -299,6 +299,20 @@ class EntryViewModelTest {
     private suspend fun EntryViewModel.content(): EntryUiState.Content =
         uiState.filterIsInstance<EntryUiState.Content>().first()
 
+    @Test
+    fun `un produit scanne ouvre un plat marque code-barres`() = runTest {
+        // L'argument de route est lu par le `ViewModel`, et c'est la moitie que le
+        // domaine ne couvre pas : `ScannedFoodTest` eprouve la regle, celui-ci
+        // eprouve qu'elle est **atteinte**. C'est exactement la ou D52 avait fait
+        // perdre une saisie -- un argument que personne ne lisait.
+        runBlocking { catalogue.save(RIZ) }
+
+        val etat = viewModel(scannedFoodId = RIZ.id.value).content()
+
+        assertEquals(EntrySource.BARCODE, etat.form.source)
+        assertEquals(listOf(RIZ.name), etat.form.lines.map { it.name })
+    }
+
     /**
      * Ce que fait l'écran quand la recherche lui rend une fiche.
      *
@@ -312,25 +326,27 @@ class EntryViewModelTest {
         viewModel.onFoodPicked(food.id)
     }
 
-    private fun viewModel(dishId: String? = null, favoriteId: String? = null) = EntryViewModel(
-        savedStateHandle = SavedStateHandle(
-            listOfNotNull(
-                dishId?.let { "dishId" to it },
-                favoriteId?.let { "favoriteId" to it },
-            ).toMap(),
-        ),
-        openDraft = OpenDraft(
-            dishes = GetDishDraft(diary, ids),
-            favorites = GetFavoriteDraft(favoris, catalogue, clock, ids),
-            create = CreateDraft(clock, ids),
-            foods = catalogue,
-        ),
-        addFoodLine = AddFoodLine(catalogue, CreateDraft(clock, ids)),
-        getDaySummary = GetDaySummary(diary, goals, clock),
-        saveDraft = SaveDraft(LogDish(diary, catalogue, favoris, clock, ids), UpdateDish(diary, ids)),
-        saveFavoriteDish = SaveFavoriteDish(favoris, ids),
-        removeFavoriteDish = RemoveFavoriteDish(favoris),
-    )
+    private fun viewModel(dishId: String? = null, favoriteId: String? = null, scannedFoodId: String? = null) =
+        EntryViewModel(
+            savedStateHandle = SavedStateHandle(
+                listOfNotNull(
+                    dishId?.let { "dishId" to it },
+                    favoriteId?.let { "favoriteId" to it },
+                    scannedFoodId?.let { "scannedFoodId" to it },
+                ).toMap(),
+            ),
+            openDraft = OpenDraft(
+                dishes = GetDishDraft(diary, ids),
+                favorites = GetFavoriteDraft(favoris, catalogue, clock, ids),
+                create = CreateDraft(clock, ids),
+                foods = catalogue,
+            ),
+            addFoodLine = AddFoodLine(catalogue, CreateDraft(clock, ids)),
+            getDaySummary = GetDaySummary(diary, goals, clock),
+            saveDraft = SaveDraft(LogDish(diary, catalogue, favoris, clock, ids), UpdateDish(diary, ids)),
+            saveFavoriteDish = SaveFavoriteDish(favoris, ids),
+            removeFavoriteDish = RemoveFavoriteDish(favoris),
+        )
 
     private val favoris = InMemoryFavoriteDishes()
 

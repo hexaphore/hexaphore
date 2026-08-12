@@ -68,6 +68,7 @@
     <!-- L'étoile ouvre les plats déjà composés. Une icône seule : « Ajouter » reste
          le geste principal, et c'est lui qui porte un libellé. -->
     <string name="home_open_favorites">Vos plats favoris</string>
+    <string name="home_scan">Scanner un code-barres</string>
 
     <!-- Le nom est proposé depuis les aliments du plat, puis librement réécrit : un
          favori sans nom serait introuvable, et un champ vide ferait renoncer. -->

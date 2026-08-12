@@ -161,7 +161,11 @@ C'est le vrai premier jalon : à la fin de cette tranche, **l'application est ut
 
 **Piège** : oublier le `User-Agent`. Open Food Facts bloque les clients anonymes, et le symptôme ressemble à une panne réseau.
 
-> **En cours.** Le client Open Food Facts ([D63](11-decisions.md#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée)), puis le cache : `LookupBarcode` lit le catalogue avant le réseau, une fiche récupérée y est versée avec sa date, et `is_liquid` et `fetched_at` arrivent en migration 5 → 6 ([D64](11-decisions.md#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée)). Puis `:integration:scanner` : le décodage, l'anti-rebond éprouvé sur la JVM, un aliment personnel qui garde son code-barres, et un cinquième `DraftOrigin` que l'écran de validation a accepté **sans être touché** ([D65](11-decisions.md#d65--le-décodeur-est-un-module-à-part-et-sa-seule-règle-tient-sur-la-jvm---validée)). **Restent la modale de scan**, qui ne se vérifie que sur un appareil, et la suggestion « Chercher dans Open Food Facts ».
+> **En cours.** Le client Open Food Facts ([D63](11-decisions.md#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée)), puis le cache : `LookupBarcode` lit le catalogue avant le réseau, une fiche récupérée y est versée avec sa date, et `is_liquid` et `fetched_at` arrivent en migration 5 → 6 ([D64](11-decisions.md#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée)). Puis `:integration:scanner` : le décodage, l'anti-rebond éprouvé sur la JVM, un aliment personnel qui garde son code-barres, et un cinquième `DraftOrigin` que l'écran de validation a accepté **sans être touché** ([D65](11-decisions.md#d65--le-décodeur-est-un-module-à-part-et-sa-seule-règle-tient-sur-la-jvm---validée)). Puis la modale elle-même, ses quatre états et le graphe qui réunit les modes de saisie ([D66](11-decisions.md#d66--la-modale-de-scan-et-les-trois-modes-de-saisie-réunis-dans-le-graphe---validée)).
+
+**Reste la suggestion « Chercher dans Open Food Facts »** : c'est une recherche **par nom**, donc un second point d'appel et une seconde liste de résultats — sa propre livraison.
+
+**Rien de la caméra n'a tourné.** L'aperçu, la permission, la lampe, le décodage et les deux migrations les plus récentes ne se jugent que sur un appareil.
 
 ---
 

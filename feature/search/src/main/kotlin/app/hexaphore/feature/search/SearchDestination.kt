@@ -5,6 +5,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import app.hexaphore.domain.diary.FavoriteDishId
+import app.hexaphore.domain.food.Barcode
 import app.hexaphore.domain.food.FoodId
 import kotlinx.serialization.Serializable
 
@@ -31,7 +32,19 @@ data class SearchDestination(val addToDraft: Boolean = false)
  * reprocherait à cet écran.
  */
 @Serializable
-data class CustomFoodDestination(val name: String = "", val addToDraft: Boolean = false) {
+data class CustomFoodDestination(
+    val name: String = "",
+    val addToDraft: Boolean = false,
+    /**
+     * Le code-barres, quand le formulaire s'ouvre depuis un scan infructueux.
+     *
+     * C'est ce qui fait tenir « un produit absent d'Open Food Facts se crée à la main
+     * **en conservant son code-barres** » : la fiche devient scannable comme n'importe
+     * quelle autre, et le produit cesse d'être un cas particulier après une seule
+     * saisie.
+     */
+    val barcode: String? = null,
+) {
     internal companion object {
         /**
          * Le nom sous lequel l'argument arrive dans le `SavedStateHandle`.
@@ -40,6 +53,9 @@ data class CustomFoodDestination(val name: String = "", val addToDraft: Boolean 
          * endroits à renommer là où le compilateur n'en signalerait qu'un.
          */
         val NAME: String = CustomFoodDestination::name.name
+
+        /** Idem, pour le code lu quand le formulaire vient d'un scan. */
+        val BARCODE: String = CustomFoodDestination::barcode.name
     }
 }
 
@@ -74,6 +90,11 @@ fun NavController.navigateToSearchForDraft() {
 /** Ouvre la saisie manuelle, nom prérempli. */
 fun NavController.navigateToManualEntry(name: String, addToDraft: Boolean) {
     navigate(CustomFoodDestination(name = name, addToDraft = addToDraft))
+}
+
+/** Ouvre la saisie manuelle depuis un scan infructueux, code-barres conservé. */
+fun NavController.navigateToManualEntryFor(barcode: Barcode) {
+    navigate(CustomFoodDestination(barcode = barcode.value))
 }
 
 /**

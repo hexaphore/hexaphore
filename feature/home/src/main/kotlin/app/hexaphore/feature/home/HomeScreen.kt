@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.hexaphore.core.designsystem.component.BarcodeGlyph
 import app.hexaphore.core.designsystem.component.MacroBar
 import app.hexaphore.core.designsystem.component.MacroHexagon
 import app.hexaphore.core.designsystem.component.MacroQuarter
@@ -50,6 +51,7 @@ import kotlin.math.roundToInt
 @Composable
 fun HomeRoute(
     onAddDish: () -> Unit,
+    onScan: () -> Unit,
     onEditDish: (DishId) -> Unit,
     onSetUpGoal: () -> Unit,
     onOpenProfile: () -> Unit,
@@ -65,9 +67,10 @@ fun HomeRoute(
         pendingUndo = pendingUndo,
         favoriteNameTaken = nameTaken,
         onDismissFavoriteError = viewModel::onDismissFavoriteError,
-        actions = remember(viewModel, onAddDish, onEditDish, onSetUpGoal, onOpenProfile, onOpenFavorites) {
+        actions = remember(viewModel, onAddDish, onScan, onEditDish, onSetUpGoal, onOpenProfile, onOpenFavorites) {
             HomeActions(
                 onAddDish = onAddDish,
+                onScan = onScan,
                 onEditDish = onEditDish,
                 onDeleteDish = viewModel::onDeleteDish,
                 onDeleteEntry = viewModel::onDeleteEntry,
@@ -183,14 +186,18 @@ private fun DayHeader(onOpenProfile: () -> Unit) {
  * la saisie manuelle, puisqu'un aliment tapé à la main devient une fiche. « Ajouter »
  * reste le geste principal : c'est le seul des deux qui porte un libellé.
  *
- * Toujours pas l'arc de quatre actions de [docs/02][parcours] : le scan et l'IA
- * n'existent pas encore, et un bouton qui n'ouvre rien n'est pas une avance.
+ * Toujours pas l'arc de quatre actions de [docs/02][parcours] : les deux modes d'IA
+ * n'existent pas encore, et un bouton qui n'ouvre rien n'est pas une avance. Le scan,
+ * lui, s'y ajoute maintenant qu'il mène quelque part.
  *
  * [parcours]: docs/02-parcours-et-ecrans.md
  */
 @Composable
 private fun DayActions(actions: HomeActions) {
     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        SmallFloatingActionButton(onClick = actions.onScan) {
+            BarcodeGlyph(contentDescription = stringResource(R.string.home_scan))
+        }
         SmallFloatingActionButton(onClick = actions.onOpenFavorites) {
             Icon(
                 imageVector = Icons.Filled.Star,

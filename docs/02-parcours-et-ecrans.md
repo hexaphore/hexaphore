@@ -132,6 +132,8 @@ Séquence après lecture :
 
 **Permission caméra refusée.** Explication de l'usage et bouton vers les réglages système. Les trois autres modes restent disponibles.
 
+La permission est demandée **à l'ouverture**, sans écran d'explication devant : cet écran n'a aucun contenu sans caméra, et faire tapoter un préambule avant la seule question qui compte serait un écran de transit de plus. L'explication vient **après** un refus — c'est alors qu'elle sert, puisque Android ne rouvre plus sa boîte ([D66](11-decisions.md#d66--la-modale-de-scan-et-les-trois-modes-de-saisie-réunis-dans-le-graphe---validée)).
+
 ---
 
 ## Modale : photo

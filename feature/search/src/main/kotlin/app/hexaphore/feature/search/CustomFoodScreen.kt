@@ -119,6 +119,16 @@ private fun Form(state: CustomFoodUiState.Editing, actions: CustomFoodActions) {
 /** Ce qui identifie la fiche : son nom, sa marque, la quantité qu'on en prend. */
 @Composable
 private fun ColumnScope.IdentityFields(form: CustomFoodForm, actions: CustomFoodActions) {
+    // Affiche et non saisissable : ce code n'a pas ete tape, il a ete lu. Le rendre
+    // modifiable ferait porter a la fiche un code qui n'est pas celui de l'emballage
+    // qu'on a devant soi, et le prochain scan ne la retrouverait pas.
+    form.barcode?.let { code ->
+        Text(
+            text = stringResource(R.string.custom_barcode_kept, code.value),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
     DraftTextField(
         initial = form.name,
         onValueChange = actions.onNameChange,
