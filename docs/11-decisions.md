@@ -700,7 +700,7 @@ Listés ici pour cesser d'être des oublis, comme [D21](#d21--ce-que-litération
 
 | Absent | Raison | Quand |
 |---|---|---|
-| ~~Les **plats** favoris (`favorite_dish`, `favorite_component`)~~ | [02](02-parcours-et-ecrans.md#modale--recherche) dit « favoris : aliments **et** plats ». Les aliments favoris existent ; les plats demandent deux tables, une action « enregistrer comme favori » sur l'écran de validation, et un rejeu qui reconstruit un brouillon à partir de fiches vivantes. C'est une capacité, pas une case à cocher. | **Fait** en [D62](#d62--un-favori-est-un-modèle-vivant-et-l-étoile-est-son-seul-interrupteur---validée) |
+| ~~Les **plats** favoris (`favorite_dish`, `favorite_component`)~~ | [02](02-parcours-et-ecrans.md#modale--recherche) dit « favoris : aliments **et** plats ». Les aliments favoris existent ; les plats demandent deux tables, une action « enregistrer comme favori » sur l'écran de validation, et un rejeu qui reconstruit un brouillon à partir de fiches vivantes. C'est une capacité, pas une case à cocher. | **Fait** en [D62](#d62--un-favori-est-un-modèle-vivant-et-létoile-est-son-seul-interrupteur---validée) |
 | `food_serving`, les portions nommées d'un **aliment personnel** | Les portions de CIQUAL se lisent dans `ciqual_serving` par le code source, sans copie. Une fiche personnelle a `default_serving_g`, qui couvre le cas courant. Une table que rien ne remplirait serait exactement ce que [D34](#d34--la-table-food-attend-la-tranche-qui-la-remplit---par-défaut) refusait. | Quand un aliment personnel aura besoin de plusieurs portions |
 | Les colonnes `density`, `is_liquid`, `user_edited_fields`, `fetched_at` de `food` | Même raison, appliquée colonne par colonne. La densité arrive avec le résolveur (tranche 6), les trois autres avec le cache Open Food Facts (tranche 5), qui est ce qui les remplit. La règle du projet préfère une colonne nullable ajoutée plus tard à une colonne vide ajoutée trop tôt. | Tranches 5 et 6 |
 | La suggestion « Chercher dans Open Food Facts » en dernière ligne de résultats | Elle suppose un client réseau, qui est le contenu de la tranche 5. Une ligne qui n'ouvre rien n'est pas une avance. | Tranche 5 |
@@ -1161,6 +1161,58 @@ C'est le **seul** chemin pour retirer un plat de la liste. La liste des favoris 
 **Conséquences.** `FavoriteDishes` naît **avec** son jeu de tests de contrat, 13 cas joués des deux côtés : c'est la règle de [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée), et l'écrire après coup aurait laissé le temps aux deux implémentations de diverger. Il a payé tout de suite — le faux comparait les noms bruts.
 
 Le seuil de paramètres de detekt a forcé trois regroupements dans les `ViewModel`, et les trois sont des gains : `OpenDraft` rassemble les **quatre entrées** de l'écran de validation — plat, favori, fiche, rien — que la tranche 6 aurait encore multipliées ; `SaveDraft` retire à l'écran le choix entre créer et corriger ; `ToggleDishFavorite` porte la bascule et son ordre d'écriture. Le point de convergence que [12](12-plan-de-developpement.md) désigne depuis la conception existe enfin comme un objet, et non comme une suite de branches.
+
+---
+
+## D63 — Le code-barres est une clé, et le client s'éprouve devant un vrai serveur · ✓ validée
+
+**Contexte.** Le premier tiers de la tranche 5 : le client Open Food Facts, sans écran ni base. La tranche entière tenait trois capacités — lire un code, interroger le service, mettre en cache — et une seule pull request les aurait rendues illisibles. Celle-ci s'arrête à la frontière du domaine.
+
+### Un code-barres est une clé, donc un type
+
+`Barcode` a un **constructeur privé** et une fabrique qui refuse. Une chaîne aurait suffi à transporter la valeur ; elle n'aurait pas garanti que deux lectures du même produit donnent la même clé — et c'est exactement ce dont dépend la promesse de la tranche : *« le deuxième scan du même produit est instantané et fonctionne en mode avion »*. Le catalogue local retrouve une fiche par son `source_ref` ; si la première lecture y écrit douze chiffres et la seconde en cherche treize, le cache ne sert jamais, et le défaut ne se voit **que** hors ligne.
+
+**UPC-A devient EAN-13**, par un zéro devant. La conversion est exacte et ne change pas la clé de contrôle — le chiffre ajouté tombe sur un poids 1. La même fonction vérifie donc les trois symbologies, parce que les poids se comptent depuis la droite.
+
+**UPC-E est refusé, et c'est un écart assumé avec [02](02-parcours-et-ecrans.md#modale--scan-de-code-barres).** Huit chiffres ne disent pas s'ils sont un EAN-8 ou un UPC-E compressé, ML Kit ne décompresse pas, et lire un UPC-E comme un EAN-8 produirait un code **plausible désignant un autre produit** — la pire des issues, puisqu'elle afficherait une fiche fausse au lieu de dire « introuvable ». La clé de contrôle le rattraperait neuf fois sur dix, ce qui est une coïncidence et non une règle. Le symbole est rare en France ; le jour où l'un est réellement scanné, la symbologie descendra dans le domaine et la décompression avec.
+
+**Écarté.** *Accepter n'importe quelle chaîne de chiffres* : la mise sous forme canonique aurait alors vécu chez chaque appelant, c'est-à-dire nulle part.
+
+### `ProductSource` n'est pas `BarcodeLookup`
+
+[06](06-architecture.md#i--ségrégation-des-interfaces) rangeait `BarcodeLookup` parmi les six ports du catalogue **local**, tous tenus par un seul adaptateur. La source distante en est un septième, et les deux se lisent dans cet ordre : le local répond en millisecondes ou ne répond pas, l'autre demande le réseau. Les confondre aurait fait dépendre l'écran de scan d'un port qui peut mettre deux secondes à répondre.
+
+**Trois issues et pas deux** — trouvé, inconnu, injoignable. [02](02-parcours-et-ecrans.md#modale--scan-de-code-barres) en attend trois écrans différents : « le produit n'existe pas là-bas » invite à le créer, « je n'ai pas pu demander » invite à le créer **aussi**, mais dit que la question reste posée. Les confondre ferait annoncer une absence qu'on n'a pas vérifiée.
+
+**Aucune exception ne franchit la frontière**, comme pour `FoodRecognizer` ([06](06-architecture.md#l--substitution-de-liskov)) : une panne réseau est une réponse du port, pas un accident.
+
+**Une fiche sans nom compte comme inconnue.** Le nom est le seul champ bloquant de [04](04-sources-de-donnees.md#champs-récupérés) ; l'annoncer trouvée remplacerait le formulaire de création par un écran vide.
+
+### Le retrait exponentiel n'est pas un intercepteur
+
+[04](04-sources-de-donnees.md#appel) l'y plaçait. Il vit dans la fonction suspendue, pour deux raisons qui vont ensemble : un intercepteur attend avec `Thread.sleep`, donc immobilise un fil du répartiteur d'OkHttp, là où `delay` suspend ; et c'est ce qui rend les trois tentatives **éprouvables** — sous `runTest`, l'attente est du temps virtuel, et le cas s'exécute en millisecondes au lieu d'une seconde et demie.
+
+**Hors ligne, on ne réessaie pas.** Le retrait sert à laisser passer une surcharge du service. Sans réseau, il ne ferait que retarder une phrase qu'on peut dire tout de suite, à quelqu'un debout devant un rayon.
+
+### Le montage HTTP est sorti du module Hilt, pour que le test monte le vrai
+
+`openFoodFactsClient` et `openFoodFactsApi` sont des fonctions ; le module Hilt n'est plus que la portée. Le test dresse donc **la même pile** devant un serveur local, intercepteur compris.
+
+C'est ce qui donne sa valeur à l'assertion sur le `User-Agent`. Recopié dans le test, le montage aurait éprouvé un client qui *ressemble* au vrai, et l'en-tête que [D26](#d26--le-user-agent-dopen-food-facts-est-figé---validée) rend obligatoire aurait pu manquer en production avec un test vert. C'est la forme de défaut que [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée) a nommée, appliquée à un service tiers au lieu d'une base.
+
+**Le `User-Agent` est fourni par `:app`.** Le numéro qu'exige [D26](#d26--le-user-agent-dopen-food-facts-est-figé---validée) est celui du **binaire**, suffixe de variante compris ; un module de bibliothèque qui le relirait dans le catalogue de versions donnerait un second endroit à tenir d'accord.
+
+### Un test qui passait aussi bien sans la règle
+
+Le cas « un état à zéro rend `Unknown` » envoyait un état à zéro **et** un produit nul. Le produit nul suffisait à le faire passer : neutralisée, la lecture de l'état ne faisait tomber personne. Corrigé — la réponse porte désormais un produit complet, et l'enveloppe seule décide.
+
+C'est la troisième fois que cette forme apparaît, après [D57](#d57--le-contrat-des-trois-ports-et-une-règle-que-deux-tris-masquaient---validée) et [D62](#d62--un-favori-est-un-modèle-vivant-et-létoile-est-son-seul-interrupteur---validée), et elle ne se voit **que** par la mise à l'épreuve : cinq règles ont été défaites une à une, quatre ont fait tomber les cas qui les nomment, la cinquième non.
+
+### Ce que la requête demande, et ce qu'elle ne demande plus
+
+`quantity` et `image_front_small_url` sortent de la liste de [04](04-sources-de-donnees.md#appel) : rien ne les lit. Demander un champ inutilisé est le même travers qu'une colonne que rien ne remplit ([D34](#d34--la-table-food-attend-la-tranche-qui-la-remplit---par-défaut)), et il se paie ici en octets sur une connexion mobile, contre un budget de deux secondes.
+
+**Conséquences.** `:integration:openfoodfacts` naît avec sa permission `INTERNET` — déclarée par le module qui en a besoin, et non dans `:app`, pour qu'elle disparaisse avec lui. `ClientIdentity` est une `data class` et non une `value class` : Dagger décore le nom d'une fonction qui prend une classe en ligne, et la génération échoue alors sur un `IllegalArgumentException: not a valid name` qui ne dit rien de sa cause. Rien n'appelle encore ce port : le cache, le catalogue local et l'écran de scan sont les deux tranches de travail suivantes.
 
 ---
 

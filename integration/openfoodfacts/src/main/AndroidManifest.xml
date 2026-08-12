@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    La permission est declaree par le module qui en a besoin, et la fusion des
+    manifestes la porte jusqu'a l'APK. La poser dans :app aurait separe le besoin de
+    sa justification : ici, elle disparait le jour ou ce module disparait.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+</manifest>

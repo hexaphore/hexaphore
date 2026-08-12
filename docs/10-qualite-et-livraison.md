@@ -149,6 +149,8 @@ rm -rf <module>/build/tmp/kotlin-classes <module>/build/kotlin
 
 **`gradlew` doit rester en mode `100755` dans l'index git**, sinon la CI ne peut pas l'exécuter.
 
+**Une `value class` ne traverse pas Dagger.** Une fonction `@Provides` qui prend une classe en ligne en paramètre reçoit un nom décoré — `client-UZs_jxI` — qui n'est pas un identifiant Java valide, et la génération échoue sur `IllegalArgumentException: not a valid name`, sans nommer ni la fonction ni le type en cause. Une `data class` autour du même champ passe. Les `value class` du domaine ne sont pas concernées : elles voyagent dans des signatures, pas dans des liaisons.
+
 ### Vérifier sur un appareil
 
 Il n'y a pas d'émulateur dans l'environnement de développement assisté : `./gradlew check` ne prouve que la compilation, les tests et leurs hypothèses. **Ce qui s'affiche n'est jamais prouvé par un vert**, et un compte rendu de travail dit ce que le vert ne prouve pas.

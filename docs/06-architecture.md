@@ -144,7 +144,9 @@ interface     FoodStore       { suspend fun place(food: Food): Food
 interface     FoodUsage       { suspend fun remember(foods: Collection<Food>, at: Instant) }
 ```
 
-`BarcodeLookup` reste un croquis : rien ne le lit avant le scanner de la tranche 5. Les autres existent, et un seul adaptateur les implémente tous — la séparation paie du côté des **appelants**, pas du côté de l'implémentation. `LogDish` ne dépend que de `FoodUsage`, l'écran de recherche que de quatre ports sur six.
+`BarcodeLookup` reste un croquis : rien ne le lit avant le scanner de la tranche 5. **Il ne se confond pas avec `ProductSource`**, le port distant qui interroge Open Food Facts : le catalogue local répond en quelques millisecondes ou ne répond pas, l'autre demande le réseau et rend trois issues — trouvé, inconnu, injoignable — dont aucune n'est une exception ([D63](11-decisions.md#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée)). Les deux se lisent dans cet ordre, et c'est ce qui rend le deuxième scan instantané.
+
+Les autres existent, et un seul adaptateur les implémente tous — la séparation paie du côté des **appelants**, pas du côté de l'implémentation. `LogDish` ne dépend que de `FoodUsage`, l'écran de recherche que de quatre ports sur six.
 
 `FoodSearch` rend un `Flow` et non une liste : le catalogue change sous les yeux de celui qui regarde ses résultats, et une lecture unique ne peut pas se démentir ([D53](11-decisions.md)). Son `FoodFilter` est une classe du domaine et non une clause SQL — le filtre par rayon est une règle de ce que l'utilisateur voit, et une règle se teste sur la JVM ([D54](11-decisions.md)).
 
