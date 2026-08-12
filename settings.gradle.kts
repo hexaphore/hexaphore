@@ -100,3 +100,9 @@ include(":feature:settings")
 // schema ni la disponibilite. Le nom dit lequel des deux on lit quand une reponse
 // surprend.
 include(":integration:openfoodfacts")
+
+// :integration:scanner porte une composable, ce qu'aucun autre adaptateur ne fait.
+// Une camera n'est pas une source de donnees qu'on puisse mettre derriere un port :
+// c'est une surface, et l'abstraire demanderait au domaine de connaitre un type de
+// vue. Le module fournit la surface et le decodage ; l'ecran garde le reste.
+include(":integration:scanner")

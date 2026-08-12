@@ -22,6 +22,21 @@ data class CustomFoodDraft(
     val per100g: NutrientValues = NutrientValues(),
     /** Quantité proposée à l'ouverture. `null` vaut 100 g. */
     val defaultServingG: Double? = null,
+    /**
+     * Le code-barres, quand la fiche naît d'un scan infructueux.
+     *
+     * **C'est ce qui rend l'aliment scannable comme n'importe quel autre** : le
+     * catalogue le retrouve ensuite par ce code, sans réseau, et le produit absent
+     * d'Open Food Facts cesse d'être un cas particulier après une seule saisie
+     * ([docs/04][sources]).
+     *
+     * Un [Barcode] et non une chaîne : le code doit être **le même** que celui que le
+     * prochain scan présentera, et c'est le type qui le garantit ([D63][decisions]).
+     *
+     * [sources]: docs/04-sources-de-donnees.md
+     * [decisions]: docs/11-decisions.md
+     */
+    val barcode: Barcode? = null,
 ) {
     /**
      * `true` quand la fiche peut être enregistrée.

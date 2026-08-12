@@ -9,13 +9,15 @@ import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodLookup
 
 /**
- * Ce que l'écran de validation ouvre : un plat, un favori, une fiche, ou rien.
+ * Ce que l'écran de validation ouvre : un plat, un favori, une fiche, un produit
+ * scanné, ou rien.
  *
- * **Les quatre entrées de l'écran, en un seul objet.** C'est le point de convergence
+ * **Les entrées de l'écran, en un seul objet.** C'est le point de convergence
  * que [docs/12][plan] désigne depuis la conception, et il n'existait jusqu'ici que
  * comme une suite de branches dans le `ViewModel` : chaque nouveau mode de saisie en
  * ajoutait une, et la tranche 6 en apporte encore deux. Ici, il y a **un** endroit qui
- * sait d'où peut venir un brouillon.
+ * sait d'où peut venir un brouillon — la tranche 5 l'a vérifié en en ajoutant une
+ * cinquième sans toucher au `ViewModel` de l'écran.
  *
  * [plan]: docs/12-plan-de-developpement.md
  */
@@ -28,6 +30,18 @@ sealed interface DraftOrigin {
 
     /** Une saisie neuve, éventuellement préremplie d'une fiche choisie ailleurs. */
     data class New(val food: FoodId? = null) : DraftOrigin
+
+    /**
+     * Un produit lu au code-barres, déjà versé au catalogue par `LookupBarcode`.
+     *
+     * Distinct de [New] malgré la même charge — un identifiant de fiche — parce que
+     * ce n'est pas la même **source** : un plat scanné porte `BARCODE`, et cette
+     * origine ne se réécrit jamais ([D32][decisions]). Les confondre effacerait la
+     * seule trace de la façon dont le plat est entré dans le journal.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    data class Scanned(val food: FoodId) : DraftOrigin
 }
 
 /**
@@ -51,7 +65,20 @@ class OpenDraft(
         is DraftOrigin.Dish -> dishes(origin.id)
         is DraftOrigin.Favorite -> favorites(origin.id)
         is DraftOrigin.New -> newDraft(origin.food)
+        is DraftOrigin.Scanned -> scannedDraft(origin.food)
     }
+
+    /**
+     * `null` si la fiche a disparu, là où [newDraft] rendrait un brouillon vierge.
+     *
+     * La différence est voulue : une saisie neuve reste utile sans fiche — on tape à
+     * la main — alors qu'un brouillon de scan sans son produit n'a plus rien à
+     * valider, et il porterait une pastille « code-barres » sur un plat que personne
+     * n'a scanné.
+     */
+    private suspend fun scannedDraft(food: FoodId): EntryDraft? = runCatching { foods.byId(food) }
+        .getOrNull()
+        ?.let { fiche -> create(EntrySource.BARCODE, fiche) }
 
     /**
      * La source est la même dans les deux cas : chercher un aliment ou taper ses

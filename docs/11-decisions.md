@@ -1259,6 +1259,55 @@ Le second est le même que celui de [D63](#d63--le-code-barres-est-une-clé-et-l
 
 ---
 
+## D65 — Le décodeur est un module à part, et sa seule règle tient sur la JVM · ✓ validée
+
+**Contexte.** `:integration:scanner`, plus les deux pièces de domaine que l'écran de scan appellera. L'écran lui-même vient après : il n'y a pas d'émulateur ici, et une caméra ne s'éprouve pas autrement qu'en la tenant.
+
+### ML Kit à **modèle embarqué**
+
+`com.google.mlkit:barcode-scanning` et non `com.google.android.gms:play-services-mlkit-barcode-scanning`. Le modèle pèse quelques mégaoctets dans l'APK et fonctionne **sans les services Google** — donc sur un téléphone dégooglisé comme sur un autre, et dès le premier scan, sans réseau. La variante légère les exige, et son premier scan télécharge : les deux propriétés contredisent la tranche, qui promet un scan hors ligne dès le deuxième passage.
+
+**À noter pour plus tard** : c'est un binaire propriétaire lié à du GPL-3.0. Sans conséquence tant que l'auteur distribue lui-même, mais c'est ce qui fermerait la porte de F-Droid. Le décodeur est isolé dans un module ; le remplacer par ZXing coûterait une classe.
+
+### Trois symbologies, pas quatre
+
+EAN-13, EAN-8, UPC-A. **UPC-E est retiré de la liste que [02](02-parcours-et-ecrans.md#modale--scan-de-code-barres) annonçait**, et c'est la conséquence directe de [D63](#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée) : ML Kit ne décompresse pas, huit chiffres ne disent pas de quelle symbologie ils viennent, et un UPC-E lu comme un EAN-8 donne un code **plausible désignant un autre produit**. Refuser à la source vaut mieux que compter sur la clé de contrôle, qui ne rattraperait que neuf fois sur dix.
+
+Restreindre la liste n'est pas une économie : ML Kit rendrait volontiers un QR code ou un code de rayonnage, et un faux positif ressemble à un scan réussi.
+
+### L'anti-rebond est sorti du décodeur, parce que c'est la seule chose qu'on puisse éprouver
+
+Tout le reste du module — le liage CameraX, la rotation de l'image, la torche, la fermeture de l'`ImageProxy` — ne se vérifie que sur un appareil. `SteadyBarcode` est pur, et il porte les **deux** moitiés d'une règle qu'on croit simple :
+
+1. **Deux lectures d'accord**, ce qui écarte la lecture douteuse.
+2. **Puis on s'arrête**, jusqu'à ce que l'écran redemande. C'est cette moitié-là qu'on oublie, et c'est elle qui empêche la rafale : le décodeur rend une lecture par image.
+
+**Une lecture que `Barcode` refuse ne compte pas et casse la suite.** Elle n'est pas « rien » : deux codes valides séparés par une lecture fausse n'ont pas été lus consécutivement, et les accepter reviendrait à valider un accord que l'optique n'a pas donné.
+
+**La reprise efface la mémoire, pas seulement le verrou.** Sans cela, la première image qui suit une reprise confirmerait le code déjà traité, et l'écran rouvrirait une fiche sans qu'on ait rien visé.
+
+### Une composable dans un `:integration`, et c'est le seul cas
+
+`BarcodeCamera` vit ici et non dans un `:feature`. Une caméra n'est pas une source de données qu'on puisse mettre derrière un port : c'est une **surface**, et l'abstraire demanderait au domaine de connaître un type de vue — exactement ce que l'architecture lui interdit. Le module fournit donc la surface et le décodage ; l'écran qui viendra garde la permission, les états et la navigation.
+
+**Écarté.** *Mettre l'écran entier ici* : le module deviendrait un `:feature` déguisé, avec ses chaînes et sa navigation. *Un port qui rendrait un `Flow<Barcode>` sans surface* : il faudrait quand même une vue pour l'aperçu, et elle traverserait la frontière autrement.
+
+### Un cinquième `DraftOrigin`, et le `ViewModel` n'a pas bougé
+
+`DraftOrigin.Scanned` porte la même charge que `New` — un identifiant de fiche — et n'est pas la même chose : un plat scanné porte la source `BARCODE`, et cette origine ne se réécrit jamais ([D32](#d32--la-source-appartient-au-plat-et-ne-change-jamais---validée)). Les confondre effacerait la seule trace de la façon dont le plat est entré dans le journal.
+
+C'est la vérification que [D62](#d62--un-favori-est-un-modèle-vivant-et-létoile-est-son-seul-interrupteur---validée) annonçait sans pouvoir la faire : **une entrée de plus, et rien à toucher dans l'écran de validation**. Le point de convergence que [12](12-plan-de-developpement.md) désigne depuis la conception a tenu son premier vrai passage.
+
+`Scanned` rend `null` quand la fiche a disparu, là où `New` rendrait un brouillon vierge : une saisie neuve reste utile sans fiche — on tape à la main — alors qu'un brouillon de scan sans son produit porterait une pastille « code-barres » sur un plat que personne n'a scanné.
+
+### Un aliment personnel garde son code-barres
+
+`CustomFoodDraft.barcode` devient la `source_ref` de la fiche. C'est ce qui fait tenir le dernier critère de la tranche : le produit absent d'Open Food Facts cesse d'être un cas particulier après **une seule** saisie, puisque le catalogue le retrouve ensuite par son code, sans réseau. Un `Barcode` et non une chaîne — le code doit être le même que celui que le prochain scan présentera.
+
+**Conséquences.** Le module déclare `CAMERA` et `uses-feature required="false"` : les trois autres modes de saisie n'ont pas besoin d'objectif, et sans cette ligne la déclaration de permission écarterait l'application des tablettes qui n'en ont pas. Quatre règles ont été défaites, sept cas sont tombés, et les deux qui n'ont pas bougé sont les moitiés « témoin » de leurs paires — une fiche sans code-barres n'en gagne pas, une saisie neuve reste manuelle.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.
