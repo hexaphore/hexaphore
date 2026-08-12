@@ -99,7 +99,7 @@ Index sur `date DESC` : toutes les lectures sont des fenêtres récentes.
 
 ### `food`
 
-> **Créée en tranche 3** par la migration 1 → 2, avec `food_entry.food_id` ([D34](11-decisions.md)). Quatre colonnes annoncées ici n'y sont pas encore — `density`, `is_liquid`, `user_edited_fields`, `fetched_at` — parce que rien ne les remplit avant les tranches 5 et 6, qui les apportent avec ce qui les remplit ([D50](11-decisions.md)). Une colonne `name_search` s'y ajoute en revanche : le nom sous sa forme cherchable, calculé à l'écriture ([D49](11-decisions.md)).
+> **Créée en tranche 3** par la migration 1 → 2, avec `food_entry.food_id` ([D34](11-decisions.md)). `is_liquid` et `fetched_at` l'ont rejointe en migration 5 → 6, avec le cache qui les remplit ; `density` et `user_edited_fields` n'y sont toujours pas. La ligne de partage n'est pas « ce que le cache écrit » mais **ce qui se perd si on ne le note pas tout de suite** : les deux premières ne sont connaissables qu'au moment de la récupération, les deux autres s'ajouteront le jour où quelque chose les lira ([D64](11-decisions.md#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée)). Une colonne `name_search` s'y ajoute en revanche : le nom sous sa forme cherchable, calculé à l'écriture ([D49](11-decisions.md)).
 
 Catalogue unifié : CIQUAL importé à la demande, produits Open Food Facts mis en cache, aliments personnels.
 
@@ -114,9 +114,9 @@ Catalogue unifié : CIQUAL importé à la demande, produits Open Food Facts mis 
 | `protein_100`, `carb_100`, `sugar_100`, `fat_100`, `fiber_100` | REAL NULL | |
 | `saturated_fat_100`, `salt_100` | REAL NULL | stockés, non affichés en v1 |
 | `default_serving_g` | REAL NULL | |
-| `density` | REAL | g/ml, défaut `1.0` |
-| `is_liquid` | INTEGER | |
-| `user_edited_fields` | TEXT | protégé contre l'écrasement au rafraîchissement |
+| ~~`density`~~ | REAL | g/ml, défaut `1.0` — **pas encore là**, arrive avec le résolveur |
+| `is_liquid` | INTEGER **NULL** | `NULL` veut dire *on ne sait pas*, jamais *solide* |
+| ~~`user_edited_fields`~~ | TEXT | protégé contre l'écrasement au rafraîchissement — **pas encore là** |
 | `last_used_at` | INTEGER NULL | alimente « Récents » |
 | `use_count` | INTEGER | alimente le classement de recherche |
 | `is_favorite` | INTEGER | |
@@ -125,7 +125,9 @@ Catalogue unifié : CIQUAL importé à la demande, produits Open Food Facts mis 
 
 `NULL` signifie **inconnu**, jamais zéro. L'interface affiche « — » et non « 0 g ». Cette distinction est testée : c'est l'erreur la plus facile à introduire et la plus difficile à repérer.
 
-Index unique sur `(source, source_ref)` quand `source_ref` n'est pas nul — empêche le doublon au double scan.
+Index unique sur `(source, source_ref)` quand `source_ref` n'est pas nul — empêche le doublon au double scan. Il n'empêche pas, en revanche, qu'un aliment personnel et un produit en cache portent le même code-barres : c'est un cas réel — on crée la fiche hors ligne, on rescanne connecté — et c'est la lecture par code-barres qui les départage, en donnant la main à celle que l'utilisateur a saisie ([D64](11-decisions.md#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée)).
+
+**`source_ref` range deux espaces de noms** : des codes de la table de l'ANSES et des codes-barres. Une seule lecture a besoin de le savoir, et elle a sa propre classe pour cette raison.
 
 Les colonnes `saturated_fat_100` et `salt_100` existent alors que la v1 ne les affiche pas : la donnée est disponible dans les deux sources, la collecter maintenant coûte zéro et évite une migration le jour où on décide de les montrer.
 

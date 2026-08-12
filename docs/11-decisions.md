@@ -1216,6 +1216,49 @@ C'est la troisième fois que cette forme apparaît, après [D57](#d57--le-contra
 
 ---
 
+## D64 — Le cache prend date, et un code-barres ne traverse pas deux espaces de noms · ✓ validée
+
+**Contexte.** Le deuxième tiers de la tranche 5 : ce qui rend le scan **utile deux fois**. [D63](#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée) a livré un client que rien n'appelait ; ici, un code-barres devient une fiche, et la fiche reste.
+
+### `LookupBarcode` : le catalogue d'abord, et l'ordre **est** la fonctionnalité
+
+C'est lui qui tient les deux promesses de la tranche — une fiche en moins de deux secondes, et un deuxième scan instantané qui marche en mode avion. Interroger le service d'abord les perdrait toutes les deux, et **aucun test de correspondance ne s'en apercevrait** : le mappeur, les DTO et l'intercepteur seraient tous verts. Les cas de ce cas d'usage comptent donc les appels au réseau, et l'un d'eux joue **deux** scans d'affilée — un test qui ne jouerait que le premier laisserait passer un cache qui n'écrit rien.
+
+### Une fiche récupérée est versée au catalogue tout de suite
+
+C'est un écart délibéré avec la règle des aliments de la table de l'ANSES, qui n'y entrent qu'à l'enregistrement du plat ([D50](#d50--ce-que-la-tranche-3-ne-construit-pas---validée)). La raison tient en une phrase : là-bas la source est embarquée et toujours disponible, ici elle est à l'autre bout d'un réseau qu'on n'a peut-être plus.
+
+Elle n'entre pas pour autant dans « Récents » : `last_used_at` reste nul tant que rien n'a été mangé. Un produit repose sur l'étagère aussi souvent qu'il finit dans un plat, et cette liste dit ce qu'on mange.
+
+### Deux colonnes, et une seule des deux règles de [D50](#d50--ce-que-la-tranche-3-ne-construit-pas---validée)
+
+`is_liquid` et `fetched_at` arrivent ; `density` et `user_edited_fields` non. La ligne de partage n'est pas celle qu'annonçait [D50](#d50--ce-que-la-tranche-3-ne-construit-pas---validée) — elle disait « les trois autres avec le cache » — et elle est plus juste : **est-ce que l'information se perd si on ne la note pas maintenant ?**
+
+- `fetched_at` et `is_liquid` ne sont connaissables **qu'au moment de la récupération**. Sans elles, toutes les fiches mises en cache d'ici la tranche 6 seraient sans âge, donc indistinguables d'une fiche d'hier, et leur nature de boisson demanderait de réinterroger le service produit par produit.
+- `user_edited_fields` enregistre une action **future** de l'utilisateur, et rien n'est perdu à l'ajouter le jour où le rafraîchissement existe — d'autant qu'aucun écran ne permet aujourd'hui d'ouvrir une fiche Open Food Facts pour la corriger. `density` attend le résolveur qui la lit.
+
+**`is_liquid` est nullable, contrairement à ce qu'annonçait [07](07-modele-de-donnees.md).** Trois états et non deux, pour la même raison que les huit teneurs : rien ne dit d'un aliment de l'ANSES s'il est liquide, et un `0` par défaut l'affirmerait de 3 484 lignes que personne n'a regardées.
+
+**La migration 5 → 6 est la première à ne pas recréer sa table.** `ALTER TABLE … ADD COLUMN` existe partout ; ce sont la suppression d'une colonne ([D60](#d60--un-objectif-est-calculé-ou-saisi-et-on-consulte-avant-de-corriger---validée)) et l'ajout d'une clé étrangère ([D62](#d62--un-favori-est-un-modèle-vivant-et-létoile-est-son-seul-interrupteur---validée)) qui l'imposaient. Les index de `food` ne sont donc pas touchés — et un test de comportement l'affirme quand même, parce que c'est la propriété qui compte, pas le chemin.
+
+### `source_ref` range deux espaces de noms, et une seule lecture le sait
+
+Un code de la table de l'ANSES et un code-barres vivent dans la même colonne. La requête par code-barres est la **seule** à devoir le savoir : c'est elle qui porte la clause `source <> 'CIQUAL'`.
+
+C'est pourquoi elle a sa propre classe des deux côtés — `RoomBarcodeLookup` et `InMemoryBarcodeLookup` — plutôt qu'un septième chapeau sur un catalogue qui en porte déjà six. Le seuil de fonctions de detekt a posé la question ; la réponse n'est pas mécanique : les six autres capacités traitent `source_ref` comme opaque, celle-ci non. Une classe pour une requête nomme la couture au lieu de la cacher.
+
+**Un aliment personnel passe devant un produit en cache** quand les deux portent le même code — on crée la fiche hors ligne, on rescanne connecté, et l'index unique porte sur le couple, donc les laisse cohabiter. Ce que l'utilisateur a saisi lui-même gagne, comme dans les résultats de recherche.
+
+### Deux tests qui passaient sans leur règle
+
+Le premier : « un code CIQUAL n'est pas un code-barres » comparait `13039` à `13039141`. Une égalité ne se laisse pas piéger par un préfixe — le cas passait aussi bien avec la clause que sans elle. Corrigé par une fixture **impossible aujourd'hui** : une fiche de l'ANSES dont la référence *est* le code-barres. Elle est artificielle et c'est le propos — la collision n'est empêchée que par une coïncidence de longueurs, cinq chiffres contre treize, qui n'est écrite nulle part.
+
+Le second est le même que celui de [D63](#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée), et c'est ce qui rend la méthode plus convaincante que son résultat : sur dix règles défaites en deux tranches, deux tests n'ont pas bougé.
+
+**Conséquences.** `FoodDao` se scinde : `FoodMarksDao` prend les récents, les favoris et l'écriture qui les alimente — les trois ports que le domaine sépare déjà. `DomainModule` se scinde une troisième fois, en `FoodUseCaseModule`. **Une dette est ouverte** : `InMemoryFoodCatalog.usageCount` lit une carte posée à la main, là où Room compte de vraies lignes de journal — le faux est donc plus indulgent que le vrai, exactement ce que [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée) proscrit. La sortir du catalogue demande un port, un DAO et deux contrats retouchés ; elle mérite sa propre livraison.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

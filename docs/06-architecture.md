@@ -144,7 +144,7 @@ interface     FoodStore       { suspend fun place(food: Food): Food
 interface     FoodUsage       { suspend fun remember(foods: Collection<Food>, at: Instant) }
 ```
 
-`BarcodeLookup` reste un croquis : rien ne le lit avant le scanner de la tranche 5. **Il ne se confond pas avec `ProductSource`**, le port distant qui interroge Open Food Facts : le catalogue local répond en quelques millisecondes ou ne répond pas, l'autre demande le réseau et rend trois issues — trouvé, inconnu, injoignable — dont aucune n'est une exception ([D63](11-decisions.md#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée)). Les deux se lisent dans cet ordre, et c'est ce qui rend le deuxième scan instantané.
+`BarcodeLookup` existe depuis la tranche 5, et **il a son propre adaptateur** : c'est la seule lecture du catalogue qui ait à savoir que `source_ref` range deux espaces de noms dans une même colonne ([D64](11-decisions.md#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée)). **Il ne se confond pas avec `ProductSource`**, le port distant qui interroge Open Food Facts : le catalogue local répond en quelques millisecondes ou ne répond pas, l'autre demande le réseau et rend trois issues — trouvé, inconnu, injoignable — dont aucune n'est une exception ([D63](11-decisions.md#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée)). Les deux se lisent dans cet ordre, et c'est ce qui rend le deuxième scan instantané.
 
 Les autres existent, et un seul adaptateur les implémente tous — la séparation paie du côté des **appelants**, pas du côté de l'implémentation. `LogDish` ne dépend que de `FoodUsage`, l'écran de recherche que de quatre ports sur six.
 

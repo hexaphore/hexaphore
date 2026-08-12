@@ -20,6 +20,10 @@ import kotlinx.coroutines.flow.Flow
  * `name_search` est comparée telle quelle : l'appelant lui présente une saisie déjà
  * normalisée par la même fonction qui a rempli la colonne.
  *
+ * **Ce que l'utilisateur a marqué vit dans [FoodMarksDao]** — récents, favoris, et
+ * l'écriture qui les alimente. Ce DAO-ci décrit le catalogue ; celui-là porte ce
+ * qu'on y a inscrit à l'usage.
+ *
  * @see docs/04-sources-de-donnees.md
  */
 @Dao
@@ -56,32 +60,31 @@ interface FoodDao {
     suspend fun byReference(source: String, reference: String): FoodEntity?
 
     /**
-     * Les aliments déjà utilisés, du plus récent au plus ancien.
+     * La fiche que ce code-barres désigne, s'il y en a une.
      *
-     * `last_used_at IS NOT NULL` n'est pas une précaution : une fiche créée et
-     * jamais servie n'a rien à faire dans « Récents », et l'y faire figurer à la
-     * date de création mélangerait deux informations différentes.
+     * **`CIQUAL` est exclue et ce n'est pas une précaution.** `source_ref` y porte un
+     * code de la table de l'ANSES, qui compte cinq chiffres là où un code-barres en
+     * compte huit ou treize : la collision est improbable aujourd'hui et resterait un
+     * pari, alors que la clause l'écarte pour de bon. Ce sont deux espaces de noms
+     * différents rangés dans une même colonne.
+     *
+     * **Un aliment personnel passe devant un produit en cache.** Les deux peuvent
+     * porter le même code — on crée la fiche hors ligne, on rescanne connecté — et
+     * l'index unique porte sur le couple, donc les laisse coexister. Ce que
+     * l'utilisateur a saisi lui-même gagne, comme dans les résultats de recherche.
      */
-    @Query("SELECT * FROM food WHERE last_used_at IS NOT NULL ORDER BY last_used_at DESC LIMIT :limit")
-    fun observeRecent(limit: Int): Flow<List<FoodEntity>>
-
-    @Query("SELECT * FROM food WHERE is_favorite = 1 ORDER BY name")
-    fun observeFavorites(): Flow<List<FoodEntity>>
+    @Query(
+        """
+        SELECT * FROM food
+        WHERE source_ref = :barcode AND source <> 'CIQUAL'
+        ORDER BY CASE source WHEN 'CUSTOM' THEN 0 ELSE 1 END
+        LIMIT 1
+        """,
+    )
+    suspend fun byBarcode(barcode: String): FoodEntity?
 
     @Upsert
     suspend fun upsert(food: FoodEntity)
-
-    /**
-     * Marque un usage.
-     *
-     * En SQL et non en lecture-modification-écriture : deux saisies rapprochées
-     * perdraient un incrément, et `use_count` sert au classement de la recherche.
-     */
-    @Query("UPDATE food SET last_used_at = :usedAt, use_count = use_count + 1, updated_at = :usedAt WHERE id = :id")
-    suspend fun markUsed(id: String, usedAt: Long)
-
-    @Query("UPDATE food SET is_favorite = :favorite, updated_at = :updatedAt WHERE id = :id")
-    suspend fun setFavorite(id: String, favorite: Boolean, updatedAt: Long)
 
     @Query("DELETE FROM food WHERE id = :id")
     suspend fun delete(id: String)

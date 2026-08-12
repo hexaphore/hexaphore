@@ -1,5 +1,6 @@
 package app.hexaphore.data.food
 
+import app.hexaphore.core.testing.InMemoryBarcodeLookup
 import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.domain.food.Food
 
@@ -13,6 +14,8 @@ import app.hexaphore.domain.food.Food
  * rouge à côté d'une verte.
  */
 class InMemoryFoodCatalogTest : FoodCatalogContract() {
-    override fun catalogue(stored: List<Food>, reference: List<Food>): FoodCatalogView<*> =
-        FoodCatalogView(InMemoryFoodCatalog(initial = stored, reference = reference))
+    override fun catalogue(stored: List<Food>, reference: List<Food>): FoodCatalogView<*> {
+        val catalogue = InMemoryFoodCatalog(initial = stored, reference = reference)
+        return FoodCatalogView(catalogue, InMemoryBarcodeLookup(catalogue))
+    }
 }

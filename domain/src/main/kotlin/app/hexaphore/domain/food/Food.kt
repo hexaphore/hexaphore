@@ -69,6 +69,32 @@ data class Food(
     val servings: List<FoodServing> = emptyList(),
     /** Quantité proposée à l'ouverture. `null` vaut 100 g. */
     val defaultServingG: Double? = null,
+    /**
+     * `true` pour une boisson, `false` pour un solide, **`null` quand on ne sait pas**.
+     *
+     * Trois états et non deux, pour la même raison que les six teneurs : `false`
+     * affirmerait qu'on a regardé. Rien ne le dit d'un aliment de la table de l'ANSES,
+     * et un produit scanné ne le dit que s'il déclare une portion en millilitres.
+     *
+     * Cette information n'est connaissable qu'**au moment où la fiche est récupérée**,
+     * et c'est pourquoi elle est retenue avant d'avoir un lecteur : la reconstituer
+     * plus tard demanderait de réinterroger Open Food Facts pour chaque produit déjà
+     * en cache. Le résolveur de la tranche 6 la lira, avec la densité.
+     */
+    val isLiquid: Boolean? = null,
+    /**
+     * Quand la fiche a été récupérée d'Open Food Facts. `null` pour les deux autres
+     * provenances, qui ne se périment pas.
+     *
+     * Elle date le **cache**, et [docs/04][sources] en fait la condition du
+     * rafraîchissement proposé au-delà de quatre-vingt-dix jours. Ce rafraîchissement
+     * n'existe pas encore ; la date, elle, est écrite dès maintenant, parce qu'un
+     * instant qu'on n'a pas noté ne se retrouve pas — toutes les fiches mises en cache
+     * d'ici là seraient sans âge, et donc indistinguables d'une fiche d'hier.
+     *
+     * [sources]: docs/04-sources-de-donnees.md
+     */
+    val fetchedAt: Instant? = null,
     /** `null` tant que l'aliment n'a jamais servi. C'est ce que « Récents » filtre. */
     val lastUsedAt: Instant? = null,
     val useCount: Int = 0,

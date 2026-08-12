@@ -1,5 +1,6 @@
 package app.hexaphore.data.food
 
+import app.hexaphore.domain.food.BarcodeLookup
 import app.hexaphore.domain.food.FavoriteFoods
 import app.hexaphore.domain.food.FoodLookup
 import app.hexaphore.domain.food.FoodSearch
@@ -8,7 +9,12 @@ import app.hexaphore.domain.food.FoodUsage
 import app.hexaphore.domain.food.RecentFoods
 
 /**
- * Les six ports du catalogue, réunis le temps d'un test.
+ * Les sept ports du catalogue, réunis le temps d'un test.
+ *
+ * [barcodes] arrive à part parce qu'il vient d'un **second** adaptateur : la lecture
+ * par code-barres est la seule qui ait à savoir que `source_ref` range deux espaces de
+ * noms dans une même colonne, et elle a sa propre classe des deux côtés. Le contrat,
+ * lui, la joue avec les six autres — c'est bien le même catalogue qu'elles lisent.
  *
  * Le domaine les sépare exprès — un port par capacité, pour qu'un appelant ne
  * dépende que de ce qu'il utilise — et cette réunion ne remet pas ce choix en
@@ -20,9 +26,10 @@ import app.hexaphore.domain.food.RecentFoods
  * Par délégation, sans rien demander aux implémentations : il n'y a pas de raison
  * qu'un type de production porte une interface qui n'existe que pour un test.
  */
-class FoodCatalogView<T>(implementation: T) :
+class FoodCatalogView<T>(implementation: T, barcodes: BarcodeLookup) :
     FoodSearch by implementation,
     FoodLookup by implementation,
+    BarcodeLookup by barcodes,
     RecentFoods by implementation,
     FavoriteFoods by implementation,
     FoodStore by implementation,

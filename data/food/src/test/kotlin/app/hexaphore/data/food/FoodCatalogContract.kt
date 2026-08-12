@@ -1,6 +1,7 @@
 package app.hexaphore.data.food
 
 import app.hexaphore.core.testing.firstAfter
+import app.hexaphore.domain.food.Barcode
 import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodCategory
 import app.hexaphore.domain.food.FoodFilter
@@ -174,6 +175,71 @@ abstract class FoodCatalogContract {
 
         assertEquals("le doublon table / catalogue n a pas ete ecarte", 1, trouve.count { it.sourceRef == CODE_POMME })
         assertEquals(POMME_STOCKEE.id, trouve.pomme!!.id)
+    }
+
+    // --- Le code-barres --------------------------------------------------------
+
+    @Test
+    fun `un produit en cache se retrouve par son code-barres`() = runBlocking {
+        // La propriete qui rend le deuxieme scan instantane : sans elle, chaque scan
+        // repartirait sur le reseau, et le defaut ne se verrait qu'en mode avion.
+        val catalogue = catalogue(stored = listOf(JUS_EN_CACHE))
+
+        assertEquals(JUS_EN_CACHE.id, catalogue.byBarcode(CODE_JUS)?.id)
+    }
+
+    @Test
+    fun `un code-barres inconnu ne rend rien`() = runBlocking {
+        val catalogue = catalogue(stored = listOf(JUS_EN_CACHE))
+
+        assertNull(catalogue.byBarcode(requireNotNull(Barcode.of("3017620422003"))))
+    }
+
+    @Test
+    fun `une fiche de la table de l ANSES ne repond jamais a un scan`() = runBlocking {
+        // La fixture est **impossible aujourd'hui**, et c'est exactement le propos :
+        // un code de l'ANSES compte cinq chiffres, un code-barres huit ou treize, donc
+        // rien ne peut se heurter -- par coincidence de longueurs, pas par regle. Or
+        // `source_ref` range bel et bien deux espaces de noms dans une seule colonne,
+        // et rien dans le schema ne l'empeche. Sans cette fixture, la clause qui ecarte
+        // CIQUAL serait une regle qu'aucun test ne peut faire tomber.
+        val catalogue = catalogue(stored = listOf(POMME_STOCKEE.copy(sourceRef = CODE_JUS.value)))
+
+        assertNull(catalogue.byBarcode(CODE_JUS))
+    }
+
+    @Test
+    fun `un aliment personnel passe devant un produit en cache`() = runBlocking {
+        // Les deux existent : la fiche a ete creee hors ligne, puis le produit a ete
+        // recupere lors d'un scan connecte. L'index unique porte sur le couple
+        // (source, source_ref), donc il les laisse cohabiter -- et c'est ce que
+        // l'utilisateur a saisi lui-meme qui gagne.
+        val catalogue = catalogue(stored = listOf(JUS_EN_CACHE, JUS_PERSONNEL))
+
+        assertEquals(JUS_PERSONNEL.id, catalogue.byBarcode(CODE_JUS)?.id)
+    }
+
+    @Test
+    fun `le cache retient sa date et son etat liquide`() = runBlocking {
+        // Les deux colonnes de la migration 5 -> 6. Un aller-retour qui les perdrait
+        // laisserait le rafraichissement de la tranche 6 sans age a comparer, et il
+        // faudrait reinterroger le service pour chaque produit deja en cache.
+        val catalogue = catalogue(stored = listOf(JUS_EN_CACHE))
+
+        val relu = catalogue.byBarcode(CODE_JUS)
+        assertEquals(RECUPERE_LE, relu?.fetchedAt)
+        assertEquals(true, relu?.isLiquid)
+    }
+
+    @Test
+    fun `un aliment qui n a pas ete recupere n a ni date ni etat liquide`() = runBlocking {
+        // `null` et non `false` : rien ne dit d'un aliment de la table de l'ANSES s'il
+        // est liquide, et un defaut l'affirmerait de 3 484 lignes.
+        val catalogue = catalogue(stored = listOf(POMME_STOCKEE))
+
+        val relue = catalogue.byId(POMME_STOCKEE.id)
+        assertNull(relue?.fetchedAt)
+        assertNull("« on ne sait pas » n est pas « solide »", relue?.isLiquid)
     }
 
     // --- Les autres lectures ---------------------------------------------------
@@ -439,6 +505,34 @@ abstract class FoodCatalogContract {
             name = "Pommes de mamie",
             category = null,
             per100g = NutrientValues(kcal = 60.0),
+        )
+
+        /**
+         * Un produit scanné, mis en cache. Un vrai code-barres, pour que la clé de
+         * contrôle de [Barcode] ne le refuse pas.
+         */
+        val CODE_JUS: Barcode = requireNotNull(Barcode.of("5449000000996"))
+
+        val RECUPERE_LE: Instant = Instant.parse("2026-08-09T08:30:00Z")
+
+        val JUS_EN_CACHE = Food(
+            id = FoodId("f-jus-off"),
+            source = FoodSource.OFF,
+            sourceRef = CODE_JUS.value,
+            name = "Boisson gazeuse",
+            brand = "Une marque",
+            per100g = NutrientValues(kcal = 42.0),
+            isLiquid = true,
+            fetchedAt = RECUPERE_LE,
+        )
+
+        /** Le même code, saisi à la main hors ligne. Les deux cohabitent, et c'est lui qui gagne. */
+        val JUS_PERSONNEL = Food(
+            id = FoodId("f-jus-a-moi"),
+            source = FoodSource.CUSTOM,
+            sourceRef = CODE_JUS.value,
+            name = "Ma boisson",
+            per100g = NutrientValues(kcal = 40.0),
         )
 
         val CONSOMME_LE: Instant = Instant.parse("2026-08-10T12:00:00Z")

@@ -47,6 +47,7 @@ internal fun ProductDto.toFood(barcode: Barcode, id: FoodId): Food? = displayNam
         category = null,
         per100g = nutriments.toNutrientValues(),
         defaultServingG = defaultServing(),
+        isLiquid = servingOf(servingSize)?.liquid,
     )
 }
 
@@ -78,7 +79,7 @@ private fun ProductDto.firstBrand(): String? = brands?.substringBefore(',')?.tri
  * fibres » est une mesure, « une portion de 0 g » est une saisie ratée.
  */
 private fun ProductDto.defaultServing(): Double? =
-    servingQuantity.asMeasurement()?.takeIf { it > 0.0 } ?: gramsOfServing(servingSize)
+    servingQuantity.asMeasurement()?.takeIf { it > 0.0 } ?: servingOf(servingSize)?.grams
 
 /**
  * Les six teneurs, l'énergie ramenée en kilocalories.

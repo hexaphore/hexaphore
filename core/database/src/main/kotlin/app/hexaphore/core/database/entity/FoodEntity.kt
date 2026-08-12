@@ -85,6 +85,27 @@ data class FoodEntity(
     /** Quantité proposée à l'ouverture de la fiche. `null` vaut 100 g. */
     @ColumnInfo(name = "default_serving_g")
     val defaultServingG: Double?,
+    /**
+     * `null` veut dire **on ne sait pas**, et pas « solide ».
+     *
+     * `docs/07` l'annonçait non nullable. Trois états valent mieux que deux pour la
+     * même raison que sur les huit teneurs : rien ne dit d'un aliment de la table de
+     * l'ANSES s'il est liquide, et un `0` par défaut l'affirmerait.
+     */
+    @ColumnInfo(name = "is_liquid")
+    val isLiquid: Boolean?,
+    /**
+     * Quand la fiche a été récupérée d'Open Food Facts. `null` pour les autres
+     * provenances, qui ne se périment pas.
+     *
+     * Écrite avant d'avoir un lecteur, contrairement à la règle de [D34][decisions] :
+     * un instant qu'on n'a pas noté ne se retrouve pas, et sans elle toutes les fiches
+     * mises en cache avant le rafraîchissement de la tranche 6 seraient sans âge.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    @ColumnInfo(name = "fetched_at")
+    val fetchedAt: Long?,
     /** `null` tant que l'aliment n'a jamais servi : « Récents » filtre là-dessus. */
     @ColumnInfo(name = "last_used_at")
     val lastUsedAt: Long?,
