@@ -4,8 +4,11 @@ import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.food.Barcode
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.ProductLookup
+import app.hexaphore.domain.food.ProductResults
+import app.hexaphore.domain.food.ProductSearch
 import app.hexaphore.domain.food.ProductSource
 import app.hexaphore.domain.identity.IdGenerator
+import app.hexaphore.domain.time.Clock
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import retrofit2.Response
@@ -19,10 +22,37 @@ import java.io.IOException
 internal class OpenFoodFactsProducts(
     private val api: OpenFoodFactsApi,
     private val ids: IdGenerator,
+    private val clock: Clock,
     private val dispatchers: DispatcherProvider,
-) : ProductSource {
+) : ProductSource,
+    ProductSearch {
     override suspend fun byBarcode(code: Barcode): ProductLookup = withContext(dispatchers.io) {
         retrying { attemptOnce(code) }
+    }
+
+    /**
+     * La recherche par nom.
+     *
+     * **Aucun retrait exponentiel ici**, contrairement au code-barres : celle-ci part
+     * d'un tap délibéré et l'écran montre déjà le résultat. Faire attendre une seconde
+     * et demie avant de dire « pas de connexion » ne gagnerait rien — l'utilisateur
+     * peut simplement retoucher la ligne.
+     *
+     * Une liste vide **est** une réponse : le service ne connaît rien de ce nom.
+     */
+    override suspend fun byName(query: String, limit: Int): ProductResults = withContext(dispatchers.io) {
+        try {
+            val fetchedAt = clock.now()
+            api
+                .search(terms = query, limit = limit, fields = PRODUCT_FIELDS)
+                .body()
+                ?.products
+                ?.mapNotNull { it.toFound(id = FoodId(ids.next()), fetchedAt = fetchedAt) }
+                ?.let(ProductResults::Found)
+                ?: ProductResults.Unreachable
+        } catch (offline: IOException) {
+            offline.toUnreachableSearch()
+        }
     }
 
     /**
@@ -58,7 +88,7 @@ internal class OpenFoodFactsProducts(
         val food = body()
             ?.takeIf { envelope -> envelope.status == FOUND_STATUS }
             ?.product
-            ?.toFood(barcode = code, id = FoodId(ids.next()))
+            ?.toFood(barcode = code, id = FoodId(ids.next()), fetchedAt = clock.now())
 
         return food?.let(ProductLookup::Found) ?: ProductLookup.Unknown
     }
@@ -99,6 +129,9 @@ private suspend fun retrying(attempt: suspend () -> ProductLookup?): ProductLook
  * réduction soit **écrite** plutôt que faite en silence dans un `catch` vide.
  */
 private fun IOException.toUnreachable(): ProductLookup = ProductLookup.Unreachable
+
+/** Même réduction, pour la recherche. Voir ci-dessus. */
+private fun IOException.toUnreachableSearch(): ProductResults = ProductResults.Unreachable
 
 private const val MAX_ATTEMPTS = 3
 private const val FIRST_BACKOFF_MILLIS = 300L

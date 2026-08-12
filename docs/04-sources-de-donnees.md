@@ -137,9 +137,15 @@ Deux réflexes obligatoires face à cette base collaborative :
 1. **L'énergie peut n'exister qu'en kilojoules.** Conversion `kJ ÷ 4,184`, et jamais l'inverse : si `energy-kcal_100g` existe, il fait foi.
 2. **Tout champ nutritionnel peut être absent.** La fiche est quand même créée, en état *incomplet*. L'écran de validation met les trous en évidence et invite à les compléter à la main ; la valeur saisie est conservée localement pour toujours.
 
+### Recherche par nom
+
+`GET /cgi/search.pl?search_terms=…&json=1&page_size=20&fields=…` — l'ancien point d'entrée et non `api/v2/search`, qui filtre sur des étiquettes et n'accepte pas de texte libre. Il rend les mêmes objets produit, donc la même correspondance les lit.
+
+Elle part **sur un tap**, depuis la dernière ligne des résultats, et sans retrait exponentiel : le geste est délibéré et l'écran montre déjà son issue. Un produit dont le code n'est pas lisible est écarté — sans code canonique, la fiche ne pourrait ni être mise en cache sans doublon ni être retrouvée par un scan ([D67](11-decisions.md#d67--la-recherche-par-nom-se-demande-et-la-date-appartient-à-celui-qui-récupère---validée)).
+
 ### Cache
 
-Toute fiche récupérée est écrite dans le catalogue local (`food`, `source = OFF`) et n'en sort plus. Conséquences : un produit scanné une fois est disponible hors-ligne à vie, et le second scan est instantané.
+Toute fiche récupérée est écrite dans le catalogue local (`food`, `source = OFF`) et n'en sort plus. **La date de récupération est posée par le client**, qui est le seul à savoir quand il a interrogé le service : deux chemins de récupération existent — le code-barres et le nom — et la faire poser par l'appelant obligeait chacun à y penser ([D67](11-decisions.md#d67--la-recherche-par-nom-se-demande-et-la-date-appartient-à-celui-qui-récupère---validée)). Conséquences : un produit scanné une fois est disponible hors-ligne à vie, et le second scan est instantané.
 
 Rafraîchissement : proposé, jamais imposé, sur une fiche de plus de 90 jours ouverte manuellement. Un rafraîchissement **n'écrase jamais** un champ que l'utilisateur a corrigé à la main, ni les macros déjà figées dans des entrées de journal.
 

@@ -1,11 +1,13 @@
 package app.hexaphore.integration.openfoodfacts
 
+import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.core.testing.TestDispatchers
 import app.hexaphore.domain.food.Barcode
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodSource
 import app.hexaphore.domain.food.ProductLookup
+import app.hexaphore.domain.food.ProductResults
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -232,6 +234,73 @@ class OpenFoodFactsProductsTest {
         assertEquals(ProductLookup.Unreachable, products().byBarcode(nutella))
     }
 
+    @Test
+    fun `la fiche recuperee porte sa date`() = runTest {
+        // Posee par ce module et non par un cas d'usage : lui seul sait quand il a
+        // interroge le service. C'est le second chemin de recuperation -- la recherche
+        // par nom -- qui a montre que la laisser a l'appelant s'oublie.
+        server.enqueue(ok(NUTELLA))
+
+        val food = (products().byBarcode(nutella) as ProductLookup.Found).food
+
+        assertEquals(RECUPERE_LE, food.fetchedAt)
+    }
+
+    // --- La recherche par nom ------------------------------------------------------
+
+    @Test
+    fun `une recherche par nom rend des fiches`() = runTest {
+        server.enqueue(searchOk("""[{"code":"3017620422003","product_name":"Nutella","brands":"Ferrero"}]"""))
+
+        val trouve = products().byName("nutella", LIMIT) as ProductResults.Found
+
+        assertEquals(listOf("Nutella"), trouve.products.map { it.name })
+        assertEquals("3017620422003", trouve.products.single().sourceRef)
+        assertEquals(RECUPERE_LE, trouve.products.single().fetchedAt)
+    }
+
+    @Test
+    fun `un produit dont le code n est pas lisible est ecarte`() = runTest {
+        // Sans code canonique, la fiche ne peut ni etre mise en cache sans doublon ni
+        // etre retrouvee par un scan : elle reviendrait du reseau a chaque recherche.
+        server.enqueue(
+            searchOk(
+                """[{"code":"pas-un-code","product_name":"Bizarre"},
+                   {"code":"3017620422003","product_name":"Nutella"}]""",
+            ),
+        )
+
+        val trouve = products().byName("x", LIMIT) as ProductResults.Found
+
+        assertEquals(listOf("Nutella"), trouve.products.map { it.name })
+    }
+
+    @Test
+    fun `un nom que le service ne connait pas rend une liste vide`() = runTest {
+        // Une liste vide **est** une reponse. Lui donner un cas a part ferait dire a
+        // l'ecran deux fois la meme chose.
+        server.enqueue(searchOk("[]"))
+
+        assertEquals(emptyList<Any>(), (products().byName("zzz", LIMIT) as ProductResults.Found).products)
+    }
+
+    @Test
+    fun `une recherche hors ligne est injoignable`() = runTest {
+        server.shutdown()
+
+        assertEquals(ProductResults.Unreachable, products().byName("nutella", LIMIT))
+    }
+
+    @Test
+    fun `la recherche ne reessaye pas`() = runTest {
+        // Contrairement au code-barres : elle part d'un tap delibere, et l'ecran montre
+        // deja le resultat. Faire attendre une seconde et demie ne gagnerait rien.
+        server.enqueue(MockResponse().setResponseCode(SERVER_ERROR))
+
+        assertEquals(ProductResults.Unreachable, products().byName("nutella", LIMIT))
+        assertEquals(1, server.requestCount)
+    }
+
     // --- Decor -------------------------------------------------------------------
 
     private val nutella = requireNotNull(Barcode.of("3017620422003"))
@@ -241,13 +310,20 @@ class OpenFoodFactsProductsTest {
     private fun TestScope.products() = OpenFoodFactsProducts(
         api = openFoodFactsApi(baseUrl, openFoodFactsClient(ClientIdentity(USER_AGENT))),
         ids = SequentialIdGenerator(),
+        clock = FixedClock(RECUPERE_LE),
         dispatchers = TestDispatchers(UnconfinedTestDispatcher(testScheduler)),
     )
+
+    private fun searchOk(products: String) = MockResponse()
+        .setResponseCode(OK)
+        .setBody("""{"count":1,"page":1,"products":$products}""")
 
     private fun ok(product: String?, status: Int = 1) = MockResponse()
         .setResponseCode(OK)
         .setBody("""{"code":"3017620422003","status":$status,"status_verbose":"ok","product":${product ?: "null"}}""")
 }
+
+private val RECUPERE_LE: java.time.Instant = java.time.Instant.parse("2026-08-12T09:00:00Z")
 
 private const val USER_AGENT = "Hexaphore/0.2.0 (github.com/hexaphore/hexaphore)"
 private const val OK = 200
@@ -255,6 +331,7 @@ private const val NOT_FOUND = 404
 private const val TOO_MANY_REQUESTS = 429
 private const val SERVER_ERROR = 503
 private const val ATTEMPTS = 3
+private const val LIMIT = 20
 
 /**
  * Une réponse relevée sur la base, allégée mais **pas nettoyée** : `nutrition_grades`

@@ -16,6 +16,22 @@ import retrofit2.http.Query
 internal interface OpenFoodFactsApi {
     @GET("api/v2/product/{barcode}.json")
     suspend fun product(@Path("barcode") barcode: String, @Query("fields") fields: String): Response<ProductEnvelope>
+
+    /**
+     * La recherche par nom, sur l'ancien point d'entrée.
+     *
+     * `cgi/search.pl` et non `api/v2/search` : le second filtre sur des étiquettes —
+     * catégories, marques, pays — et n'accepte pas de texte libre. Celui-ci le fait
+     * depuis toujours, et c'est ce qu'on lui demande. Il rend les mêmes objets
+     * produit, donc la même correspondance les lit.
+     */
+    @GET("cgi/search.pl")
+    suspend fun search(
+        @Query("search_terms") terms: String,
+        @Query("page_size") limit: Int,
+        @Query("fields") fields: String,
+        @Query("json") json: Int = 1,
+    ): Response<SearchEnvelope>
 }
 
 /**

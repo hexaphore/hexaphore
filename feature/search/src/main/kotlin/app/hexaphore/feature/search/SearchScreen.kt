@@ -49,6 +49,7 @@ internal fun SearchRoute(
     val filter by viewModel.filter.collectAsStateWithLifecycle()
     val picked by viewModel.picked.collectAsStateWithLifecycle()
     val deletion by viewModel.deletion.collectAsStateWithLifecycle()
+    val remote by viewModel.remote.collectAsStateWithLifecycle()
 
     // La fiche est versee au catalogue avant de partir : un resultat de la table de
     // l'ANSES n'a qu'un identifiant provisoire tant qu'il n'y est pas ecrit, et
@@ -63,6 +64,7 @@ internal fun SearchRoute(
         state = state,
         query = query,
         filter = filter,
+        remote = remote,
         actions = remember(viewModel, onManualEntry, onClose) {
             SearchActions(
                 onQueryChange = viewModel::onQueryChange,
@@ -72,6 +74,7 @@ internal fun SearchRoute(
                 onToggleCategory = viewModel::onToggleCategory,
                 onToggleTrait = viewModel::onToggleTrait,
                 onManualEntry = onManualEntry,
+                onSearchRemotely = viewModel::onSearchRemotely,
                 onClose = onClose,
             )
         },
@@ -107,6 +110,7 @@ internal fun SearchScreen(
     state: SearchUiState,
     query: String,
     filter: FoodFilter,
+    remote: RemoteSearch,
     actions: SearchActions,
     modifier: Modifier = Modifier,
 ) {
@@ -129,8 +133,8 @@ internal fun SearchScreen(
                 when (state) {
                     is SearchUiState.Shortcuts -> Shortcuts(state, actions)
                     SearchUiState.Searching -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    is SearchUiState.Results -> FoodList(state.foods, actions)
-                    is SearchUiState.Empty -> NoResult(state.query)
+                    is SearchUiState.Results -> FoodList(state.foods, remote, actions)
+                    is SearchUiState.Empty -> NoResult(state.query, remote, actions)
                     SearchUiState.Error -> ReadFailed(actions.onClose)
                 }
             }
@@ -223,30 +227,31 @@ private fun Shortcuts(state: SearchUiState.Shortcuts, actions: SearchActions) {
 }
 
 @Composable
-private fun FoodList(foods: List<Food>, actions: SearchActions) {
+private fun FoodList(foods: List<Food>, remote: RemoteSearch, actions: SearchActions) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         items(foods, key = { it.id.value }) { FoodRow(it, actions) }
+        remoteSection(remote, actions)
     }
 }
 
-/**
- * Rien ne correspond — et la phrase dit **pourquoi**.
- *
- * Sans mot tapé, ce sont les pastilles qui ont vidé la liste. Garder « aucun aliment
- * ne correspond à "" » laisserait croire que le catalogue est vide, alors qu'il suffit
- * de retirer une pastille.
- */
 @Composable
-private fun NoResult(query: String) {
-    Text(
-        text = if (query.isBlank()) {
-            stringResource(R.string.search_no_result_filtered)
-        } else {
-            stringResource(R.string.search_no_result, query)
-        },
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+private fun NoResult(query: String, remote: RemoteSearch, actions: SearchActions) {
+    // Une liste et non un simple texte : la suggestion Open Food Facts se pose dessous,
+    // et c'est justement ici qu'elle sert le plus -- rien de local ne correspond.
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        item {
+            Text(
+                text = if (query.isBlank()) {
+                    stringResource(R.string.search_no_result_filtered)
+                } else {
+                    stringResource(R.string.search_no_result, query)
+                },
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        remoteSection(remote, actions)
+    }
 }
 
 @Composable

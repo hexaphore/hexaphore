@@ -10,6 +10,8 @@ import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodSearch
 import app.hexaphore.domain.food.FoodStore
 import app.hexaphore.domain.food.FoodTrait
+import app.hexaphore.domain.food.ProductResults
+import app.hexaphore.domain.food.ProductSearch
 import app.hexaphore.domain.food.RecentFoods
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -56,6 +58,7 @@ internal class SearchViewModel @Inject constructor(
     private val foodSearch: FoodSearch,
     private val favorites: FavoriteFoods,
     private val store: FoodStore,
+    private val productSearch: ProductSearch,
     recentFoods: RecentFoods,
 ) : ViewModel() {
     private val typed = MutableStateFlow("")
@@ -74,6 +77,21 @@ internal class SearchViewModel @Inject constructor(
      */
     private val chosen = MutableStateFlow<FoodId?>(null)
     val picked: StateFlow<FoodId?> = chosen
+
+    /**
+     * Où en est la recherche distante.
+     *
+     * **Hors de [uiState], comme [query] et [filter]**, et pour la même raison : elle
+     * se pose *par-dessus* les résultats locaux plutôt qu'à leur place. La faire
+     * entrer dans l'état d'écran obligerait `Results` et `Empty` à la porter toutes
+     * les deux, et les trois autres variantes à expliquer pourquoi elles ne l'ont pas.
+     *
+     * **Elle repart à zéro dès que la requête change.** Sans cela, des résultats
+     * distants d'un mot qu'on vient d'effacer resteraient affichés sous la liste
+     * locale du mot suivant.
+     */
+    private val remoteSearch = MutableStateFlow<RemoteSearch>(RemoteSearch.Offered)
+    val remote: StateFlow<RemoteSearch> = remoteSearch
 
     /** La fiche dont la corbeille vient d'être touchée, et ce qu'il faut en dire. */
     private val pendingDeletion = MutableStateFlow<FoodDeletion?>(null)
@@ -108,7 +126,7 @@ internal class SearchViewModel @Inject constructor(
                 } else {
                     // Une pastille seule, champ vide, est un mode parcours : c'est
                     // une demande explicite, et elle merite une liste.
-                    search(query, filter)
+                    foodSearch.resultsFor(query, filter)
                 }
             }
 
@@ -127,6 +145,36 @@ internal class SearchViewModel @Inject constructor(
 
     fun onQueryChange(value: String) {
         typed.value = value
+        remoteSearch.value = RemoteSearch.Offered
+    }
+
+    /**
+     * Chercher ce nom chez Open Food Facts.
+     *
+     * **Sur un tap, jamais toute seule.** La recherche locale part à la frappe parce
+     * qu'elle coûte une lecture SQLite ; celle-ci coûte un aller-retour réseau, et
+     * huit requêtes pour taper « chocolat » seraient huit de trop ([D23][decisions]).
+     *
+     * **La ligne est offerte même hors ligne**, contrairement à ce qu'annonçait
+     * [docs/02][parcours]. Un test de connectivité ment — un portail captif se déclare
+     * connecté — et une ligne qui disparaît sans raison visible est plus déroutante
+     * qu'une phrase qui dit « pas de connexion ».
+     *
+     * [decisions]: docs/11-decisions.md
+     * [parcours]: docs/02-parcours-et-ecrans.md
+     */
+    fun onSearchRemotely() {
+        val query = typed.value.trim()
+        if (query.length < MINIMUM_CHARACTERS || remoteSearch.value == RemoteSearch.Searching) return
+
+        remoteSearch.value = RemoteSearch.Searching
+        viewModelScope.launch {
+            val found = runCatching { productSearch.byName(query, REMOTE_LIMIT) }.getOrNull()
+            remoteSearch.value = when (found) {
+                is ProductResults.Found -> RemoteSearch.Results(found.products)
+                else -> RemoteSearch.Unreachable
+            }
+        }
     }
 
     fun onToggleCategory(category: FoodCategory) {
@@ -199,24 +247,6 @@ internal class SearchViewModel @Inject constructor(
         chosen.value = null
     }
 
-    /**
-     * `Searching` avant la lecture, et pas seulement pendant.
-     *
-     * Émis dans le flux plutôt que posé avant lui : ainsi une frappe qui annule la
-     * recherche en cours annule aussi son état de chargement, et l'écran ne reste
-     * jamais à « je cherche » pour une requête abandonnée.
-     *
-     * Le port rend un flux ([D53][decisions]) : les résultats suivent désormais les
-     * écritures du catalogue sans qu'on relance la recherche. `onStart` et non une
-     * émission manuelle, parce qu'il n'y a plus une lecture mais une suite.
-     */
-    private fun search(query: String, filter: FoodFilter): Flow<SearchUiState> = foodSearch
-        .search(query, filter, RESULT_LIMIT)
-        .map { foods ->
-            if (foods.isEmpty()) SearchUiState.Empty(query) else SearchUiState.Results(query, foods)
-        }.onStart { emit(SearchUiState.Searching) }
-        .catch { emit(SearchUiState.Error) }
-
     private companion object {
         // --- Reglages ---------------------------------------------------------
         /** [D23][decisions] : la requête part 120 ms après la dernière frappe. */
@@ -229,16 +259,68 @@ internal class SearchViewModel @Inject constructor(
         const val RECENT_COUNT = 20
 
         /**
-         * Assez pour faire défiler, pas assez pour que le tri coûte.
-         *
-         * Le budget est de 150 ms à partir de la fin de l'anti-rebond, et il se
-         * dépense surtout dans les deux lectures ; classer trente fiches est
-         * négligeable, en classer trois cents ne le serait plus.
+         * Moins que la recherche locale : chaque ligne est un aller-retour payé en
+         * octets, et personne ne fait défiler trente produits de marque.
          */
-        const val RESULT_LIMIT = 30
+        const val REMOTE_LIMIT = 20
 
         const val SUBSCRIPTION_TIMEOUT_MILLIS = 5_000L
     }
+}
+
+/**
+ * `Searching` avant la lecture, et pas seulement pendant.
+ *
+ * Émis dans le flux plutôt que posé avant lui : ainsi une frappe qui annule la
+ * recherche en cours annule aussi son état de chargement, et l'écran ne reste jamais
+ * à « je cherche » pour une requête abandonnée.
+ *
+ * Le port rend un flux ([D53][decisions]) : les résultats suivent les écritures du
+ * catalogue sans qu'on relance la recherche. `onStart` et non une émission manuelle,
+ * parce qu'il n'y a plus une lecture mais une suite.
+ *
+ * **Hors du `ViewModel`** : c'est une façon de construire un flux, pas une chose que
+ * l'écran déclenche. La sortir est la réponse du projet au seuil de fonctions —
+ * découper selon ce que les choses sont ([docs/10][qualite]).
+ *
+ * [decisions]: docs/11-decisions.md
+ * [qualite]: docs/10-qualite-et-livraison.md
+ */
+private fun FoodSearch.resultsFor(query: String, filter: FoodFilter): Flow<SearchUiState> =
+    search(query, filter, SearchLimits.RESULTS)
+        .map { foods ->
+            if (foods.isEmpty()) SearchUiState.Empty(query) else SearchUiState.Results(query, foods)
+        }.onStart { emit(SearchUiState.Searching) }
+        .catch { emit(SearchUiState.Error) }
+
+/** Les bornes de lecture, hors du `ViewModel` parce que la fonction ci-dessus en lit une. */
+private object SearchLimits {
+    /**
+     * Assez pour faire défiler, pas assez pour que le tri coûte.
+     *
+     * Le budget est de 150 ms à partir de la fin de l'anti-rebond, et il se dépense
+     * surtout dans les deux lectures ; classer trente fiches est négligeable, en
+     * classer trois cents ne le serait plus.
+     */
+    const val RESULTS = 30
+}
+
+/**
+ * Ce que la dernière ligne des résultats propose, et ce qu'elle devient.
+ *
+ * Quatre états et non trois : « offerte » et « rien trouvé » ne disent pas la même
+ * chose, et confondre les deux ferait reproposer une recherche qu'on vient de faire.
+ */
+internal sealed interface RemoteSearch {
+    /** La ligne est là, personne ne l'a touchée. */
+    data object Offered : RemoteSearch
+
+    data object Searching : RemoteSearch
+
+    /** Ce que le service rend. Une liste vide veut dire qu'il ne connaît pas ce nom. */
+    data class Results(val foods: List<Food>) : RemoteSearch
+
+    data object Unreachable : RemoteSearch
 }
 
 /**

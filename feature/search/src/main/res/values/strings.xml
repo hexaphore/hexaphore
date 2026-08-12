@@ -3,6 +3,12 @@
 
     <string name="search_field_label">Chercher un aliment</string>
 
+    <!-- La derniere ligne des resultats : la recherche distante, sur un tap. -->
+    <string name="search_ask_open_food_facts">Chercher dans Open Food Facts</string>
+    <string name="search_open_food_facts_results">Produits Open Food Facts</string>
+    <string name="search_open_food_facts_nothing">Open Food Facts ne connaît pas ce nom.</string>
+    <string name="search_open_food_facts_offline">Open Food Facts n\'a pas pu être joint.</string>
+
     <!-- Le code lu par le scan, quand le formulaire vient d'un produit introuvable. -->
     <string name="custom_barcode_kept">Code-barres conservé : %1$s</string>
 
