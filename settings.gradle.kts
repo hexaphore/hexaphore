@@ -92,3 +92,11 @@ include(":feature:onboarding")
 // le hub qui les rassemble naitra avec la deuxieme, faute de quoi il serait un ecran
 // de transit vers une destination unique.
 include(":feature:settings")
+
+// Tranche 5. Le scan.
+//
+// :integration et non :data : un module :data adapte un port a un stockage qui
+// nous appartient, celui-ci adapte un service tiers dont on ne decide ni le
+// schema ni la disponibilite. Le nom dit lequel des deux on lit quand une reponse
+// surprend.
+include(":integration:openfoodfacts")

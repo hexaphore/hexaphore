@@ -102,15 +102,21 @@ Un aliment sans portion déclarée propose 100 g par défaut.
 
 ```
 GET https://world.openfoodfacts.org/api/v2/product/{barcode}.json
-    ?fields=code,product_name,product_name_fr,brands,quantity,
-            serving_size,serving_quantity,nutriments,image_front_small_url
+    ?fields=code,product_name,product_name_fr,brands,
+            serving_size,serving_quantity,nutriments
 ```
+
+`quantity` et `image_front_small_url` figuraient ici et n'y sont plus : rien ne les lit. Demander un champ inutilisé est le même travers qu'une colonne que rien ne remplit, et il se paie en octets sur une connexion mobile contre un budget de deux secondes ([D63](11-decisions.md#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée)).
+
+**Le code-barres demandé est mis sous forme canonique avant l'appel** — UPC-A complété en EAN-13 par un zéro, clé de contrôle vérifiée — et c'est ce code-là, et non celui que la réponse renvoie, qui est enregistré comme référence. Sans quoi le second scan d'un produit ne retrouverait pas la fiche mise en cache, et le défaut ne se verrait qu'en mode avion ([D63](11-decisions.md#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée)).
 
 **En-tête `User-Agent` obligatoire** : `Hexaphore/<version> (github.com/hexaphore/hexaphore)`. Open Food Facts bloque les clients anonymes, et c'est légitime : l'en-tête est leur seul moyen de joindre l'auteur d'un client qui se comporte mal. Cet en-tête est posé par un intercepteur OkHttp, pas au cas par cas.
 
 L'adresse est figée sur l'organisation GitHub du projet, réservée pour cela ([D14](11-decisions.md#d14--domaine-et-publication-reportés-après-la-05---validée)) : elle survit à un changement de propriétaire, contrairement à un compte personnel. La version vient du `versionName`, pour qu'un rapport de la part d'Open Food Facts désigne un binaire précis.
 
-Pas de clé, pas de compte, pas de quota commercial. Limite de courtoisie : 100 requêtes par minute — hors d'atteinte pour un usage normal, mais l'intercepteur applique quand même un retrait exponentiel sur `429` et `5xx`, trois tentatives maximum.
+Pas de clé, pas de compte, pas de quota commercial. Limite de courtoisie : 100 requêtes par minute — hors d'atteinte pour un usage normal, mais un retrait exponentiel s'applique quand même sur `429` et `5xx`, trois tentatives maximum.
+
+~~L'intercepteur applique le retrait.~~ Il vit dans la fonction suspendue et non dans un intercepteur : celui-ci attendrait avec `Thread.sleep`, donc en immobilisant un fil du répartiteur d'OkHttp, là où `delay` suspend — et c'est aussi ce qui rend les trois tentatives éprouvables en temps virtuel ([D63](11-decisions.md#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée)). **Une panne réseau n'est pas réessayée** : le retrait sert à laisser passer une surcharge du service, pas à faire attendre quelqu'un debout devant un rayon.
 
 ### Champs récupérés
 

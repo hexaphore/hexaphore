@@ -22,6 +22,14 @@ android {
         versionName = libs.versions.versionName.get()
     }
 
+    // AGP 8 ne genere plus BuildConfig sans qu'on le demande. Un seul champ y est lu :
+    // VERSION_NAME, que le User-Agent d'Open Food Facts exige (D26). C'est aussi la
+    // raison pour laquelle il est lu ici et pas dans le module d'integration -- la
+    // version est celle du binaire, suffixe de variante compris.
+    buildFeatures {
+        buildConfig = true
+    }
+
     buildTypes {
         debug {
             // Suffixe pour que la version de developpement cohabite avec celle
@@ -52,6 +60,7 @@ dependencies {
     implementation(projects.data.diary)
     implementation(projects.data.food)
     implementation(projects.data.profile)
+    implementation(projects.integration.openfoodfacts)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
