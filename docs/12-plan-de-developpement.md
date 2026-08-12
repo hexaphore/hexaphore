@@ -161,7 +161,7 @@ C'est le vrai premier jalon : à la fin de cette tranche, **l'application est ut
 
 **Piège** : oublier le `User-Agent`. Open Food Facts bloque les clients anonymes, et le symptôme ressemble à une panne réseau.
 
-> **En cours.** Le client Open Food Facts ([D63](11-decisions.md#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée)), puis le cache : `LookupBarcode` lit le catalogue avant le réseau, une fiche récupérée y est versée avec sa date, et `is_liquid` et `fetched_at` arrivent en migration 5 → 6 ([D64](11-decisions.md#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée)). **Aucun écran n'y mène encore** : `:integration:scanner` et la modale de scan sont l'étape suivante, et la suggestion « Chercher dans Open Food Facts » celle d'après.
+> **En cours.** Le client Open Food Facts ([D63](11-decisions.md#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée)), puis le cache : `LookupBarcode` lit le catalogue avant le réseau, une fiche récupérée y est versée avec sa date, et `is_liquid` et `fetched_at` arrivent en migration 5 → 6 ([D64](11-decisions.md#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée)). Puis `:integration:scanner` : le décodage, l'anti-rebond éprouvé sur la JVM, un aliment personnel qui garde son code-barres, et un cinquième `DraftOrigin` que l'écran de validation a accepté **sans être touché** ([D65](11-decisions.md#d65--le-décodeur-est-un-module-à-part-et-sa-seule-règle-tient-sur-la-jvm---validée)). **Restent la modale de scan**, qui ne se vérifie que sur un appareil, et la suggestion « Chercher dans Open Food Facts ».
 
 ---
 

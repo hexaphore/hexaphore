@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    La permission est declaree par le module qui en a besoin, et la fusion des
+    manifestes la porte jusqu'a l'APK.
+
+    `required="false"` sur la camera : les trois autres modes de saisie n'en
+    demandent pas, et un appareil sans camera doit pouvoir installer l'application.
+    Sans cette ligne, la declaration de permission rend la fonctionnalite implicitement
+    obligatoire, et le Play Store ecarte l'application des tablettes qui n'en ont pas.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+
+</manifest>

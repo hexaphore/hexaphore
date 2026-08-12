@@ -34,6 +34,11 @@ class SaveCustomFood(private val store: FoodStore, private val ids: IdGenerator)
             Food(
                 id = draft.id ?: FoodId(ids.next()),
                 source = FoodSource.CUSTOM,
+                // La reference d'un aliment personnel est son code-barres, quand il
+                // en a un. C'est par elle que le prochain scan le retrouvera, et
+                // c'est ce qui fait tenir la promesse « un produit absent d'Open Food
+                // Facts se cree a la main **en conservant son code-barres** ».
+                sourceRef = draft.barcode?.value,
                 name = draft.name.trim(),
                 // Une marque vide est une absence de marque, pas une marque vide.
                 brand = draft.brand.trim().ifBlank { null },
