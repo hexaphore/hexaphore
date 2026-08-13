@@ -1392,6 +1392,42 @@ C'est aussi ce que `docs/06` appelle un signal : une propriété que deux chemin
 
 ---
 
+## D68 — Un voile est une surface, et il reste sombre dans les deux thèmes · ✓ validée
+
+**Contexte.** Constaté sur appareil : la surimpression du scan affiche du **texte noir sur un voile sombre**. Le premier écran du projet posé sur une image qu'on ne maîtrise pas est aussi le premier à découvrir que Material 3 ne devine pas la couleur de l'encre.
+
+### La cause est qu'un voile avait été peint, pas posé
+
+`Overlay` et `Hint` teintaient le fond avec `Modifier.background(surface.copy(alpha = …))`. Un `background` peint des pixels et rien d'autre : il ne pose pas `LocalContentColor`, qui reste alors au noir par défaut. Une `Surface` le pose — c'est ce qu'elle est, un fond **et** son encre.
+
+`Hint` échappait au défaut parce qu'il fixait sa couleur à la main, ce qui est exactement le contournement qui empêche de voir le problème : il corrigeait sa propre ligne et laissait les voisines fausses.
+
+**Le composant est donc dans `:core:designsystem`, et il n'y a pas de jeton public.** Un `NeonTheme.scrim` qu'on irait peindre soi-même laisserait la prochaine surimpression refaire la même erreur — deux décisions séparées dont l'une s'oublie. `ScrimSurface` les lie : on ne peut pas obtenir le fond sans l'encre.
+
+**Écarté.** *Poser `LocalContentColor` à la racine de l'écran de scan* : ça soigne un écran et laisse le suivant, et ça ne dit nulle part pourquoi.
+
+### Le voile est sombre en thème clair aussi, et c'est du contraste, pas du goût
+
+Une image de caméra n'est pas un fond dont on hérite : le panneau apporte le sien. Le suivre le thème donnerait, en thème clair, un voile blanc — et [08](08-design-system.md#contraste) veut que le néon soit toujours l'élément **clair** de la paire.
+
+Le chiffre tranche. Le thème clair assombrit les macros de 25 % « pour préserver le contraste sur fond blanc » : le cyan des calories devient `#00ABBF`, qui tient **2,8:1** sur du blanc — sous le AA de 4,5:1, et même sous le 3:1 du grand texte. Or c'est la teinte des libellés de `TextButton`, du `NeonButton` et de l'indicateur de progression. Sur le voile sombre, la même teinte en tient **6,7:1**, dans les deux thèmes.
+
+**Cela révèle une lacune plus large de [08](08-design-system.md#thème-clair), qui n'est pas corrigée ici** : la phrase sur les 25 % est fausse dès qu'une teinte néon porte du texte sur un fond clair, ce qui arrive sur tous les écrans. Le voile la contourne là où elle se voyait le plus ; la corriger pour de bon demande de choisir des teintes de texte propres au thème clair, donc une décision sur la palette et non sur un écran. Elle est écrite dans [08](08-design-system.md#thème-clair) pour ne pas être redécouverte.
+
+### L'opacité passe de 0,85 à 0,92, et ce n'est pas une affaire de contraste
+
+À 0,85, sur le pire fond possible — un aperçu blanc — le texte tenait déjà 10:1. Ce qui gêne n'est pas la clarté du fond mais son **bruit** : la texture d'une image de caméra passe sous les lettres. Ce qu'on gagne à laisser deviner l'image sous un panneau de trois lignes ne vaut pas ce qu'on perd à lire par-dessus un rayon de supermarché — d'autant que l'image reste entière au-dessus du panneau.
+
+La valeur quitte le `:feature` : c'était une valeur de style hors du design system, catégorie que l'outillage ne vérifie pas ([10](10-qualite-et-livraison.md#analyse-statique)).
+
+### Le bouton « Fermer » était le seul sans rien sous lui
+
+Il flotte en haut à gauche, directement sur l'aperçu, et son libellé est cyan. Il reçoit son propre voile en pastille. Sur l'écran de permission refusée, en revanche, il n'y a pas de caméra derrière : le voile y serait une pastille posée sur rien, et il en est retiré.
+
+**Conséquences.** Rien de tout cela ne s'éprouve par un test, et rien n'a été ajouté qui le prétende : la vérification est sur appareil, dans les deux thèmes. `ScrimSurface` expose un aperçu sur aplat blanc — sur le fond de l'application, un voile sombre sur du sombre ne prouverait rien. Le composant est le point d'accroche de l'écran photo de la tranche 7, qui pose la même surimpression sur la même sorte d'image.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

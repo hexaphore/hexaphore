@@ -70,7 +70,9 @@ Une figure qui adopterait un autre ordre annulerait tout le bénéfice : la posi
 
 ### Thème clair
 
-Fourni, mais secondaire — cette application est pensée pour le sombre. Le thème clair inverse les fonds (`#FAFAFC` / `#FFFFFF`) et assombrit les macros de 25 % pour préserver le contraste sur fond blanc. **Aucune lueur** en thème clair : un halo sur fond clair ressemble à un défaut d'affichage.
+Fourni, mais secondaire — cette application est pensée pour le sombre. Le thème clair inverse les fonds (`#FAFAFC` / `#FFFFFF`) et assombrit les macros de 25 %. **Aucune lueur** en thème clair : un halo sur fond clair ressemble à un défaut d'affichage.
+
+**Ces 25 % suffisent à un trait, pas à du texte, et c'est une lacune connue.** Le cyan des calories devient `#00ABBF`, qui tient **2,8:1** sur du blanc — sous le AA de 4,5:1, et même sous le 3:1 du grand texte. Or la teinte porte du texte : les libellés de `NeonButton`, ceux des `TextButton` (qui prennent `primary`), l'indicateur de progression. La corriger demande des teintes de texte propres au thème clair, donc une décision sur la palette, et non un correctif d'écran ; elle est écrite ici pour ne pas être redécouverte au premier retour d'utilisateur. Là où le problème se voyait le plus — la surimpression du scan, posée sur un aperçu caméra — il est contourné par un voile sombre dans les deux thèmes ([D68](11-decisions.md#d68--un-voile-est-une-surface-et-il-reste-sombre-dans-les-deux-thèmes---validée)).
 
 ---
 
@@ -268,6 +270,18 @@ Un écran, un bouton plein : cette règle empêche l'inflation visuelle.
 Un contenu **proposé** par un modèle — photo ou description — se distingue par la **forme**, jamais par la teinte : contour en pointillés, et un glyphe en vague de 16 dp devant le libellé. Une recherche, un code-barres ou une saisie manuelle portent un contour plein et discret. Le raisonnement qui écarte une septième couleur est en [D25](11-decisions.md).
 
 **Les tirets se mesurent en dp, pas en pixels.** Six unités de tiret font deux millimètres sur une dalle à densité 1 et un quart de millimètre sur une dalle à densité 4 : à ce stade, le pointillé est un trait plein. C'est le défaut qui a rendu le badge indistinguable sur un téléphone récent. Le tracé est en outre encarté d'une demi-épaisseur, faute de quoi sa moitié extérieure sort des limites du composant et se fait rogner.
+
+### `ScrimSurface`
+
+Le panneau posé sur une image qu'on ne maîtrise pas : l'aperçu du scan, et la photo de la modale IA quand elle existera.
+
+**C'est une `Surface`, et c'est tout l'objet du composant.** Un voile peint au `Modifier.background()` teint le fond sans poser `LocalContentColor` ; Material 3 retombe alors sur du noir, et c'est exactement ainsi que la surimpression du scan a été livrée — texte noir sur voile sombre ([D68](11-decisions.md#d68--un-voile-est-une-surface-et-il-reste-sombre-dans-les-deux-thèmes---validée)). Le fond d'un voile et l'encre qui va dessus ne sont pas deux décisions ; les séparer, c'est en oublier une.
+
+**Le voile est sombre dans les deux thèmes.** Une image de caméra n'est pas un fond dont on hérite : le panneau apporte le sien, et il l'apporte sombre pour que le néon reste l'élément clair de la paire — la règle de la section [Contraste](#contraste), qu'un voile blanc violerait dès qu'une teinte y porte du texte.
+
+Fond `surface` du thème sombre à **92 %**, encre `onSurface` du thème sombre. L'opacité n'est pas un réglage de contraste — à 85 % le texte tenait déjà 10:1 sur un aperçu blanc — mais de bruit : la texture d'une image de caméra passe sous les lettres. L'image reste entière au-dessus du panneau, qui est toujours au ras d'un bord.
+
+La forme appartient à l'appelant : coins hauts en 24 dp pour un panneau au ras du bas, 8 dp pour une pastille de conseil, pleine pour un bouton flottant.
 
 ---
 
