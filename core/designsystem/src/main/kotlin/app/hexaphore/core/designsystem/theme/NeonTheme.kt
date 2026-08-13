@@ -120,6 +120,33 @@ private val LightSurfaces =
 private fun surfaces(dark: Boolean): Surfaces = if (dark) DarkSurfaces else LightSurfaces
 
 /**
+ * Le voile posé sur une image qu'on ne maîtrise pas — l'aperçu du scan aujourd'hui,
+ * la photo de l'écran d'IA demain.
+ *
+ * **Sombre dans les deux thèmes, et c'est un choix.** Un panneau posé sur une image
+ * n'a pas de fond dont hériter : il apporte le sien. Le thème clair se contente
+ * d'assombrir les teintes de 25 %, ce qui suffit à un trait mais pas à du texte — le
+ * cyan des calories tombe alors à 2,8:1 sur du blanc, très en dessous du AA que la
+ * charte exige. Sur ce voile, il en tient 6,7:1 quel que soit le thème, et le néon
+ * reste l'élément clair de la paire comme docs/08-design-system.md le pose.
+ */
+internal val ScrimBackground: Color = DarkSurfaces.surface.copy(alpha = SCRIM_ALPHA)
+
+/** L'encre du voile. Elle vient du thème sombre parce que le fond en vient aussi. */
+internal val ScrimInk: Color = DarkSurfaces.onSurface
+
+/**
+ * Opacité du voile.
+ *
+ * Ce n'est pas une affaire de contraste — à 0,85 le texte tenait déjà 10:1 sur le
+ * pire des fonds — mais de **bruit** : ce qui traverse un voile trop transparent est
+ * une image de caméra, et sa texture passe sous les lettres là où elle ne les efface
+ * pas. Ce qu'on gagne à laisser deviner l'image sous un panneau de trois lignes ne
+ * vaut pas ce qu'on perd à lire par-dessus un rayon de supermarché.
+ */
+private const val SCRIM_ALPHA = 0.92f
+
+/**
  * Le schéma Material 3, dérivé de la palette plutôt que réécrit.
  *
  * Les teintes ne sont pas recopiées ici : elles viennent de [macroColorScheme], qui

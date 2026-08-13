@@ -6,7 +6,6 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -14,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,6 +34,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.hexaphore.core.designsystem.component.NeonButton
+import app.hexaphore.core.designsystem.component.ScrimSurface
+import app.hexaphore.core.designsystem.theme.Radius
 import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.domain.food.Barcode
 import app.hexaphore.domain.food.FoodId
@@ -112,12 +114,25 @@ private fun ScanScreen(
         if (granted) {
             BarcodeCamera(onBarcode = onBarcode, modifier = Modifier.fillMaxSize(), resumeKey = resumeKey)
             Viewfinder(state = state, onRetry = onRetry, onCreateFood = onCreateFood, onSearchByName = onSearchByName)
+            // Le bouton flotte sur l'apercu, seul de tout l'ecran a n'avoir aucun
+            // panneau sous lui. Un libelle cyan pose sur un rayon de supermarche
+            // eclaire ne se lit pas : il lui faut son propre voile.
+            ScrimSurface(modifier = Modifier.align(Alignment.TopStart).padding(Spacing.md), shape = Radius.pill) {
+                CloseButton(onClose)
+            }
         } else {
             PermissionRefused(onAsk = { context.openAppSettings() })
+            // Pas de voile ici : l'ecran de refus n'a pas de camera derriere lui, et
+            // un panneau sombre y serait une pastille posee sur rien.
+            CloseButton(onClose, Modifier.align(Alignment.TopStart).padding(Spacing.md))
         }
-        TextButton(onClick = onClose, modifier = Modifier.align(Alignment.TopStart).padding(Spacing.md)) {
-            Text(stringResource(R.string.scan_close))
-        }
+    }
+}
+
+@Composable
+private fun CloseButton(onClose: () -> Unit, modifier: Modifier = Modifier) {
+    TextButton(onClick = onClose, modifier = modifier) {
+        Text(stringResource(R.string.scan_close))
     }
 }
 
@@ -211,30 +226,38 @@ private fun PermissionRefused(onAsk: () -> Unit) {
 
 @Composable
 private fun BoxScope.Hint(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurface,
+    ScrimSurface(
         modifier = Modifier
             .align(Alignment.BottomCenter)
-            .padding(Spacing.lg)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = SCRIM_ALPHA))
-            .padding(Spacing.md),
-    )
+            .padding(Spacing.lg),
+        shape = RoundedCornerShape(Radius.field),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+        )
+    }
 }
 
 @Composable
 private fun BoxScope.Overlay(content: @Composable () -> Unit) {
-    Column(
+    ScrimSurface(
         modifier = Modifier
             .align(Alignment.BottomCenter)
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = SCRIM_ALPHA))
-            .padding(Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .fillMaxWidth(),
+        // Le panneau est au ras du bord bas : seuls ses coins hauts s'arrondissent,
+        // et c'est ce qui le fait lire comme une feuille posee sur l'image plutot
+        // que comme un assombrissement de l'apercu.
+        shape = RoundedCornerShape(topStart = Radius.sheet, topEnd = Radius.sheet),
     ) {
-        content()
+        Column(
+            modifier = Modifier.padding(Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            content()
+        }
     }
 }
 
@@ -251,4 +274,3 @@ private fun android.content.Context.openAppSettings() {
 }
 
 private const val PERMISSION_GRANTED = android.content.pm.PackageManager.PERMISSION_GRANTED
-private const val SCRIM_ALPHA = 0.85f
