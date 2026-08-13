@@ -139,10 +139,14 @@ private fun CloseButton(onClose: () -> Unit, modifier: Modifier = Modifier) {
 /**
  * Ce qui se pose par-dessus l'aperçu.
  *
- * En surimpression et jamais à la place : couper l'aperçu pendant la recherche ferait
- * croire que la caméra a lâché, et [docs/02][parcours] veut un chargement inline.
+ * En surimpression et jamais à la place : [docs/02][parcours] veut un chargement
+ * inline, et un dialogue qui masquerait l'image ferait croire que la caméra a lâché.
+ * Ce que la surimpression recouvre, dès la lecture confirmée, est la **trame figée**
+ * sur laquelle le code a été lu — c'est `BarcodeCamera` qui la pose, et elle reste
+ * là jusqu'à la reprise, y compris sous les deux issues d'échec ([D69][decisions]).
  *
  * [parcours]: docs/02-parcours-et-ecrans.md
+ * [decisions]: docs/11-decisions.md
  */
 @Composable
 private fun BoxScope.Viewfinder(
