@@ -1428,6 +1428,40 @@ Il flotte en haut à gauche, directement sur l'aperçu, et son libellé est cyan
 
 ---
 
+## D69 — L'aperçu se fige sur la trame qui a porté la lecture · ✓ validée
+
+**Contexte.** Constaté à l'usage : quand un code est lu, l'aperçu continue de tourner sous la surimpression. On ne sait donc pas *ce que* l'appareil a lu, et quand la lecture n'aboutit à rien — produit inconnu, service injoignable — rien ne permet de juger si le cadrage était en cause. L'écran affiche un code et une caméra qui filme déjà autre chose.
+
+### Figer n'est pas couper, et c'est ce qui lève l'objection de [D66](#d66--la-modale-de-scan-et-les-trois-modes-de-saisie-réunis-dans-le-graphe---validée)
+
+L'aperçu restait lié dans tous les états parce que l'éteindre ferait croire que la caméra a lâché — et [02](02-parcours-et-ecrans.md#modale--scan-de-code-barres) veut un chargement inline, pas un dialogue qui masque. L'argument tenait contre un rectangle noir ; il ne tient pas contre une image immobile. La trame reste, elle cesse de bouger, et elle en dit plus que l'aperçu vivant n'en disait.
+
+### La trame se capture à la confirmation, et là seulement
+
+`SteadyBarcode` ne rend un code qu'à la seconde lecture d'accord, puis se tait. Cette ligne s'exécute donc une fois par scan, sur l'image même qui a porté l'accord. Capturer plus tôt — à chaque image — coûterait une conversion trente fois par seconde ; plus tard, l'`ImageProxy` est déjà refermé, puisqu'il **doit** l'être pour ne pas bloquer le flux.
+
+**CameraX ne redresse pas la trame d'analyse.** `toBitmap()` rend les pixels du capteur ; `imageInfo.rotationDegrees` s'applique à la main, sans quoi l'image figée est couchée alors que celle qu'on vient de quitter ne l'était pas — l'écran se mettrait à mentir sur ce qu'il a lu, exactement le contraire du but.
+
+### Le `Bitmap` appartient à la surface qui l'a produit
+
+La réponse évidente — le mettre dans `ScanUiState` — coûterait la seule chose que cet écran ait de vérifiable : `ScanViewModel` cesserait d'être éprouvable sur la JVM, ce que [D66](#d66--la-modale-de-scan-et-les-trois-modes-de-saisie-réunis-dans-le-graphe---validée) avait acheté en gardant la permission dehors. Il vit donc dans `CameraSession`, à l'intérieur de `:integration:scanner`. L'écran ne sait pas qu'une trame existe, et `:domain` encore moins.
+
+**Écarté.** *Le tenir dans le `:feature`, sous la composable* : le module deviendrait responsable d'un objet dont il ne sait ni quand il naît ni quand il meurt. *Le rendre survivant à une rotation*, par `rememberSaveable` ou par le `ViewModel` : plusieurs mégaoctets dans l'état sauvé, pour une image qui n'a de sens que le temps d'une issue.
+
+### Une seule règle gouverne la caméra : elle tourne tant que rien n'est figé
+
+Deux signaux qui diraient la même chose — l'état de l'écran et la confirmation du décodeur — finiraient par ne plus être d'accord, et la caméra resterait allumée derrière une issue ou éteinte devant un viseur. La reprise reste ce que [D66](#d66--la-modale-de-scan-et-les-trois-modes-de-saisie-réunis-dans-le-graphe---validée) avait posé : `resumeKey`, un compteur et non un booléen, parce que rescanner le **même** produit doit remarcher. Ouvrir et rouvrir sont désormais littéralement le même chemin.
+
+**Sans trame, on ne fige rien.** Une conversion peut échouer ; l'écran retombe alors sur le comportement d'avant, aperçu qui tourne. Délier la caméra sans avoir d'image à mettre à la place donnerait un rectangle noir, la seule chose pire que l'aperçu qui bouge.
+
+### Ce que ça coûte, écrit ici pour ne pas être découvert
+
+**Une rotation d'écran perd la trame et rallume l'aperçu.** L'activité est recréée, la composable avec elle, tandis que l'état de recherche survit dans le `ViewModel` : on se retrouve avec une caméra vivante derrière un « Produit inconnu ». L'écran reste utilisable et « Scanner à nouveau » repart normalement. Le corriger demanderait soit de faire survivre le `Bitmap`, soit de donner à la caméra un second maître — les deux choses que cette décision refuse. C'est un geste rare sur un écran qu'on tient contre un emballage.
+
+**Conséquences.** La trame est réduite à 720 px sur le côté long, ce qui la plafonne à un mégaoctet et demi ; c'est un budget de pixels et non une valeur de style, il vit donc dans le module et non dans `:core:designsystem`, comme les 1024 px de l'image envoyée à un modèle vivent dans [02](02-parcours-et-ecrans.md#modale--photo). L'écouteur de ML Kit s'exécute sur le fil principal faute d'exécuteur donné, et c'est ce qui rend légal d'y délier la caméra. `BarcodeAnalyzer` gagne un `close()` : le client natif est maintenant retenu pour toute la vie de l'écran, le refermer est la contrepartie. **Une règle nouvelle s'éprouve sur la JVM** — la réduction, dans `frameScale` — et un quatrième cas a été **retiré** : « une trame exactement à la borne » ne bougeait sous aucune des deux règles défaites, parce que 720 ⁄ 720 vaut 1 avec ou sans la garde. Un test qui ne tombe jamais n'est pas une sécurité.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

@@ -120,10 +120,12 @@ Décodage continu par ML Kit sur le flux CameraX. Formats acceptés : EAN-13, EA
 
 La règle a **deux** moitiés, et la seconde est celle qu'on oublie : deux lectures d'accord écartent la lecture douteuse, la pause empêche la rafale. Une lecture que la clé de contrôle refuse ne compte pas et **casse la suite** — deux codes valides séparés par une lecture fausse n'ont pas été lus consécutivement ([D65](11-decisions.md#d65--le-décodeur-est-un-module-à-part-et-sa-seule-règle-tient-sur-la-jvm---validée)).
 
+**L'aperçu se fige sur la trame qui a porté la lecture**, dès la confirmation, et la caméra s'arrête. Ce n'est pas la couper : l'image reste, elle cesse de bouger. C'est ce qui dit *ce que* l'appareil a lu, et ce qui permet de juger le cadrage quand la lecture n'aboutit à rien — l'image reste donc affichée sous les deux issues d'échec, jusqu'à la reprise ([D69](11-decisions.md#d69--laperçu-se-fige-sur-la-trame-qui-a-porté-la-lecture---validée)).
+
 Séquence après lecture :
 
 1. Recherche dans le catalogue local → si trouvé, affichage immédiat, aucun réseau.
-2. Sinon, appel Open Food Facts avec un état de chargement inline (pas de dialogue bloquant).
+2. Sinon, appel Open Food Facts avec un état de chargement inline (pas de dialogue bloquant), en surimpression de la trame figée.
 3. Fiche trouvée → écran de validation, pré-rempli avec la portion de l'emballage si l'information existe, sinon 100 g.
 
 **Produit introuvable.** Le cas est fréquent et doit rester agréable. L'écran affiche le code lu et trois issues : *Créer cet aliment* (formulaire pré-rempli avec le code-barres, la fiche est enregistrée en local et réutilisable indéfiniment), *Chercher par nom* (bascule vers la recherche), *Annuler*.

@@ -30,10 +30,14 @@ internal sealed interface ScanUiState {
      * Le code est lu, on cherche.
      *
      * Distinct de [Scanning] parce que l'attente doit se voir — mais **en surimpression
-     * et sans dialogue** : [docs/02][parcours] veut un chargement inline, et couper
-     * l'aperçu ferait croire que la caméra a lâché.
+     * et sans dialogue** : [docs/02][parcours] veut un chargement inline.
+     *
+     * L'aperçu ne disparaît pas pour autant : il se **fige** sur la trame qui vient
+     * d'être lue ([D69][decisions]). Figer n'est pas couper — l'image reste, elle
+     * cesse seulement de bouger, et c'est elle qui dit *ce que* l'appareil a lu.
      *
      * [parcours]: docs/02-parcours-et-ecrans.md
+     * [decisions]: docs/11-decisions.md
      */
     data object Looking : ScanUiState
 
