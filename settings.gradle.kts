@@ -107,3 +107,10 @@ include(":integration:openfoodfacts")
 // vue. Le module fournit la surface et le decodage ; l'ecran garde le reste.
 include(":integration:scanner")
 include(":feature:scan")
+
+// Tranche 6. La reconnaissance par photo ou par description.
+//
+// Six fournisseurs derriere un seul port, et un parseur commun : le modele rend du
+// JSON qu'il entoure parfois de texte, et cette tolerance est la seule regle du
+// module qui s'eprouve sans reseau.
+include(":integration:ai")

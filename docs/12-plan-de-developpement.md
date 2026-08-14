@@ -193,6 +193,10 @@ Enfin la suggestion « Chercher dans Open Food Facts », dernière dette de [D50
 
 **Piège** : un `when` sur le fournisseur ailleurs que dans la fabrique. C'est le signal que l'abstraction a fui.
 
+> **En cours.** Le contrat de reconnaissance et son parseur ([D72](11-decisions.md#d72--le-contrat-de-reconnaissance-et-un-parseur-qui-ne-croit-pas-le-modèle-sur-parole---validée)) : la partie qui s'éprouve entièrement sur la JVM, livrée avant tout réseau — le même ordre que la tranche 5, où le client a précédé l'écran. Trois signatures de [05](05-ia.md) n'ont pas survécu au contact du code des tranches 1 à 5, et un neuvième cas d'erreur est apparu.
+
+Le reste de la tranche, dans l'ordre où il se livrera : les six fournisseurs et leur fabrique, le prompt en asset et l'intercepteur de redaction ; le `NutritionResolver` et la colonne `density` que [D64](11-decisions.md#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée) attendait ; les clés en `EncryptedSharedPreferences` avec le bouton **Tester** et le compteur de coût ; les deux écrans de saisie ; enfin la contribution à Open Food Facts ([D70](11-decisions.md#d70--contribuer-à-open-food-facts-entre-en-tranche-6-parce-que-la-couverture-nest-pas-la-même-partout---validée)).
+
 **La contribution n'est pas là par affinité de sujet.** Elle est là parce que le `NutritionResolver` apporte `density`, donc la première fiche Open Food Facts qui se consulte, donc le premier écran d'où elle puisse s'offrir — le même que celui qu'attend `user_edited_fields` depuis [D64](11-decisions.md#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée). Trois points restent ouverts et sont écrits en [D70](11-decisions.md#d70--contribuer-à-open-food-facts-entre-en-tranche-6-parce-que-la-couverture-nest-pas-la-même-partout---validée) : compte ou anonyme, ce qu'on envoie d'une fiche partielle, et la forme du consentement — c'est la première écriture sortante de l'application.
 
 ---
