@@ -43,15 +43,11 @@ interface FoodStore {
      * est un registre d'événements, et supprimer un aliment aujourd'hui ne peut pas
      * effacer ce qu'on a mangé il y a six mois ([D05][decisions]).
      *
+     * Combien d'entrées seront ainsi détachées se demande à [FoodCitations], qui est
+     * un port distinct : ce catalogue ne connaît pas le journal, et un port qui
+     * prétend le contraire ne peut être doublé qu'en trichant ([D71][decisions]).
+     *
      * [decisions]: docs/11-decisions.md
      */
     suspend fun delete(id: FoodId)
-
-    /**
-     * Combien d'entrées de journal citent cette fiche.
-     *
-     * Sert à prévenir avant de supprimer : la question qu'on pose alors — « elle est
-     * utilisée dans 12 entrées » — est celle à laquelle ce compte répond.
-     */
-    suspend fun usageCount(id: FoodId): Int
 }

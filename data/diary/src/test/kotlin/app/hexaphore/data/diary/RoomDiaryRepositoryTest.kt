@@ -3,8 +3,9 @@ package app.hexaphore.data.diary
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.hexaphore.core.database.HexaphoreDatabase
+import app.hexaphore.core.database.entity.FoodEntity
 import app.hexaphore.core.testing.FixedClock
-import app.hexaphore.domain.diary.DiaryRepository
+import app.hexaphore.domain.food.FoodId
 import org.junit.After
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -31,15 +32,47 @@ class RoomDiaryRepositoryTest : DiaryContract() {
     @After
     fun fermer() = bases.forEach { it.close() }
 
-    override fun journal(): DiaryRepository {
+    override fun open(): OpenJournal {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val base = Room
             .inMemoryDatabaseBuilder(context, HexaphoreDatabase::class.java)
             .build()
             .also(bases::add)
 
-        return RoomDiaryRepository(dao = base.diaryDao(), clock = FixedClock(MAINTENANT))
+        return OpenJournal(
+            diary = RoomDiaryRepository(dao = base.diaryDao(), clock = FixedClock(MAINTENANT)),
+            citations = RoomFoodCitations(base.foodCitationsDao()),
+            // La cle etrangere de food_entry.food_id refuse une citation vers rien :
+            // la fiche doit exister avant le plat qui la cite.
+            givenFood = { base.foodDao().upsert(fiche(it)) },
+        )
     }
+
+    /** La fiche la plus dépouillée que la table accepte : seul son identifiant compte ici. */
+    private fun fiche(id: FoodId) = FoodEntity(
+        id = id.value,
+        source = "CUSTOM",
+        sourceRef = null,
+        name = id.value,
+        nameSearch = id.value,
+        brand = null,
+        kcal100 = null,
+        protein100 = null,
+        carb100 = null,
+        sugar100 = null,
+        fat100 = null,
+        fiber100 = null,
+        saturatedFat100 = null,
+        salt100 = null,
+        defaultServingG = null,
+        isLiquid = null,
+        fetchedAt = null,
+        lastUsedAt = null,
+        useCount = 0,
+        isFavorite = false,
+        createdAt = MAINTENANT.toEpochMilli(),
+        updatedAt = MAINTENANT.toEpochMilli(),
+    )
 
     private companion object {
         val MAINTENANT: Instant = Instant.parse("2026-08-10T10:00:00Z")

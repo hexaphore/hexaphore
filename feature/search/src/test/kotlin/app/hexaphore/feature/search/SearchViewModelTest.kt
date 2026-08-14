@@ -3,6 +3,7 @@ package app.hexaphore.feature.search
 import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodCategory
+import app.hexaphore.domain.food.FoodCitations
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodSource
 import app.hexaphore.domain.food.FoodTrait
@@ -196,8 +197,7 @@ class SearchViewModelTest {
 
     @Test
     fun `supprimer une fiche demande confirmation et dit ce qu elle coute`() = runTest(dispatcher) {
-        val viewModel = collecting()
-        catalogue.usages = mapOf(RIZ.id to 12)
+        val viewModel = collecting(citations = FoodCitations { 12 })
 
         viewModel.onDeleteRequested(RIZ)
         advanceUntilIdle()
@@ -427,8 +427,21 @@ class SearchViewModelTest {
 
     // --- Outillage ------------------------------------------------------------
 
-    private fun viewModel(distant: ProductSearch = ProductSearch { _, _ -> ProductResults.Unreachable }) =
-        SearchViewModel(catalogue, catalogue, catalogue, distant, catalogue)
+    /**
+     * Les citations sont un **bouchon**, et c'est la bonne division du travail.
+     *
+     * Ce que ce `ViewModel` doit prouver est qu'il demande le compte et le transmet ;
+     * que ce compte suive vraiment le journal est une propriété du port, et elle est
+     * éprouvée là où les deux implémentations tournent côte à côte — `DiaryContract`
+     * ([D71][decisions]). Un faux qui se contenterait d'une carte posée à la main
+     * **à la place** d'un contrat serait le défaut d'origine.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    private fun viewModel(
+        distant: ProductSearch = ProductSearch { _, _ -> ProductResults.Unreachable },
+        citations: FoodCitations = FoodCitations { 0 },
+    ) = SearchViewModel(catalogue, catalogue, catalogue, citations, distant, catalogue)
 
     /**
      * Un `ViewModel` dont l'état est collecté.
@@ -437,8 +450,8 @@ class SearchViewModelTest {
      * cet abonnement, tous les tests verraient la valeur initiale et passeraient
      * pour de mauvaises raisons.
      */
-    private fun TestScope.collecting(): SearchViewModel {
-        val viewModel = viewModel()
+    private fun TestScope.collecting(citations: FoodCitations = FoodCitations { 0 }): SearchViewModel {
+        val viewModel = viewModel(citations = citations)
         backgroundScope.collect(viewModel)
         advanceUntilIdle()
         return viewModel

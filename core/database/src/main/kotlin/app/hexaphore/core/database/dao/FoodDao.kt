@@ -88,8 +88,4 @@ interface FoodDao {
 
     @Query("DELETE FROM food WHERE id = :id")
     suspend fun delete(id: String)
-
-    /** Combien d'entrées de journal citent cet aliment, pour prévenir avant de supprimer. */
-    @Query("SELECT COUNT(*) FROM food_entry WHERE food_id = :id")
-    suspend fun usageCount(id: String): Int
 }

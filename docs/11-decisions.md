@@ -1490,6 +1490,46 @@ Trois questions, écrites ici pour ne pas être improvisées :
 
 ---
 
+## D71 — Le compte des citations quitte le catalogue, parce qu'un faux ne peut pas l'inventer · ✓ validée
+
+**Contexte.** La dette ouverte en [D64](#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée), et le dernier endroit du dépôt où le faux s'autorisait à être plus indulgent que le vrai. `FoodStore.usageCount` comptait de vraies lignes de journal côté Room ; côté faux, il lisait `InMemoryFoodCatalog.usages`, une carte qu'un test posait à la main. La forme exacte que [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée) proscrit, et par laquelle quatre défauts sont passés.
+
+### Ce n'était pas un mauvais faux, c'était un port mal placé
+
+Un catalogue ne connaît pas le journal. Tant que le compte vivait sur `FoodStore`, **aucun faux honnête n'était possible** : la seule source dont `InMemoryFoodCatalog` dispose est sa réserve de fiches, où le nombre de citations n'existe pas. Son propre KDoc l'admettait.
+
+C'est le diagnostic qui compte, et il se généralise : **un port qui ne peut pas être doublé honnêtement est un port mal placé.** La correction n'est donc pas d'améliorer le faux mais de déplacer le port là où la donnée se dérive.
+
+`FoodCitations` est un port du catalogue dont l'adaptateur vit dans `:data:diary` — la seule inversion de ce genre du projet, et elle est écrite dans [06](06-architecture.md#i--ségrégation-des-interfaces) pour ne pas passer pour un rangement approximatif.
+
+### Ce que le déplacement a rendu **énonçable**
+
+Avant, `usageCount` n'était couvert par **aucun** contrat, et il ne pouvait pas l'être : `FoodCatalogContract` n'a aucun moyen d'écrire dans le journal. La propriété qui compte — *noter un plat fait monter le compte* — n'était écrivable nulle part.
+
+Adossé au journal, il rejoint `DiaryContract` et cette phrase devient un cas, joué sur les deux implémentations côte à côte. C'est le gain réel : pas un faux plus fidèle, une propriété qui existe.
+
+**Écarté.** *Donner au faux du catalogue une référence vers le faux du journal* : le vrai catalogue n'en a pas, et la dépendance n'aurait existé que dans le double — c'est-à-dire encore une asymétrie, mieux cachée. *Laisser le compte sur `FoodStore` et lui écrire un contrat à part* : il aurait fallu que ce contrat sache écrire des entrées, donc dépende du journal, donc soit le contrat du journal sous un autre nom.
+
+### Un DAO d'une seule requête, et le seuil n'y est pour rien
+
+La requête interroge `food_entry` pour répondre d'une fiche : elle n'appartient franchement ni à `FoodDao` ni à `DiaryDao`. Le seuil de fonctions a posé la question — `DiaryDao` est à dix, un de plus échoue — mais la réponse ne vient pas de lui : une classe pour une requête **nomme la couture** au lieu de la cacher, comme `RoomBarcodeLookup` pour `source_ref` en [D64](#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée).
+
+### Une asymétrie qui reste, et qu'on écrit
+
+`food_entry.food_id` porte une clé étrangère : Room refuse une citation vers une fiche absente, le faux l'accepte. Le contrat contourne en faisant exister la fiche avant le plat, ce qui est ce que l'application fait de toute façon ([D50](#d50--ce-que-la-tranche-3-ne-construit-pas---validée)). **Le faux ne tient donc pas cette contrainte-là**, et il ne le peut pas sans se donner un catalogue. C'est écrit ici plutôt que découvert : aucun cas de contrat n'exerçait `foodId` avant celui-ci, et la clé étrangère n'était vérifiée nulle part.
+
+### Cinq cas écrits, quatre gardés
+
+Les cinq règles ont été défaites une à une. Chaque cas gardé tombe sous une défaite qui lui est propre : *noter un plat fait monter le compte* et *deux lignes comptent deux* sous un compteur aveugle au journal — l'ancien faux, exactement — et sous la confusion avec `food.use_count`, qui existe et porte presque le même nom ; *une ligne qui cite une autre fiche ne compte pas* sous un compteur qui ne filtre plus ; *supprimer le plat fait redescendre le compte* sous un compte mémorisé au premier appel, et sous elle seule.
+
+**« Une fiche que rien ne cite compte zéro » n'a bougé sous aucune des cinq**, et il est retiré. C'est le deuxième cas retiré pour cette raison en deux livraisons ; un test qui ne tombe jamais n'est pas une sécurité, c'est une ligne verte de plus.
+
+Une défaite n'a même pas compilé : Room refuse une requête dont le paramètre nommé ne sert pas. La couverture ne vient pas toujours d'un test.
+
+**Conséquences.** `FoodStore` perd une fonction et redevient ce que son nom annonce — l'écriture du catalogue. `SearchViewModel` prend un port de plus et son test un **bouchon**, ce qui est la bonne division : le `ViewModel` doit prouver qu'il demande le compte et le transmet, le contrat prouve que ce compte suit le journal. `InMemoryFoodCatalog.usages` disparaît. `HexaphoreDatabase` gagne un septième DAO, sans changer de version : aucune table ne bouge, la requête déménage.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

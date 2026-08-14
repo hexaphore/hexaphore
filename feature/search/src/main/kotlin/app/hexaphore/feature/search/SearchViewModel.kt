@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.hexaphore.domain.food.FavoriteFoods
 import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodCategory
+import app.hexaphore.domain.food.FoodCitations
 import app.hexaphore.domain.food.FoodFilter
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodSearch
@@ -58,6 +59,7 @@ internal class SearchViewModel @Inject constructor(
     private val foodSearch: FoodSearch,
     private val favorites: FavoriteFoods,
     private val store: FoodStore,
+    private val citations: FoodCitations,
     private val productSearch: ProductSearch,
     recentFoods: RecentFoods,
 ) : ViewModel() {
@@ -228,7 +230,7 @@ internal class SearchViewModel @Inject constructor(
      */
     fun onDeleteRequested(food: Food) {
         viewModelScope.launch {
-            val used = runCatching { store.usageCount(food.id) }.getOrDefault(0)
+            val used = runCatching { citations.count(food.id) }.getOrDefault(0)
             pendingDeletion.value = FoodDeletion(food, used)
         }
     }

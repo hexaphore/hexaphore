@@ -2,8 +2,10 @@ package app.hexaphore.di
 
 import app.hexaphore.data.diary.RoomDiaryRepository
 import app.hexaphore.data.diary.RoomFavoriteDishes
+import app.hexaphore.data.diary.RoomFoodCitations
 import app.hexaphore.domain.diary.DiaryRepository
 import app.hexaphore.domain.diary.FavoriteDishes
+import app.hexaphore.domain.food.FoodCitations
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -43,4 +45,18 @@ object DiaryModule {
      */
     @Provides
     fun favoriteDishes(store: RoomFavoriteDishes): FavoriteDishes = store
+
+    /**
+     * Le compte des citations, fourni ici alors que c'est un port du **catalogue**.
+     *
+     * Ce n'est pas un rangement approximatif : le compte se dérive des entrées de
+     * journal, et son adaptateur vit dans ce module pour que le contrat du journal
+     * puisse l'éprouver — écrire un plat, puis constater que le compte a bougé. Il a
+     * vécu sur le catalogue, où le faux ne pouvait l'exposer qu'en carte posée à la
+     * main ([D71][decisions]).
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    @Provides
+    fun foodCitations(citations: RoomFoodCitations): FoodCitations = citations
 }

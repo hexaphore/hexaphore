@@ -140,10 +140,12 @@ interface     FavoriteFoods   { fun observeFavorites(): Flow<List<Food>>
                                 suspend fun setFavorite(id: FoodId, favorite: Boolean) }
 interface     FoodStore       { suspend fun place(food: Food): Food
                                 suspend fun save(food: Food): FoodId
-                                suspend fun delete(id: FoodId)
-                                suspend fun usageCount(id: FoodId): Int }
+                                suspend fun delete(id: FoodId) }
 interface     FoodUsage       { suspend fun remember(foods: Collection<Food>, at: Instant) }
+fun interface FoodCitations   { suspend fun count(id: FoodId): Int }
 ```
+
+**`FoodCitations` est un port du catalogue dont l'adaptateur vit dans `:data:diary`**, et c'est la seule inversion de ce genre du projet. Le compte se dérive des entrées de journal ; l'avoir laissé sur `FoodStore` obligeait son faux à exposer une carte posée à la main, là où Room comptait de vraies lignes. Un port qui ne peut pas être doublé honnêtement est un port mal placé ([D71](11-decisions.md#d71--le-compte-des-citations-quitte-le-catalogue-parce-quun-faux-ne-peut-pas-linventer---validée)).
 
 `BarcodeLookup` existe depuis la tranche 5, et **il a son propre adaptateur** : c'est la seule lecture du catalogue qui ait à savoir que `source_ref` range deux espaces de noms dans une même colonne ([D64](11-decisions.md#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée)). **Il ne se confond pas avec `ProductSource`**, le port distant qui interroge Open Food Facts : le catalogue local répond en quelques millisecondes ou ne répond pas, l'autre demande le réseau et rend trois issues — trouvé, inconnu, injoignable — dont aucune n'est une exception ([D63](11-decisions.md#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée)). Les deux se lisent dans cet ordre, et c'est ce qui rend le deuxième scan instantané.
 
