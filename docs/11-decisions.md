@@ -1462,6 +1462,34 @@ Deux signaux qui diraient la même chose — l'état de l'écran et la confirmat
 
 ---
 
+## D70 — Contribuer à Open Food Facts entre en tranche 6, parce que la couverture n'est pas la même partout · ✓ validée
+
+**Contexte.** Mesuré sur l'API : Open Food Facts compte **1 257 548 produits en France** contre **10 911 en Thaïlande** — États-Unis 950 725, Allemagne 420 711, Japon 42 808, Indonésie 8 616, Viêt Nam 1 545. La base est collaborative : sa couverture suit les contributeurs, pas les marchés.
+
+### Le chiffre déplace le repli, pas la fonctionnalité
+
+La décision par défaut n° 13 classait la contribution hors v1, et [01](01-perimetre.md#hors-v1) la range dans « excellente idée, vrai travail ». Les deux raisonnaient sur un utilisateur pour qui le produit absent est l'exception. Pour un utilisateur hors d'Europe, **c'est le cas courant** : le chemin de repli — créer la fiche à la main en gardant son code-barres — devient la route principale, et chaque saisie reste alors sur un seul téléphone. C'est la même quantité de travail humain, dépensée une fois par personne au lieu d'une fois pour toutes.
+
+`FoodContributionTarget` était déjà défini sans implémentation ([04](04-sources-de-donnees.md#produit-absent)) : ce qui change ici n'est pas la conception, c'est l'échéance.
+
+### Tranche 6 et non plus tard, parce que c'est là que l'écran existe
+
+C'est l'argument décisif, et il n'est pas de priorité mais de lieu. La tranche 6 apporte le `NutritionResolver`, donc `density`, donc la première fois qu'une fiche Open Food Facts a **un écran où vivre** — le même écran d'où un bouton « contribuer » a un sens. [D64](#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée) avait déjà noté que `user_edited_fields` attendait ce même écran. Programmer la contribution en tranche 7 ou 8 la séparerait de la seule surface qui la rend offrable.
+
+**Écarté.** *L'acter maintenant et la livrer plus tard* : une chose repoussée avec un argument fort se repousse deux fois, et la tranche 6 est celle qui construit son point d'accroche. *La laisser hors v1* : le constat de couverture ne se dément pas, et le refus reviendrait à décider que l'application est faite pour l'Europe.
+
+### Ce qui reste ouvert, et qui se tranchera dans la tranche
+
+Trois questions, écrites ici pour ne pas être improvisées :
+
+- **Compte ou anonyme.** Open Food Facts accepte les deux ; une contribution anonyme est acceptée mais signalée, et ses contributeurs la relisent. Un compte demande un identifiant à saisir dans les réglages, donc un secret de plus à ranger — `EncryptedSharedPreferences` arrive de toute façon dans cette tranche pour les clés d'IA.
+- **Ce qu'on envoie.** Une fiche saisie à la main porte un nom, un code-barres et six valeurs. Ce n'est pas une fiche Open Food Facts complète, et envoyer du partiel est un choix à assumer plutôt qu'un défaut.
+- **Le consentement.** Rien ne part sans un geste explicite. C'est une écriture sortante, la première de l'application, et [01](01-perimetre.md#contraintes-fermes) n'en prévoit aucune.
+
+**Conséquences.** [12](12-plan-de-developpement.md#tranche-6---je-photographie-ou-je-décris-) gagne la contribution dans son contenu et un critère de fin. La décision par défaut n° 13 est **remplacée par celle-ci** et sa ligne le dit. [04](04-sources-de-donnees.md#produit-absent) cesse d'écrire que l'interface n'aura aucune implémentation. Rien n'est construit à ce stade : c'est une décision d'échéance, prise pour que la tranche 6 la trouve écrite au lieu de la reposer.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.
@@ -1477,7 +1505,7 @@ Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la sp
 | 9 | Plats favoris | Oui, réutilisables en un tap | [07](07-modele-de-donnees.md) |
 | 10 | Saisie dans le futur | Non — aujourd'hui et passé uniquement | [02](02-parcours-et-ecrans.md) |
 | 12 | Sucres | Sucres totaux, en plafond OMS 10 % | [03](03-nutrition-calculs.md#sucres) |
-| 13 | Contribution à Open Food Facts | Hors v1, interface prévue | [04](04-sources-de-donnees.md#produit-absent) |
+| 13 | Contribution à Open Food Facts | ⊘ **remplacée par [D70](#d70--contribuer-à-open-food-facts-entre-en-tranche-6-parce-que-la-couverture-nest-pas-la-même-partout---validée)** — elle entre en tranche 6 | [04](04-sources-de-donnees.md#produit-absent) |
 | 14 | Quantité par défaut au scan | Portion de l'emballage, sinon 100 g | [02](02-parcours-et-ecrans.md) |
 | 15 | Fournisseurs d'IA | Gemini, OpenAI, Anthropic, DeepSeek, Mistral + compatible | [05](05-ia.md#fournisseurs) |
 | 17 | Compteur de coût | Oui, estimation locale datée | [05](05-ia.md#coût) |

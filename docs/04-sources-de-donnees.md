@@ -153,7 +153,9 @@ Rafraîchissement : proposé, jamais imposé, sur une fiche de plus de 90 jours 
 
 Environ 1 produit sur 10 en France, davantage sur les marques régionales et les produits frais. Le parcours est décrit en [02](02-parcours-et-ecrans.md#modale--scan-de-code-barres) ; l'essentiel est que l'aliment créé à la main conserve son code-barres, et devient donc scannable comme n'importe quel autre.
 
-**Point d'extension prévu** : contribuer la fiche à Open Food Facts. L'interface `FoodContributionTarget` est définie dès la v1 et n'a aucune implémentation — c'est un contrat, pas du code mort, et il documente l'intention.
+**Ce « 1 sur 10 » est un chiffre français, et il ne voyage pas.** Mesuré sur l'API : 1 257 548 produits en France, 950 725 aux États-Unis, 420 711 en Allemagne, 42 808 au Japon, **10 911 en Thaïlande**, 8 616 en Indonésie, 1 545 au Viêt Nam. La base est collaborative : sa couverture suit les contributeurs, pas les marchés. Hors d'Europe, le produit absent n'est plus l'exception mais le cas courant, et la création manuelle cesse d'être un repli pour devenir la route principale.
+
+**Contribuer la fiche à Open Food Facts** est ce qui empêche alors chaque saisie de rester sur un seul téléphone. `FoodContributionTarget` est défini dès la v1 ; son implémentation arrive en **tranche 6**, avec le premier écran où une fiche Open Food Facts se consulte — donc le premier d'où elle peut s'offrir ([D70](11-decisions.md#d70--contribuer-à-open-food-facts-entre-en-tranche-6-parce-que-la-couverture-nest-pas-la-même-partout---validée)).
 
 ---
 

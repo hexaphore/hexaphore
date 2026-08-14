@@ -165,7 +165,9 @@ C'est le vrai premier jalon : à la fin de cette tranche, **l'application est ut
 
 Enfin la suggestion « Chercher dans Open Food Facts », dernière dette de [D50](11-decisions.md#d50--ce-que-la-tranche-3-ne-construit-pas---validée) : une recherche **par nom**, offerte en dernière ligne de résultats et déclenchée sur un tap ([D67](11-decisions.md#d67--la-recherche-par-nom-se-demande-et-la-date-appartient-à-celui-qui-récupère---validée)).
 
-> **Ce qui n'a jamais tourné.** L'aperçu caméra, la permission, la lampe, le décodage, le premier appel réel à Open Food Facts, et les migrations 3 → 4, 4 → 5 et 5 → 6 sur une base peuplée. Cette tranche n'est **pas terminée** au sens de la définition ci-dessus tant qu'un `installDebug` **par-dessus** ne l'a pas confirmé.
+> **Ce qui a tourné sur appareil.** Le scan de bout en bout : caméra, permission, décodage, appel réel à Open Food Facts, mise en cache, et création manuelle d'un produit absent reconnu au scan suivant. Deux défauts d'affichage y ont été trouvés et corrigés — une surimpression illisible ([D68](11-decisions.md#d68--un-voile-est-une-surface-et-il-reste-sombre-dans-les-deux-thèmes---validée)) et un aperçu qui continuait de tourner sous elle ([D69](11-decisions.md#d69--laperçu-se-fige-sur-la-trame-qui-a-porté-la-lecture---validée)) ; aucun des deux n'était visible autrement qu'en tenant le téléphone.
+
+> **Ce qui n'a jamais tourné.** Les migrations 3 → 4, 4 → 5 et 5 → 6 **sur une base peuplée** — elles n'ont tourné que sous Robolectric, et ne s'éprouvent qu'en installant **par-dessus**. La suggestion « Chercher dans Open Food Facts » et sa liste distante ([D67](11-decisions.md#d67--la-recherche-par-nom-se-demande-et-la-date-appartient-à-celui-qui-récupère---validée)). Les écrans de [D59](11-decisions.md#d59--le-profil-se-corrige-et-le-verrou-survit-au-recalcul---en-partie-remplacée-par-d60) à [D62](11-decisions.md#d62--un-favori-est-un-modèle-vivant-et-létoile-est-son-seul-interrupteur---validée) : réglages profil, menu contextuel, étoile, liste des favoris. Enfin les deux corrections ci-dessus, qui ne se jugent que sur l'appareil, **en thème sombre et clair**. Cette tranche n'est **pas terminée** au sens de la définition ci-dessus tant qu'un `installDebug` **par-dessus** ne l'a pas confirmé.
 
 ---
 
@@ -176,6 +178,7 @@ Enfin la suggestion « Chercher dans Open Food Facts », dernière dette de [D50
 - `:integration:ai` : `FoodRecognizer`, `RecognitionInput` en `Photo | Text`, les six implémentations.
 - Prompt versionné dans les assets, parseur tolérant, `NutritionResolver`.
 - Clés dans `EncryptedSharedPreferences`, intercepteur de redaction, compteur de coût.
+- Première implémentation de `FoodContributionTarget` ([D70](11-decisions.md#d70--contribuer-à-open-food-facts-entre-en-tranche-6-parce-que-la-couverture-nest-pas-la-même-partout---validée)).
 
 **Terminé quand**
 
@@ -184,8 +187,11 @@ Enfin la suggestion « Chercher dans Open Food Facts », dernière dette de [D50
 - Ajouter un septième fournisseur ne demande qu'une classe et une entrée d'énumération.
 - Un test prouve que le fichier temporaire est supprimé, y compris quand l'appel échoue.
 - Aucune clé n'apparaît dans les journaux, en debug comme en release.
+- Une fiche saisie à la main **peut** être reversée à Open Food Facts, et rien ne part sans un geste explicite.
 
 **Piège** : un `when` sur le fournisseur ailleurs que dans la fabrique. C'est le signal que l'abstraction a fui.
+
+**La contribution n'est pas là par affinité de sujet.** Elle est là parce que le `NutritionResolver` apporte `density`, donc la première fiche Open Food Facts qui se consulte, donc le premier écran d'où elle puisse s'offrir — le même que celui qu'attend `user_edited_fields` depuis [D64](11-decisions.md#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée). Trois points restent ouverts et sont écrits en [D70](11-decisions.md#d70--contribuer-à-open-food-facts-entre-en-tranche-6-parce-que-la-couverture-nest-pas-la-même-partout---validée) : compte ou anonyme, ce qu'on envoie d'une fiche partielle, et la forme du consentement — c'est la première écriture sortante de l'application.
 
 ---
 
