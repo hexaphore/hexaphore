@@ -1530,6 +1530,45 @@ Une défaite n'a même pas compilé : Room refuse une requête dont le paramètr
 
 ---
 
+## D72 — Le contrat de reconnaissance, et un parseur qui ne croit pas le modèle sur parole · ✓ validée
+
+**Contexte.** Le premier tiers de la tranche 6 : le port que les six fournisseurs implémenteront, et le parseur qu'ils partageront. Aucun réseau, aucun écran — c'est la partie qui s'éprouve entièrement sur la JVM, et [10](10-qualite-et-livraison.md#ce-qui-doit-être-couvert-sans-exception) en écrivait déjà les cas obligatoires avant qu'une ligne n'existe.
+
+### Trois écarts avec [05](05-ia.md), dont deux que le code d'aujourd'hui imposait
+
+`docs/05` a été écrit avant les tranches 1 à 5. Trois de ses signatures ne survivent pas au contact.
+
+**`EstimatedUnit` et non `QuantityUnit`.** Le journal a déjà un `QuantityUnit` depuis [D42](#d42--une-ligne-de-brouillon-porte-des-valeurs-absolues---par-défaut) : un type fermé qui **porte un poids en grammes**, pour qu'une ligne de l'an dernier reste relisible sans sa fiche. Celui du modèle n'en porte aucun — « un bol » ne pèse rien tant que le résolveur n'a pas décidé ce que pèse un bol. Deux types de même nom auraient fini par se rencontrer dans une signature, et le compilateur n'aurait rien dit d'utile. Le second s'appelle donc `EstimatedUnit`, ce que son rôle décrit mieux : c'est un **vocabulaire d'estimation**, et le convertir est le travail de [04](04-sources-de-donnees.md#conversion-des-quantités).
+
+**`RecognitionOutcome` et non `Result<Recognition>`.** `kotlin.Result` exige une `Throwable` en échec ; `AiError` aurait dû devenir une exception. Or ces issues sont **attendues** — un quota épuisé n'est pas un accident de programmation — et [06](06-architecture.md) § L interdit qu'un port en lève une. C'est exactement le raisonnement de [D63](#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée) pour `ProductSource`, et la deuxième fois qu'il tranche de la même façon : la forme est donc celle de `ProductLookup`.
+
+**`Photo` n'est pas une `data class`.** Une `data class` qui porte un `ByteArray` fabrique une égalité fausse — elle compare les références du tableau, donc deux photos identiques ne sont jamais égales et une même photo l'est toujours. Personne n'a besoin de comparer des photos ; personne ne doit croire qu'il le peut.
+
+### Un neuvième cas d'erreur : « rien reconnu » n'est pas « illisible »
+
+`docs/05` promet « jamais de liste vide silencieuse » sans dire ce qui arrive à la place. `Unparseable` aurait menti : la réponse était parfaitement lisible, elle ne contenait rien. Et les deux n'invitent pas au même geste — une réponse illisible se réessaie telle quelle, une assiette que le modèle n'a pas su lire se rephotographie ou se décrit.
+
+C'est la troisième fois que le projet sépare deux issues qu'un seul cas confondrait, après `Unknown`/`Unreachable` en [D63](#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée) et les quatre états de la recherche distante en [D67](#d67--la-recherche-par-nom-se-demande-et-la-date-appartient-à-celui-qui-récupère---validée). La règle se répète assez pour être nommée : **deux issues qui appellent des gestes différents sont deux cas.**
+
+### « Le premier bloc équilibré » devient « le premier bloc qui se décode »
+
+L'étape 1 de `docs/05` prend le premier bloc `[...]` ou `{...}` équilibré. Une phrase d'introduction qui contient une accolade — *« voici l'analyse (format {label, quantité}) : [...] »* — détourne alors la lecture vers quelque chose qui n'est pas du JSON, et une réponse valide est déclarée illisible. Les blocs sont donc essayés dans l'ordre jusqu'au premier qui rend un tableau ; la paresse d'une `Sequence` rend le coût nul dans le cas courant, où le premier est le bon.
+
+**Le retrait des clôtures Markdown disparaît de la liste** : il ne servait à rien. Une extraction par blocs équilibrés ignore déjà tout ce qui entoure le JSON, trois accents graves compris.
+
+**Les délimiteurs dans une chaîne ne comptent pas.** Un libellé contenant un crochet solitaire couperait sinon le tableau en deux. Ce n'est pas théorique au point d'être négligeable : c'est le genre de faute qui ne se produit qu'en production, sur un libellé qu'on n'avait pas imaginé.
+
+### Ce que les défaites ont appris
+
+Quatorze règles défaites, seize cas, et **tous tombent** sous au moins une défaite — pas de test à retirer cette fois. Deux résultats méritent d'être écrits :
+
+- **Un cas ne mesurait pas ce qu'il annonçait.** « Un crochet dans un libellé ne referme pas le tableau » utilisait `pain [complet]` — un crochet **équilibré**, dont le compte revient au même qu'on regarde les chaînes ou non. Le test passait avec et sans la règle. Corrigé par un crochet solitaire, il tombe. C'est la même forme que les trois cas témoins de la tranche 5 : un test qui décrit la bonne intention avec la mauvaise donnée.
+- **Une défaite n'a rien fait tomber, et c'est un renseignement.** Faire aller un bloc non refermé jusqu'au bout du texte, au lieu de le déclarer perdu, ne change aucune issue observable : le reste ne se décode pas davantage. Ce choix n'est donc pas porteur, et aucun test ne doit prétendre le tenir.
+
+**Conséquences.** `:integration:ai` naît avec son parseur et rien d'autre — les six fournisseurs, le prompt en asset et l'intercepteur de redaction viennent ensuite. Le module est un `:integration` et non un `:data` pour la raison habituelle : on n'y décide ni le schéma ni la disponibilité. Le port vit dans `app.hexaphore.domain.ai`, un dixième paquet du domaine, parce que la reconnaissance n'est ni le journal ni le catalogue — elle produit du texte que le second devra résoudre.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.
