@@ -1569,6 +1569,42 @@ Quatorze règles défaites, seize cas, et **tous tombent** sous au moins une dé
 
 ---
 
+## D73 — La portion de la fiche l'emporte sur le forfait, et la densité attend son auteur · ✓ validée
+
+**Contexte.** La charnière entre ce que le modèle estime — « un bol de céréales » — et ce que le journal enregistre, qui n'est que des grammes. C'est la première moitié du résolveur de [04](04-sources-de-donnees.md#conversion-des-quantités), et la seule qui ne dépende ni d'une clé d'API ni d'une recherche.
+
+### Le tableau de [04](04-sources-de-donnees.md#conversion-des-quantités) se trompe d'un facteur six sur un bol de céréales
+
+`BOWL → 250 g` y est écrit à plat. Or `servings.csv` porte déjà **« 1 bol » à 40 g** pour un aliment et **50 g** pour un autre : ce sont des céréales, et un bol de céréales ne pèse pas un quart de kilo. Le forfait n'est pas faux en général, il est faux dès que la fiche sait mieux.
+
+La règle devient donc une seule, appliquée à toutes les unités nommées — tranche, bol, verre, cuillère à soupe, cuillère à café : **la portion nommée de la fiche gagne, le forfait est un repli.** Le tableau de `docs/04` ne réservait cette clause qu'à `PIECE` et `SLICE` ; l'étendre supprime un cas particulier au lieu d'en ajouter un.
+
+**L'assiette n'a pas de branche**, et c'est le seul creux volontaire : une assiette n'est pas une propriété de l'aliment, donc aucune fiche ne peut la mesurer. Un test le tient — une fiche qui porte « 1 portion » ne doit pas faire croire qu'elle a mesuré une assiette.
+
+### Les deux cuillères ne se confondent pas
+
+« cuillère à soupe » contient « cuillère ». Une comparaison sur le seul mot commun rendrait la première portion trouvée pour les deux unités — un facteur trois sur du miel ou de l'huile. Le libellé cherché porte donc le mot entier, et un cas l'éprouve sur une fiche qui porte les deux.
+
+La comparaison passe par `SearchText.normalise`, celle de l'index de recherche : c'est ce qui fait que « 1 cuillère à soupe » se reconnaît dans `cuillere a soupe`. Une seconde règle de normalisation aurait divergé de la première le jour où l'une apprend les ligatures et l'autre non — le raisonnement qui a placé `SearchText` dans `:domain`.
+
+### La densité est un paramètre, pas une colonne — [D64](#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée) s'applique à elle aussi
+
+[D64](#d64--le-cache-prend-date-et-un-code-barres-ne-traverse-pas-deux-espaces-de-noms---validée) annonçait `density` « avec le résolveur ». Le résolveur est là, et la colonne ne vient pas — parce que la règle de D64 est *« est-ce que l'information se perd si on ne la note pas maintenant ? »*, et que **rien ne l'écrirait**. CIQUAL ne publie pas de densité, Open Food Facts pas davantage, et les trois valeurs de [04](04-sources-de-donnees.md#conversion-des-quantités) — 1,04 jus, 1,03 lait, 0,92 huile — ne se rattachent à aucune fiche sans deviner à partir du nom, c'est-à-dire sans faire exactement ce que ce projet refuse de faire en silence.
+
+La densité est donc un **paramètre** de la conversion, nul partout aujourd'hui. Un millilitre pèse un gramme, et se signale comme une supposition. Le jour où une source arrive — un `densities.csv` sur le modèle de `servings.csv`, ou un champ d'Open Food Facts — la règle est déjà juste et la colonne naît avec son auteur.
+
+**Écarté.** *Ajouter la colonne maintenant* : elle serait nulle sur les 3 484 lignes, et une migration ne se défait pas. *Classer par le nom* : « jus de citron » n'a pas la densité d'un jus d'orange, et une règle qui se trompe sans le dire est pire que 1,00 assumé.
+
+### Ce que le drapeau porte
+
+`ConvertedQuantity.guessed` tient la phrase de [04](04-sources-de-donnees.md#conversion-des-quantités) : *« toute conversion appuyée sur un défaut plutôt que sur une donnée réelle est signalée »*. Deux états suffisent, et chaque cas s'y range sans reste — une portion de fiche et une quantité d'emballage sont des données, un forfait n'en est pas une. Un forfait multiplié par une densité connue reste une supposition : c'est le 15 g qui est inventé, pas la densité.
+
+**Conséquences.** `app.hexaphore.domain.resolution` naît avec la conversion et rien d'autre ; la recherche de candidats et le repli IA suivront. Onze règles ont été défaites, quatorze cas, **tous tombent** — dont celui du bol, qui ne tient que parce que le forfait a cessé d'être une règle. Deux seuils de detekt ont forcé un découpage : le `when` des neuf unités passait la complexité cyclomatique tant que cinq branches portaient leur propre `?:`, et le type de retour a pris son fichier.
+
+**Trois arbitrages pour la suite de la tranche, tranchés et notés ici pour ne pas être rejoués** : les deux boutons IA restent **visibles et grisés** sans clé, comme [02](02-parcours-et-ecrans.md#modale--photo) et la décision par défaut n° 19 le demandent — `NeonButtonAvailability.UNAVAILABLE` n'existe que pour ce cas ; le modèle par défaut est **`claude-opus-5`** ; et les appels passent par **Retrofit**, comme Open Food Facts, pour que les six fournisseurs partagent une seule pile et un seul intercepteur de redaction.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

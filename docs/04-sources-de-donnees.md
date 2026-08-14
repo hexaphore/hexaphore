@@ -211,6 +211,10 @@ BOWL   → 250 g               PLATE → 350 g       GLASS → 200 g × densité
 
 Toute conversion appuyée sur un défaut plutôt que sur une donnée réelle est signalée dans l'écran de validation. L'utilisateur doit voir quand l'application devine.
 
+**Ces forfaits ne sont qu'un repli : la portion nommée de la fiche l'emporte toujours.** Le tableau ci-dessus ne réservait cette clause qu'à `PIECE` et `SLICE`, et il se trompait — `servings.csv` porte « 1 bol » à **40 g** pour des céréales, contre les 250 g du forfait. La règle vaut pour toutes les unités nommées : tranche, bol, verre, cuillère à soupe, cuillère à café. L'assiette est la seule exception, et c'est volontaire — elle n'est pas une propriété de l'aliment, donc aucune fiche ne peut la mesurer ([D73](11-decisions.md#d73--la-portion-de-la-fiche-lemporte-sur-le-forfait-et-la-densité-attend-son-auteur---validée)).
+
+**La densité n'est pas une colonne de `food`.** Aucune source ne la publie — CIQUAL ne la donne pas, Open Food Facts pas davantage — et les trois valeurs ci-dessus ne se rattachent à une fiche qu'en devinant à partir de son nom. Elle est donc un paramètre de la conversion, nul aujourd'hui : un millilitre pèse un gramme, et le dit. La colonne naîtra avec ce qui l'écrira, un `densities.csv` sur le modèle de `servings.csv` étant le candidat le plus simple.
+
 ---
 
 ## Licences et obligations
