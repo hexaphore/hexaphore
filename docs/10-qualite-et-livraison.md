@@ -181,6 +181,22 @@ Il n'y a pas d'émulateur dans l'environnement de développement assisté : `./g
 
 **Installer par-dessus, sans désinstaller d'abord**, quand la modification touche une migration Room ou la copie de `ciqual.db` : ces deux chemins ne s'éprouvent que sur une base déjà présente, et une désinstallation les rend intestables jusqu'à ce qu'un journal soit reconstruit à la main.
 
+### Lire la base de l'appareil
+
+Une migration qui « passe » n'est prouvée que par la base d'après. Il n'y a pas de `sqlite3` sur un téléphone du commerce ; on rapatrie le fichier et on l'ouvre ici.
+
+**`adb shell` corrompt le binaire, `adb exec-out` non.** Sous Windows, `adb shell run-as … cat base.db > fichier` traduit les fins de ligne : le fichier arrive plus **gros** que l'original — 92 octets de trop sur 143 Ko dans le cas constaté — et SQLite répond `database disk image is malformed`. On cherche alors une migration cassée qui n'existe pas. La bonne forme :
+
+```bash
+adb exec-out run-as app.hexaphore.debug cat databases/hexaphore.db > hexaphore.db
+```
+
+**Rapatrier aussi le `-wal`**, sinon on lit un état antérieur au dernier lancement.
+
+Ce qu'on regarde ensuite, dans l'ordre où ça informe : `PRAGMA user_version` — c'est la version Room —, `PRAGMA integrity_check`, le nombre de lignes par table, puis **les index**, qu'aucune validation Room ne vérifie ([D60](11-decisions.md#d60--un-objectif-est-calculé-ou-saisi-et-on-consulte-avant-de-corriger---validée), [D62](11-decisions.md#d62--un-favori-est-un-modèle-vivant-et-létoile-est-son-seul-interrupteur---validée)).
+
+**Ce qui dit quelles migrations ont vraiment tourné** n'est pas la version d'arrivée mais **l'âge des lignes**. Une base recréée de zéro arrive en version courante sans avoir migré quoi que ce soit. Comparer la plus ancienne `created_at` à la date du commit qui a introduit chaque `VERSION` nomme la chaîne exacte que ces données ont traversée — et `firstInstallTime` de `dumpsys package` dit depuis quand l'application est là.
+
 ---
 
 ## Intégration continue
