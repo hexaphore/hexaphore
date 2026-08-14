@@ -5,6 +5,7 @@ import app.hexaphore.core.database.HexaphoreDatabase
 import app.hexaphore.core.database.ciqual.CiqualDatabase
 import app.hexaphore.core.database.dao.DiaryDao
 import app.hexaphore.core.database.dao.FavoriteDishDao
+import app.hexaphore.core.database.dao.FoodCitationsDao
 import app.hexaphore.core.database.dao.FoodDao
 import app.hexaphore.core.database.dao.FoodMarksDao
 import app.hexaphore.core.database.dao.GoalDao
@@ -41,6 +42,9 @@ object DatabaseModule {
 
     @Provides
     fun foodMarksDao(database: HexaphoreDatabase): FoodMarksDao = database.foodMarksDao()
+
+    @Provides
+    fun foodCitationsDao(database: HexaphoreDatabase): FoodCitationsDao = database.foodCitationsDao()
 
     @Provides
     fun profileDao(database: HexaphoreDatabase): ProfileDao = database.profileDao()

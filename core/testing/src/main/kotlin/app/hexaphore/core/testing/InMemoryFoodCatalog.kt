@@ -37,6 +37,12 @@ import java.time.Instant
  * [failure] reproduit une base illisible. Sans lui, la seule façon d'éprouver ce cas
  * serait de corrompre une vraie base.
  *
+ * **Le compte des citations n'est plus ici.** Il y exposait une carte posée à la
+ * main pendant que Room comptait de vraies lignes de journal, et c'était le dernier
+ * endroit du dépôt où le faux s'autorisait à être plus indulgent que le vrai. Il est
+ * devenu un port à part, adossé au journal des deux côtés — voir [FoodCitations] et
+ * [D71][decisions].
+ *
  * [decisions]: docs/11-decisions.md
  */
 class InMemoryFoodCatalog(
@@ -121,11 +127,6 @@ class InMemoryFoodCatalog(
         failIf(failure)
         foods.value = foods.value - id
     }
-
-    /** Les entrees de journal ne sont pas ici : c est [InMemoryDiaryRepository] qui les tient. */
-    var usages: Map<FoodId, Int> = emptyMap()
-
-    override suspend fun usageCount(id: FoodId): Int = usages[id] ?: 0
 
     override suspend fun remember(foods: Collection<Food>, at: Instant) {
         failIf(failure)

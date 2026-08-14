@@ -142,8 +142,6 @@ class RoomFoodCatalog @Inject constructor(
 
     override suspend fun delete(id: FoodId) = withContext(dispatchers.io) { dao.delete(id.value) }
 
-    override suspend fun usageCount(id: FoodId): Int = withContext(dispatchers.io) { dao.usageCount(id.value) }
-
     override suspend fun remember(foods: Collection<Food>, at: Instant) = withContext(dispatchers.io) {
         foods.forEach { food ->
             // La fiche n'est ecrite que si elle est absente : reecrire une fiche

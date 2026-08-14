@@ -47,7 +47,10 @@ Ce n'est pas une élégance. Quatre défauts livrés avaient la même forme — 
 |---|---|---|
 | `FoodCatalogContract` | `FoodSearch`, `FoodLookup`, `RecentFoods`, `FavoriteFoods`, `FoodStore`, `FoodUsage` | `:data:food` |
 | `ProfileStoreContract` | `Profiles`, `WeightLog`, `Goals` | `:data:profile` |
-| `DiaryContract` | `DiaryRepository` | `:data:diary` |
+| `DiaryContract` | `DiaryRepository`, `FoodCitations` | `:data:diary` |
+| `FavoriteDishContract` | `FavoriteDishes` | `:data:diary` |
+
+**Un port qui ne peut pas être doublé honnêtement est un port mal placé.** `FoodCitations` est arrivé dans `DiaryContract` par ce chemin : il vivait sur `FoodStore`, donc sur un catalogue qui ne connaît pas le journal, et son faux ne pouvait qu'exposer une carte posée à la main. Le déplacer là où la donnée se dérive n'a pas seulement rendu le faux honnête — cela a rendu la propriété **énonçable** : « noter un plat fait monter le compte » n'était écrivable dans aucun des deux contrats précédents ([D71](11-decisions.md#d71--le-compte-des-citations-quitte-le-catalogue-parce-quun-faux-ne-peut-pas-linventer---validée)).
 
 **Ils vivent dans le module de l'adaptateur, pas dans `:core:testing`** : c'est ce qui fait compiler et exécuter les deux implémentations sous la même commande. Placés dans `:core:testing`, ils n'auraient jamais vu Room.
 

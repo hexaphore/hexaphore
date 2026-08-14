@@ -7,6 +7,8 @@ import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.diary.EntryId
 import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.diary.FoodEntry
+import app.hexaphore.domain.food.FoodCitations
+import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.nutrition.Macros
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -36,8 +38,36 @@ import java.time.LocalDate
  * [decisions]: docs/11-decisions.md
  */
 abstract class DiaryContract {
-    /** Le journal sous test, vide. Tout ce que les cas contiennent y entre par le port. */
-    protected abstract fun journal(): DiaryRepository
+    /**
+     * Le journal sous test, vide, **et ce qui s'y adosse**.
+     *
+     * Trois choses au même stockage, parce que la propriété qui compte pour
+     * [FoodCitations] est un lien : ce qu'on écrit d'un côté doit se compter de
+     * l'autre. Deux fabriques séparées rendraient ce lien indémontrable.
+     */
+    protected abstract fun open(): OpenJournal
+
+    /** Le journal seul, pour les cas qui ne regardent pas les citations. */
+    protected fun journal(): DiaryRepository = open().diary
+
+    /**
+     * Un journal ouvert : le port, son compteur, et de quoi faire exister une fiche.
+     */
+    protected class OpenJournal(
+        val diary: DiaryRepository,
+        val citations: FoodCitations,
+        /**
+         * Fait exister la fiche citée.
+         *
+         * Room le **doit** : `food_entry.food_id` porte une clé étrangère, et une
+         * citation vers rien est refusée. Le faux n'a pas de catalogue, donc rien à
+         * faire — asymétrie que ce contrat ne peut pas résorber, et qui est écrite
+         * en [D71][decisions] plutôt que cachée.
+         *
+         * [decisions]: docs/11-decisions.md
+         */
+        val givenFood: suspend (FoodId) -> Unit,
+    )
 
     // --- Lire une journée -------------------------------------------------------
 
@@ -283,6 +313,83 @@ abstract class DiaryContract {
      * un objet que le faux accepte sans broncher et que la base refuse. C'est ce
      * contrat qui l'a mis au jour, en écrivant précisément cette fixture-là.
      */
+    // --- Combien d'entrées citent une fiche -------------------------------------
+
+    @Test
+    fun `noter un plat fait monter le compte`() = runBlocking {
+        // La propriete que l'ancien faux ne pouvait pas tenir : il lisait une carte
+        // posee a la main, que rien n'obligeait a suivre le journal. C'est le cas
+        // pour lequel ce port a ete separe du catalogue (D71).
+        val ouvert = open()
+        ouvert.givenFood(PAIN_COMPLET)
+
+        ouvert.diary.save(repasCitant(LUNDI, listOf(PAIN_COMPLET)))
+
+        assertEquals(1, ouvert.citations.count(PAIN_COMPLET))
+    }
+
+    @Test
+    fun `deux lignes du meme repas comptent deux`() = runBlocking {
+        // Des entrees, pas des plats : « utilisee dans 2 entrees » est ce que la
+        // phrase affichee annonce avant une suppression.
+        val ouvert = open()
+        ouvert.givenFood(PAIN_COMPLET)
+
+        ouvert.diary.save(repasCitant(LUNDI, listOf(PAIN_COMPLET, PAIN_COMPLET)))
+
+        assertEquals(DEUX_LIGNES, ouvert.citations.count(PAIN_COMPLET))
+    }
+
+    @Test
+    fun `une ligne qui cite une autre fiche ne compte pas`() = runBlocking {
+        val ouvert = open()
+        ouvert.givenFood(PAIN_COMPLET)
+        ouvert.givenFood(SAUCE_TOMATE)
+
+        ouvert.diary.save(repasCitant(LUNDI, listOf(SAUCE_TOMATE)))
+
+        assertEquals(0, ouvert.citations.count(PAIN_COMPLET))
+    }
+
+    @Test
+    fun `supprimer le plat fait redescendre le compte`() = runBlocking {
+        // Le compte se relit, il ne se retient pas : une valeur memorisee au premier
+        // appel passerait les quatre cas precedents et mentirait a partir d'ici.
+        val ouvert = open()
+        ouvert.givenFood(PAIN_COMPLET)
+        ouvert.diary.save(repasCitant(LUNDI, listOf(PAIN_COMPLET)))
+        assertEquals(1, ouvert.citations.count(PAIN_COMPLET))
+
+        ouvert.diary.deleteDish(PLAT)
+
+        assertEquals(0, ouvert.citations.count(PAIN_COMPLET))
+    }
+
+    /**
+     * Un repas dont chaque ligne cite la fiche donnée, dans l'ordre.
+     *
+     * Une liste et non un `vararg` : [FoodId] est une `value class`, que Kotlin
+     * refuse en paramètre variadique.
+     */
+    private fun repasCitant(date: LocalDate, cites: List<FoodId>) = Dish(
+        id = PLAT,
+        date = date,
+        source = EntrySource.MANUAL,
+        loggedAt = MATIN,
+        entries = cites.mapIndexed { rang, fiche ->
+            FoodEntry(
+                id = EntryId("${PLAT.value}-ligne$rang"),
+                dishId = PLAT,
+                foodId = fiche,
+                displayName = "Ligne $rang",
+                quantity = 100.0,
+                unit = "g",
+                grams = 100.0,
+                macros = Macros(kcal = 100.0, protein = 1.0, carbs = 1.0, sugars = 1.0, fat = 1.0, fiber = 1.0),
+            )
+        },
+    )
+
     private fun petitDejeuner(
         date: LocalDate,
         plat: DishId = PLAT,
@@ -333,6 +440,9 @@ abstract class DiaryContract {
         const val SAUCE = "-sauce"
         val LIGNE = EntryId("${PLAT.value}$PAIN")
         val SANS_FIBRES = EntryId("${PLAT.value}$SAUCE")
+
+        val PAIN_COMPLET = FoodId("fiche-pain-complet")
+        val SAUCE_TOMATE = FoodId("fiche-sauce-tomate")
 
         const val DEUX_LIGNES = 2
     }
