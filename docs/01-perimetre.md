@@ -59,7 +59,7 @@ Adulte en bonne santé qui suit son alimentation pour une raison personnelle : p
 | Micronutriments (vitamines, minéraux) | Le modèle de données les accueille déjà ; c'est l'interface qui n'est pas prête à afficher trente compteurs sans devenir illisible. |
 | Sucres ajoutés | La donnée n'existe quasiment pas, ni dans Open Food Facts ni dans CIQUAL. Afficher un compteur vide à 95 % serait pire que ne rien afficher. |
 | Suivi de l'exercice, import de podomètre | Le niveau d'activité couvre 90 % du besoin. Une intégration Health Connect est une fonctionnalité à part entière. |
-| Contribution de produits à Open Food Facts | Excellente idée, vrai travail : photos, champs obligatoires, compte OFF, gestion des conflits. Un point d'extension est prévu (voir [04](04-sources-de-donnees.md)). |
+| ~~Contribution de produits à Open Food Facts~~ | **Rentrée dans le périmètre**, en tranche 6 ([D70](11-decisions.md#d70--contribuer-à-open-food-facts-entre-en-tranche-6-parce-que-la-couverture-nest-pas-la-même-partout---validée)). Le travail reste réel — compte OFF, champs obligatoires, conflits — mais la couverture d'Open Food Facts s'effondre hors d'Europe : 10 911 produits en Thaïlande contre 1 257 548 en France. Là-bas, la saisie manuelle est la route principale, et ne pas la reverser condamne chaque utilisateur à la refaire seul. |
 | Partage social, communauté, défis | Hors intention. |
 | iOS, Wear OS, widget | Le widget est le premier candidat pour la v1.1. |
 | Codes-barres de restaurants, menus de chaînes | Dépend de bases commerciales. |
