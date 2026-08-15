@@ -1,9 +1,8 @@
-package app.hexaphore.data.food
+package app.hexaphore.domain.food
 
-import app.hexaphore.domain.food.Food
-import app.hexaphore.domain.food.FoodId
-import app.hexaphore.domain.food.FoodSource
 import app.hexaphore.domain.nutrition.NutrientValues
+import app.hexaphore.domain.resolution.MatchVerdict
+import app.hexaphore.domain.resolution.verdictFor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -87,6 +86,60 @@ class FoodRankingTest {
         val b = ciqual("Riz basmati, cru")
 
         assertEquals(FoodRanking.sort(listOf(a, b), "riz"), FoodRanking.sort(listOf(b, a), "riz"))
+    }
+
+    // --- La confiance, et ce qu'elle décide ---------------------------------------
+
+    @Test
+    fun `la confiance conserve exactement l ordre du score`() {
+        // La propriete qui rend la consolidation gratuite : l'ecran de recherche trie
+        // par score, le resolveur decide par confiance, et les deux ne peuvent pas se
+        // contredire tant que la transformation est strictement croissante. Sans
+        // elle, un candidat classe premier pourrait etre celui que le resolveur
+        // refuse.
+        val candidats = listOf(
+            POMME_DE_TERRE,
+            POMME,
+            ciqual("Compote de pommes"),
+            ciqual("Jus de pomme", useCount = 3),
+        )
+
+        assertEquals(
+            candidats.sortedByDescending { FoodRanking.score(it, "pomme") },
+            candidats.sortedByDescending { FoodRanking.confidence(it, "pomme") },
+        )
+    }
+
+    @Test
+    fun `un nom exact se remplit tout seul`() {
+        assertEquals(MatchVerdict.AUTOMATIC, verdictFor(FoodRanking.confidence(ciqual("Miel"), "miel")))
+    }
+
+    @Test
+    fun `un prefixe seul demande une relecture`() {
+        val riz = ciqual("Riz blanc, cuit")
+
+        assertEquals(MatchVerdict.REVIEW, verdictFor(FoodRanking.confidence(riz, "riz")))
+    }
+
+    @Test
+    fun `le meme prefixe sur un aliment deja mange se remplit tout seul`() {
+        // Le sens du x1,5 de docs/04 : une ressemblance moyenne sur un aliment
+        // familier vaut mieux que la meme sur un inconnu, et le poids doit pouvoir
+        // faire franchir le seuil. Meme fiche, meme requete que le cas precedent :
+        // seul l'usage les separe.
+        val riz = ciqual("Riz blanc, cuit", useCount = 12)
+
+        assertEquals(MatchVerdict.AUTOMATIC, verdictFor(FoodRanking.confidence(riz, "riz")))
+    }
+
+    @Test
+    fun `un mot perdu dans un long libelle ne donne aucune correspondance`() {
+        // « pomme » ne doit pas se resoudre en silence sur une compote de pommes et
+        // de poires : le mot y est, mais pas comme mot, et le libelle est long.
+        val compote = ciqual("Compote de pommes et de poires, allégée en sucres, préemballée")
+
+        assertEquals(MatchVerdict.NONE, verdictFor(FoodRanking.confidence(compote, "pomme")))
     }
 
     private fun ciqual(name: String, useCount: Int = 0) = Food(

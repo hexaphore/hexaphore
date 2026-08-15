@@ -194,6 +194,10 @@ Le produit de marque est délibérément dévalorisé : « riz » doit tomber su
 - **0,40 – 0,75** → meilleur candidat retenu, mais la ligne est signalée et propose jusqu'à 3 alternatives ;
 - < **0,40** → aucune correspondance, on passe à l'étape 4.
 
+**Le score de ces seuils est celui de `FoodRanking`, ramené dans `[0, 1]`** — c'est le même que celui qui trie les résultats de recherche, et non un second juge écrit à côté ([D74](11-decisions.md#d74--un-seul-score-pour-trier-et-pour-décider-et-le-tri-nen-bouge-pas---validée)). Les poids de l'étape 2 entrent donc dans la décision, comme cette page le veut : « Riz blanc, cuit » sur « riz » vaut 0,69 — relecture — et 0,77 dès qu'on l'a déjà mangé, donc automatique. Une confiance égale à un seuil appartient au verdict du haut.
+
+Ces deux valeurs datent de la conception et **n'ont été calibrées contre rien**. Ce qui les rend exploitables est l'échelle : elle est réglée pour qu'un nom exact passe et qu'un simple préfixe ne passe pas seul. De vraies reconnaissances diront s'il faut les bouger.
+
 **4. Repli IA.** Toutes les lignes non résolues partent en **un seul second appel** groupé, qui demande une estimation des macros pour 100 g. Le résultat est marqué `source = AI_ESTIMATE`, porte un badge distinct dans l'interface, et n'est jamais versé au catalogue partagé — c'est une estimation, pas une référence.
 
 Sans clé API valide à ce moment-là, la ligne est présentée à zéro avec une invitation à la compléter ou à la remplacer.

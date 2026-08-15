@@ -1605,6 +1605,38 @@ La densité est donc un **paramètre** de la conversion, nul partout aujourd'hui
 
 ---
 
+## D74 — Un seul score pour trier et pour décider, et le tri n'en bouge pas · ✓ validée
+
+**Contexte.** La seconde moitié du résolveur commence par une question que [04](04-sources-de-donnees.md#résolution--du-texte-de-lia-à-un-aliment) ne pose pas : les seuils de décision — 0,75 et 0,40 — s'appliquent à un score, et **aucun score n'existait**. `FoodSearch` rend une liste classée, pas notée.
+
+### Les poids de [04](04-sources-de-donnees.md#résolution--du-texte-de-lia-à-un-aliment) étaient déjà implémentés, ailleurs
+
+`FoodRanking`, écrit pour l'écran de recherche, porte exactement les quatre poids que l'étape « candidats » réclame : ×1,5 pour ce qu'on mange, ×1,3 pour un aliment personnel, ×1,0 pour la table de l'ANSES, ×0,8 pour un produit de marque. L'étape 2 du résolveur était donc faite sans qu'on l'ait su — mais dans `:data:food`, en `internal`, et sur une échelle qui va de 0,24 à 4,7.
+
+**Un seul score, et non deux.** Écrire une seconde règle de ressemblance à côté aurait mis deux juges sur le même couple (nom, requête) : l'utilisateur aurait vu un candidat classé premier que le résolveur refuse, et personne n'aurait su lequel des deux avait tort. `FoodRanking` monte donc dans `:domain` et devient public — le raisonnement de `FoodFilter` en [D54](#d54--un-bandeau-de-rayons-et-deux-familles-qui-ne-se-combinent-pas-pareil---validée) : une règle de ce que l'utilisateur voit se teste sur la JVM.
+
+### La consolidation ne coûte rien, parce que la transformation est monotone
+
+C'était le risque annoncé : ramener le score dans `[0, 1]` en le divisant par un maximum aurait changé l'ordre affiché, donc cassé un écran livré. Il n'y a pas lieu de le prendre. `s / (s + k)` est **strictement croissante** : elle conserve l'ordre de `score` exactement, égalités comprises. Le tri ne bouge pas d'un rang, et un test le tient — les deux classements, par score et par confiance, doivent rendre la même liste.
+
+`k = 0,6` place le seuil haut à un score brut de 1,8 : au-dessus d'une correspondance par préfixe, qui vaut 1,1 à 1,4 sur un libellé de l'ANSES, et en dessous d'une égalité de nom, qui en vaut 2,7 à 3,5. **Un nom exact suffit, un préfixe ne suffit pas seul.** Déplacer `k` déplace les deux seuils ensemble, ce qui est la bonne façon de recalibrer le jour où de vraies reconnaissances diront où ils devraient être — ils viennent de la conception et n'ont été calibrés contre rien.
+
+### Le poids peut faire franchir le seuil, et c'est le sens du ×1,5
+
+Arbitré plutôt que déduit : les poids entrent dans la confiance, pas seulement dans le tri. « Riz blanc, cuit » sur la requête « riz » vaut 0,69 — relecture — et 0,77 dès que l'aliment a déjà été mangé, donc automatique. Deux cas ne diffèrent que par l'usage et le montrent.
+
+C'est la lecture littérale de [04](04-sources-de-donnees.md#résolution--du-texte-de-lia-à-un-aliment), qui applique les poids au score des candidats et fait porter les seuils sur ce même score. Elle est aussi défendable en soi : une ressemblance moyenne sur un aliment qu'on mange vraiment vaut mieux que la même sur un inconnu. **Écarté** : *plafonner à 1,0*, qui aurait ajouté une borne qu'aucun document ne justifie, et *ne juger que le nom*, qui aurait rendu le ×1,5 décoratif.
+
+### Trois verdicts, et une borne qui appartient au haut
+
+`MatchVerdict` vit dans `domain.resolution` et non avec le classement : le score dit *combien*, le verdict dit *quoi en faire*. Trois issues parce que [04](04-sources-de-donnees.md#résolution--du-texte-de-lia-à-un-aliment) en veut trois — remplir, remplir en le signalant, ne rien remplir — et que les fusionner coûterait dans les deux sens : deux à deux, on ferait passer un doute pour une certitude, ou on perdrait un candidat souvent correct.
+
+Une confiance **égale** au seuil appartient au verdict du haut. Un cas le tient, parce qu'un `>` à la place d'un `>=` ne se voit pas en relecture.
+
+**Conséquences.** `FoodRanking` et son test changent de module sans changer de contenu ; `RoomFoodCatalog` gagne un import. Sept règles ont été défaites et les sept cas neufs tombent, dont celui de la monotonie — c'est lui qui transforme une consolidation risquée en refonte gratuite. La normalisation des libellés et la recherche de candidats suivent : les pluriels s'y traiteront en interrogeant d'abord le libellé brut, et seulement ensuite sa forme dépluralisée, parce que l'index de l'ANSES garde ses pluriels — 32 % de ses 3 484 libellés en portent un — et qu'une dépluralisation systématique ferait perdre « haricots verts » que la requête brute trouvait.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.
