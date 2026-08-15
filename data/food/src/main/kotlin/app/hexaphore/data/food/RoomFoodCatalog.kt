@@ -11,6 +11,7 @@ import app.hexaphore.domain.food.FoodCategory
 import app.hexaphore.domain.food.FoodFilter
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodLookup
+import app.hexaphore.domain.food.FoodRanking
 import app.hexaphore.domain.food.FoodSearch
 import app.hexaphore.domain.food.FoodSource
 import app.hexaphore.domain.food.FoodStore

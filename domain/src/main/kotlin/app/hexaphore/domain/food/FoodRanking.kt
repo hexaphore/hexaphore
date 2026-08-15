@@ -1,8 +1,4 @@
-package app.hexaphore.data.food
-
-import app.hexaphore.domain.food.Food
-import app.hexaphore.domain.food.FoodSource
-import app.hexaphore.domain.food.SearchText
+package app.hexaphore.domain.food
 
 /**
  * L'ordre dans lequel les résultats se présentent.
@@ -21,10 +17,18 @@ import app.hexaphore.domain.food.SearchText
  * Fonction pure, testée pour elle-même : c'est la seule partie de la recherche dont
  * la justesse ne se voit pas à l'œil sur un écran.
  *
+ * **Elle vit dans `:domain` et sert deux appelants.** L'écran de recherche s'en sert
+ * pour trier ; le résolveur de la tranche 6 s'en sert pour décider s'il remplit une
+ * ligne sans rien demander. Ce sont deux questions différentes, mais **un seul
+ * score** : deux règles concurrentes sur le même couple (nom, requête) auraient fini
+ * par ne plus être d'accord, et l'utilisateur aurait vu un candidat classé premier
+ * que le résolveur refuse ([D74][decisions]). Le même raisonnement que `FoodFilter`,
+ * qui est une règle de ce que l'utilisateur voit et se teste donc sur la JVM.
+ *
  * [sources]: docs/04-sources-de-donnees.md
  * [decisions]: docs/11-decisions.md
  */
-internal object FoodRanking {
+object FoodRanking {
     fun sort(foods: List<Food>, query: String): List<Food> {
         val normalised = SearchText.normalise(query)
         return foods.sortedWith(
@@ -36,6 +40,33 @@ internal object FoodRanking {
     fun score(food: Food, normalisedQuery: String): Double {
         val name = SearchText.normalise(food.name)
         return proximity(name, normalisedQuery) * brevity(name) * food.source.weight * familiarity(food)
+    }
+
+    /**
+     * Le même score, ramené dans `[0, 1[` — la seule échelle sur laquelle un seuil
+     * veut dire quelque chose.
+     *
+     * **Le tri ne bouge pas d'un rang**, et c'est ce qui rend la consolidation
+     * gratuite : `s / (s + k)` est strictement croissante, donc elle conserve l'ordre
+     * de [score] exactement, égalités comprises. Un test le tient, parce que c'est la
+     * propriété dont dépend un écran déjà livré.
+     *
+     * [SATURATION] place le seuil haut de [docs/04][sources] — 0,75 — à un score brut
+     * de 1,8 : au-dessus d'une correspondance par préfixe, qui vaut de 1,1 à 1,4 sur
+     * un libellé de l'ANSES, et en dessous d'une égalité de nom, qui en vaut 2,7 à
+     * 3,5. Autrement dit : un nom exact suffit, un préfixe ne suffit pas seul.
+     *
+     * Les poids de provenance et d'usage entrent dans ce calcul, comme
+     * [docs/04][sources] le veut : un aliment déjà mangé franchit le seuil sur un
+     * préfixe là où un inconnu ne le franchit pas. C'est le sens du ×1,5 — une
+     * ressemblance moyenne sur un aliment familier vaut mieux qu'une ressemblance
+     * moyenne sur un inconnu.
+     *
+     * [sources]: docs/04-sources-de-donnees.md
+     */
+    fun confidence(food: Food, normalisedQuery: String): Double {
+        val raw = score(food, normalisedQuery)
+        return raw / (raw + SATURATION)
     }
 
     /**
@@ -94,4 +125,13 @@ internal object FoodRanking {
 
     /** Longueur au-delà de laquelle un nom cesse d'être court. En caractères. */
     private const val REFERENCE_LENGTH = 30.0
+
+    /**
+     * Le score brut auquel la confiance vaut 0,5, et donc ce qui règle les seuils.
+     *
+     * Choisi pour que 0,75 tombe à 1,8 — voir [confidence]. Le déplacer déplace les
+     * deux seuils ensemble, ce qui est la bonne façon de recalibrer le jour où de
+     * vraies reconnaissances diront où ils devraient être.
+     */
+    private const val SATURATION = 0.6
 }
