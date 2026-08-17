@@ -175,7 +175,9 @@ Un aliment personnel utilisé dans le journal ne peut pas être supprimé sans c
 
 `NutritionResolver` applique quatre étapes.
 
-**1. Normalisation.** Minuscules, accents retirés, ponctuation supprimée, pluriels naïfs français (`-s`, `-x`, `-aux` → `-al`), articles de tête retirés (« du », « de la », « un »).
+**1. Normalisation.** Minuscules, accents retirés, ponctuation supprimée — c'est `SearchText.normalise`, la normalisation de l'index elle-même et non une seconde ([D49](11-decisions.md#d49--la-recherche-normalise-à-limport-pas-au-tokenizer---validée)) — puis **articles de tête retirés** (« du », « de la », « un »).
+
+**Les pluriels naïfs français (`-s`, `-x`, `-aux` → `-al`) ne sont pas ici**, contrairement à ce que cette liste écrivait, et la différence n'est pas de rangement. Les deux recherches sont conjonctives : le catalogue local compare une sous-chaîne entière (`LIKE '%du pain%'`) et la table de l'ANSES exige que tous les termes du `MATCH` soient présents. Un article gardé ne dégrade donc pas le classement — il rend une réponse **vide**, et doit partir tout de suite. Un pluriel, à l'inverse, est ce que l'index porte lui-même : 32 % des 3 484 libellés en contiennent un, et dépluraliser d'emblée ferait perdre « haricots verts ». La dépluralisation est donc l'objet d'un **second essai**, déclenché seulement si la première recherche n'a rien rendu ([D75](11-decisions.md#d75--la-normalisation-retire-les-articles-tout-de-suite-et-les-pluriels-seulement-en-second-recours---validée)).
 
 **2. Candidats.** Recherche FTS sur les trois sources, fusionnée, avec ces poids :
 
@@ -195,6 +197,8 @@ Le produit de marque est délibérément dévalorisé : « riz » doit tomber su
 - < **0,40** → aucune correspondance, on passe à l'étape 4.
 
 **Le score de ces seuils est celui de `FoodRanking`, ramené dans `[0, 1]`** — c'est le même que celui qui trie les résultats de recherche, et non un second juge écrit à côté ([D74](11-decisions.md#d74--un-seul-score-pour-trier-et-pour-décider-et-le-tri-nen-bouge-pas---validée)). Les poids de l'étape 2 entrent donc dans la décision, comme cette page le veut : « Riz blanc, cuit » sur « riz » vaut 0,69 — relecture — et 0,77 dès qu'on l'a déjà mangé, donc automatique. Une confiance égale à un seuil appartient au verdict du haut.
+
+**Les trois alternatives sont soumises au même seuil de 0,40** : ce sont les candidats suivants du classement que l'on retiendrait aussi, et non les trois suivants quels qu'ils soient. Proposer comme solution de rechange un candidat qu'on refuserait comme correspondance remplirait la liste de bruit ; la contrepartie est qu'elle est parfois vide ([D75](11-decisions.md#d75--la-normalisation-retire-les-articles-tout-de-suite-et-les-pluriels-seulement-en-second-recours---validée)).
 
 Ces deux valeurs datent de la conception et **n'ont été calibrées contre rien**. Ce qui les rend exploitables est l'échelle : elle est réglée pour qu'un nom exact passe et qu'un simple préfixe ne passe pas seul. De vraies reconnaissances diront s'il faut les bouger.
 
