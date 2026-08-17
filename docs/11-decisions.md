@@ -410,7 +410,7 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 
 **Elle ne change jamais.** Un plat reste éditable à la main indéfiniment, mais son origine reste ce qu'elle était : c'est un fait historique, pas un état. Sans cela, corriger une quantité sur une proposition de l'IA la ferait passer pour une saisie manuelle, et on perdrait la seule trace de ce qui a été deviné.
 
-**Ce qui disparaît.** `nutrition_source` par ligne. La distinction « ce chiffre vient de CIQUAL » contre « ce chiffre est une estimation » reste nécessaire — [05](05-ia.md#résolution) prévoit qu'un plat photographié résolve certaines lignes dans les bases et estime les autres — mais elle n'a **aucun porteur avant la tranche 6**, où le résolveur existera. La réintroduire maintenant serait une colonne que rien ne remplit. Elle reviendra sous la forme minimale qui suffit : un marqueur « estimée » par ligne, pas une seconde énumération de sources.
+**Ce qui disparaît.** `nutrition_source` par ligne. La distinction « ce chiffre vient de CIQUAL » contre « ce chiffre est une estimation » reste nécessaire — [04](04-sources-de-donnees.md#résolution--du-texte-de-lia-à-un-aliment) prévoit qu'un plat photographié résolve certaines lignes dans les bases et estime les autres — mais elle n'a **aucun porteur avant la tranche 6**, où le résolveur existera. La réintroduire maintenant serait une colonne que rien ne remplit. Elle reviendra sous la forme minimale qui suffit : un marqueur « estimée » par ligne, pas une seconde énumération de sources.
 
 **Conséquences.** `SourceBadge` se pose une fois par plat. Un contenu **proposé** — photo ou description — porte le contour en pointillés ; une recherche, un code-barres ou une saisie manuelle non. Le badge devient donc lisible : sur l'ancien écran, cinq pastilles voisines ne distinguaient plus rien.
 
@@ -1634,6 +1634,63 @@ C'est la lecture littérale de [04](04-sources-de-donnees.md#résolution--du-tex
 Une confiance **égale** au seuil appartient au verdict du haut. Un cas le tient, parce qu'un `>` à la place d'un `>=` ne se voit pas en relecture.
 
 **Conséquences.** `FoodRanking` et son test changent de module sans changer de contenu ; `RoomFoodCatalog` gagne un import. Sept règles ont été défaites et les sept cas neufs tombent, dont celui de la monotonie — c'est lui qui transforme une consolidation risquée en refonte gratuite. La normalisation des libellés et la recherche de candidats suivent : les pluriels s'y traiteront en interrogeant d'abord le libellé brut, et seulement ensuite sa forme dépluralisée, parce que l'index de l'ANSES garde ses pluriels — 32 % de ses 3 484 libellés en portent un — et qu'une dépluralisation systématique ferait perdre « haricots verts » que la requête brute trouvait.
+
+---
+
+## D75 — La normalisation retire les articles tout de suite, et les pluriels seulement en second recours · ✓ validée
+
+**Contexte.** La suite immédiate de [D74](#d74--un-seul-score-pour-trier-et-pour-décider-et-le-tri-nen-bouge-pas---validée) : le score et le verdict existaient, et **rien ne les appelait**. Cette livraison est ce qui les branche — les étapes 1 à 3 de [04](04-sources-de-donnees.md#résolution--du-texte-de-lia-à-un-aliment), depuis le libellé du modèle jusqu'à un verdict.
+
+### L'étape 1 de [04](04-sources-de-donnees.md#résolution--du-texte-de-lia-à-un-aliment) a deux moitiés qui ne se livrent pas au même endroit
+
+Elle les énumère d'un trait — minuscules, accents, ponctuation, pluriels, articles de tête — comme si c'était une seule passe. Le contact avec les deux index les sépare, et dans deux directions opposées.
+
+**Les articles partent avant la première requête, et c'est mécanique.** Les deux recherches sont **conjonctives** : le catalogue local compare une sous-chaîne entière — `name_search LIKE '%du pain%'` — et la table de l'ANSES exige que *tous* les termes du `MATCH` soient présents. « du pain » ne rend donc rien, nulle part. Un article gardé n'est pas du bruit dans le classement, comme on pourrait le croire : c'est une réponse vide.
+
+**Les pluriels, eux, ne partent qu'après un échec.** L'index de l'ANSES garde les siens — 32 % de ses 3 484 libellés en portent un, 6 % commencent par un — et dépluraliser d'emblée ferait **perdre** « haricots verts », que la requête telle qu'elle vient trouve. C'est la stratégie que [D74](#d74--un-seul-score-pour-trier-et-pour-décider-et-le-tri-nen-bouge-pas---validée) annonçait, appliquée.
+
+[04](04-sources-de-donnees.md#résolution--du-texte-de-lia-à-un-aliment) est corrigé en conséquence : son étape 1 décrivait une passe unique qui n'aurait rien trouvé.
+
+### L'ordre désarme la naïveté de la règle, et c'est le meilleur argument des deux
+
+Une dépluralisation naïve casse plus qu'elle ne répare : « pois » devient « poi », « eaux » devient « eal », et la garde de trois lettres qui sauve « jus » ne sauve ni l'un ni l'autre.
+
+C'est sans conséquence, et la raison est plus forte que les 32 % : **aucun de ces libellés n'atteint jamais la fonction**, parce que tous les trois rendent des résultats à la première requête. Une règle approximative placée derrière une garde qui ne s'ouvre qu'en cas d'échec ne peut dégrader que ce qui était déjà vide. C'est l'ordre qui rend la naïveté acceptable, pas la qualité de la règle — et c'est pourquoi une règle meilleure ne vaudrait pas sa dépendance.
+
+**Écarté.** *Une vraie racinisation* — Snowball français — : une dépendance, une table de règles, et surtout un comportement qu'**aucun des deux index ne partage**. La règle de [D49](#d49--la-recherche-normalise-à-limport-pas-au-tokenizer---validée) est que la même normalisation s'applique aux deux bouts ; raciniser la requête seule la romprait au moment précis où on croirait l'améliorer.
+
+### Le classement est refait sur la confiance, parce que le contrat ne promet pas l'autre
+
+`FoodSearch` promet que ce que l'utilisateur mange vraiment passe devant. Il ne promet pas l'ordre de `FoodRanking`, et ses deux implémentations ne l'ont effectivement pas : la vraie trie par `FoodRanking`, le faux par usage puis longueur du nom. S'appuyer sur l'ordre reçu ferait donc du résolveur une règle **qui change avec l'implémentation** — la forme exacte de défaut que [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée) proscrit, et qui n'aurait pas été visible avant l'appareil.
+
+Le tri est stable : l'ordre du port départage encore les ex æquo, ce qui coûte zéro et garde son classement là où le nôtre ne tranche pas.
+
+### Les alternatives sont filtrées par le seuil de la décision — arbitré
+
+**Question posée à Charly**, parce que [04](04-sources-de-donnees.md#résolution--du-texte-de-lia-à-un-aliment) ne la tranche pas : les trois alternatives de la zone 0,40 – 0,75 sont-elles les trois candidats suivants du classement, ou seulement ceux qui dépassent eux aussi 0,40 ? **Retenu : seulement ceux qui dépassent 0,40.** Le seuil est déjà défini comme *« en dessous, aucune correspondance »* ; proposer comme solution de rechange un candidat qu'on refuserait comme correspondance serait se contredire d'une ligne à l'autre. La contrepartie est assumée et n'est pas cachée : la liste est parfois vide, là où trois lignes à 0,15 auraient rempli l'écran.
+
+**Le filtre s'écrit « verdict autre que `NONE` » et non « ≥ 0,40 ».** Le seuil reste ainsi dans un seul fichier, et le jour de calibrage n'aura qu'un chiffre à bouger — le même raisonnement que la `SATURATION` de [D74](#d74--un-seul-score-pour-trier-et-pour-décider-et-le-tri-nen-bouge-pas---validée), un cran plus bas.
+
+Les alternatives n'existent **qu'en relecture**, comme [04](04-sources-de-donnees.md#résolution--du-texte-de-lia-à-un-aliment) l'écrit : une correspondance sûre n'a pas de rechange à offrir, une ligne non résolue n'en a aucune. Dans les deux cas, l'écran de validation reste l'endroit où l'on cherche autre chose à la main.
+
+### Un enregistrement plat, là où le projet aurait mis une hiérarchie
+
+Trois issues qui appellent trois gestes : la règle de [D72](#d72--le-contrat-de-reconnaissance-et-un-parseur-qui-ne-croit-pas-le-modèle-sur-parole---validée) demanderait un type scellé. Il n'y en a pas, et c'est parce que **`MatchVerdict` est déjà cette énumération** ([D74](#d74--un-seul-score-pour-trier-et-pour-décider-et-le-tri-nen-bouge-pas---validée)). Un `sealed interface` à côté en ferait une seconde, et deux hiérarchies pour le même fait finissent par ne plus être d'accord — c'est l'argument du score unique, appliqué au verdict.
+
+### Le nom ne promet pas la quatrième étape
+
+`ResolveFoodLabel` et non le `NutritionResolver` de [04](04-sources-de-donnees.md#résolution--du-texte-de-lia-à-un-aliment) : il en tient trois étapes sur quatre, et le repli IA groupé attend d'avoir un fournisseur à appeler. Un nom qui promet quatre étapes pour trois est une documentation fausse à l'endroit le plus difficile à corriger — dans le code.
+
+### Ce que les défaites ont appris
+
+Dix-neuf règles défaites, vingt et un cas, **tous tombent** — aucun à retirer. Deux résultats méritent d'être écrits, et le premier vaut au-delà de cette livraison.
+
+- **Un cas ne tombait que pour la mauvaise raison, et la première série de défaites ne pouvait pas le dire.** « La normalisation ne touche pas aux pluriels » tombait bien — mais sous *« les articles ne partent plus »*, c'est-à-dire sous la règle **voisine**. La défaite qui le tient vraiment est *« la normalisation dépluralise elle aussi »*, autrement dit la défaite du **choix central de cette livraison**, que la première série avait omise. C'est la même forme que le crochet équilibré de [D72](#d72--le-contrat-de-reconnaissance-et-un-parseur-qui-ne-croit-pas-le-modèle-sur-parole---validée), pour une cause différente : là, la donnée du test était mauvaise ; ici, c'est la liste des défaites qui l'était. **Un choix de conception qu'on ne pense pas à défaire est un choix dont on croit à tort les tests garants** — et c'est justement le choix qu'on est le moins enclin à défaire, puisqu'il paraît évident à celui qui vient de le prendre.
+- **Trois cas ne tombaient sous aucune des quinze premières défaites**, et les trois se tenaient par des défaites portant non sur le corps d'une règle mais sur ses **gardes** : la liste vide traitée à part, le plafond à trois, la branche du singulier. Défaire ce qu'une fonction fait est le réflexe ; défaire ce qu'elle refuse de faire ne l'est pas.
+
+**Conséquences.** `app.hexaphore.domain.resolution` gagne la normalisation et la décision à côté de la conversion de [D73](#d73--la-portion-de-la-fiche-lemporte-sur-le-forfait-et-la-densité-attend-son-auteur---validée) ; le domaine compte un dix-neuvième cas d'usage. Aucun port n'est né et aucun n'a bougé : résoudre est une lecture, et `FoodSearch` suffisait — c'est ce que son KDoc annonçait depuis [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée).
+
+**Trois choses restent ouvertes et sont écrites ici plutôt que découvertes.** Une fiche de la table de l'ANSES rendue par la résolution porte un **identifiant provisoire**, comme n'importe quel résultat de recherche : c'est `FoodStore.place` qui la rend désignable par une entrée de journal, et l'écran de validation devra l'appeler ([D51](#d51--une-seule-porte-et-la-quantité-qui-recalcule---validée)). La conversion de [D73](#d73--la-portion-de-la-fiche-lemporte-sur-le-forfait-et-la-densité-attend-son-auteur---validée) **n'est toujours appelée par rien** : elle a maintenant de quoi recevoir une fiche, mais c'est la construction du brouillon qui la déclenchera, donc les écrans de saisie. Et le repli IA groupé — l'étape 4 — reste entier.
 
 ---
 

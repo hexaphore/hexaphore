@@ -100,9 +100,13 @@ Ces règles vivent dans `build-logic/detekt-rules` et sont couvertes par leurs p
 | `TooManyFunctions` | 11 | Compté **par classe et par fichier**. Onze échoue déjà — le seuil est un maximum, pas une borne atteignable. |
 | `LongMethod` | 60 lignes | |
 | `ReturnCount` | 2 | Un `?: return` de plus fait échouer. |
+| `CyclomaticComplexMethod` | 15 | Un `when` de neuf branches y passe **dès que cinq d'entre elles portent un `?:`** : chaque elvis compte. |
+| `MatchingDeclarationName` | — | Un fichier qui contient **une seule** déclaration de type doit porter son nom. Des fonctions de premier niveau à côté ne le dispensent pas. |
 | `MagicNumber` | — | Frappe les **arguments de constructeur d'énumération** : `LIGHT(1.375)` est un constat. |
 
 **La bonne réponse à `TooManyFunctions` est de sortir du type ce qui n'est pas une capacité de l'objet**, en fonctions privées de premier niveau — c'est ce que font `RoomFoodCatalog` et `InMemoryFoodCatalog`. Relever le seuil déplace le problème d'un cran et le rend invisible au suivant.
+
+**La bonne réponse à `CyclomaticComplexMethod` n'est pas davantage de relever le seuil.** Un `when` sur une énumération est lisible à neuf branches ; ce qui coûte les points est l'elvis répété dans chacune. Sortir le repli dans une fonction nommée fait tomber le compte **et** dit ce que le repli est — c'est ce qu'a fait la conversion des quantités, où chaque `?:` était un forfait à signaler.
 
 Pour `MagicNumber` sur une énumération, la réponse est une constante de premier niveau nommée : les cinq facteurs d'`ActivityLevel` sont déclarés ainsi, et ils se retrouvent d'un coup d'œil le jour où une relecture de la littérature les fait bouger.
 
@@ -173,6 +177,10 @@ Le fichier `~/.gradle/caches/build-cache-1/<clé>` se supprime seul, sans vider 
 **`gradlew` doit rester en mode `100755` dans l'index git**, sinon la CI ne peut pas l'exécuter.
 
 **Une `value class` ne traverse pas Dagger.** Une fonction `@Provides` qui prend une classe en ligne en paramètre reçoit un nom décoré — `client-UZs_jxI` — qui n'est pas un identifiant Java valide, et la génération échoue sur `IllegalArgumentException: not a valid name`, sans nommer ni la fonction ni le type en cause. Une `data class` autour du même champ passe. Les `value class` du domaine ne sont pas concernées : elles voyagent dans des signatures, pas dans des liaisons.
+
+**Une `value class` ne peut pas non plus être un paramètre `vararg`**, `FoodId` compris — c'est le même mécanisme, un cran plus tôt. Utiliser une `List`. Le cas se rencontre surtout dans une fonction d'aide de test, là où l'on écrirait volontiers `aliments(FoodId("a"), FoodId("b"))`.
+
+**Room refuse à la compilation une requête dont un paramètre nommé ne sert pas.** C'est une bonne nouvelle mal placée : elle arrive sous la forme d'un échec de KSP au milieu d'autre chose. La rencontre typique est de **défaire** une règle pour vérifier qu'un test tombe — retirer le filtre d'une clause `WHERE` laisse son `:parametre` orphelin, et la défaite n'atteint jamais l'exécution ([D71](11-decisions.md#d71--le-compte-des-citations-quitte-le-catalogue-parce-quun-faux-ne-peut-pas-linventer---validée)). La couverture ne vient pas toujours d'un test.
 
 ### Vérifier sur un appareil
 
