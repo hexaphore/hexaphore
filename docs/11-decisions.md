@@ -1749,6 +1749,56 @@ Dix-neuf règles défaites, dix-huit cas, **tous tombent**. Deux résultats mér
 
 ---
 
+## D77 — La clé va dans le Keystore en direct, et le bouton Tester est une vraie analyse · ✓ validée
+
+**Contexte.** L'espace où l'utilisateur renseigne ses clés, et le premier écran d'où un appel réel puisse partir. C'est aussi ce qui débloque tout ce que les quatre livraisons précédentes ont construit sans appelant.
+
+### `EncryptedSharedPreferences` est dépréciée — quatrième prescription de [05](05-ia.md) à tomber
+
+[05](05-ia.md#sécurité-des-clés) prescrit `EncryptedSharedPreferences`. La bibliothèque qui la porte, `androidx.security:security-crypto`, est **dépréciée depuis juin 2025** — la 1.1.0 de juillet est sa dernière —, et son avis de dépréciation renvoie explicitement à l'usage direct du Keystore d'Android.
+
+**Arbitré par Charly : le Keystore en direct.** L'adopter aujourd'hui reviendrait à prendre une dette sur la donnée qu'on a le moins envie de migrer deux fois, et à écrire dans le même geste le code qui l'utilise et celui qui devra l'en sortir. Ce que la bibliothèque faisait tient d'ailleurs en peu de choses : une clé AES-256 en mode GCM générée dans le trousseau, et le vecteur d'initialisation préfixé au chiffré.
+
+**Écarté.** *La garder quand même* : elle fonctionne et fonctionnera encore longtemps — mais le projet a une règle sur les dépendances qu'on adopte, et « déjà dépréciée le jour de son arrivée » ne la passe pas.
+
+### Seule la clé est chiffrée, et un chiffré illisible se lit comme absent
+
+Le nom du modèle et l'URL de base ne sont pas des secrets ; les chiffrer coûterait deux déchiffrements par lecture pour protéger `claude-opus-5`. Un cas fige ce partage, sans quoi une prudence bien intentionnée l'effacerait.
+
+**La clé du trousseau disparaît pour des raisons banales** — sauvegarde restaurée sur un autre appareil, verrou d'écran retiré. Le chiffré survit alors à la clé qui l'ouvrait, et la seule lecture honnête est « il n'y a rien ici » : l'utilisateur recolle la sienne. Une chaîne vide ferait partir un appel voué au `401`, c'est-à-dire annoncerait une clé refusée là où il n'y a pas de clé.
+
+Rien à changer côté sauvegarde : `data_extraction_rules.xml` exclut déjà **tout**, y compris `sharedpref`, dans les deux sens — nuage et transfert d'appareil à appareil.
+
+### Le bouton Tester est une reconnaissance, pas un appel spécial
+
+Il envoie « un verre d'eau » par le chemin exact qu'empruntera la première photo : même prompt, même schéma, même parseur, même traduction des codes. Un appel allégé écrit pour l'occasion aurait pu réussir là où l'analyse échoue — et **un bouton qui dit oui à tort est pire que pas de bouton**.
+
+**Une réponse illisible est une réussite du sondage.** Le fournisseur a répondu, donc la clé est bonne et le modèle existe ; échouer là-dessus enverrait quelqu'un corriger une clé qui n'a rien. C'est la distinction entre « est-ce que la configuration marche » et « est-ce que cette phrase a été comprise », et elles n'ont pas la même réponse.
+
+**Il éprouve le formulaire, jamais ce qui est enregistré.** Tester après avoir écrit reviendrait à enregistrer une clé fausse pour découvrir qu'elle est fausse. C'est ce qui fait que `AiProbe` prend la configuration en paramètre au lieu de lire les réglages, et le seul cas où l'écran a besoin d'un port que le résolveur n'utilise pas.
+
+### Le hub de réglages naît, à l'échéance que [D59](#d59--le-profil-se-corrige-et-le-verrou-survit-au-recalcul---en-partie-remplacée-par-d60) avait fixée
+
+[D59](#d59--le-profil-se-corrige-et-le-verrou-survit-au-recalcul---en-partie-remplacée-par-d60) écrivait « le hub naîtra avec la deuxième section ». Elle arrive. Les trois sections restantes de [02](02-parcours-et-ecrans.md#réglages) — Sauvegarde, Apparence, À propos — n'y figurent toujours pas, pour la raison inchangée : elles n'ouvriraient rien.
+
+L'écran des fournisseurs est écrit **contre l'énumération** et non contre Anthropic. Le deuxième fournisseur y apparaîtra sans qu'une ligne d'affichage bouge — un cas le tient, en comptant les lignes affichées contre `AiProvider.entries`.
+
+### Ce que les défaites ont appris
+
+Vingt-deux règles défaites, vingt-six cas, **tous tombent**. Trois résultats méritent d'être écrits.
+
+- **Deux gardes protégeaient la même chose, et un seul cas ne pouvait pas les distinguer.** Un état incohérent — une clé illisible pour un fournisseur encore marqué actif — est rattrapé deux fois : à la lecture des préférences, et à la dérivation de la configuration. Défaire la première ne faisait rien tomber, parce que la seconde couvrait. Ce n'est pas que la première soit inutile : sans elle, l'écran annoncerait « Utilisé » à côté d'un fournisseur sans clé. Il a fallu **observer l'état affiché et pas seulement la configuration dérivée** pour que le cas ait prise. *Quand deux gardes protègent la même chose par des chemins différents, un cas qui n'en observe qu'un ne tient que celui-là.*
+- **Deux défaites n'ont fait tomber que l'implémentation en mémoire.** Oublier de retirer le fournisseur actif à l'effacement, ou activer un fournisseur non renseigné : le magasin chiffré s'en sort parce que sa lecture défensive recolle l'état avant de le rendre. Les deux honorent le contrat, par des routes différentes — l'un en n'écrivant jamais d'incohérence, l'autre en n'en relisant jamais. C'est le contrat qui rend l'asymétrie visible plutôt que subie.
+- **Un cas ne disait pas tout ce qu'il annonçait.** « Au départ, aucun fournisseur n'est configuré » n'observait que l'absence d'actif, et survivait donc à un magasin qui fabriquerait une entrée vide par fournisseur — lequel afficherait « clé enregistrée » sur une installation neuve. Il fallait aussi affirmer que la carte est vide.
+
+**Conséquences.** `:data:settings` naît — le rangement d'un secret est un problème de stockage local, pas d'adaptation à un service tiers, et le mettre dans `:integration:ai` aurait fait du module d'intégration le gardien de la clé qu'il ne fait qu'utiliser. Le domaine gagne `AiCredentials`, `ProviderCredentials`, `AiSetup` et `AiProbe` ; `AiSettings` reste la facette étroite que le résolveur voit. Le port naît **avec son contrat**, joué sur les deux implémentations — sans attendre qu'un défaut le rappelle.
+
+`DraftTextField` gagne une transformation visuelle, pour que le champ de clé se masque sans que la valeur masquée soit ce qu'on enregistre. Le faux `AiSettings { null }` de [D76](#d76--trois-prescriptions-de-docs05-tombent-au-contact-de-lapi-et-le-raisonnement-reste-actif---validée) disparaît, remplacé par une liaison réelle.
+
+**Ce que le vert ne prouve pas, et c'est beaucoup ici.** Le chiffrement lui-même n'est éprouvé par aucun test : le contrat tourne sur un chiffrement de pacotille, parce que le Keystore demande un appareil. `SecretCipher` est la couture qui rend ce partage explicite plutôt que subi — ce qui s'éprouve est le rangement, et le rangement ne dépend pas de l'algorithme. Que la clé soit illisible sur le disque et protégée par le matériel se vérifie sur le Fairphone, pas ici. **Aucun appel réel n'a encore atteint Anthropic** non plus : c'est précisément ce que cet écran rend possible pour la première fois.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

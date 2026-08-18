@@ -37,6 +37,10 @@ abstract class AiCredentialsContract {
 
         assertNull("une configuration est apparue de nulle part", magasin.current())
         assertNull(magasin.observe().first().active)
+        // La carte vide, et pas seulement l'absence d'actif : un magasin qui
+        // fabriquerait une entree par fournisseur -- avec l'URL par defaut et une cle
+        // vide -- afficherait « clé enregistrée » sur une installation neuve.
+        assertEquals(emptyMap<AiProvider, ProviderCredentials>(), magasin.observe().first().credentials)
     }
 
     @Test

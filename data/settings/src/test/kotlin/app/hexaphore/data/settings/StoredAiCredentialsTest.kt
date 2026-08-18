@@ -41,6 +41,10 @@ class StoredAiCredentialsTest : AiCredentialsContract() {
 
         assertNull("un chiffre illisible ne doit pas passer pour une cle", relu.current())
         assertEquals(emptyMap<AiProvider, ProviderCredentials>(), relu.observe().first().credentials)
+        // Et l'etat affiche doit etre coherent, pas seulement la configuration
+        // derivee : sans cette ligne, l'ecran annoncerait « Utilise » a cote d'un
+        // fournisseur dont la cle ne s'ouvre plus.
+        assertNull("aucun fournisseur ne peut etre actif sans cle", relu.observe().first().active)
     }
 
     @Test
