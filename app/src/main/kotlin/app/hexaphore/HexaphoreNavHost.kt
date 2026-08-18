@@ -27,8 +27,8 @@ import app.hexaphore.feature.search.navigateToManualEntryFor
 import app.hexaphore.feature.search.navigateToSearch
 import app.hexaphore.feature.search.navigateToSearchForDraft
 import app.hexaphore.feature.search.searchScreens
-import app.hexaphore.feature.settings.navigateToProfile
-import app.hexaphore.feature.settings.profileScreen
+import app.hexaphore.feature.settings.navigateToSettings
+import app.hexaphore.feature.settings.settingsScreens
 
 /**
  * Le graphe de navigation.
@@ -76,11 +76,9 @@ private fun HexaphoreNavHost(startDestination: Any, modifier: Modifier = Modifie
             onScan = { navController.navigateToScan() },
             onEditDish = { dishId -> navController.navigateToEntry(dishId) },
             onSetUpGoal = { navController.navigate(OnboardingDestination) },
-            // Directement sur « Profil et objectifs » : les quatre autres sections
-            // de docs/02 n'ont pas de contenu avant les tranches 6 et 8, et un
-            // ecran de reglages qui ne designerait qu'une destination serait un
-            // ecran de transit (D59).
-            onOpenProfile = { navController.navigateToProfile() },
+            // Le hub existe desormais : sa deuxieme section est arrivee, ce qui est
+            // exactement l echeance que D59 avait ecrite.
+            onOpenSettings = { navController.navigateToSettings() },
             onOpenFavorites = { navController.navigateToFavorites() },
         )
         onboardingScreen(
@@ -96,7 +94,7 @@ private fun HexaphoreNavHost(startDestination: Any, modifier: Modifier = Modifie
                 }
             },
         )
-        profileScreen(onClose = { navController.popBackStack() })
+        settingsScreens(navController)
         captureScreens(navController)
     }
 }

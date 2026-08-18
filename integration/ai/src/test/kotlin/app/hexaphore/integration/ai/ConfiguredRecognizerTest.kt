@@ -4,12 +4,14 @@ import app.hexaphore.domain.ai.AiConfiguration
 import app.hexaphore.domain.ai.AiError
 import app.hexaphore.domain.ai.AiProvider
 import app.hexaphore.domain.ai.ApiKey
+import app.hexaphore.domain.ai.ProbeOutcome
 import app.hexaphore.domain.ai.Recognition
 import app.hexaphore.domain.ai.RecognitionInput
 import app.hexaphore.domain.ai.RecognitionOutcome
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 /**
@@ -41,6 +43,56 @@ class ConfiguredRecognizerTest {
         recognizer.recognize(RecognitionInput.Text("un jus"))
 
         assertEquals(CONFIGURATION, seen)
+    }
+
+    @Test
+    fun `le sondage marche sans rien d enregistre`() = runTest {
+        // C'est tout l'interet du bouton : on eprouve ce qui est dans le formulaire,
+        // avant d'ecrire. Lire les reglages ici obligerait a enregistrer une cle
+        // fausse pour decouvrir qu'elle est fausse.
+        val recognizer = ConfiguredRecognizer(settings = { null }, anthropic = record { })
+
+        assertEquals(ProbeOutcome.Reachable(vision = true), recognizer.probe(CONFIGURATION))
+    }
+
+    @Test
+    fun `une reponse illisible reste une configuration valide`() = runTest {
+        // Le fournisseur a repondu : la cle est bonne et le modele existe. Echouer ici
+        // enverrait quelqu'un corriger une cle qui n'a rien.
+        val recognizer = ConfiguredRecognizer(
+            settings = { null },
+            anthropic = { _, _ -> RecognitionOutcome.Failed(AiError.Unparseable) },
+        )
+
+        assertEquals(ProbeOutcome.Reachable(vision = true), recognizer.probe(CONFIGURATION))
+    }
+
+    @Test
+    fun `une cle refusee fait echouer le sondage`() = runTest {
+        val recognizer = ConfiguredRecognizer(
+            settings = { null },
+            anthropic = { _, _ -> RecognitionOutcome.Failed(AiError.InvalidKey) },
+        )
+
+        assertEquals(ProbeOutcome.Failed(AiError.InvalidKey), recognizer.probe(CONFIGURATION))
+    }
+
+    @Test
+    fun `le sondage emprunte le chemin d une vraie analyse`() = runTest {
+        // Un appel special, plus leger, aurait pu reussir la ou l'analyse echoue. Un
+        // bouton « Tester » qui dit oui a tort est pire que pas de bouton.
+        var input: RecognitionInput? = null
+        val recognizer = ConfiguredRecognizer(
+            settings = { null },
+            anthropic = { received, _ ->
+                input = received
+                RecognitionOutcome.Recognized(Recognition(items = emptyList()))
+            },
+        )
+
+        recognizer.probe(CONFIGURATION)
+
+        assertTrue(input is RecognitionInput.Text, "le sondage doit passer par le contrat de reconnaissance")
     }
 
     private fun record(onCall: (AiConfiguration) -> Unit) = ProviderRecognizer { _, configuration ->

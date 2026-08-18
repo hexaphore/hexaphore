@@ -1,6 +1,7 @@
 package app.hexaphore.integration.ai.di
 
 import android.content.Context
+import app.hexaphore.domain.ai.AiProbe
 import app.hexaphore.domain.ai.AiSettings
 import app.hexaphore.domain.ai.FoodRecognizer
 import app.hexaphore.domain.concurrency.DispatcherProvider
@@ -52,17 +53,28 @@ internal object AiModule {
     @Singleton
     fun systemPrompt(@ApplicationContext context: Context): SystemPrompt = AssetSystemPrompt(context)
 
+    /**
+     * **Une seule instance pour deux ports.** Analyser et sonder empruntent le même
+     * chemin — c'est ce qui rend le bouton « Tester » digne de confiance —, et deux
+     * objets auraient fini par diverger d'un délai ou d'une traduction de code.
+     */
     @Provides
     @Singleton
-    fun recognizer(
+    fun configured(
         settings: AiSettings,
         api: AnthropicApi,
         prompt: SystemPrompt,
         dispatchers: DispatcherProvider,
-    ): FoodRecognizer = ConfiguredRecognizer(
+    ): ConfiguredRecognizer = ConfiguredRecognizer(
         settings = settings,
         anthropic = AnthropicRecognizer(api, prompt, dispatchers),
     )
+
+    @Provides
+    fun recognizer(configured: ConfiguredRecognizer): FoodRecognizer = configured
+
+    @Provides
+    fun probe(configured: ConfiguredRecognizer): AiProbe = configured
 }
 
 /**

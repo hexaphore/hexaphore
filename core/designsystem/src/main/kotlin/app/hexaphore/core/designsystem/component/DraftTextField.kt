@@ -15,6 +15,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.VisualTransformation
 
 /**
  * Un champ dont l'affichage ne dépend d'aucun aller-retour d'état.
@@ -45,6 +46,13 @@ import androidx.compose.ui.text.input.TextFieldValue
  * @param accept ce que le champ laisse entrer. Une frappe refusée ne change rien —
  *   ni ici, ni dans le brouillon —, ce qui évite qu'une saisie devienne
  *   silencieusement invalide à cause d'un caractère parasite.
+ * @param visualTransformation ce qui s'affiche à la place de ce qui est saisi. Elle
+ *   masque une clé d'API sans la remplacer : [docs/05][ia] veut un champ masqué qui se
+ *   révèle à la demande, donc un texte qu'on peut relire mais qui ne traîne pas à
+ *   l'écran. Une chaîne d'astérisques stockée à la place aurait fait enregistrer les
+ *   astérisques.
+ *
+ * [ia]: docs/05-ia.md
  */
 @Composable
 fun DraftTextField(
@@ -54,6 +62,7 @@ fun DraftTextField(
     modifier: Modifier = Modifier,
     labelColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     keyboardType: KeyboardType = KeyboardType.Text,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
     accept: (String) -> Boolean = { true },
 ) {
     var value by remember { mutableStateOf(TextFieldValue(initial, TextRange(initial.length))) }
@@ -71,6 +80,7 @@ fun DraftTextField(
         // Decimal et non Number : le separateur decimal doit etre atteignable, et
         // la virgule est ce que produit un clavier en francais.
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Next),
+        visualTransformation = visualTransformation,
         modifier = modifier,
     )
 }
