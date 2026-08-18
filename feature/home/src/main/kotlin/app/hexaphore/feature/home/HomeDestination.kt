@@ -22,7 +22,7 @@ fun NavGraphBuilder.homeScreen(
     onScan: () -> Unit,
     onEditDish: (DishId) -> Unit,
     onSetUpGoal: () -> Unit,
-    onOpenProfile: () -> Unit,
+    onOpenSettings: () -> Unit,
     onOpenFavorites: () -> Unit,
 ) {
     composable<HomeDestination> {
@@ -31,7 +31,7 @@ fun NavGraphBuilder.homeScreen(
             onScan = onScan,
             onEditDish = onEditDish,
             onSetUpGoal = onSetUpGoal,
-            onOpenProfile = onOpenProfile,
+            onOpenSettings = onOpenSettings,
             onOpenFavorites = onOpenFavorites,
         )
     }

@@ -85,6 +85,13 @@ include(":feature:search")
 // entree de journal, et le nom d'un module est ce qui empeche d'y ranger n'importe
 // quoi. Il porte trois ports que rien d'autre ne lit.
 include(":data:profile")
+
+// :data:settings et non :integration:ai : ranger une cle d'API est un probleme de
+// stockage local, pas d'adaptation a un service tiers. Le mettre avec le fournisseur
+// aurait fait du module d'integration le gardien du secret, alors qu'il n'en est que
+// l'utilisateur -- et le jour ou un second reglage se range chiffre, il n'aurait rien
+// eu a faire chez Anthropic.
+include(":data:settings")
 include(":feature:onboarding")
 
 // :feature:settings naît avec la seule section qui a du contenu, « Profil et

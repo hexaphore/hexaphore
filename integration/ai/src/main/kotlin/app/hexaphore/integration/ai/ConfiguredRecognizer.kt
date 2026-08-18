@@ -1,11 +1,15 @@
 package app.hexaphore.integration.ai
 
+import app.hexaphore.domain.ai.AiConfiguration
 import app.hexaphore.domain.ai.AiError
+import app.hexaphore.domain.ai.AiProbe
 import app.hexaphore.domain.ai.AiProvider
 import app.hexaphore.domain.ai.AiSettings
 import app.hexaphore.domain.ai.FoodRecognizer
+import app.hexaphore.domain.ai.ProbeOutcome
 import app.hexaphore.domain.ai.RecognitionInput
 import app.hexaphore.domain.ai.RecognitionOutcome
+import app.hexaphore.domain.ai.VisionSupport
 
 /**
  * La fabrique : le seul endroit du projet qui sache qu'il existe plusieurs
@@ -30,13 +34,60 @@ import app.hexaphore.domain.ai.RecognitionOutcome
  * [plan]: docs/12-plan-de-developpement.md
  */
 internal class ConfiguredRecognizer(private val settings: AiSettings, private val anthropic: ProviderRecognizer) :
-    FoodRecognizer {
+    FoodRecognizer,
+    AiProbe {
     override suspend fun recognize(input: RecognitionInput): RecognitionOutcome {
         val configuration = settings.current() ?: return RecognitionOutcome.Failed(AiError.NoProviderConfigured)
         return configuration.provider.recognizer().recognize(input, configuration)
     }
 
+    /**
+     * **Le sondage est une vraie reconnaissance**, sur une phrase minuscule.
+     *
+     * C'est ce qui le rend digne de confiance : il emprunte exactement le chemin
+     * qu'empruntera la première photo — même prompt, même schéma, même parseur, même
+     * traduction des codes. Un appel spécial, plus léger, aurait pu réussir là où
+     * l'analyse échoue, et un bouton « Tester » qui dit oui à tort est pire que pas de
+     * bouton du tout.
+     *
+     * Il utilise la configuration **du formulaire** et non celle qui est enregistrée :
+     * tester après avoir écrit reviendrait à enregistrer une clé fausse pour découvrir
+     * qu'elle est fausse.
+     */
+    override suspend fun probe(configuration: AiConfiguration): ProbeOutcome =
+        when (val outcome = configuration.provider.recognizer().recognize(PROBE, configuration)) {
+            is RecognitionOutcome.Recognized -> configuration.provider.reachable()
+            is RecognitionOutcome.Failed -> outcome.error.toProbe(configuration.provider)
+        }
+
     private fun AiProvider.recognizer(): ProviderRecognizer = when (this) {
         AiProvider.ANTHROPIC -> anthropic
     }
 }
+
+/**
+ * Ce qu'une issue d'analyse dit de la **configuration**, qui n'est pas la même
+ * question.
+ *
+ * Une réponse illisible ou vide est un échec de l'analyse et une **réussite** du
+ * sondage : le fournisseur a répondu, donc la clé est bonne et le modèle existe. Les
+ * confondre ferait échouer le test pour une phrase que le modèle a mal comprise, et
+ * enverrait l'utilisateur corriger une clé qui n'a rien.
+ */
+private fun AiError.toProbe(provider: AiProvider): ProbeOutcome = when (this) {
+    AiError.Unparseable, AiError.NothingRecognized -> provider.reachable()
+    else -> ProbeOutcome.Failed(this)
+}
+
+/**
+ * La capacité vision, telle qu'on la connaît.
+ *
+ * Pour les fournisseurs dont toute la gamme lit les images, elle est **su** et non
+ * détectée. Pour les autres, il faudra joindre une image minuscule au sondage, et ce
+ * sera le travail de la livraison qui les apporte : l'écrire maintenant serait deviner
+ * pour des fournisseurs qui n'existent pas encore.
+ */
+private fun AiProvider.reachable() = ProbeOutcome.Reachable(vision = vision == VisionSupport.ALWAYS)
+
+/** Aussi court que possible : le sondage se paie, et il se paie souvent. */
+private val PROBE = RecognitionInput.Text("un verre d'eau")

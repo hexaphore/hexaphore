@@ -2,7 +2,6 @@ package app.hexaphore.di
 
 import android.util.Log
 import app.hexaphore.BuildConfig
-import app.hexaphore.domain.ai.AiSettings
 import app.hexaphore.integration.ai.NetworkLog
 import dagger.Module
 import dagger.Provides
@@ -36,25 +35,6 @@ internal object AiWiringModule {
     @Provides
     @Singleton
     fun networkLog(): NetworkLog = if (BuildConfig.DEBUG) NetworkLog { Log.d(NETWORK_TAG, it) } else NetworkLog.Silent
-
-    /**
-     * Aucun fournisseur configuré — **et c'est la vérité tant que rien ne permet d'en
-     * configurer un.**
-     *
-     * L'écran de saisie des clés et leur rangement en `EncryptedSharedPreferences`
-     * arrivent à la livraison suivante. D'ici là, `null` est la réponse exacte : les
-     * deux boutons IA sont visibles et grisés, ce que [D73][decisions] demande, et
-     * toute analyse rendrait `AiError.NoProviderConfigured`.
-     *
-     * Écrire ce faux ici plutôt qu'un `TODO()` est délibéré : le graphe est complet,
-     * l'application se construit, et le remplacement se fait en changeant cette seule
-     * liaison.
-     *
-     * [decisions]: docs/11-decisions.md
-     */
-    @Provides
-    @Singleton
-    fun aiSettings(): AiSettings = AiSettings { null }
 }
 
 private const val NETWORK_TAG = "HexaphoreNet"

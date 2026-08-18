@@ -61,5 +61,5 @@ data class HomeActions(
      * [parcours]: docs/02-parcours-et-ecrans.md
      * [decisions]: docs/11-decisions.md
      */
-    val onOpenProfile: () -> Unit,
+    val onOpenSettings: () -> Unit,
 )

@@ -250,7 +250,7 @@ Si l'algorithme a une suggestion d'ajustement en attente, une carte apparaît en
 
 ## Réglages
 
-Écran simple à sections. ~~L'accueil y mène, et les sections mènent aux écrans.~~ **Il n'existe pas encore** ([D59](11-decisions.md)) : quatre de ses cinq sections dépendent des tranches 6 et 8, et l'accueil ouvre donc directement la seule qui a du contenu. Le hub naîtra avec la deuxième.
+Écran simple à sections. L'accueil y mène, et les sections mènent aux écrans. **Il existe depuis que sa deuxième section existe** — c'est l'échéance que [D59](11-decisions.md) avait fixée, et [D77](11-decisions.md#d77--la-clé-va-dans-le-keystore-en-direct-et-le-bouton-tester-est-une-vraie-analyse---validée) l'honore. Il en porte deux : **Profil et objectifs**, et **Intelligence artificielle**. Les trois autres n'y figurent pas, pour la raison inchangée : elles n'ouvriraient rien.
 
 **Profil et objectifs** — toutes les données de l'onboarding. **On les consulte d'abord** : l'écran ouvre en lecture, et un crayon ouvre la modification ([D60](11-decisions.md)). Un écran de réglages entièrement saisissable invite à corriger ce qu'on venait relire.
 
@@ -262,7 +262,9 @@ En saisie manuelle, le poids cible et l'échéance **restent modifiables mais ne
 
 Corriger ses objectifs **ouvre une nouvelle version**, il n'en modifie aucune ([D04](11-decisions.md)), et l'écran le dit en une phrase. Quand les six chiffres changent, une boîte les affiche **face aux anciens** avant d'écrire — seul écart assumé à la règle des dialogues ci-dessous. Corriger son poids enregistre une pesée du jour ; le laisser tel quel n'en invente aucune.
 
-**Intelligence artificielle** — liste des fournisseurs. Pour chacun : clé API (masquée, avec bouton « Tester »), modèle, et pour le fournisseur générique, l'URL de base. Un fournisseur actif est désigné par défaut. En bas, compteur d'utilisation : appels et coût estimé par fournisseur, remise à zéro possible.
+**Intelligence artificielle** — liste des fournisseurs. Pour chacun : clé API (masquée, avec bouton « Tester »), modèle, et l'URL de base. Un fournisseur actif est désigné par défaut — enregistrer une clé l'active, parce que la renseigner sans s'en servir n'est jamais ce qu'on voulait faire. ~~En bas, compteur d'utilisation~~ : il attend sa propre livraison, avec la table de tarifs qu'il suppose.
+
+L'URL de base est modifiable pour **tous** les fournisseurs et non pour le seul générique : c'est ce qui rend un relais branchable devant n'importe lequel, pour zéro ligne de plus.
 
 **Sauvegarde** — connexion Google Drive, dernière sauvegarde, bascule automatique, « Sauvegarder maintenant », « Restaurer », « Exporter dans un fichier », « Importer un fichier ».
 

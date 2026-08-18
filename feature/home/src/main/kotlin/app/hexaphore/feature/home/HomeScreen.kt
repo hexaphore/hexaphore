@@ -54,7 +54,7 @@ fun HomeRoute(
     onScan: () -> Unit,
     onEditDish: (DishId) -> Unit,
     onSetUpGoal: () -> Unit,
-    onOpenProfile: () -> Unit,
+    onOpenSettings: () -> Unit,
     onOpenFavorites: () -> Unit,
 ) {
     val viewModel: HomeViewModel = hiltViewModel()
@@ -67,7 +67,7 @@ fun HomeRoute(
         pendingUndo = pendingUndo,
         favoriteNameTaken = nameTaken,
         onDismissFavoriteError = viewModel::onDismissFavoriteError,
-        actions = remember(viewModel, onAddDish, onScan, onEditDish, onSetUpGoal, onOpenProfile, onOpenFavorites) {
+        actions = remember(viewModel, onAddDish, onScan, onEditDish, onSetUpGoal, onOpenSettings, onOpenFavorites) {
             HomeActions(
                 onAddDish = onAddDish,
                 onScan = onScan,
@@ -78,7 +78,7 @@ fun HomeRoute(
                 onUndoExpired = viewModel::onUndoExpired,
                 onRetry = viewModel::retry,
                 onSetUpGoal = onSetUpGoal,
-                onOpenProfile = onOpenProfile,
+                onOpenSettings = onOpenSettings,
                 onToggleFavorite = viewModel::onToggleFavorite,
                 onOpenFavorites = onOpenFavorites,
             )
@@ -137,7 +137,7 @@ fun HomeScreen(
                 .padding(horizontal = Spacing.screenMargin),
             verticalArrangement = Arrangement.spacedBy(Spacing.xl),
         ) {
-            DayHeader(actions.onOpenProfile)
+            DayHeader(actions.onOpenSettings)
 
             when (state) {
                 HomeUiState.Loading -> Unit
@@ -156,7 +156,7 @@ fun HomeScreen(
 
 /** Le titre du jour, et la porte vers le profil. */
 @Composable
-private fun DayHeader(onOpenProfile: () -> Unit) {
+private fun DayHeader(onOpenSettings: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -169,7 +169,7 @@ private fun DayHeader(onOpenProfile: () -> Unit) {
         )
         // Une icone seule, sans libelle : c'est la porte la moins frequentee de
         // l'ecran, et le titre du jour doit rester ce qu'on lit en premier.
-        IconButton(onClick = onOpenProfile) {
+        IconButton(onClick = onOpenSettings) {
             Icon(
                 imageVector = Icons.Filled.Person,
                 contentDescription = stringResource(R.string.home_open_profile),
