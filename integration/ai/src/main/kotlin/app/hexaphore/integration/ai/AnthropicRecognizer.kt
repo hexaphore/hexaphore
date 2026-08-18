@@ -17,19 +17,20 @@ import java.util.Base64
 /**
  * Anthropic, et les trois arbitrages que son API impose à [docs/05][ia].
  *
- * ### Le raisonnement reste actif, et ce n'est pas un revirement de confort
+ * ### Le raisonnement reste actif, et l'économie passe par l'effort
  *
  * [docs/05][ia] écrit « pas de raisonnement demandé — il coûterait des jetons sans
  * améliorer une tâche de perception ». L'intention est juste ; le moyen ne l'est
  * plus. Sur les modèles actuels le raisonnement est **actif par défaut**, et le
- * désactiver a un mode d'échec documenté qui serait invisible ici : le modèle écrit
- * parfois son appel structuré **dans son texte** au lieu d'émettre le bloc attendu.
- * La requête réussit, rien ne s'exécute, aucune erreur ne remonte. Sur un appel dont
- * toute la valeur est la réponse structurée, c'est le pire échec possible — celui
- * qu'on ne voit pas.
+ * levier recommandé pour dépenser moins est de baisser l'effort, pas de le couper :
+ * couper coûte plus cher en pratique et traîne deux modes d'échec documentés sur
+ * cette famille de modèles — un appel structuré rendu en texte brut, et des balises
+ * de raisonnement qui fuient dans la réponse visible.
  *
- * L'économie recherchée passe donc par [EFFORT], qui règle la profondeur sans
- * toucher au mécanisme.
+ * **Aucun des deux ne nous mordrait forcément** : on ne déclare pas d'outil, et le
+ * schéma contraint la sortie. Mais on n'a rien à y gagner : [EFFORT] rend l'économie
+ * cherchée sans toucher au mécanisme. Prendre un risque documenté pour zéro bénéfice
+ * n'est pas un arbitrage, c'est une distraction.
  *
  * ### Ni température, ni jetons comptés au plus juste
  *

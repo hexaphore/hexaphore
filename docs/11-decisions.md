@@ -1694,6 +1694,61 @@ Dix-neuf règles défaites, vingt et un cas, **tous tombent** — aucun à retir
 
 ---
 
+## D76 — Trois prescriptions de docs/05 tombent au contact de l'API, et le raisonnement reste actif · ✓ validée
+
+**Contexte.** Le premier appel réseau de la tranche 6. [D72](#d72--le-contrat-de-reconnaissance-et-un-parseur-qui-ne-croit-pas-le-modèle-sur-parole---validée) avait déjà relevé trois signatures de [05](05-ia.md) qui ne survivaient pas au code des tranches 1 à 5 ; trois de plus tombent ici, cette fois au contact de l'API elle-même. Le fournisseur livré est **Anthropic**, celui dont [D73](#d73--la-portion-de-la-fiche-lemporte-sur-le-forfait-et-la-densité-attend-son-auteur---validée) a fait le défaut.
+
+### `temperature` n'est plus un réglage, c'est un `400`
+
+`temperature`, `top_p` et `top_k` sont retirés des modèles Claude actuels : les envoyer fait échouer la requête. Les `temperature = 0.2` de [05](05-ia.md#prompt) ne sont donc pas « déconseillés », ils sont **impossibles**. La régularité qu'on cherchait par là vient maintenant du schéma de sortie, qui contraint la forme au lieu de resserrer le tirage.
+
+**Un cas de test éprouve leur absence**, ce qui a l'air excessif jusqu'à ce qu'on voie par où le défaut reviendrait : personne n'écrirait `temperature` par distraction, mais quelqu'un qui relit [05](05-ia.md) et trouve le réglage manquant le rétablirait **de bonne foi**. Le test est là pour cette relecture-là.
+
+### Le raisonnement reste actif, parce que l'économie a un autre levier
+
+[05](05-ia.md#prompt) écrit « pas de raisonnement demandé — il coûterait des jetons sans améliorer une tâche de perception ». L'intention est juste et rien ici ne la conteste ; c'est le **moyen** qui a cessé d'exister sous cette forme. Le raisonnement est actif par défaut, et le levier recommandé pour dépenser moins est de baisser l'effort plutôt que de couper. Couper est le levier le plus cher et traîne deux modes d'échec documentés sur cette famille de modèles : un appel structuré rendu en texte brut, et des balises de raisonnement qui fuient dans la réponse visible.
+
+**Ni l'un ni l'autre ne nous mordrait forcément** — on ne déclare pas d'outil, et le schéma contraint la sortie —, et l'honnêteté demande de le dire plutôt que d'invoquer un péril qu'on n'a pas mesuré. L'argument tient sans lui : l'effort au plus bas rend l'économie cherchée. Prendre un risque documenté pour zéro bénéfice n'est pas un arbitrage.
+
+**Le niveau retenu est `low`, et il n'a été calibré contre rien.** C'est la lecture la plus proche de l'intention de [05](05-ia.md) et la moins chère, ce qui compte quand c'est l'utilisateur qui paie. Une constante nommée, comme la `SATURATION` de [D74](#d74--un-seul-score-pour-trier-et-pour-décider-et-le-tri-nen-bouge-pas---validée) : de vrais appels diront où elle devrait être.
+
+### `max_tokens = 1024` tronquerait en silence
+
+Le plafond couvre le raisonnement **et** la réponse ensemble. Avec un raisonnement actif, mille jetons se consomment avant que le JSON commence, et ce qui revient est un tableau coupé au milieu d'un libellé — que le parseur déclarerait illisible. C'est la forme de défaut la plus coûteuse du projet : celle qui ne se voit qu'à l'usage, sur une réponse qui a l'air d'un problème de modèle.
+
+### La sortie structurée remplace l'outil forcé, et garde un seul parseur
+
+[05](05-ia.md#fournisseurs) prescrivait pour Anthropic un outil forcé (`tool_choice`). L'outil rend le JSON dans le champ d'entrée d'un bloc d'appel, c'est-à-dire par un chemin que le parseur de [D72](#d72--le-contrat-de-reconnaissance-et-un-parseur-qui-ne-croit-pas-le-modèle-sur-parole---validée) ne lit pas : il aurait fallu une extraction supplémentaire pour ce seul fournisseur, puis une par famille de fournisseurs, et le parseur commun aurait cessé d'être commun.
+
+Avec `output_config.format`, la réponse **est** du texte, et le parseur la lit sans rien savoir d'Anthropic. Le schéma ne borne pas `confidence` entre 0 et 1 — les contraintes numériques ne font pas partie du sous-ensemble accepté —, et c'est le parseur qui continue de la ramener dans l'intervalle. La garde existait avant le schéma et lui survit.
+
+### La troisième étape d'« ajouter un fournisseur » est un `when`, pas une liaison Hilt
+
+[05](05-ia.md#ajouter-un-fournisseur) demandait une liaison dans le module Hilt. Une carte de liaisons est plus savante et **strictement moins sûre** : y oublier un fournisseur donne un plantage à l'exécution, sur l'appareil de quelqu'un. Un `when` exhaustif sur `AiProvider` transforme le même oubli en erreur de compilation — la vérification d'exhaustivité de Kotlin fait gratuitement le travail qu'une carte demanderait de se rappeler.
+
+C'est aussi ce qui explique que **l'énumération ne porte que les fournisseurs implémentés** et grandisse avec eux. Une entrée sans classe ne compilerait pas ; et si l'on forçait le passage, l'écran des réglages offrirait un choix que la fabrique refuserait.
+
+### Une clé refuse de s'imprimer
+
+`ApiKey` est une `value class` dont `toString()` rend `***`. L'intercepteur de redaction couvre le réseau ; il ne couvre pas un `Log.d(configuration.toString())`, ni le message d'une exception qui embarque la configuration, ni un rapport de plantage — c'est-à-dire les chemins par lesquels une clé fuit vraiment, parce que personne ne les a écrits exprès.
+
+**L'intercepteur masque la description, pas la requête**, et c'est la subtilité que son nom cache : retirer l'en-tête ferait échouer l'authentification, et le symptôme ressemblerait à une clé invalide — donc à une faute de l'utilisateur.
+
+### Ce que les défaites ont appris
+
+Dix-neuf règles défaites, dix-huit cas, **tous tombent**. Deux résultats méritent d'être écrits.
+
+- **Une garde de sécurité se défait dans les deux sens.** Le cas « la clé reste lisible pour le seul appelant qui en a besoin » ne tombait sous aucune des dix-sept premières défaites, et paraissait donc à retirer. La défaite qui le tient n'est pas un relâchement mais **un excès de zèle** : une redaction qui déborde sur la valeur elle-même, `val value get() = "***"`. Cela compile, cela satisfait les deux autres cas, et cela empêche toute requête d'aboutir. Une garde éprouvée seulement dans le sens du serrage finit serrée jusqu'à casser ce qu'elle protège.
+- **La seule défaite qui traverse deux classes de test est celle qui confond masquer et retirer.** Retirer l'en-tête au lieu de le masquer fait tomber un cas de l'intercepteur *et* un cas du fournisseur. C'est la mesure de ce que la règle a de bilatéral : la clé doit être absente d'un endroit et présente à un autre, et un test qui ne regarde qu'un côté laisse passer la moitié des façons de se tromper.
+
+**Conséquences.** `:integration:ai` cesse d'être un parseur seul : il gagne une pile HTTP, un fournisseur, une fabrique, le prompt en asset et l'intercepteur de redaction. Le domaine gagne `AiProvider`, `AiConfiguration`, `ApiKey` et le port `AiSettings`. `:app` fournit le journal réseau — parce que la variante de build est une propriété de l'application, comme le `User-Agent` d'Open Food Facts.
+
+**`AiSettings` rend `null` pour l'instant, et c'est la vérité** : rien ne permet encore de saisir une clé. Les deux boutons IA sont donc visibles et grisés, ce que [D73](#d73--la-portion-de-la-fiche-lemporte-sur-le-forfait-et-la-densité-attend-son-auteur---validée) demande, et toute analyse rendrait `NoProviderConfigured`. Écrire ce faux plutôt qu'un `TODO()` garde le graphe complet et l'application constructible ; le remplacement tient en une liaison.
+
+**Rien de tout cela n'a atteint un vrai serveur.** Les cas tournent devant `MockWebServer`, ce qui éprouve le corps réellement sérialisé, les en-têtes et la traduction des codes — mais pas ce qu'Anthropic pense du corps qu'on lui envoie. Cela ne se vérifiera qu'avec l'écran de saisie des clés, faute de tout autre moyen d'en fournir une.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

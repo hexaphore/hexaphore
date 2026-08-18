@@ -102,9 +102,12 @@ Ces règles vivent dans `build-logic/detekt-rules` et sont couvertes par leurs p
 | `ReturnCount` | 2 | Un `?: return` de plus fait échouer. |
 | `CyclomaticComplexMethod` | 15 | Un `when` de neuf branches y passe **dès que cinq d'entre elles portent un `?:`** : chaque elvis compte. |
 | `MatchingDeclarationName` | — | Un fichier qui contient **une seule** déclaration de type doit porter son nom. Des fonctions de premier niveau à côté ne le dispensent pas. |
+| `SwallowedException` | — | Un `catch` qui ne **nomme** pas l'exception échoue, même quand la perdre est le comportement voulu. |
 | `MagicNumber` | — | Frappe les **arguments de constructeur d'énumération** : `LIGHT(1.375)` est un constat. |
 
 **La bonne réponse à `TooManyFunctions` est de sortir du type ce qui n'est pas une capacité de l'objet**, en fonctions privées de premier niveau — c'est ce que font `RoomFoodCatalog` et `InMemoryFoodCatalog`. Relever le seuil déplace le problème d'un cran et le rend invisible au suivant.
+
+**La réponse à `SwallowedException` est de nommer la réduction, pas de vider le `catch`.** Réduire une `IOException` à une issue métier est souvent exactement ce qu'on veut — le code HTTP ne doit pas remonter à l'écran — mais la règle ne peut pas distinguer un choix d'un oubli. Une fonction d'extension sur l'exception (`offline.reducedTo(NoNetwork)`, `offline.toUnreachable()`) satisfait la règle **et** documente la perte : c'est la forme qu'ont prise `:integration:openfoodfacts` et `:integration:ai`.
 
 **La bonne réponse à `CyclomaticComplexMethod` n'est pas davantage de relever le seuil.** Un `when` sur une énumération est lisible à neuf branches ; ce qui coûte les points est l'elvis répété dans chacune. Sortir le repli dans une fonction nommée fait tomber le compte **et** dit ce que le repli est — c'est ce qu'a fait la conversion des quantités, où chaque `?:` était un forfait à signaler.
 
