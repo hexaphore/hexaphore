@@ -6,6 +6,7 @@ import app.hexaphore.core.testing.InMemoryDiaryRepository
 import app.hexaphore.core.testing.InMemoryFavoriteDishes
 import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.core.testing.SequentialIdGenerator
+import app.hexaphore.domain.ai.EstimationOutcome
 import app.hexaphore.domain.ai.InMemoryPendingRecognition
 import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.food.Barcode
@@ -101,7 +102,13 @@ class ScannedFoodTest {
             create = CreateDraft(clock, ids),
             foods = catalogue,
             pending = InMemoryPendingRecognition(),
-            resolve = ResolveRecognition(ResolveFoodLabel(catalogue), CreateDraft(clock, ids)),
+            resolve = ResolveRecognition(
+                ResolveFoodLabel(catalogue),
+                CreateDraft(clock, ids),
+                // Aucun repli : ces cas ne parlent pas de l'etape 4, et un estimateur
+                // qui repondrait remplirait des lignes qu'ils veulent vides.
+                estimate = { EstimationOutcome.Estimated(emptyList()) },
+            ),
         )
     }
 

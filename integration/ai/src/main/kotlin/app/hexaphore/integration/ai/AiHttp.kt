@@ -2,6 +2,7 @@ package app.hexaphore.integration.ai
 
 import app.hexaphore.domain.ai.AiError
 import app.hexaphore.domain.ai.AiProvider
+import app.hexaphore.domain.ai.EstimationOutcome
 import app.hexaphore.domain.ai.RecognitionOutcome
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -117,3 +118,12 @@ private const val JSON_MEDIA_TYPE = "application/json"
  * [ia]: docs/05-ia.md
  */
 internal fun IOException.reducedTo(error: AiError): RecognitionOutcome = RecognitionOutcome.Failed(error)
+
+/**
+ * La même réduction, pour l'issue de l'étape 4.
+ *
+ * Deux fonctions et non une générique : les deux issues sont deux types scellés
+ * distincts, et le domaine tient à ce qu'ils le restent. Ce qui est partagé est le
+ * geste — perdre la pile **en le disant** —, pas la forme du résultat.
+ */
+internal fun IOException.estimationReducedTo(error: AiError): EstimationOutcome = EstimationOutcome.Failed(error)

@@ -1998,6 +1998,53 @@ Les treize autres sont tombés du premier coup : le consentement contourné, l'a
 
 **Ce que le vert ne prouve pas — et c'est l'essentiel ici.** **Aucune photo n'a jamais été prise par ce code.** Le décodage, l'orientation EXIF, le `FileProvider`, la permission et le retour de l'appareil photo du système ne s'éprouvent qu'en tenant le téléphone. Ce qui est vérifié est ce qui coûte de l'argent ou expose une donnée : le consentement, l'annulation, ce qui part avec la photo, ce qui est déposé, et ce qui survit à un échec.
 
+## D83 — Le repli invente des chiffres, une seule fois et en le disant · ✓ validée
+
+**Contexte.** L'étape 4 de [04](04-sources-de-donnees.md#résolution--du-texte-de-lia-à-un-aliment), et **l'exception à la règle la plus structurante du projet**. [05](05-ia.md) pose que le modèle identifie et que les bases calculent ; ici, pour les libellés qu'aucune base ne connaît, on lui demande les macros elles-mêmes.
+
+Le trou était visible depuis la modale texte : « tofu fumé au sésame » n'est ni dans l'ANSES ni dans le cache d'Open Food Facts, et la ligne arrivait avec son nom, sa quantité, et **rien d'autre** — donc non enregistrable, sur un plat qu'on venait de payer pour faire analyser.
+
+### Trois garde-fous, et ils tiennent la porte étroite
+
+1. **Un seul appel groupé.** Cinq lignes non résolues coûtent une requête, pas cinq. Une liste vide — le cas courant, quand tout a été résolu — ne part jamais sur le réseau.
+2. **Rien n'entre au catalogue.** Et c'est obtenu **sans aucune règle nouvelle** : `EntryDraft.foods` verse à l'enregistrement les fiches que les lignes portent, or une ligne estimée n'en porte aucune. Elle a un nom, des valeurs et une référence pour 100 g, mais ni `foodId` ni `Food`. L'interdit de [04](04-sources-de-donnees.md) est donc structurel plutôt que surveillé.
+3. **La ligne le dit.** Un chiffre inventé qui s'affiche comme un chiffre mesuré est pire que pas de chiffre du tout.
+
+### Pas de `FoodSource.AI_ESTIMATE`, malgré la lettre de docs/04
+
+La spécification demande de marquer le résultat `source = AI_ESTIMATE`. **La source n'a pas été ajoutée**, et c'est le seul écart : une estimation ne devient jamais une fiche, donc elle n'a pas de source à porter. Une valeur d'énumération qu'il faudrait n'écrire nulle part serait un piège tendu au premier qui la persisterait — et `FoodSource` est justement persistée.
+
+Ce que la spécification voulait dire est porté par `Suggestion.estimatedMacros`, à l'endroit exact où la question se pose : la ligne. Elle en porte maintenant **trois** incertitudes distinctes, et le fait qu'elles se trompent séparément est toute la raison de ne pas les fondre — ce que le modèle a compris, d'où vient la quantité, d'où viennent les valeurs.
+
+### « Présentée à zéro » devient « présentée vide »
+
+[04](04-sources-de-donnees.md) écrit qu'en l'absence de clé valide, la ligne est « présentée à zéro avec une invitation à la compléter ». Elle est présentée **vide**. Dans ce projet un champ vide vaut *inconnu* et jamais zéro — c'est la règle qui gouverne les six valeurs nutritionnelles depuis la tranche 2 —, et afficher `0 kcal` sur un tofu serait une affirmation que personne n'a faite. L'invitation, elle, est déjà là : l'écran dit qu'une ligne sans énergie n'est pas enregistrable.
+
+### Un second prompt, un second schéma, et le même tout le reste
+
+Deux fichiers d'asset plutôt qu'un paragraphe ajouté au premier : ce sont deux questions posées dans deux appels, et les mêler ferait payer à chaque reconnaissance les consignes d'une estimation qui n'a le plus souvent pas lieu. Le qualificatif Hilt qui les sépare n'est pas décoratif — deux `SystemPrompt` nus se seraient laissés intervertir en silence.
+
+Le schéma d'estimation **n'exige que le libellé**. Un modèle qui ignore les fibres d'un plat doit pouvoir se taire sur cette valeur plutôt que d'en inventer une pour satisfaire un schéma ; exiger les six aurait fabriqué des zéros que personne n'a mesurés. Le prompt demande d'ailleurs explicitement d'**omettre** un libellé inconnu — « une omission se corrige à la main, un chiffre inventé passe inaperçu » — et c'est pourquoi une **liste vide est ici une réponse valide**, là où elle est un échec pour la reconnaissance.
+
+Le libellé est recopié **à l'identique**, et c'est ce qui permet de recoller l'estimation à sa ligne. Une reformulation — « tofu fumé » pour « tofu fumé au sésame » — rend une estimation qu'on ne peut plus rattacher : elle est écartée plutôt que devinée.
+
+### Deux méthodes sur le contrat interne, deux ports dans le domaine
+
+Le domaine déclare bien deux ports — `FoodRecognizer` et `NutritionEstimator` —, parce que la division qui compte est celle-là : reconnaître et estimer ne sont pas la même question et n'appellent pas la même confiance. En dessous, `ProviderRecognizer` gagne une **seconde méthode** plutôt qu'une seconde hiérarchie : c'est le même fournisseur, la même clé, la même pile HTTP et la même traduction des codes. Deux interfaces auraient fait douze objets pour un appel HTTP de différence.
+
+**Campagne de défaite : treize sabotages, deux vrais trous.**
+
+- **Rien ne vérifiait que l'estimation se recolle par le libellé.** Remplacer la recherche par « prends la première estimation venue » ne faisait rien tomber : les cas n'avaient qu'un seul libellé non résolu à la fois, donc les deux comportements se confondaient. Un modèle qui reformule aurait rempli la mauvaise ligne, et personne ne l'aurait su.
+- **Les deux gardes de la fabrique n'étaient éprouvées par personne** : ni « une liste vide ne part pas », ni « sans configuration, rien ne part ». Le test de la fabrique ne parlait que de reconnaissance.
+
+Un troisième sabotage n'a pas compilé et a d'abord été compté comme une survie — le harnais ne sait pas distinguer « tenu par le compilateur » de « rien ne le couvre ». Réécrit sous une forme qui compile, il tombe. Et un quatrième était **ma** faute : l'attente était formulée sur le message d'assertion au lieu du nom du cas, alors que la règle était bien couverte.
+
+Les autres sont tombés du premier coup : le repli lancé sur des lignes déjà résolues, un appel par ligne au lieu d'un seul, l'estimation non signalée, la référence non posée — donc une quantité qui ne recalcule plus —, l'estimation versée au catalogue, la valeur négative devenue zéro, et la liste vide traitée comme un échec.
+
+**Conséquences.** `:integration:ai` porte un second prompt, un second schéma et un second parseur — qui partage la tolérance du premier, dans le même fichier, rebaptisé `AiParsers.kt` pour ne plus mentir sur son contenu. `ResolveRecognition` prend une troisième dépendance, et c'est la dernière : le chaînage de [04](04-sources-de-donnees.md) est complet, des quatre étapes.
+
+**Ce que le vert ne prouve pas.** Aucune estimation réelle n'a jamais été demandée à un modèle, donc **on ne sait pas ce qu'elles valent**. C'est la seule partie du projet dont les chiffres ne sont adossés à rien de traçable, et c'est exactement pourquoi elle le dit sur chaque ligne. Le jour où de vraies estimations tomberont, la question à se poser ne sera pas « est-ce que ça marche » mais « est-ce que c'est assez juste pour être proposé ».
+
 ---
 
 ## Décisions prises par défaut, à confirmer

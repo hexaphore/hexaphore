@@ -5,7 +5,9 @@ import app.hexaphore.domain.ai.AiConfiguration
 import app.hexaphore.domain.ai.AiError
 import app.hexaphore.domain.ai.AiProvider
 import app.hexaphore.domain.ai.ApiKey
+import app.hexaphore.domain.ai.EstimatedFood
 import app.hexaphore.domain.ai.EstimatedUnit
+import app.hexaphore.domain.ai.EstimationOutcome
 import app.hexaphore.domain.ai.RecognitionInput
 import app.hexaphore.domain.ai.RecognitionOutcome
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -162,10 +164,47 @@ class GeminiRecognizerTest {
         return (recognize(RecognitionInput.Text("un jus")) as RecognitionOutcome.Failed).error
     }
 
+    @Test
+    fun `l estimation part avec son propre prompt et son propre schema`() = runTest {
+        // L'etape 4 emprunte la meme route et la meme cle, et rien d'autre : deux
+        // questions differentes ne se posent pas avec la meme consigne, et un schema
+        // de reconnaissance ferait rendre des unites la ou on attend des macros.
+        server.enqueue(ok(ESTIMATION))
+
+        val foods = estimate(listOf("tofu fume au sesame", "sauce maison"))
+
+        val corps = server.takeRequest().body.readUtf8()
+        assertTrue(corps.contains(ESTIMATE_PROMPT), corps)
+        assertFalse(corps.contains(PROMPT), "la consigne d extraction n a rien a faire ici")
+        assertTrue(corps.contains("tofu fume au sesame"), corps)
+        assertTrue(corps.contains("sauce maison"), "les libelles partent ensemble, en un seul appel")
+        assertEquals(180.0, foods.single().per100g.kcal)
+    }
+
+    private suspend fun estimate(labels: List<String>): List<EstimatedFood> {
+        val recognizer = GeminiRecognizer(
+            api = geminiApi(aiClient(NetworkLog.Silent)),
+            prompt = { PROMPT },
+            estimatePrompt = { ESTIMATE_PROMPT },
+            dispatchers = TestDispatchers(UnconfinedTestDispatcher()),
+        )
+        val outcome = recognizer.estimate(
+            labels,
+            AiConfiguration(
+                provider = AiProvider.GEMINI,
+                apiKey = ApiKey(KEY),
+                model = "gemini-3.5-flash-lite",
+                baseUrl = server.url("/").toString(),
+            ),
+        )
+        return (outcome as EstimationOutcome.Estimated).foods
+    }
+
     private suspend fun recognize(input: RecognitionInput): RecognitionOutcome {
         val recognizer = GeminiRecognizer(
             api = geminiApi(aiClient(NetworkLog.Silent)),
             prompt = { PROMPT },
+            estimatePrompt = { ESTIMATE_PROMPT },
             dispatchers = TestDispatchers(UnconfinedTestDispatcher()),
         )
         return recognizer.recognize(
@@ -193,10 +232,15 @@ class GeminiRecognizerTest {
     private companion object {
         const val KEY = "AIza-de-test"
         const val PROMPT = "Tu identifies les aliments."
+        const val ESTIMATE_PROMPT = "Tu estimes des macros."
         const val PROMPT_TOKENS = 900
         const val BAD_REQUEST = 400
         const val FORBIDDEN = 403
         const val TOO_MANY_REQUESTS = 429
+
+        val ESTIMATION = """
+            {"foods":[{"label":"tofu fume au sesame","kcal":180,"protein":16}]}
+        """.trimIndent()
 
         val ONE_ITEM = """
             {"items":[{"label":"jus d'orange","quantity":200,"unit":"ML","confidence":0.9}]}

@@ -30,9 +30,9 @@ fun interface SystemPrompt {
  *
  * [ia]: docs/05-ia.md
  */
-internal class AssetSystemPrompt(private val context: Context) : SystemPrompt {
+internal class AssetSystemPrompt(private val context: Context, private val asset: String) : SystemPrompt {
     private val cached: String by lazy {
-        context.assets.open(PROMPT_ASSET).use { it.readBytes().decodeToString() }
+        context.assets.open(asset).use { it.readBytes().decodeToString() }
     }
 
     override fun text(): String = cached
@@ -47,4 +47,16 @@ internal class AssetSystemPrompt(private val context: Context) : SystemPrompt {
  */
 const val PROMPT_VERSION: String = "fr_v1"
 
-private const val PROMPT_ASSET = "prompts/extract_$PROMPT_VERSION.txt"
+/** Le prompt d'extraction : identifier des aliments et estimer des quantités. */
+internal const val EXTRACT_PROMPT_ASSET = "prompts/extract_$PROMPT_VERSION.txt"
+
+/**
+ * Le prompt d'estimation — l'étape 4 de [docs/04][sources].
+ *
+ * Un second fichier et non un paragraphe ajouté au premier : ce sont deux questions,
+ * posées dans deux appels, et les mêler ferait payer à chaque reconnaissance les
+ * consignes d'une estimation qui n'a le plus souvent pas lieu.
+ *
+ * [sources]: docs/04-sources-de-donnees.md
+ */
+internal const val ESTIMATE_PROMPT_ASSET = "prompts/estimate_$PROMPT_VERSION.txt"

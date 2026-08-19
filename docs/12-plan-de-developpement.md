@@ -213,7 +213,9 @@ Puis **les quatre fournisseurs restants** ([D81](11-decisions.md#d81--quatre-fou
 
 Puis **la modale photo, et l'accord qui se demande une fois** ([D82](11-decisions.md#d82--la-prise-de-vue-est-déléguée-et-laccord-se-demande-une-fois---validée)) : le quatrième mode de saisie, et le seul endroit où une donnée personnelle quitte l'appareil sans qu'un code-barres l'ait demandée. L'aperçu CameraX de [02](02-parcours-et-ecrans.md#modale--photo) n'est pas là — l'appareil photo du système prend la photo, écrit dans notre cache et donne la galerie sans une ligne, là où un viseur intégré aurait été une seconde implémentation entièrement invérifiable ici.
 
-Le reste de la tranche, dans l'ordre où il se livrera : le **repli IA groupé**, qui remplira les lignes qu'aucun libellé du catalogue ne rejoint ; le compteur de coût ; enfin la contribution à Open Food Facts ([D70](11-decisions.md#d70--contribuer-à-open-food-facts-entre-en-tranche-6-parce-que-la-couverture-nest-pas-la-même-partout---validée)).
+Puis **le repli IA groupé** ([D83](11-decisions.md#d83--le-repli-invente-des-chiffres-une-seule-fois-et-en-le-disant---validée)) : l'étape 4 de [04](04-sources-de-donnees.md), et l'exception à la règle qui veut que le modèle identifie et que les bases calculent. Un seul appel pour toutes les lignes non résolues, rien qui entre au catalogue — une estimation ne porte aucune fiche, donc l'interdit est structurel —, et un badge sur chaque ligne concernée.
+
+Le reste de la tranche, dans l'ordre où il se livrera : le compteur de coût ; enfin la contribution à Open Food Facts ([D70](11-decisions.md#d70--contribuer-à-open-food-facts-entre-en-tranche-6-parce-que-la-couverture-nest-pas-la-même-partout---validée)).
 
 **Trois points arbitrés d'avance**, écrits en [D73](11-decisions.md#d73--la-portion-de-la-fiche-lemporte-sur-le-forfait-et-la-densité-attend-son-auteur---validée) : les boutons IA restent visibles et **grisés** sans clé, le modèle par défaut est `claude-opus-5`, et les appels passent par **Retrofit** comme Open Food Facts — une seule pile HTTP pour les six fournisseurs, donc un seul intercepteur de redaction.
 

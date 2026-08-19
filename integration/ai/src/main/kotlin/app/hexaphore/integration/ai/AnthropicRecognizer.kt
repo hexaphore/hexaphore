@@ -2,6 +2,7 @@ package app.hexaphore.integration.ai
 
 import app.hexaphore.domain.ai.AiConfiguration
 import app.hexaphore.domain.ai.AiError
+import app.hexaphore.domain.ai.EstimationOutcome
 import app.hexaphore.domain.ai.RecognitionInput
 import app.hexaphore.domain.ai.RecognitionOutcome
 import app.hexaphore.domain.ai.TokenUsage
@@ -51,6 +52,7 @@ import java.util.Base64
 internal class AnthropicRecognizer(
     private val api: AnthropicApi,
     private val prompt: SystemPrompt,
+    private val estimatePrompt: SystemPrompt,
     private val dispatchers: DispatcherProvider,
 ) : ProviderRecognizer {
     override suspend fun recognize(input: RecognitionInput, configuration: AiConfiguration): RecognitionOutcome =
@@ -71,6 +73,46 @@ internal class AnthropicRecognizer(
                 offline.reducedTo(AiError.NoNetwork)
             }
         }
+
+    override suspend fun estimate(labels: List<String>, configuration: AiConfiguration): EstimationOutcome =
+        withContext(dispatchers.io) {
+            try {
+                api
+                    .messages(
+                        configuration.endpoint(),
+                        configuration.apiKey.value,
+                        configuration.estimateRequest(labels, estimatePrompt),
+                    )
+                    .toEstimation()
+            } catch (timeout: SocketTimeoutException) {
+                timeout.estimationReducedTo(AiError.Timeout)
+            } catch (offline: IOException) {
+                offline.estimationReducedTo(AiError.NoNetwork)
+            }
+        }
+}
+
+/**
+ * La demande d'estimation : les libellés en clair, un par ligne.
+ *
+ * Une liste et non une phrase : le modèle doit rendre une entrée par libellé demandé,
+ * et une énumération le dit mieux qu'une tournure.
+ */
+private fun AiConfiguration.estimateRequest(labels: List<String>, prompt: SystemPrompt) = AnthropicRequest(
+    model = model,
+    maxTokens = MAX_TOKENS,
+    system = prompt.text(),
+    outputConfig = OutputConfig(effort = EFFORT, format = OutputFormat(schema = ESTIMATION_SCHEMA)),
+    messages = listOf(AnthropicMessage(role = "user", content = listOf(TextBlock(labels.asRequest())))),
+)
+
+private fun Response<AnthropicResponse>.toEstimation(): EstimationOutcome {
+    val body = body()
+    return when {
+        !isSuccessful -> EstimationOutcome.Failed(toAiError())
+        body == null -> EstimationOutcome.Failed(AiError.Unparseable)
+        else -> parseEstimation(body.text())
+    }
 }
 
 /**
@@ -189,3 +231,6 @@ private const val PHOTO_REQUEST = "Analyse ce repas."
 
 /** Anthropic exige `additionalProperties: false` dans sa sortie structurée. */
 private val RECOGNITION_SCHEMA: JsonObject = recognitionSchema(strict = true)
+
+/** Meme exigence pour l'estimation : la sortie structuree d'Anthropic ferme ses objets. */
+private val ESTIMATION_SCHEMA: JsonObject = estimationSchema(strict = true)

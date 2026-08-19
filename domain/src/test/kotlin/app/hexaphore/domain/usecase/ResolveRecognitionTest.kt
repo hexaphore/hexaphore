@@ -2,7 +2,10 @@ package app.hexaphore.domain.usecase
 
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.SequentialIdGenerator
+import app.hexaphore.domain.ai.AiError
+import app.hexaphore.domain.ai.EstimatedFood
 import app.hexaphore.domain.ai.EstimatedUnit
+import app.hexaphore.domain.ai.EstimationOutcome
 import app.hexaphore.domain.ai.Recognition
 import app.hexaphore.domain.ai.RecognizedItem
 import app.hexaphore.domain.diary.EntrySource
@@ -122,10 +125,98 @@ class ResolveRecognitionTest {
         assertTrue(draft.lines.single().blank)
     }
 
+    /** Ce que le repli de l'etape 4 repondra, et ce qu'on lui aura demande. */
+    private var estimation: EstimationOutcome = EstimationOutcome.Estimated(emptyList())
+    private val demandes = mutableListOf<List<String>>()
+
     private suspend fun resolve(vararg items: RecognizedItem) = ResolveRecognition(
         resolve = ResolveFoodLabel(CATALOGUE),
         create = CreateDraft(FixedClock.atNoon(JOUR), ids),
+        estimate = { labels ->
+            demandes += labels
+            estimation
+        },
     )(Recognition(items.toList()), EntrySource.TEXT_AI)
+
+    @Test
+    fun `un libelle resolu ne part pas au repli`() = runTest {
+        // Le cas courant, et le plus cher a manquer : un appel de plus se paie, et il
+        // ne rendrait rien qu'on n'ait deja.
+        resolve(item("pomme", 1.0, EstimatedUnit.PIECE))
+
+        assertEquals(emptyList<List<String>>(), demandes)
+    }
+
+    @Test
+    fun `les libelles non resolus partent en un seul appel`() = runTest {
+        // Un appel par ligne aurait coute trois requetes la ou une suffit.
+        resolve(
+            item("tofu fume au sesame", 100.0, EstimatedUnit.G),
+            item("pomme", 1.0, EstimatedUnit.PIECE),
+            item("sauce maison", 30.0, EstimatedUnit.G),
+        )
+
+        assertEquals(listOf(listOf("tofu fume au sesame", "sauce maison")), demandes)
+    }
+
+    @Test
+    fun `une estimation remplit la ligne et se signale`() = runTest {
+        estimation = EstimationOutcome.Estimated(
+            listOf(EstimatedFood("tofu fume au sesame", NutrientValues(kcal = 180.0, protein = 16.0))),
+        )
+
+        val draft = resolve(item("tofu fume au sesame", 200.0, EstimatedUnit.G))
+
+        val line = draft.lines.single()
+        // 180 kcal pour 100 g, ramenes a 200 g : la reference est posee, donc la
+        // quantite recalcule comme pour une vraie fiche.
+        assertEquals(360.0, line.values.kcal)
+        assertTrue(line.suggestion!!.estimatedMacros, "un chiffre invente doit le dire")
+        assertNull(line.foodId, "une estimation n'est pas une fiche et n'entre pas au catalogue")
+    }
+
+    @Test
+    fun `une estimation reformulee ne se recolle a rien`() = runTest {
+        // Le prompt exige que le libelle soit recopie a l'identique. Un modele qui
+        // reformule -- « tofu fume » pour « tofu fume au sesame » -- rend une
+        // estimation qu'on ne peut plus rattacher : la remettre sur la ligne la plus
+        // proche inventerait un rapprochement que personne n'a demande.
+        estimation = EstimationOutcome.Estimated(
+            listOf(EstimatedFood("tofu fume", NutrientValues(kcal = 180.0))),
+        )
+
+        val draft = resolve(
+            item("tofu fume au sesame", 100.0, EstimatedUnit.G),
+            item("sauce maison", 30.0, EstimatedUnit.G),
+        )
+
+        assertNull(draft.lines.first().values.kcal, "une reformulation ne remplit aucune ligne")
+        assertNull(draft.lines.last().values.kcal, "et surtout pas celle d'un autre libelle")
+    }
+
+    @Test
+    fun `un libelle que le modele ne sait pas estimer reste a completer`() = runTest {
+        // Le prompt demande d'omettre plutot que d'inventer : une omission se corrige a
+        // la main, un chiffre invente passe inapercu.
+        estimation = EstimationOutcome.Estimated(emptyList())
+
+        val line = resolve(item("sauce maison", 30.0, EstimatedUnit.G)).lines.single()
+
+        assertNull(line.values.kcal)
+        assertFalse(line.suggestion!!.estimatedMacros)
+    }
+
+    @Test
+    fun `un repli en echec ne fait rien tomber`() = runTest {
+        // Sans cle, sans reseau : la ligne reste telle qu'elle etait, et l'ecran dit
+        // deja qu'une ligne sans energie n'est pas enregistrable.
+        estimation = EstimationOutcome.Failed(AiError.NoProviderConfigured)
+
+        val line = resolve(item("sauce maison", 30.0, EstimatedUnit.G)).lines.single()
+
+        assertEquals("sauce maison", line.name)
+        assertNull(line.values.kcal)
+    }
 
     private fun item(label: String, quantity: Double, unit: EstimatedUnit, confidence: Float = 0.9f) =
         RecognizedItem(label = label, quantity = quantity, unit = unit, confidence = confidence)

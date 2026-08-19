@@ -2,11 +2,13 @@ package app.hexaphore.integration.ai
 
 import app.hexaphore.domain.ai.AiConfiguration
 import app.hexaphore.domain.ai.AiError
+import app.hexaphore.domain.ai.EstimationOutcome
 import app.hexaphore.domain.ai.RecognitionInput
 import app.hexaphore.domain.ai.RecognitionOutcome
 import app.hexaphore.domain.ai.TokenUsage
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonObject
 import retrofit2.Response
 import java.io.IOException
 import java.net.SocketTimeoutException
@@ -38,6 +40,7 @@ import java.util.Base64
 internal class OpenAiCompatibleRecognizer(
     private val api: OpenAiApi,
     private val prompt: SystemPrompt,
+    private val estimatePrompt: SystemPrompt,
     private val dispatchers: DispatcherProvider,
     private val strictSchema: Boolean,
 ) : ProviderRecognizer {
@@ -57,6 +60,43 @@ internal class OpenAiCompatibleRecognizer(
                 offline.reducedTo(AiError.NoNetwork)
             }
         }
+
+    override suspend fun estimate(labels: List<String>, configuration: AiConfiguration): EstimationOutcome =
+        withContext(dispatchers.io) {
+            try {
+                api
+                    .chatCompletions(
+                        configuration.chatEndpoint(),
+                        BEARER + configuration.apiKey.value,
+                        configuration.chatEstimateRequest(labels, estimatePrompt, strictSchema),
+                    )
+                    .toChatEstimation()
+            } catch (timeout: SocketTimeoutException) {
+                timeout.estimationReducedTo(AiError.Timeout)
+            } catch (offline: IOException) {
+                offline.estimationReducedTo(AiError.NoNetwork)
+            }
+        }
+}
+
+private fun AiConfiguration.chatEstimateRequest(labels: List<String>, prompt: SystemPrompt, strictSchema: Boolean) =
+    OpenAiRequest(
+        model = model,
+        messages = listOf(
+            OpenAiMessage(role = SYSTEM_ROLE, content = OpenAiContent.Text(prompt.text())),
+            OpenAiMessage(role = USER_ROLE, content = OpenAiContent.Text(labels.asRequest())),
+        ),
+        responseFormat = responseFormat(strictSchema, ESTIMATION_SCHEMA_NAME) { estimationSchema(strict = true) },
+        maxCompletionTokens = CHAT_MAX_TOKENS,
+    )
+
+private fun Response<OpenAiResponse>.toChatEstimation(): EstimationOutcome {
+    val choice = body()?.choices?.firstOrNull()
+    return when {
+        !isSuccessful -> EstimationOutcome.Failed(chatError())
+        choice == null -> EstimationOutcome.Failed(AiError.Unparseable)
+        else -> parseEstimation(choice.message?.content.orEmpty())
+    }
 }
 
 /**
@@ -79,7 +119,7 @@ private fun AiConfiguration.chatRequest(input: RecognitionInput, prompt: SystemP
             OpenAiMessage(role = SYSTEM_ROLE, content = OpenAiContent.Text(prompt.text())),
             OpenAiMessage(role = USER_ROLE, content = input.chatContent()),
         ),
-        responseFormat = responseFormat(strictSchema),
+        responseFormat = responseFormat(strictSchema, SCHEMA_NAME) { recognitionSchema(strict = true) },
         maxCompletionTokens = CHAT_MAX_TOKENS,
     )
 
@@ -89,10 +129,10 @@ private fun AiConfiguration.chatRequest(input: RecognitionInput, prompt: SystemP
  * `strict` va avec le schéma et pas sans lui : demander la rigueur sur un format qui
  * ne décrit rien n'aurait aucun sens, et certains relais refusent le champ.
  */
-private fun responseFormat(strictSchema: Boolean): OpenAiResponseFormat = when {
+private fun responseFormat(strictSchema: Boolean, name: String, schema: () -> JsonObject): OpenAiResponseFormat = when {
     strictSchema -> OpenAiResponseFormat(
         type = JSON_SCHEMA_FORMAT,
-        jsonSchema = OpenAiJsonSchema(name = SCHEMA_NAME, schema = recognitionSchema(strict = true)),
+        jsonSchema = OpenAiJsonSchema(name = name, schema = schema()),
     )
 
     else -> OpenAiResponseFormat(type = JSON_OBJECT_FORMAT)
@@ -173,6 +213,7 @@ private const val JPEG_DATA_URI = "data:image/jpeg;base64,"
 private const val JSON_SCHEMA_FORMAT = "json_schema"
 private const val JSON_OBJECT_FORMAT = "json_object"
 private const val SCHEMA_NAME = "recognition"
+private const val ESTIMATION_SCHEMA_NAME = "estimation"
 private const val CHAT_MAX_TOKENS = 4096
 private const val CHAT_UNAUTHORIZED = 401
 private const val CHAT_PAYMENT_REQUIRED = 402
