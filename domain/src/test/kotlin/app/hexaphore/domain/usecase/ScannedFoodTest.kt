@@ -6,6 +6,7 @@ import app.hexaphore.core.testing.InMemoryDiaryRepository
 import app.hexaphore.core.testing.InMemoryFavoriteDishes
 import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.core.testing.SequentialIdGenerator
+import app.hexaphore.domain.ai.InMemoryPendingRecognition
 import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.food.Barcode
 import app.hexaphore.domain.food.CustomFoodDraft
@@ -99,6 +100,8 @@ class ScannedFoodTest {
             favorites = GetFavoriteDraft(InMemoryFavoriteDishes(), catalogue, clock, ids),
             create = CreateDraft(clock, ids),
             foods = catalogue,
+            pending = InMemoryPendingRecognition(),
+            resolve = ResolveRecognition(ResolveFoodLabel(catalogue), CreateDraft(clock, ids)),
         )
     }
 

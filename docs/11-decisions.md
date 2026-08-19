@@ -1847,6 +1847,56 @@ L'ordre d'un **tableau**, lui, veut dire quelque chose — le modèle lit les `p
 
 **Ce que le vert ne prouve pas.** **Aucun appel réel n'a atteint Gemini.** La clé fournie pour les essais n'a pas la forme d'une clé AI Studio — `AIza`, 39 caractères — mais celle d'un jeton OAuth, et le premier appel réel dira si le compte l'accepte. Les identifiants de modèles viennent de la documentation en ligne et non de mémoire, `gemini-3.5-flash-lite` par défaut ; c'est aussi ce premier appel qui dira s'ils sont accessibles à ce compte.
 
+## D80 — La proposition passe par un dépôt, et l'écran de validation ne change pas d'un mot · ✓ validée
+
+**Contexte.** La modale texte : le premier écran d'où un appel payant part vraiment, et la jonction de **quatre livraisons qui n'avaient aucun appelant** — le contrat de reconnaissance, la conversion des quantités, le score de décision et la recherche de candidats existaient chacun avec ses tests et n'étaient branchés à rien.
+
+### Une route ne porte pas cinq lignes
+
+`EntryDestination` l'avait écrit avant que le cas existe, et c'est le seul vrai obstacle de cette livraison. Les arguments de navigation sont sérialisés dans l'état du système : y faire transiter un plat entier reviendrait à en tenir une seconde copie que rien ne tiendrait à jour. Le canal de résultat qui sert à « Ajouter un aliment » ne convient pas davantage — il rend une valeur à l'écran **précédent**, alors qu'ici l'écran destinataire n'existe pas encore au moment où la réponse arrive.
+
+D'où `PendingRecognition`, un dépôt d'**une seule** proposition. Pas de file d'attente : il n'y a jamais deux analyses en vol, l'écran attend la sienne avant d'en laisser partir une autre. La reprise **vide** le dépôt, sans quoi revenir sur la validation par le bouton « retour » ressusciterait un plat qu'on vient d'enregistrer.
+
+**Ce qui est déposé est la réponse du modèle, pas un brouillon.** La résolution demande le catalogue, donc elle appartient à `OpenDraft`, avec les quatre autres origines ; déposer un brouillon déjà résolu aurait fait de l'écran de capture un second endroit qui sait fabriquer un plat, et le premier libellé introuvable aurait eu deux comportements possibles.
+
+**Volatil, et assumé.** Une proposition ne survit pas à la mort du processus : ce qui a été payé au fournisseur est perdu, et l'écran dit qu'il n'y a rien à valider. La persister demanderait de décider où, combien de temps, et sous quelle forme une proposition périmée se relit — trois questions qu'aucun usage ne pose.
+
+### Une cinquième origine, et pas un cinquième écran
+
+L'écran de validation n'a pas bougé. Il reçoit un `EntryDraft` comme il en reçoit depuis la tranche 2, et `DraftOrigin` gagne une variante — la seule **sans charge**, puisque la charge est ailleurs. C'est ce que `OpenDraft` promettait en naissant : un seul endroit qui sait d'où peut venir un brouillon.
+
+Ce qui a changé dans l'écran, en revanche, c'est ce qu'une ligne **dit d'elle-même**.
+
+### Deux incertitudes, affichées séparément
+
+Une ligne proposée porte une `Suggestion`, et elle en garde **deux** : la confiance du modèle sur ce qu'il a compris, et le verdict de la confrontation au catalogue. Elles se trompent séparément — le modèle peut être sûr d'avoir vu du riz complet quand le catalogue n'a que du riz blanc, et l'inverse arrive tout autant. Les moyenner rendrait un chiffre qui ne se rapporte à rien et effacerait le seul cas qui compte : celui où l'une des deux doute.
+
+S'y ajoute le marqueur qu'exige [04](04-sources-de-donnees.md#conversion-des-quantités) — *« toute conversion appuyée sur un défaut plutôt que sur une donnée réelle doit être signalée »*. Sans lui, « 1 bol » converti au forfait s'afficherait avec la même autorité qu'une portion mesurée par la fiche.
+
+Les alternatives se posent **sans obliger à choisir** : la ligne est déjà remplie avec le meilleur candidat, et les trois autres sont là au cas où. En faire une question à trancher ferait payer trois lectures à chaque ligne douteuse, y compris quand le premier candidat était le bon. En choisir une garde la quantité — corriger « riz » en « riz complet » ne doit pas faire retaper 180 g — et **efface la marque** : la ligne n'est plus une proposition mais une décision.
+
+### « Décrire » arrive, « Photographier » non
+
+L'accueil gagne un bouton, pas deux. Les deux modes d'IA partagent tout sauf leur entrée, mais la modale photo n'existe pas encore, et **un bouton qui n'ouvre rien n'est pas une avance** — c'est ce que disait déjà le commentaire de cet écran quand aucun des deux n'existait.
+
+Le bouton est **visible et grisé** sans clé ([D73](#d73--la-portion-de-la-fiche-lemporte-sur-le-forfait-et-la-densité-attend-son-auteur---validée)), et **tapable dans les deux cas** : caché, il ne s'apprendrait jamais — personne ne cherche dans les réglages une fonctionnalité dont rien n'indique l'existence — et inerte, il n'apprendrait rien non plus. L'appui ouvre une explication courte, avec le chemin vers les réglages.
+
+Les huit messages d'erreur descendent dans `:core:designsystem` au passage. [02](02-parcours-et-ecrans.md#modale--texte-libre) veut *« mêmes erreurs, mêmes messages »* entre la photo et la description, et le bouton « Tester » pose exactement la même question au même port : trois écrans qui rédigent chacun leur version d'« il n'y a pas de réseau » finissent par en avoir trois, dont deux qui vieillissent mal. C'est le raisonnement de `SourceBadge`, qui traduit déjà une énumération du domaine au même endroit.
+
+### Campagne de défaite : seize sabotages, trois survivants au premier tour
+
+Les trois disaient chacun un vrai trou, et aucun n'était le trou qu'on aurait deviné.
+
+- **Un test qui regardait un drapeau au lieu de compter les appels.** « Un second appui ne repaie pas la même phrase » vérifiait que l'écran affichait encore « analyse en cours » — ce qu'il ferait aussi bien avec deux appels en vol. Il compte désormais les appels, qui sont ce qui se paie.
+- **La source du dépôt n'était vérifiée par rien.** Déposer sous `MANUAL` au lieu de `TEXT_AI` passait : le plat aurait perdu la seule trace du passage d'un modèle, et la pastille de l'écran de validation aurait menti.
+- **La marque ne traversait pas le formulaire.** Le brouillon la portait, l'écran ne la recevait pas, et rien ne tombait — une supposition se serait affichée avec l'autorité d'un aliment choisi.
+
+Un quatrième sabotage n'a pas compilé, et c'est aussi une réponse : le harnais ne sait pas distinguer « la règle est tenue par le compilateur » de « rien ne la couvre », donc il l'a signalé comme une survie. Il a fallu le rejouer sous une forme qui compile pour savoir laquelle des deux c'était ([D71](#d71--le-compte-des-citations-quitte-le-catalogue-parce-quun-faux-ne-peut-pas-linventer---validée) nommait déjà ce piège dans l'autre sens).
+
+**Conséquences.** `:feature:capture` naît, et il portera les deux modales : elles partagent le contrat de reconnaissance, donc l'attente, les erreurs et la sortie — les séparer ferait deux fois le même état. `DraftTextField` devient multiligne sur demande, `LineEdit` gagne sa sixième variante, et `ResolveFoodLabel` reçoit enfin un fournisseur Hilt : il attendait un appelant depuis sa livraison.
+
+**Ce que le vert ne prouve pas.** **Aucun appel réel n'a encore abouti**, et cet écran n'a jamais été vu sur un téléphone. Le repli IA groupé de [04](04-sources-de-donnees.md#résolution--du-texte-de-lia-à-un-aliment) § étape 4 n'existe pas : un libellé introuvable arrive avec son nom et sa quantité, sans valeurs, et attend qu'on le complète à la main. La modale photo non plus, ni le compteur de coût.
+
 ---
 
 ## Décisions prises par défaut, à confirmer

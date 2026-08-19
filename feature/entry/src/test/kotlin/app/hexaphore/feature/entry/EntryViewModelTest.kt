@@ -7,6 +7,10 @@ import app.hexaphore.core.testing.InMemoryFavoriteDishes
 import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.core.testing.InMemoryGoals
 import app.hexaphore.core.testing.SequentialIdGenerator
+import app.hexaphore.domain.ai.EstimatedUnit
+import app.hexaphore.domain.ai.InMemoryPendingRecognition
+import app.hexaphore.domain.ai.Recognition
+import app.hexaphore.domain.ai.RecognizedItem
 import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.diary.DraftLineId
@@ -28,6 +32,8 @@ import app.hexaphore.domain.usecase.GetFavoriteDraft
 import app.hexaphore.domain.usecase.LogDish
 import app.hexaphore.domain.usecase.OpenDraft
 import app.hexaphore.domain.usecase.RemoveFavoriteDish
+import app.hexaphore.domain.usecase.ResolveFoodLabel
+import app.hexaphore.domain.usecase.ResolveRecognition
 import app.hexaphore.domain.usecase.SaveDraft
 import app.hexaphore.domain.usecase.SaveFavoriteDish
 import app.hexaphore.domain.usecase.UpdateDish
@@ -44,6 +50,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -243,6 +250,37 @@ class EntryViewModelTest {
     }
 
     @Test
+    fun `une proposition ouvre autant de lignes que le modele en a rendues`() = runTest(dispatcher) {
+        // Le chemin que quatre livraisons attendaient, vu depuis l'ecran : la modale
+        // depose, la route ne porte qu'un drapeau, et l'ecran recoit un brouillon
+        // comme il en recoit depuis la tranche 2.
+        runBlocking { catalogue.save(RIZ) }
+        pending.offer(Recognition(listOf(item("riz", 1.0), item("tofu fume", 80.0))), EntrySource.TEXT_AI)
+
+        val state = viewModel(proposal = true).content()
+
+        assertEquals(listOf(RIZ.name, "tofu fume"), state.form.lines.map { it.name })
+        assertEquals(EntrySource.TEXT_AI, state.form.source)
+        // La marque traverse le formulaire : sans elle, une supposition s'afficherait
+        // avec la meme autorite qu'un aliment choisi.
+        assertNotNull(state.form.lines.first().suggestion, "une ligne proposee doit le dire")
+    }
+
+    @Test
+    fun `une proposition deja reprise ne se rejoue pas`() = runTest(dispatcher) {
+        // Revenir sur la validation par le bouton « retour » ne doit pas ressusciter
+        // un plat qu'on vient d'enregistrer, ni le dedoubler.
+        pending.offer(Recognition(listOf(item("riz", 1.0))), EntrySource.TEXT_AI)
+        viewModel(proposal = true).content()
+
+        val etat = viewModel(proposal = true).uiState
+            .filterIsInstance<EntryUiState.Unavailable>()
+            .first()
+
+        assertEquals(EntryUiState.Unavailable, etat)
+    }
+
+    @Test
     fun `un plat introuvable se dit au lieu de s inventer`() = runTest(dispatcher) {
         val etat = viewModel(dishId = "plat-disparu").uiState
             .filterIsInstance<EntryUiState.Unavailable>()
@@ -326,29 +364,42 @@ class EntryViewModelTest {
         viewModel.onFoodPicked(food.id)
     }
 
-    private fun viewModel(dishId: String? = null, favoriteId: String? = null, scannedFoodId: String? = null) =
-        EntryViewModel(
-            savedStateHandle = SavedStateHandle(
-                listOfNotNull(
-                    dishId?.let { "dishId" to it },
-                    favoriteId?.let { "favoriteId" to it },
-                    scannedFoodId?.let { "scannedFoodId" to it },
-                ).toMap(),
-            ),
-            openDraft = OpenDraft(
-                dishes = GetDishDraft(diary, ids),
-                favorites = GetFavoriteDraft(favoris, catalogue, clock, ids),
-                create = CreateDraft(clock, ids),
-                foods = catalogue,
-            ),
-            addFoodLine = AddFoodLine(catalogue, CreateDraft(clock, ids)),
-            getDaySummary = GetDaySummary(diary, goals, clock),
-            saveDraft = SaveDraft(LogDish(diary, catalogue, favoris, clock, ids), UpdateDish(diary, ids)),
-            saveFavoriteDish = SaveFavoriteDish(favoris, ids),
-            removeFavoriteDish = RemoveFavoriteDish(favoris),
-        )
+    private fun viewModel(
+        dishId: String? = null,
+        favoriteId: String? = null,
+        scannedFoodId: String? = null,
+        proposal: Boolean = false,
+    ) = EntryViewModel(
+        savedStateHandle = SavedStateHandle(
+            listOfNotNull(
+                dishId?.let { "dishId" to it },
+                favoriteId?.let { "favoriteId" to it },
+                scannedFoodId?.let { "scannedFoodId" to it },
+                "proposal" to proposal,
+            ).toMap(),
+        ),
+        openDraft = OpenDraft(
+            dishes = GetDishDraft(diary, ids),
+            favorites = GetFavoriteDraft(favoris, catalogue, clock, ids),
+            create = CreateDraft(clock, ids),
+            foods = catalogue,
+            pending = pending,
+            resolve = ResolveRecognition(ResolveFoodLabel(catalogue), CreateDraft(clock, ids)),
+        ),
+        addFoodLine = AddFoodLine(catalogue, CreateDraft(clock, ids)),
+        getDaySummary = GetDaySummary(diary, goals, clock),
+        saveDraft = SaveDraft(LogDish(diary, catalogue, favoris, clock, ids), UpdateDish(diary, ids)),
+        saveFavoriteDish = SaveFavoriteDish(favoris, ids),
+        removeFavoriteDish = RemoveFavoriteDish(favoris),
+    )
 
     private val favoris = InMemoryFavoriteDishes()
+
+    /** Le dépôt des propositions, partagé entre l'écran qui dépose et celui qui reprend. */
+    private val pending = InMemoryPendingRecognition()
+
+    private fun item(label: String, quantity: Double) =
+        RecognizedItem(label = label, quantity = quantity, unit = EstimatedUnit.G, confidence = 0.9f)
 
     private companion object {
         val RIZ = Food(

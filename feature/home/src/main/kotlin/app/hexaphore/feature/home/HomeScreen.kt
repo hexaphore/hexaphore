@@ -9,11 +9,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
@@ -22,13 +25,19 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.hexaphore.core.designsystem.component.BarcodeGlyph
@@ -52,6 +61,7 @@ import kotlin.math.roundToInt
 fun HomeRoute(
     onAddDish: () -> Unit,
     onScan: () -> Unit,
+    onDescribe: () -> Unit,
     onEditDish: (DishId) -> Unit,
     onSetUpGoal: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -61,16 +71,28 @@ fun HomeRoute(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val pendingUndo by viewModel.pendingUndo.collectAsStateWithLifecycle()
     val nameTaken by viewModel.favoriteNameTaken.collectAsStateWithLifecycle()
+    val aiConfigured by viewModel.aiConfigured.collectAsStateWithLifecycle()
 
     HomeScreen(
         state = state,
         pendingUndo = pendingUndo,
+        aiConfigured = aiConfigured,
         favoriteNameTaken = nameTaken,
         onDismissFavoriteError = viewModel::onDismissFavoriteError,
-        actions = remember(viewModel, onAddDish, onScan, onEditDish, onSetUpGoal, onOpenSettings, onOpenFavorites) {
+        actions = remember(
+            viewModel,
+            onAddDish,
+            onScan,
+            onDescribe,
+            onEditDish,
+            onSetUpGoal,
+            onOpenSettings,
+            onOpenFavorites,
+        ) {
             HomeActions(
                 onAddDish = onAddDish,
                 onScan = onScan,
+                onDescribe = onDescribe,
                 onEditDish = onEditDish,
                 onDeleteDish = viewModel::onDeleteDish,
                 onDeleteEntry = viewModel::onDeleteEntry,
@@ -101,6 +123,7 @@ fun HomeScreen(
     pendingUndo: Dish?,
     actions: HomeActions,
     modifier: Modifier = Modifier,
+    aiConfigured: Boolean = false,
     favoriteNameTaken: Boolean = false,
     onDismissFavoriteError: () -> Unit = {},
 ) {
@@ -127,7 +150,7 @@ fun HomeScreen(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        floatingActionButton = { DayActions(actions) },
+        floatingActionButton = { DayActions(actions, aiConfigured) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -180,21 +203,36 @@ private fun DayHeader(onOpenSettings: () -> Unit) {
 }
 
 /**
- * Les deux boutons flottants, empilés.
+ * Les boutons flottants, empilés.
  *
  * L'étoile ouvre les plats déjà composés, « Ajouter » la recherche — qui porte aussi
  * la saisie manuelle, puisqu'un aliment tapé à la main devient une fiche. « Ajouter »
- * reste le geste principal : c'est le seul des deux qui porte un libellé.
+ * reste le geste principal : c'est le seul qui porte un libellé.
  *
- * Toujours pas l'arc de quatre actions de [docs/02][parcours] : les deux modes d'IA
- * n'existent pas encore, et un bouton qui n'ouvre rien n'est pas une avance. Le scan,
- * lui, s'y ajoute maintenant qu'il mène quelque part.
+ * **« Décrire » arrive, « Photographier » non.** Les deux modes d'IA partagent tout
+ * sauf leur entrée, mais la modale photo n'existe pas encore, et un bouton qui n'ouvre
+ * rien n'est pas une avance — c'est ce que disait déjà ce commentaire quand aucun des
+ * deux n'existait. Toujours pas l'arc de quatre actions de [docs/02][parcours], donc :
+ * il attend son quatrième.
  *
  * [parcours]: docs/02-parcours-et-ecrans.md
  */
 @Composable
-private fun DayActions(actions: HomeActions) {
+private fun DayActions(actions: HomeActions, aiConfigured: Boolean) {
+    var explaining by rememberSaveable { mutableStateOf(false) }
+
+    if (explaining) {
+        AiUnavailableDialog(
+            onConfigure = {
+                explaining = false
+                actions.onOpenSettings()
+            },
+            onDismiss = { explaining = false },
+        )
+    }
+
     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        DescribeButton(configured = aiConfigured, onDescribe = actions.onDescribe, onExplain = { explaining = true })
         SmallFloatingActionButton(onClick = actions.onScan) {
             BarcodeGlyph(contentDescription = stringResource(R.string.home_scan))
         }
@@ -208,6 +246,60 @@ private fun DayActions(actions: HomeActions) {
             Text(text = stringResource(R.string.home_add_dish))
         }
     }
+}
+
+/**
+ * Visible et grisé plutôt que caché ([D73][decisions]), et **tapable dans les deux
+ * cas**.
+ *
+ * Un bouton absent tant qu'aucune clé n'est saisie ne s'apprend jamais : personne ne
+ * cherche dans les réglages une fonctionnalité dont rien n'indique l'existence. Un
+ * bouton inerte n'apprend rien non plus — c'est pourquoi l'appui ouvre l'explication
+ * et le chemin vers les réglages, au lieu de ne rien faire.
+ *
+ * [decisions]: docs/11-decisions.md
+ */
+@Composable
+private fun DescribeButton(configured: Boolean, onDescribe: () -> Unit, onExplain: () -> Unit) {
+    val unavailable = stringResource(R.string.home_describe_unavailable)
+
+    SmallFloatingActionButton(
+        onClick = if (configured) onDescribe else onExplain,
+        containerColor = if (configured) {
+            MaterialTheme.colorScheme.secondaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant
+        },
+        // Le grisé ne se voit pas au lecteur d'ecran : sans cette phrase, le bouton
+        // s'annonce comme n'importe quel autre et l'appui semble sans effet.
+        modifier = Modifier.semantics { if (!configured) stateDescription = unavailable },
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Edit,
+            contentDescription = stringResource(R.string.home_describe),
+            tint = if (configured) LocalContentColor.current else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * Ce qu'on dit quand il n'y a pas de clé, et **où aller**.
+ *
+ * Une explication sans chemin obligerait à chercher soi-même la bonne section des
+ * réglages ; le bouton l'ouvre. [docs/02][parcours] veut cette explication courte :
+ * ce qui manque, ce que ça coûte, et rien de plus.
+ *
+ * [parcours]: docs/02-parcours-et-ecrans.md
+ */
+@Composable
+private fun AiUnavailableDialog(onConfigure: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.home_ai_title)) },
+        text = { Text(stringResource(R.string.home_ai_explanation)) },
+        confirmButton = { TextButton(onClick = onConfigure) { Text(stringResource(R.string.home_ai_configure)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.home_ai_later)) } },
+    )
 }
 
 /**

@@ -61,6 +61,7 @@ internal class EntryViewModel @Inject constructor(
         savedStateHandle.get<String>(EntryDestination.FAVORITE_ID)?.let(::FavoriteDishId)
     private val scannedFoodId: FoodId? =
         savedStateHandle.get<String>(EntryDestination.SCANNED_FOOD_ID)?.let(::FoodId)
+    private val proposal: Boolean = savedStateHandle.get<Boolean>(EntryDestination.PROPOSAL) == true
 
     private val form = MutableStateFlow<EntryForm?>(null)
     private val status = MutableStateFlow(Status.LOADING)
@@ -220,8 +221,9 @@ internal class EntryViewModel @Inject constructor(
         }
     }
 
-    /** Ce que la destination désigne. Un seul endroit qui lit les trois arguments. */
+    /** Ce que la destination désigne. Un seul endroit qui lit les cinq arguments. */
     private fun origin(): DraftOrigin = when {
+        proposal -> DraftOrigin.Proposed
         dishId != null -> DraftOrigin.Dish(dishId)
         favoriteId != null -> DraftOrigin.Favorite(favoriteId)
         scannedFoodId != null -> DraftOrigin.Scanned(scannedFoodId)

@@ -46,6 +46,7 @@ La flèche du bas remonte : `:data` dépend de `:domain`, jamais l'inverse. Un `
 :data:diary                 Journal : plats, entrées, favoris
 :data:food                  Catalogue d'aliments (CIQUAL + cache OFF + personnels)
 :data:profile               Profil, objectifs, poids
+:data:settings              Cles d IA, chiffrees par le Keystore
 :data:backup                Instantané, sérialisation, planification
 
 :integration:openfoodfacts  Client Retrofit + DTO + correspondances
@@ -55,6 +56,7 @@ La flèche du bas remonte : `:data` dépend de `:domain`, jamais l'inverse. Un `
 
 :feature:onboarding
 :feature:scan               Modale de scan, ses quatre etats
+:feature:capture            Modales photo et texte : une analyse, un depot, deux modes
 :feature:home               Accueil, journée, calendrier
 :feature:entry              Écran de validation
 :feature:search             Recherche, récents, favoris, aliment personnel
@@ -64,7 +66,7 @@ La flèche du bas remonte : `:data` dépend de `:domain`, jamais l'inverse. Un `
 :tooling:ciqual-import      Tâche Gradle : XML ANSES → SQLite (hors APK)
 ```
 
-Un seizième artefact vit à côté de cette liste sans y figurer : `build-logic/detekt-rules`, qui contient les trois règles d'analyse statique de [10](10-qualite-et-livraison.md#analyse-statique). Ce n'est pas un module du projet mais un **build inclus** : son code tourne sur la JVM de Gradle, pas sur un téléphone, et il n'a rien à faire dans le graphe de dépendances de l'application ([D16](11-decisions.md#d16--les-règles-detekt-vivent-dans-un-build-inclus---par-défaut)).
+Un artefact vit à côté de cette liste sans y figurer : `build-logic/detekt-rules`, qui contient les trois règles d'analyse statique de [10](10-qualite-et-livraison.md#analyse-statique). Ce n'est pas un module du projet mais un **build inclus** : son code tourne sur la JVM de Gradle, pas sur un téléphone, et il n'a rien à faire dans le graphe de dépendances de l'application ([D16](11-decisions.md#d16--les-règles-detekt-vivent-dans-un-build-inclus---par-défaut)).
 
 **Où vivent `Clock` et `DispatcherProvider`.** Les *interfaces* sont dans `:domain` : ce sont des ports, et un port appartient au métier qui l'exige. Les *implémentations* — celles qui lisent vraiment l'horloge de l'appareil — sont dans `:core:common`. La règle detekt qui interdit `LocalDate.now()` ailleurs nomme explicitement les fichiers autorisés.
 

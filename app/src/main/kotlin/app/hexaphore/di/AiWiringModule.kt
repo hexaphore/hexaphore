@@ -2,6 +2,8 @@ package app.hexaphore.di
 
 import android.util.Log
 import app.hexaphore.BuildConfig
+import app.hexaphore.domain.ai.InMemoryPendingRecognition
+import app.hexaphore.domain.ai.PendingRecognition
 import app.hexaphore.integration.ai.NetworkLog
 import dagger.Module
 import dagger.Provides
@@ -10,8 +12,7 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 /**
- * Les deux choses que `:integration:ai` attend de l'application, et qu'il ne peut pas
- * savoir lui-même.
+ * Ce que l'IA attend de l'application, et qu'aucun module ne peut savoir seul.
  *
  * @see docs/05-ia.md
  */
@@ -32,6 +33,20 @@ internal object AiWiringModule {
      *
      * [ia]: docs/05-ia.md
      */
+    /**
+     * Le dépôt d'une proposition, **en un seul exemplaire**.
+     *
+     * Deux instances seraient deux dépôts, et l'écran de validation en interrogerait
+     * un que personne ne remplit — la forme exacte du défaut de [D52][decisions], où
+     * deux `SavedStateHandle` distincts passaient pour le même. Le `@Singleton` est ce
+     * qui fait tenir la remise.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    @Provides
+    @Singleton
+    fun pendingRecognition(): PendingRecognition = InMemoryPendingRecognition()
+
     @Provides
     @Singleton
     fun networkLog(): NetworkLog = if (BuildConfig.DEBUG) NetworkLog { Log.d(NETWORK_TAG, it) } else NetworkLog.Silent

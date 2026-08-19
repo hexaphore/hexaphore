@@ -1,6 +1,7 @@
 package app.hexaphore.feature.entry
 
 import app.hexaphore.domain.diary.QuantityUnit
+import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.nutrition.Macro
 
 /**
@@ -23,6 +24,14 @@ internal sealed interface LineEdit {
 
     data class MacroValue(val macro: Macro, val value: String) : LineEdit
 
+    /**
+     * Une des alternatives proposées, choisie.
+     *
+     * La sixième variante, et le `when` ci-dessous ne compilait pas tant qu'elle
+     * n'était pas traitée — c'est exactement ce que ce type fermé achète.
+     */
+    data class Substitute(val food: Food) : LineEdit
+
     /** Déplie ou replie les cinq valeurs facultatives. */
     data object ToggleDetails : LineEdit
 }
@@ -40,5 +49,6 @@ internal fun EntryFormLine.apply(edit: LineEdit): EntryFormLine = when (edit) {
     is LineEdit.Quantity -> remeasured(edit.value)
     is LineEdit.Measurement -> remeasured(quantity, edit.value)
     is LineEdit.MacroValue -> copy(macros = macros + (edit.macro to edit.value), edited = edited + edit.macro)
+    is LineEdit.Substitute -> substituted(edit.food)
     LineEdit.ToggleDetails -> copy(expanded = !expanded)
 }

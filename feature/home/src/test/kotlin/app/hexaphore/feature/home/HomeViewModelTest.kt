@@ -1,11 +1,15 @@
 package app.hexaphore.feature.home
 
 import app.hexaphore.core.testing.FixedClock
+import app.hexaphore.core.testing.InMemoryAiCredentials
 import app.hexaphore.core.testing.InMemoryDiaryRepository
 import app.hexaphore.core.testing.InMemoryFavoriteDishes
 import app.hexaphore.core.testing.InMemoryGoals
 import app.hexaphore.core.testing.SampleDiary
 import app.hexaphore.core.testing.SequentialIdGenerator
+import app.hexaphore.domain.ai.AiProvider
+import app.hexaphore.domain.ai.ApiKey
+import app.hexaphore.domain.ai.ProviderCredentials
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.nutrition.Macro
@@ -219,9 +223,30 @@ class HomeViewModelTest {
         assertNull(viewModel.pendingUndo.value)
     }
 
+    @Test
+    fun `sans cle, le mode Decrire s annonce indisponible`() = runTest(dispatcher) {
+        // D73 : visible et grise plutot que cache. L'accueil n'a besoin de rien de
+        // plus que ce booleen -- ni du fournisseur, ni du modele.
+        val viewModel = viewModel(InMemoryDiaryRepository(), FixedClock.atNoon(jour))
+
+        assertFalse(viewModel.aiConfigured.first())
+    }
+
+    @Test
+    fun `une cle enregistree ouvre le mode Decrire`() = runTest(dispatcher) {
+        cles.save(
+            AiProvider.ANTHROPIC,
+            ProviderCredentials(ApiKey("sk-ant-de-test"), model = "claude-opus-5", baseUrl = "https://exemple/"),
+        )
+        val viewModel = viewModel(InMemoryDiaryRepository(), FixedClock.atNoon(jour))
+
+        assertTrue(viewModel.aiConfigured.first())
+    }
+
     private fun viewModel(diary: InMemoryDiaryRepository, clock: FixedClock) = HomeViewModel(
         getDaySummary = GetDaySummary(diary, InMemoryGoals(listOf(InMemoryGoals.maintenance(jour))), clock),
         dispatchers = TestDispatchers(dispatcher),
+        credentials = cles,
         deleteEntry = DeleteEntry(diary),
         deleteDish = DeleteDish(diary),
         restoreDish = RestoreDish(diary),
@@ -234,6 +259,7 @@ class HomeViewModelTest {
     )
 
     private val favoris = InMemoryFavoriteDishes()
+    private val cles = InMemoryAiCredentials()
 
     /** Tout sur le dispatcher de test : aucun vrai pool de threads dans un test. */
     private class TestDispatchers(private val dispatcher: CoroutineDispatcher) : DispatcherProvider {

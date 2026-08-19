@@ -30,6 +30,7 @@ import app.hexaphore.core.designsystem.component.isWholeNumberField
 import app.hexaphore.core.designsystem.theme.NeonTheme
 import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.domain.nutrition.Macro
+import kotlin.math.roundToInt
 
 /**
  * Une ligne à saisir : nom, quantité, et les six valeurs.
@@ -51,6 +52,7 @@ internal fun LineEditor(line: EntryFormLine, actions: EntryActions, modifier: Mo
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         NameRow(line, actions)
+        SuggestionRow(line, actions)
         QuantityRow(line, actions)
 
         MacroField(line = line, macro = Macro.CALORIES, actions = actions)
@@ -99,6 +101,59 @@ private fun NameRow(line: EntryFormLine, actions: EntryActions) {
                 contentDescription = stringResource(R.string.entry_remove_line_a11y, line.name),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+/**
+ * Ce que le modèle a proposé, et les autres fiches qu'on aurait acceptées.
+ *
+ * **Deux incertitudes affichées séparément**, parce qu'elles se trompent séparément :
+ * la confiance du modèle sur ce qu'il a compris, et le fait que la quantité vienne
+ * d'un forfait plutôt que d'une portion mesurée. [docs/04][sources] exige la seconde —
+ * *« toute conversion appuyée sur un défaut doit être signalée »* — et [docs/02][parcours]
+ * la première.
+ *
+ * Les alternatives ne se posent pas en question à trancher : la ligne est déjà
+ * remplie avec le meilleur candidat, et elles sont là **au cas où**. Obliger à choisir
+ * ferait payer trois lectures à chaque ligne douteuse, y compris quand le premier
+ * candidat était le bon.
+ *
+ * [parcours]: docs/02-parcours-et-ecrans.md
+ * [sources]: docs/04-sources-de-donnees.md
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SuggestionRow(line: EntryFormLine, actions: EntryActions) {
+    val suggestion = line.suggestion ?: return
+    val confidence = (suggestion.confidence * PERCENT).roundToInt()
+
+    Text(
+        text = if (suggestion.estimated) {
+            stringResource(R.string.entry_suggestion_estimated, confidence)
+        } else {
+            stringResource(R.string.entry_suggestion, confidence)
+        },
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+
+    if (suggestion.alternatives.isEmpty()) return
+
+    Text(
+        text = stringResource(R.string.entry_alternatives),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        suggestion.alternatives.forEach { food ->
+            key(food.id.value) {
+                FilterChip(
+                    selected = false,
+                    onClick = { actions.onLineEdit(line.id, LineEdit.Substitute(food)) },
+                    label = { Text(text = food.name, style = MaterialTheme.typography.labelSmall) },
+                )
+            }
         }
     }
 }
@@ -188,3 +243,6 @@ private val Macro.fieldRes: Int
         Macro.FAT -> R.string.entry_field_fat
         Macro.FIBER -> R.string.entry_field_fiber
     }
+
+/** La confiance s'affiche en pourcentage : « 0,9 » ne se lit pas. */
+private const val PERCENT = 100

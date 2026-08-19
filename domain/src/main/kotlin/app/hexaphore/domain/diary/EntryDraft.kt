@@ -101,6 +101,22 @@ data class DraftLine(
      * [parcours]: docs/02-parcours-et-ecrans.md
      */
     val edited: Set<Macro> = emptySet(),
+    /**
+     * Ce qu'un modèle a proposé pour cette ligne, quand c'est un modèle qui l'a
+     * proposée.
+     *
+     * `null` sur toutes les autres — tapée à la main, cherchée, scannée, rejouée
+     * depuis un favori — et c'est exactement ce qui la rend lisible : une ligne
+     * **sans** suggestion ne porte aucune marque, parce qu'elle n'est pas une
+     * supposition.
+     *
+     * Elle ne survit pas à l'enregistrement, et ce n'est pas un oubli. Ce qui reste
+     * du passage d'un modèle est la **source du plat** ([EntrySource.TEXT_AI],
+     * [EntrySource.PHOTO_AI]) ; la confiance et les alternatives ne décrivent qu'un
+     * moment — celui où l'écran demandait une relecture — et le plat validé n'est
+     * plus une proposition.
+     */
+    val suggestion: Suggestion? = null,
 ) {
     /** La quantité convertie en grammes, base de tout calcul. */
     val grams: Double? get() = quantity?.times(unit.gramsPerUnit)

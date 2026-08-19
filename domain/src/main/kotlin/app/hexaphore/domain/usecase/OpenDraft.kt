@@ -1,5 +1,6 @@
 package app.hexaphore.domain.usecase
 
+import app.hexaphore.domain.ai.PendingRecognition
 import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.diary.DraftLine
 import app.hexaphore.domain.diary.EntryDraft
@@ -42,6 +43,17 @@ sealed interface DraftOrigin {
      * [decisions]: docs/11-decisions.md
      */
     data class Scanned(val food: FoodId) : DraftOrigin
+
+    /**
+     * Ce qu'un modèle vient de proposer, déposé par l'écran de capture.
+     *
+     * **Sans charge**, seule des cinq : la proposition ne tient pas dans une route
+     * ([PendingRecognition]), et l'origine ne fait que dire où aller la chercher. Une
+     * cinquième branche ici plutôt qu'un chemin à part, parce que c'est exactement la
+     * même question — d'où vient ce brouillon — et que l'écran de validation ne doit
+     * pas apprendre à en distinguer deux sortes.
+     */
+    data object Proposed : DraftOrigin
 }
 
 /**
@@ -60,13 +72,30 @@ class OpenDraft(
     private val favorites: GetFavoriteDraft,
     private val create: CreateDraft,
     private val foods: FoodLookup,
+    private val pending: PendingRecognition,
+    private val resolve: ResolveRecognition,
 ) {
     suspend operator fun invoke(origin: DraftOrigin): EntryDraft? = when (origin) {
         is DraftOrigin.Dish -> dishes(origin.id)
         is DraftOrigin.Favorite -> favorites(origin.id)
         is DraftOrigin.New -> newDraft(origin.food)
         is DraftOrigin.Scanned -> scannedDraft(origin.food)
+        DraftOrigin.Proposed -> proposedDraft()
     }
+
+    /**
+     * Le brouillon d'une proposition, **résolu ici et pas ailleurs**.
+     *
+     * La résolution demande le catalogue ; la faire dans l'écran de capture en ferait
+     * un second endroit qui sait fabriquer un plat, et le premier libellé introuvable
+     * aurait deux comportements possibles.
+     *
+     * `null` quand le dépôt est vide — une deuxième ouverture, ou un processus
+     * redémarré entre les deux écrans. C'est le même `null` qu'un plat supprimé
+     * pendant qu'on l'ouvrait, et il mène au même écran : il n'y a rien à valider.
+     */
+    private suspend fun proposedDraft(): EntryDraft? =
+        pending.take()?.let { proposal -> resolve(proposal.recognition, proposal.source) }
 
     /**
      * `null` si la fiche a disparu, là où [newDraft] rendrait un brouillon vierge.

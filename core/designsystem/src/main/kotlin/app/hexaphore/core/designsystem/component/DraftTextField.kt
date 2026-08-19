@@ -63,6 +63,15 @@ fun DraftTextField(
     labelColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     keyboardType: KeyboardType = KeyboardType.Text,
     visualTransformation: VisualTransformation = VisualTransformation.None,
+    /**
+     * Le nombre de lignes visibles, et **ce que fait la touche entrée**.
+     *
+     * Au-delà d'une, le champ cesse d'être sur une seule ligne et la touche entrée y
+     * saute une ligne au lieu de valider : c'est ce qu'attend une description de repas,
+     * où l'on énumère. Un champ d'une ligne, lui, garde son comportement — la touche
+     * emmène au champ suivant.
+     */
+    minLines: Int = 1,
     accept: (String) -> Boolean = { true },
 ) {
     var value by remember { mutableStateOf(TextFieldValue(initial, TextRange(initial.length))) }
@@ -76,10 +85,14 @@ fun DraftTextField(
             }
         },
         label = { Text(text = label, color = labelColor) },
-        singleLine = true,
+        singleLine = minLines == 1,
+        minLines = minLines,
         // Decimal et non Number : le separateur decimal doit etre atteignable, et
         // la virgule est ce que produit un clavier en francais.
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Next),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = keyboardType,
+            imeAction = if (minLines == 1) ImeAction.Next else ImeAction.Default,
+        ),
         visualTransformation = visualTransformation,
         modifier = modifier,
     )

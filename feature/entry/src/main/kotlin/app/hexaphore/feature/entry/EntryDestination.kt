@@ -48,6 +48,17 @@ data class EntryDestination(
      * [decisions]: docs/11-decisions.md
      */
     val scannedFoodId: String? = null,
+    /**
+     * `true` quand le brouillon attend dans le dépôt des propositions.
+     *
+     * **Un drapeau et non une charge**, seul de tous les arguments de cette route :
+     * ce qu'un modèle a proposé ne tient pas dans un état de navigation, et
+     * `PendingRecognition` le porte à côté. C'est ce que le paragraphe ci-dessus
+     * annonçait — « il faudra un brouillon en attente, partagé entre l'écran qui le
+     * produit et celui qui le valide » —, et ça n'a pas ajouté de mode à l'écran :
+     * une cinquième origine, comme les quatre autres.
+     */
+    val proposal: Boolean = false,
 ) {
     companion object {
         /**
@@ -73,6 +84,9 @@ data class EntryDestination(
         /** Idem, pour le produit qu'un scan vient de verser au catalogue. */
         internal val SCANNED_FOOD_ID: String = EntryDestination::scannedFoodId.name
 
+        /** Idem, pour la proposition qui attend dans le dépôt. */
+        internal val PROPOSAL: String = EntryDestination::proposal.name
+
         /**
          * La clé sous laquelle la recherche dépose la fiche choisie pour cet écran.
          *
@@ -87,9 +101,8 @@ data class EntryDestination(
          * `Bundle` d'arguments par défaut. C'est pourquoi le **premier** aliment
          * arrivait et pas les suivants.
          *
-         * **Ce chemin s'arrête à une ligne.** La photo de la tranche 6 en produira
-         * cinq, et un `SavedStateHandle` ne portera pas un brouillon entier : il
-         * faudra alors un brouillon en attente, partagé.
+         * Ce chemin ne porte **qu'une** fiche, et c'est tout ce qu'on lui demande :
+         * un brouillon entier passe par le dépôt des propositions, pas par ici.
          *
          * [decisions]: docs/11-decisions.md
          */
@@ -109,6 +122,16 @@ fun NavController.navigateToEntryForFavorite(favoriteId: FavoriteDishId) {
 
 fun NavController.navigateToEntryFor(foodId: FoodId) {
     navigate(EntryDestination(foodId = foodId.value))
+}
+
+/**
+ * Ouvre la validation sur ce qu'un modèle vient de proposer.
+ *
+ * Sans argument : la proposition est déjà déposée, et la nommer ici en ferait une
+ * seconde copie.
+ */
+fun NavController.navigateToEntryForProposal() {
+    navigate(EntryDestination(proposal = true))
 }
 
 /** Ouvre une saisie neuve sur un produit scanné : même écran, autre pastille. */

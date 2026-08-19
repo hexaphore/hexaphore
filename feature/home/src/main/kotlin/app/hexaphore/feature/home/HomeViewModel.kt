@@ -2,6 +2,8 @@ package app.hexaphore.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.hexaphore.domain.ai.AiCredentials
+import app.hexaphore.domain.ai.activeConfiguration
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.EntryId
@@ -44,6 +46,7 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     getDaySummary: GetDaySummary,
     dispatchers: DispatcherProvider,
+    credentials: AiCredentials,
     private val deleteEntry: DeleteEntry,
     private val deleteDish: DeleteDish,
     private val restoreDish: RestoreDish,
@@ -57,6 +60,31 @@ class HomeViewModel @Inject constructor(
      * fabrique un, et `flatMapLatest` abandonne le précédent.
      */
     private val attempts = MutableStateFlow(0)
+
+    /**
+     * Y a-t-il une clé, oui ou non.
+     *
+     * **Un booléen et rien d'autre** : l'accueil n'a pas à savoir quel fournisseur est
+     * actif, ni sous quel modèle. Ce qu'il décide est l'état du bouton « Décrire »
+     * ([D73][decisions]) — visible et grisé sans clé, plutôt que caché —, et une
+     * question binaire mérite une réponse binaire.
+     *
+     * Hors de [uiState] parce que ça n'en est pas un état : le journal peut être
+     * illisible pendant qu'une clé est parfaitement configurée, et l'inverse tout
+     * autant. Les fondre en un seul objet ferait deux échecs indépendants dans une
+     * même hiérarchie.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val aiConfigured: StateFlow<Boolean> = credentials
+        .observe()
+        .map { it.activeConfiguration() != null }
+        .catch { emit(false) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MILLIS),
+            initialValue = false,
+        )
 
     val uiState: StateFlow<HomeUiState> =
         attempts
