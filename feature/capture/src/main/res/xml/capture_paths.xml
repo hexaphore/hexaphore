@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Un seul chemin partage, et il est dans le cache de l'application.
+
+    Rien d'autre n'y figure : le fournisseur ne peut donc remettre a une autre
+    application que les fichiers de ce dossier-la, et jamais la base du journal.
+-->
+<paths>
+    <cache-path
+        name="capture"
+        path="capture/" />
+</paths>

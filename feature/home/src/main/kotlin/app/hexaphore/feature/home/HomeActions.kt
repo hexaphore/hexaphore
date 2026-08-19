@@ -55,6 +55,8 @@ data class HomeActions(
      * [decisions]: docs/11-decisions.md
      */
     val onDescribe: () -> Unit,
+    /** Ouvre la modale « Photographier ». Mêmes règles que [onDescribe]. */
+    val onPhotograph: () -> Unit,
     /** Ouvre la liste des plats favoris, pour en rejouer un. */
     val onOpenFavorites: () -> Unit,
     val onUndo: () -> Unit,

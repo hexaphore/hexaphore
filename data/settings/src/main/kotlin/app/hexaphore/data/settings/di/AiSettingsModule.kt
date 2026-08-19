@@ -5,8 +5,10 @@ import android.content.SharedPreferences
 import app.hexaphore.data.settings.KeystoreCipher
 import app.hexaphore.data.settings.SecretCipher
 import app.hexaphore.data.settings.StoredAiCredentials
+import app.hexaphore.data.settings.StoredPhotoConsent
 import app.hexaphore.domain.ai.AiCredentials
 import app.hexaphore.domain.ai.AiSettings
+import app.hexaphore.domain.ai.PhotoConsent
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import dagger.Module
 import dagger.Provides
@@ -17,7 +19,7 @@ import javax.inject.Named
 import javax.inject.Singleton
 
 /**
- * Ce que ce module lie : deux ports du domaine, et rien qui sorte d'ici.
+ * Ce que ce module lie : trois ports du domaine, et rien qui sorte d'ici.
  *
  * Le chiffrement et le fichier de préférences restent **internes** : exposer l'un ou
  * l'autre ferait de ce module le rangement à secrets de tout le projet, et le premier
@@ -51,6 +53,19 @@ internal object AiSettingsModule {
 
     @Provides
     fun settings(stored: StoredAiCredentials): AiSettings = stored
+
+    /**
+     * Le consentement photo, dans le même fichier que les clés.
+     *
+     * Effacer ses réglages d'IA doit effacer l'accord avec : quelqu'un qui repart de
+     * zéro n'a rien accepté.
+     */
+    @Provides
+    @Singleton
+    fun photoConsent(
+        @Named(AI_PREFERENCES) preferences: SharedPreferences,
+        dispatchers: DispatcherProvider,
+    ): PhotoConsent = StoredPhotoConsent(preferences, dispatchers)
 }
 
 /**

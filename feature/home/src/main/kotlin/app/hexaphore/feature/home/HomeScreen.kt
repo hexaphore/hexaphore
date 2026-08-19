@@ -27,6 +27,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +42,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.hexaphore.core.designsystem.component.BarcodeGlyph
+import app.hexaphore.core.designsystem.component.CameraGlyph
 import app.hexaphore.core.designsystem.component.MacroBar
 import app.hexaphore.core.designsystem.component.MacroHexagon
 import app.hexaphore.core.designsystem.component.MacroQuarter
@@ -49,7 +51,6 @@ import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.core.designsystem.theme.Timing
 import app.hexaphore.domain.diary.DaySummary
 import app.hexaphore.domain.diary.Dish
-import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.goal.DailyGoal
 import app.hexaphore.domain.nutrition.Macro
 import kotlinx.coroutines.withTimeoutOrNull
@@ -58,15 +59,7 @@ import kotlin.math.roundToInt
 
 /** L'accueil, branché sur le graphe d'injection. */
 @Composable
-fun HomeRoute(
-    onAddDish: () -> Unit,
-    onScan: () -> Unit,
-    onDescribe: () -> Unit,
-    onEditDish: (DishId) -> Unit,
-    onSetUpGoal: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onOpenFavorites: () -> Unit,
-) {
+fun HomeRoute(routes: HomeRoutes) {
     val viewModel: HomeViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val pendingUndo by viewModel.pendingUndo.collectAsStateWithLifecycle()
@@ -79,30 +72,22 @@ fun HomeRoute(
         aiConfigured = aiConfigured,
         favoriteNameTaken = nameTaken,
         onDismissFavoriteError = viewModel::onDismissFavoriteError,
-        actions = remember(
-            viewModel,
-            onAddDish,
-            onScan,
-            onDescribe,
-            onEditDish,
-            onSetUpGoal,
-            onOpenSettings,
-            onOpenFavorites,
-        ) {
+        actions = remember(viewModel, routes) {
             HomeActions(
-                onAddDish = onAddDish,
-                onScan = onScan,
-                onDescribe = onDescribe,
-                onEditDish = onEditDish,
+                onAddDish = routes.onAddDish,
+                onScan = routes.onScan,
+                onDescribe = routes.onDescribe,
+                onPhotograph = routes.onPhotograph,
+                onEditDish = routes.onEditDish,
                 onDeleteDish = viewModel::onDeleteDish,
                 onDeleteEntry = viewModel::onDeleteEntry,
                 onUndo = viewModel::onUndo,
                 onUndoExpired = viewModel::onUndoExpired,
                 onRetry = viewModel::retry,
-                onSetUpGoal = onSetUpGoal,
-                onOpenSettings = onOpenSettings,
+                onSetUpGoal = routes.onSetUpGoal,
+                onOpenSettings = routes.onOpenSettings,
                 onToggleFavorite = viewModel::onToggleFavorite,
-                onOpenFavorites = onOpenFavorites,
+                onOpenFavorites = routes.onOpenFavorites,
             )
         },
     )
@@ -209,11 +194,12 @@ private fun DayHeader(onOpenSettings: () -> Unit) {
  * la saisie manuelle, puisqu'un aliment tapé à la main devient une fiche. « Ajouter »
  * reste le geste principal : c'est le seul qui porte un libellé.
  *
- * **« Décrire » arrive, « Photographier » non.** Les deux modes d'IA partagent tout
- * sauf leur entrée, mais la modale photo n'existe pas encore, et un bouton qui n'ouvre
- * rien n'est pas une avance — c'est ce que disait déjà ce commentaire quand aucun des
- * deux n'existait. Toujours pas l'arc de quatre actions de [docs/02][parcours], donc :
- * il attend son quatrième.
+ * **Les quatre modes de saisie y sont enfin**, et c'est [docs/02][parcours] au complet
+ * à une forme près : une colonne plutôt qu'un arc déployé par un bouton unique. L'arc
+ * viendra quand il aura quelque chose à replier — quatre boutons empilés se visent
+ * aussi bien, et se codent sans animation.
+ *
+ * Les deux modes d'IA sont **grisés ensemble** : c'est la même clé qui leur manque.
  *
  * [parcours]: docs/02-parcours-et-ecrans.md
  */
@@ -232,7 +218,18 @@ private fun DayActions(actions: HomeActions, aiConfigured: Boolean) {
     }
 
     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        DescribeButton(configured = aiConfigured, onDescribe = actions.onDescribe, onExplain = { explaining = true })
+        AiButton(
+            label = stringResource(R.string.home_photograph),
+            configured = aiConfigured,
+            onClick = actions.onPhotograph,
+            onExplain = { explaining = true },
+        ) { label -> CameraGlyph(contentDescription = label) }
+        AiButton(
+            label = stringResource(R.string.home_describe),
+            configured = aiConfigured,
+            onClick = actions.onDescribe,
+            onExplain = { explaining = true },
+        ) { label -> Icon(imageVector = Icons.Filled.Edit, contentDescription = label) }
         SmallFloatingActionButton(onClick = actions.onScan) {
             BarcodeGlyph(contentDescription = stringResource(R.string.home_scan))
         }
@@ -260,11 +257,17 @@ private fun DayActions(actions: HomeActions, aiConfigured: Boolean) {
  * [decisions]: docs/11-decisions.md
  */
 @Composable
-private fun DescribeButton(configured: Boolean, onDescribe: () -> Unit, onExplain: () -> Unit) {
+private fun AiButton(
+    label: String,
+    configured: Boolean,
+    onClick: () -> Unit,
+    onExplain: () -> Unit,
+    icon: @Composable (String) -> Unit,
+) {
     val unavailable = stringResource(R.string.home_describe_unavailable)
 
     SmallFloatingActionButton(
-        onClick = if (configured) onDescribe else onExplain,
+        onClick = if (configured) onClick else onExplain,
         containerColor = if (configured) {
             MaterialTheme.colorScheme.secondaryContainer
         } else {
@@ -274,11 +277,14 @@ private fun DescribeButton(configured: Boolean, onDescribe: () -> Unit, onExplai
         // s'annonce comme n'importe quel autre et l'appui semble sans effet.
         modifier = Modifier.semantics { if (!configured) stateDescription = unavailable },
     ) {
-        Icon(
-            imageVector = Icons.Filled.Edit,
-            contentDescription = stringResource(R.string.home_describe),
-            tint = if (configured) LocalContentColor.current else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        // Les deux glyphes suivent la couleur du contenu : le grise se decide ici,
+        // une fois, plutot que dans chaque appelant.
+        CompositionLocalProvider(
+            LocalContentColor provides
+                if (configured) LocalContentColor.current else MaterialTheme.colorScheme.onSurfaceVariant,
+        ) {
+            icon(label)
+        }
     }
 }
 

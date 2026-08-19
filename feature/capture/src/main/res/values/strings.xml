@@ -20,4 +20,32 @@
     <string name="describe_analyse">Analyser</string>
     <string name="describe_analysing">Analyse en cours…</string>
 
+    <string name="photo_title">Photographier un repas</string>
+    <string name="photo_close">Fermer</string>
+
+    <!-- Le conseil que docs/02 voulait en surimpression sur l'apercu. Il est ici,
+         ou il se lit avant d'appuyer plutot que pendant qu'on vise. -->
+    <string name="photo_framing_hint">Cadrez l\'assiette entière, de préférence vue de dessus.</string>
+
+    <string name="photo_shoot">Prendre une photo</string>
+    <string name="photo_pick">Choisir une image</string>
+    <string name="photo_preview_a11y">La photo que vous venez de prendre</string>
+
+    <!-- Le levier de precision le moins couteux qui existe : un modele voit mal les
+         quantites sans reference d'echelle. -->
+    <string name="photo_note_label">Un détail à préciser ? (facultatif)</string>
+
+    <string name="photo_analyse">Analyser</string>
+    <string name="photo_analysing">Analyse en cours…</string>
+    <string name="photo_cancel">Annuler</string>
+    <string name="photo_manual">Saisir ce repas à la main</string>
+
+    <!-- Dit une fois, avant que la premiere photo parte. Il nomme le fournisseur :
+         « votre photo part chez Mistral » se verifie, « chez votre fournisseur » non. -->
+    <string name="photo_consent_title">Votre photo va partir</string>
+    <string name="photo_consent">Votre photo sera envoyée à %1$s avec votre clé API. Hexaphore ne conserve ni la photo ni le résultat sur un serveur — nous n\'en avons aucun. Les conditions d\'utilisation et de conservation sont celles de votre fournisseur.</string>
+    <string name="photo_consent_unnamed">Votre photo sera envoyée au fournisseur d\'IA que vous avez configuré, avec votre clé API. Hexaphore ne conserve ni la photo ni le résultat sur un serveur — nous n\'en avons aucun.</string>
+    <string name="photo_consent_accept">J\'ai compris</string>
+    <string name="photo_consent_decline">Annuler</string>
+
 </resources>
