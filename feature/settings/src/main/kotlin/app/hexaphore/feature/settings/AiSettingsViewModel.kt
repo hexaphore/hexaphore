@@ -163,5 +163,5 @@ private fun ProviderForm.configurationFor(provider: AiProvider) = AiConfiguratio
 
 private fun ProbeOutcome.toState(): ProbeState = when (this) {
     is ProbeOutcome.Reachable -> ProbeState.Succeeded(vision)
-    is ProbeOutcome.Failed -> ProbeState.Failed(error.messageRes)
+    is ProbeOutcome.Failed -> ProbeState.Failed(error.messageRes, error.diagnostic)
 }

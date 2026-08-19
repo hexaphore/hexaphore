@@ -9,10 +9,13 @@ import app.hexaphore.integration.ai.AnthropicApi
 import app.hexaphore.integration.ai.AnthropicRecognizer
 import app.hexaphore.integration.ai.AssetSystemPrompt
 import app.hexaphore.integration.ai.ConfiguredRecognizer
+import app.hexaphore.integration.ai.GeminiApi
+import app.hexaphore.integration.ai.GeminiRecognizer
 import app.hexaphore.integration.ai.NetworkLog
 import app.hexaphore.integration.ai.SystemPrompt
 import app.hexaphore.integration.ai.aiClient
 import app.hexaphore.integration.ai.anthropicApi
+import app.hexaphore.integration.ai.geminiApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -51,6 +54,10 @@ internal object AiModule {
 
     @Provides
     @Singleton
+    fun gemini(@Named(AI_CLIENT) client: OkHttpClient): GeminiApi = geminiApi(client)
+
+    @Provides
+    @Singleton
     fun systemPrompt(@ApplicationContext context: Context): SystemPrompt = AssetSystemPrompt(context)
 
     /**
@@ -63,11 +70,13 @@ internal object AiModule {
     fun configured(
         settings: AiSettings,
         api: AnthropicApi,
+        geminiApi: GeminiApi,
         prompt: SystemPrompt,
         dispatchers: DispatcherProvider,
     ): ConfiguredRecognizer = ConfiguredRecognizer(
         settings = settings,
         anthropic = AnthropicRecognizer(api, prompt, dispatchers),
+        gemini = GeminiRecognizer(geminiApi, prompt, dispatchers),
     )
 
     @Provides

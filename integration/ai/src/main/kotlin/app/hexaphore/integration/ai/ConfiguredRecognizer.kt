@@ -33,8 +33,11 @@ import app.hexaphore.domain.ai.VisionSupport
  *
  * [plan]: docs/12-plan-de-developpement.md
  */
-internal class ConfiguredRecognizer(private val settings: AiSettings, private val anthropic: ProviderRecognizer) :
-    FoodRecognizer,
+internal class ConfiguredRecognizer(
+    private val settings: AiSettings,
+    private val anthropic: ProviderRecognizer,
+    private val gemini: ProviderRecognizer,
+) : FoodRecognizer,
     AiProbe {
     override suspend fun recognize(input: RecognitionInput): RecognitionOutcome {
         val configuration = settings.current() ?: return RecognitionOutcome.Failed(AiError.NoProviderConfigured)
@@ -62,6 +65,7 @@ internal class ConfiguredRecognizer(private val settings: AiSettings, private va
 
     private fun AiProvider.recognizer(): ProviderRecognizer = when (this) {
         AiProvider.ANTHROPIC -> anthropic
+        AiProvider.GEMINI -> gemini
     }
 }
 

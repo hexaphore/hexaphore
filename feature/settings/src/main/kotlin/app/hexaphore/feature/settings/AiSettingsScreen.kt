@@ -253,6 +253,16 @@ private fun ProbeResult(probe: ProbeState) {
     }
 
     message?.let { Text(text = it, style = MaterialTheme.typography.bodySmall) }
+
+    // Ce que le fournisseur a repondu, sous le message et en plus discret : c est
+    // un renseignement pour diagnostiquer, pas la phrase qu on lit d abord.
+    (probe as? ProbeState.Failed)?.detail?.let {
+        Text(
+            text = it,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 /**

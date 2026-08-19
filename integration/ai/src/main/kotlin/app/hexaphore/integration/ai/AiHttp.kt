@@ -1,11 +1,14 @@
 package app.hexaphore.integration.ai
 
+import app.hexaphore.domain.ai.AiError
 import app.hexaphore.domain.ai.AiProvider
+import app.hexaphore.domain.ai.RecognitionOutcome
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
@@ -42,6 +45,20 @@ internal fun anthropicApi(client: OkHttpClient): AnthropicApi = Retrofit.Builder
     .create(AnthropicApi::class.java)
 
 /**
+ * Le meme client, une seconde interface.
+ *
+ * La base de facade differe — Retrofit en exige une, et celle du fournisseur est la
+ * plus lisible — mais chaque appel porte son URL complete, donc elle ne sert a rien
+ * d'autre qu'a satisfaire le constructeur.
+ */
+internal fun geminiApi(client: OkHttpClient): GeminiApi = Retrofit.Builder()
+    .baseUrl(AiProvider.GEMINI.defaultBaseUrl)
+    .client(client)
+    .addConverterFactory(AI_JSON.asConverterFactory(JSON_MEDIA_TYPE.toMediaType()))
+    .build()
+    .create(GeminiApi::class.java)
+
+/**
  * **`encodeDefaults` est la ligne qui fait marcher les requêtes.**
  *
  * `kotlinx.serialization` omet par défaut les champs qui valent leur valeur par
@@ -57,8 +74,31 @@ internal fun anthropicApi(client: OkHttpClient): AnthropicApi = Retrofit.Builder
 internal val AI_JSON = Json {
     ignoreUnknownKeys = true
     encodeDefaults = true
+
+    /**
+     * **`encodeDefaults` seul ecrit aussi les `null`**, et c'est le piege que Gemini a
+     * revele : ses parts portent `text` **ou** `inlineData`, jamais les deux, et sans
+     * cette ligne chaque part partait avec l'autre champ a `null` -- une image
+     * accompagnee de `"text":null`. Les deux lignes se lisent comme une seule
+     * intention : ecrire les valeurs par defaut, taire les absences.
+     */
+    explicitNulls = false
 }
 
 private const val CONNECT_TIMEOUT_SECONDS = 10L
 private const val READ_TIMEOUT_SECONDS = 60L
 private const val JSON_MEDIA_TYPE = "application/json"
+
+/**
+ * Une panne réseau réduite à l'issue qui la décrit — **écrite, et non faite en silence
+ * dans un `catch` vide** — et partagée par les deux fournisseurs, parce que la
+ * question « que faire d'un réseau absent » n'a pas deux réponses.
+ *
+ * La pile de l'exception est perdue, et c'est délibéré : elle ne dit rien que l'issue
+ * ne dise, et [docs/05][ia] veut que le détail technique s'arrête ici. Ce que la
+ * fonction achète est que la perte soit un geste nommé plutôt qu'un oubli — la forme
+ * qu'a déjà prise `ProductLookup.Unreachable` pour Open Food Facts.
+ *
+ * [ia]: docs/05-ia.md
+ */
+internal fun IOException.reducedTo(error: AiError): RecognitionOutcome = RecognitionOutcome.Failed(error)
