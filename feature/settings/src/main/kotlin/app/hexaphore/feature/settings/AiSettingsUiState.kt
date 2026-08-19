@@ -1,7 +1,6 @@
 package app.hexaphore.feature.settings
 
 import androidx.annotation.StringRes
-import app.hexaphore.domain.ai.AiError
 import app.hexaphore.domain.ai.AiProvider
 
 /**
@@ -71,38 +70,6 @@ sealed interface ProbeState {
      */
     data class Failed(@StringRes val messageRes: Int, val detail: String? = null) : ProbeState
 }
-
-/**
- * Ce qu'on montre en plus du message, et seulement quand le message ne suffit pas.
- *
- * Une clé refusée n'a pas besoin d'être suivie de la phrase anglaise du fournisseur :
- * « vérifiez-la » dit déjà quoi faire. `Server` est le fourre-tout, et c'est le seul
- * cas où le message de l'application n'apprend rien de plus que « ça n'a pas marché ».
- */
-internal val AiError.diagnostic: String?
-    get() = (this as? AiError.Server)?.let { listOfNotNull("HTTP ${it.status}", it.detail).joinToString(" · ") }
-
-/**
- * Le message d'une issue, **jamais son code**.
- *
- * Un `401` n'est pas un message ; « votre clé a été refusée » en est un. La traduction
- * vit ici, dans la couche qui a des chaînes, et non dans le domaine qui n'en a pas
- * ([docs/05][ia] § Erreurs).
- *
- * [ia]: docs/05-ia.md
- */
-@get:StringRes
-internal val AiError.messageRes: Int
-    get() = when (this) {
-        AiError.InvalidKey -> R.string.ai_error_invalid_key
-        AiError.QuotaExceeded -> R.string.ai_error_quota
-        AiError.NoNetwork -> R.string.ai_error_network
-        AiError.Timeout -> R.string.ai_error_timeout
-        AiError.VisionUnsupported -> R.string.ai_error_vision
-        AiError.NoProviderConfigured -> R.string.ai_error_not_configured
-        AiError.Unparseable, AiError.NothingRecognized -> R.string.ai_error_unreadable
-        is AiError.Server -> R.string.ai_error_server
-    }
 
 /** Les gestes de l'écran, rassemblés pour que la composable n'en prenne qu'un. */
 data class AiSettingsActions(

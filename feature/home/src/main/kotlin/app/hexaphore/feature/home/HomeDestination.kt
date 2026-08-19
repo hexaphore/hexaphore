@@ -12,7 +12,7 @@ data object HomeDestination
 /**
  * Déclare l'accueil dans un graphe.
  *
- * Les quatre rappels sont des sorties et non des destinations : le module ne sait pas
+ * Les rappels sont des sorties et non des destinations : le module ne sait pas
  * vers quoi il envoie, ce qui lui évite de dépendre de `:feature:entry`, de
  * `:feature:onboarding` ni de `:feature:settings`. C'est `:app` qui relie, parce que
  * c'est lui qui assemble.
@@ -20,6 +20,7 @@ data object HomeDestination
 fun NavGraphBuilder.homeScreen(
     onAddDish: () -> Unit,
     onScan: () -> Unit,
+    onDescribe: () -> Unit,
     onEditDish: (DishId) -> Unit,
     onSetUpGoal: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -29,6 +30,7 @@ fun NavGraphBuilder.homeScreen(
         HomeRoute(
             onAddDish = onAddDish,
             onScan = onScan,
+            onDescribe = onDescribe,
             onEditDish = onEditDish,
             onSetUpGoal = onSetUpGoal,
             onOpenSettings = onOpenSettings,

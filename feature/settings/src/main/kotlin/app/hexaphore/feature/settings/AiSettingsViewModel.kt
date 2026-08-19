@@ -2,6 +2,8 @@ package app.hexaphore.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.hexaphore.core.designsystem.component.diagnostic
+import app.hexaphore.core.designsystem.component.messageRes
 import app.hexaphore.domain.ai.AiConfiguration
 import app.hexaphore.domain.ai.AiCredentials
 import app.hexaphore.domain.ai.AiProbe

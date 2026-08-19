@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Libelles de la modale « Decrire ».
+
+  Les messages d'erreur n'y sont pas : ils vivent dans le design system, parce que
+  docs/02 veut les memes phrases pour la photo, pour la description et pour le
+  bouton « Tester » des reglages.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+
+    <string name="describe_title">Décrire un repas</string>
+    <string name="describe_close">Fermer</string>
+
+    <!-- Le libelle du champ dit quoi faire ; l'exemple, en dessous, montre a quoi
+         ressemble une bonne description. L'exemple n'est pas prerempli : il faudrait
+         l'effacer avant d'ecrire. -->
+    <string name="describe_hint">Ce que vous avez mangé</string>
+    <string name="describe_example">Par exemple : deux œufs brouillés, une tranche de pain complet, un verre de jus d\'orange</string>
+
+    <string name="describe_analyse">Analyser</string>
+    <string name="describe_analysing">Analyse en cours…</string>
+
+</resources>

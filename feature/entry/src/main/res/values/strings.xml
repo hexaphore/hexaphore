@@ -9,6 +9,13 @@
     <string name="entry_title_edit">Modifier le plat</string>
 
     <string name="entry_field_name">Aliment</string>
+
+    <!-- Ce qu'une ligne proposee par un modele annonce d'elle-meme. Deux
+         incertitudes distinctes : ce que le modele a compris, et le fait que la
+         quantite vienne d'un forfait plutot que d'une portion mesuree (docs/04). -->
+    <string name="entry_suggestion">Proposé par l\'IA · confiance %1$d %%</string>
+    <string name="entry_suggestion_estimated">Proposé par l\'IA · confiance %1$d %% · quantité estimée</string>
+    <string name="entry_alternatives">Ou peut-être :</string>
     <string name="entry_field_quantity">Quantité</string>
 
     <!-- Chaque champ porte son unité : sans elle, « Protéines 12 » se lit aussi bien

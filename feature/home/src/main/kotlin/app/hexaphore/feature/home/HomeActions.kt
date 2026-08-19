@@ -44,6 +44,17 @@ data class HomeActions(
      * plat le dit déjà.
      */
     val onToggleFavorite: (Dish, name: String?) -> Unit,
+    /**
+     * Ouvre la modale « Décrire ».
+     *
+     * **Appelée seulement quand une clé existe.** Sans clé, le bouton reste visible et
+     * grisé, et l'appui ouvre l'explication plutôt que la modale ([D73][decisions]) :
+     * un mode d'IA caché ne s'apprend jamais, un mode d'IA qui échoue sans dire
+     * pourquoi ne s'utilise qu'une fois.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val onDescribe: () -> Unit,
     /** Ouvre la liste des plats favoris, pour en rejouer un. */
     val onOpenFavorites: () -> Unit,
     val onUndo: () -> Unit,

@@ -1,5 +1,6 @@
 package app.hexaphore.feature.settings
 
+import app.hexaphore.core.designsystem.component.messageRes
 import app.hexaphore.core.testing.InMemoryAiCredentials
 import app.hexaphore.domain.ai.AiConfiguration
 import app.hexaphore.domain.ai.AiError
@@ -170,7 +171,7 @@ internal class AiSettingsViewModelTest {
         viewModel.onTest()
         advanceUntilIdle()
 
-        assertEquals(ProbeState.Failed(R.string.ai_error_invalid_key), viewModel.uiState.value.probe)
+        assertEquals(ProbeState.Failed(AiError.InvalidKey.messageRes), viewModel.uiState.value.probe)
     }
 
     @Test

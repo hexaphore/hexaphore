@@ -2,7 +2,13 @@ package app.hexaphore.feature.entry
 
 import app.hexaphore.domain.diary.DraftLineId
 import app.hexaphore.domain.diary.QuantityUnit
+import app.hexaphore.domain.diary.Suggestion
+import app.hexaphore.domain.food.Food
+import app.hexaphore.domain.food.FoodId
+import app.hexaphore.domain.food.FoodSource
 import app.hexaphore.domain.nutrition.Macro
+import app.hexaphore.domain.nutrition.NutrientValues
+import app.hexaphore.domain.resolution.MatchVerdict
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -107,6 +113,39 @@ class EntryFormTest {
         assertEquals(QuantityUnit.Millilitre, relu.unit)
     }
 
+    @Test
+    fun `choisir une alternative garde la quantite et abandonne la proposition`() {
+        // Celui qui corrige « riz » en « riz complet » ne veut pas retaper 180 g. Et
+        // une ligne qu'on vient de choisir n'est plus une proposition a relire : la
+        // marque tombe avec les alternatives.
+        val line = ligne(quantity = "180").copy(
+            suggestion = Suggestion(
+                confidence = 0.9f,
+                verdict = MatchVerdict.REVIEW,
+                alternatives = listOf(RIZ_COMPLET),
+                estimated = true,
+            ),
+        )
+
+        val chosen = line.apply(LineEdit.Substitute(RIZ_COMPLET))
+
+        assertEquals("Riz complet cuit", chosen.name)
+        assertEquals("180", chosen.quantity)
+        assertEquals(QuantityUnit.Gram, chosen.unit)
+        // 111 kcal pour 100 g, ramenes a 180 g : les valeurs suivent la fiche choisie.
+        assertEquals("200", chosen.macros[Macro.CALORIES])
+        assertNull(chosen.suggestion, "la ligne est desormais un choix, pas une proposition")
+    }
+
+    @Test
+    fun `choisir une alternative fait revivre les champs`() {
+        // Sans ce compteur, le brouillon changerait sans que l'ecran bouge : un champ
+        // de saisie ne relit son texte initial qu'a la premiere composition (D45).
+        val line = ligne(quantity = "180")
+
+        assertEquals(line.revision + 1, line.apply(LineEdit.Substitute(RIZ_COMPLET)).revision)
+    }
+
     private fun ligne(
         name: String = "Riz",
         quantity: String = "150",
@@ -125,4 +164,13 @@ class EntryFormTest {
             Macro.FIBER to fiber,
         ),
     )
+
+    private companion object {
+        val RIZ_COMPLET = Food(
+            id = FoodId("f-riz-complet"),
+            source = FoodSource.CIQUAL,
+            name = "Riz complet cuit",
+            per100g = NutrientValues(kcal = 111.0),
+        )
+    }
 }

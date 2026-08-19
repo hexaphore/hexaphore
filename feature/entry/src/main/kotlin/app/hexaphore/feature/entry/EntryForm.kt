@@ -8,6 +8,8 @@ import app.hexaphore.domain.diary.EntryId
 import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.diary.FavoriteDishId
 import app.hexaphore.domain.diary.QuantityUnit
+import app.hexaphore.domain.diary.Suggestion
+import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.nutrition.NutrientValues
@@ -110,6 +112,15 @@ internal data class EntryFormLine(
     val revision: Int = 0,
     /** Les cinq macros hors calories sont repliées par défaut : elles sont facultatives. */
     val expanded: Boolean = false,
+    /**
+     * Ce qu'un modèle a proposé pour cette ligne, quand c'est un modèle qui l'a
+     * proposée.
+     *
+     * Elle traverse le formulaire sans être saisissable : rien à l'écran ne la
+     * modifie, et elle disparaît dès que l'utilisateur choisit une autre fiche — à ce
+     * moment-là, la ligne n'est plus une proposition mais une décision.
+     */
+    val suggestion: Suggestion? = null,
 ) {
     /** Les unités proposées : les deux universelles, puis celles de la fiche. */
     val units: List<QuantityUnit> get() = QuantityUnit.universal + servings
@@ -136,6 +147,7 @@ internal data class EntryFormLine(
         servings = servings,
         reference = reference,
         edited = edited,
+        suggestion = suggestion,
     )
 
     /**
@@ -158,6 +170,23 @@ internal data class EntryFormLine(
         }
     }
 
+    /**
+     * La même ligne, sur une autre fiche — ce que choisir une alternative produit.
+     *
+     * **La quantité reste**, les valeurs suivent : celui qui corrige « riz » en « riz
+     * complet » ne veut pas retaper 180 g. Et [suggestion] tombe, parce qu'une ligne
+     * qu'on vient de choisir n'est plus une proposition à relire.
+     *
+     * [revision] avance pour que les champs se reconstruisent : sans ce signal, le
+     * brouillon changerait sans que l'écran bouge ([D45][decisions]).
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    fun substituted(food: Food): EntryFormLine {
+        val replaced = DraftLine.of(id, food).measured(number(quantity), unit)
+        return of(replaced).copy(entryId = entryId, revision = revision + 1, suggestion = null)
+    }
+
     private fun macroValue(macro: Macro): Double? = number(macros[macro].orEmpty())
 
     companion object {
@@ -172,6 +201,7 @@ internal data class EntryFormLine(
             servings = line.servings,
             reference = line.reference,
             edited = line.edited,
+            suggestion = line.suggestion,
             // Une ligne relue montre ses valeurs : les replier obligerait a deplier
             // chaque ligne pour verifier qu'on modifie la bonne.
             expanded = !line.values.empty,

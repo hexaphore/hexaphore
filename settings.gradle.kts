@@ -121,3 +121,8 @@ include(":feature:scan")
 // JSON qu'il entoure parfois de texte, et cette tolerance est la seule regle du
 // module qui s'eprouve sans reseau.
 include(":integration:ai")
+
+// La ou l'utilisateur decrit ou photographie son repas. Les deux modes partagent le
+// meme contrat de reconnaissance, donc le meme ecran d'attente, les memes erreurs et
+// la meme sortie : les separer en deux modules ferait deux fois le meme etat.
+include(":feature:capture")

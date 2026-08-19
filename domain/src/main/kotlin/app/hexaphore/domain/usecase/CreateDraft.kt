@@ -42,6 +42,21 @@ class CreateDraft(private val clock: Clock, private val ids: IdGenerator) {
         lines = listOf(DraftLine.of(DraftLineId(ids.next()), food)),
     )
 
+    /**
+     * Un brouillon de plusieurs lignes, ce que produit une reconnaissance.
+     *
+     * **Une liste vide donne quand même une ligne**, et c'est ici que l'invariant se
+     * tient : un brouillon sans aucune ligne n'aurait rien à afficher ni à supprimer,
+     * et l'écran de validation n'a pas d'état pour ça. Le cas ne devrait pas se
+     * présenter — une analyse sans ligne exploitable est une erreur, pas une
+     * réussite — mais le tenir ici coûte une expression et évite d'y compter.
+     */
+    operator fun invoke(source: EntrySource, lines: List<DraftLine>): EntryDraft = EntryDraft(
+        date = clock.today(),
+        source = source,
+        lines = lines.ifEmpty { listOf(line()) },
+    )
+
     /** Une ligne vierge de plus. Sert de repli quand aucune fiche n'est disponible. */
     fun line(): DraftLine = DraftLine.blank(DraftLineId(ids.next()))
 

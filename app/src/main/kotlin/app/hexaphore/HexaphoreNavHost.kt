@@ -9,11 +9,14 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
+import app.hexaphore.feature.capture.describeScreen
+import app.hexaphore.feature.capture.navigateToDescribe
 import app.hexaphore.feature.entry.EntryDestination
 import app.hexaphore.feature.entry.entryScreen
 import app.hexaphore.feature.entry.navigateToEntry
 import app.hexaphore.feature.entry.navigateToEntryFor
 import app.hexaphore.feature.entry.navigateToEntryForFavorite
+import app.hexaphore.feature.entry.navigateToEntryForProposal
 import app.hexaphore.feature.entry.navigateToEntryForScan
 import app.hexaphore.feature.home.HomeDestination
 import app.hexaphore.feature.home.homeScreen
@@ -74,6 +77,9 @@ private fun HexaphoreNavHost(startDestination: Any, modifier: Modifier = Modifie
             // une branche, puisqu'un aliment tape a la main devient une fiche.
             onAddDish = { navController.navigateToSearch() },
             onScan = { navController.navigateToScan() },
+            // Le quatrieme mode de saisie, et le premier qui coute de l'argent :
+            // l'accueil grise le bouton tant qu'aucune cle n'est configuree.
+            onDescribe = { navController.navigateToDescribe() },
             onEditDish = { dishId -> navController.navigateToEntry(dishId) },
             onSetUpGoal = { navController.navigate(OnboardingDestination) },
             // Le hub existe desormais : sa deuxieme section est arrivee, ce qui est
@@ -100,7 +106,7 @@ private fun HexaphoreNavHost(startDestination: Any, modifier: Modifier = Modifie
 }
 
 /**
- * Les trois modes de saisie, et l'écran où ils se rejoignent.
+ * Les quatre modes de saisie, et l'écran où ils se rejoignent.
  *
  * Ensemble parce qu'ils partagent une règle et une seule : **ils s'effacent derrière
  * la validation**. Revenir en arrière depuis un plat en cours doit rendre l'accueil,
@@ -109,14 +115,26 @@ private fun HexaphoreNavHost(startDestination: Any, modifier: Modifier = Modifie
  * précautions séparées.
  *
  * C'est la traduction en graphe de ce que [docs/02][parcours] pose en tête : les
- * quatre modes de saisie convergent sur un seul écran. Le quatrième — l'IA — s'y
- * ajoutera sans que le reste du graphe bouge.
+ * quatre modes de saisie convergent sur un seul écran. L'IA vient de s'y ajouter sans
+ * que rien du reste ne bouge — sa modale se déclare comme les autres, et sa sortie
+ * emprunte le même `popBackStack`. Ce qui a changé est ailleurs : elle ne transporte
+ * rien, parce qu'une route ne porte pas cinq lignes.
  *
  * [parcours]: docs/02-parcours-et-ecrans.md
  */
 private fun NavGraphBuilder.captureScreens(navController: NavHostController) {
     entryScreen(
         onAddFood = { navController.navigateToSearchForDraft() },
+        onClose = { navController.popBackStack() },
+    )
+    describeScreen(
+        // La modale s'efface derriere la validation, comme le scan et la recherche.
+        // Rien ne voyage avec : ce que le modele a propose attend dans le depot, et
+        // c'est `OpenDraft` qui ira l'y chercher.
+        onProposal = {
+            navController.popBackStack(HomeDestination, inclusive = false)
+            navController.navigateToEntryForProposal()
+        },
         onClose = { navController.popBackStack() },
     )
     scanScreen(

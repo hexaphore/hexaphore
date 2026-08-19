@@ -142,13 +142,5 @@
 
     <!-- Un code HTTP ne remonte jamais à l'écran : chaque issue a son message, et la
          plupart ont une action. -->
-    <string name="ai_error_invalid_key">Votre clé a été refusée. Vérifiez-la, puis testez à nouveau.</string>
-    <string name="ai_error_quota">Le quota ou les crédits de ce compte sont épuisés.</string>
-    <string name="ai_error_network">Pas de connexion. L\'appel n\'est jamais parti.</string>
-    <string name="ai_error_timeout">Le fournisseur n\'a pas répondu à temps.</string>
-    <string name="ai_error_vision">Ce modèle ne lit pas les images.</string>
-    <string name="ai_error_not_configured">Aucun fournisseur n\'est configuré.</string>
-    <string name="ai_error_unreadable">Le fournisseur a répondu quelque chose d\'inattendu.</string>
-    <string name="ai_error_server">Le service est indisponible. Réessayez plus tard.</string>
 
 </resources>
