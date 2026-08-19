@@ -1,5 +1,7 @@
 package app.hexaphore.domain.usecase
 
+import app.hexaphore.domain.ai.EstimationOutcome
+import app.hexaphore.domain.ai.NutritionEstimator
 import app.hexaphore.domain.ai.Recognition
 import app.hexaphore.domain.ai.RecognizedItem
 import app.hexaphore.domain.diary.DraftLine
@@ -7,6 +9,8 @@ import app.hexaphore.domain.diary.EntryDraft
 import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.diary.QuantityUnit
 import app.hexaphore.domain.diary.Suggestion
+import app.hexaphore.domain.nutrition.NutrientValues
+import app.hexaphore.domain.resolution.MatchVerdict
 import app.hexaphore.domain.resolution.convertToGrams
 
 /**
@@ -24,32 +28,34 @@ import app.hexaphore.domain.resolution.convertToGrams
  * convertir avant de savoir quelle fiche on vise reviendrait à appliquer le forfait à
  * tous les coups, et à se tromper d'un facteur six sur un bol de céréales.
  *
+ * **Puis l'étape 4, et une seule fois pour toutes les lignes.** Ce que le catalogue
+ * n'a pas rejoint part en un appel groupé au modèle, qui estime des macros pour 100 g.
+ * Un appel par ligne aurait coûté cinq requêtes là où une suffit, et c'est
+ * l'utilisateur qui paie.
+ *
  * **Rien n'est écrit nulle part.** Résoudre est une lecture ; c'est l'enregistrement du
- * brouillon qui verse les fiches au catalogue, exactement comme pour la recherche.
+ * brouillon qui verse les fiches au catalogue — et une estimation n'en est pas une, ce
+ * qui suffit à la tenir hors du catalogue sans règle supplémentaire.
  *
  * [sources]: docs/04-sources-de-donnees.md
  * [decisions]: docs/11-decisions.md
  */
-class ResolveRecognition(private val resolve: ResolveFoodLabel, private val create: CreateDraft) {
-    suspend operator fun invoke(recognition: Recognition, source: EntrySource): EntryDraft =
-        create(source, recognition.items.map { resolveLine(it) })
+class ResolveRecognition(
+    private val resolve: ResolveFoodLabel,
+    private val create: CreateDraft,
+    private val estimate: NutritionEstimator,
+) {
+    suspend operator fun invoke(recognition: Recognition, source: EntrySource): EntryDraft {
+        val resolved = recognition.items.map { resolveLine(it) }
+        return create(source, resolved.completedByEstimate())
+    }
 
     /**
      * Une ligne, telle que la résolution la rend.
      *
      * **Un libellé non résolu donne quand même une ligne**, avec son nom et sa
-     * quantité mais sans valeurs. C'est la forme la plus utile de l'échec : l'écran de
-     * validation dit déjà qu'une ligne sans énergie n'est pas enregistrable, et
-     * « Ajouter un aliment » y est à un tap. L'écarter silencieusement ferait
-     * disparaître un aliment que l'utilisateur a bel et bien mangé — et il ne saurait
-     * pas lequel.
-     *
-     * Le repli IA groupé de [docs/04][sources] § étape 4 viendra remplir ces
-     * lignes-là ; il a besoin d'un appel supplémentaire au fournisseur, donc d'une
-     * décision sur ce qu'on accepte de payer, et c'est la livraison qui l'apporte qui
-     * la prendra.
-     *
-     * [sources]: docs/04-sources-de-donnees.md
+     * quantité. L'écarter silencieusement ferait disparaître un aliment que
+     * l'utilisateur a bel et bien mangé — et il ne saurait pas lequel.
      */
     private suspend fun resolveLine(item: RecognizedItem): DraftLine {
         val match = resolve(item.label)
@@ -67,4 +73,46 @@ class ResolveRecognition(private val resolve: ResolveFoodLabel, private val crea
                 ),
             )
     }
+
+    /**
+     * Les lignes que le catalogue n'a pas rejointes, complétées par le modèle.
+     *
+     * **Un seul appel, et aucun quand tout est résolu** — le cas courant. Une liste
+     * vide ne part jamais sur le réseau : elle ne rendrait rien et se paierait.
+     *
+     * Un échec ne fait rien tomber : les lignes restent telles quelles, sans valeurs,
+     * et l'écran de validation dit déjà qu'une ligne sans énergie n'est pas
+     * enregistrable. C'est ce que [docs/04][sources] veut dire par « présentée à zéro »
+     * — à ceci près qu'un champ vide vaut **inconnu** dans ce projet, jamais zéro : un
+     * zéro affiché serait une affirmation que personne n'a faite.
+     *
+     * [sources]: docs/04-sources-de-donnees.md
+     */
+    private suspend fun List<DraftLine>.completedByEstimate(): List<DraftLine> {
+        val unresolved = filter { it.suggestion?.verdict == MatchVerdict.NONE }
+        if (unresolved.isEmpty()) return this
+
+        val outcome = estimate.estimate(unresolved.map { it.name })
+        val estimates = (outcome as? EstimationOutcome.Estimated)
+            ?.foods
+            ?.associate { it.label to it.per100g }
+            .orEmpty()
+
+        return map { line -> estimates[line.name]?.let { line.estimatedFrom(it) } ?: line }
+    }
+
+    /**
+     * La ligne, remplie depuis une estimation.
+     *
+     * [DraftLine.reference] est posée **avant** le recalcul : c'est elle qui permet à
+     * la quantité de rejouer la règle de trois, exactement comme pour une fiche. Sans
+     * elle, corriger « 120 g » en « 150 g » laisserait les valeurs d'origine, et
+     * personne ne comprendrait pourquoi.
+     *
+     * Aucun `foodId`, aucune fiche : c'est ce qui tient l'estimation hors du catalogue,
+     * sans qu'aucune règle n'ait à s'en souvenir à l'enregistrement.
+     */
+    private fun DraftLine.estimatedFrom(per100g: NutrientValues): DraftLine = copy(reference = per100g)
+        .measured(quantity, unit)
+        .copy(suggestion = suggestion?.copy(estimatedMacros = true))
 }

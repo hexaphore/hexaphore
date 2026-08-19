@@ -1,11 +1,14 @@
 package app.hexaphore.integration.ai
 
 import app.hexaphore.domain.ai.AiError
+import app.hexaphore.domain.ai.EstimatedFood
 import app.hexaphore.domain.ai.EstimatedUnit
+import app.hexaphore.domain.ai.EstimationOutcome
 import app.hexaphore.domain.ai.Recognition
 import app.hexaphore.domain.ai.RecognitionOutcome
 import app.hexaphore.domain.ai.RecognizedItem
 import app.hexaphore.domain.ai.TokenUsage
+import app.hexaphore.domain.nutrition.NutrientValues
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -55,6 +58,67 @@ private val Tolerant = Json {
     coerceInputValues = true
     isLenient = true
 }
+
+/**
+ * Ce que le modèle a estimé, ramené à des valeurs pour 100 g.
+ *
+ * **Une liste vide est une réponse valide ici**, à la différence de la reconnaissance :
+ * le prompt demande explicitement d'omettre ce qu'on ne sait pas, et un modèle qui ne
+ * connaît aucun des libellés a raison de se taire. Les lignes restent alors à
+ * compléter à la main, ce qui est exactement ce qu'elles étaient avant l'appel.
+ *
+ * Le libellé est recopié tel qu'il a été demandé — c'est le prompt qui l'exige, et
+ * c'est ce qui permet de recoller l'estimation à sa ligne. Une reformulation rend une
+ * estimation qu'on ne peut plus rattacher : elle est écartée plus haut, faute de
+ * correspondance, plutôt que devinée.
+ */
+internal fun parseEstimation(raw: String): EstimationOutcome {
+    val foods = balancedBlocks(raw)
+        .mapNotNull { block -> runCatching { Tolerant.parseToJsonElement(block) }.getOrNull() }
+        .mapNotNull { it.firstArray() }
+        .firstOrNull()
+        ?.mapNotNull { it.toEstimateOrNull() }
+        ?: return EstimationOutcome.Failed(AiError.Unparseable)
+
+    return EstimationOutcome.Estimated(foods)
+}
+
+/**
+ * Une estimation, ou rien.
+ *
+ * Un libellé vide la rend inutilisable : sans lui, elle ne se rattache à aucune ligne.
+ * Une valeur **négative** est traitée comme inconnue plutôt que ramenée à zéro : un
+ * zéro est une affirmation, et le projet n'en écrit pas à la place de l'utilisateur.
+ */
+private fun JsonElement.toEstimateOrNull(): EstimatedFood? {
+    val dto = runCatching { Tolerant.decodeFromJsonElement(EstimateDto.serializer(), this) }.getOrNull()
+    val label = dto?.label?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+
+    return EstimatedFood(
+        label = label,
+        per100g = NutrientValues(
+            kcal = dto.kcal.positiveOrNull(),
+            protein = dto.protein.positiveOrNull(),
+            carbs = dto.carbs.positiveOrNull(),
+            sugars = dto.sugars.positiveOrNull(),
+            fat = dto.fat.positiveOrNull(),
+            fiber = dto.fiber.positiveOrNull(),
+        ),
+    )
+}
+
+private fun Double?.positiveOrNull(): Double? = this?.takeIf { it >= 0.0 }
+
+@Serializable
+private data class EstimateDto(
+    val label: String? = null,
+    val kcal: Double? = null,
+    val protein: Double? = null,
+    val carbs: Double? = null,
+    val sugars: Double? = null,
+    val fat: Double? = null,
+    val fiber: Double? = null,
+)
 
 @Serializable
 private data class ItemDto(

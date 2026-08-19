@@ -2,6 +2,7 @@ package app.hexaphore.integration.ai
 
 import app.hexaphore.domain.ai.AiConfiguration
 import app.hexaphore.domain.ai.AiError
+import app.hexaphore.domain.ai.EstimationOutcome
 import app.hexaphore.domain.ai.RecognitionInput
 import app.hexaphore.domain.ai.RecognitionOutcome
 import app.hexaphore.domain.ai.TokenUsage
@@ -34,6 +35,7 @@ import java.util.Base64
 internal class GeminiRecognizer(
     private val api: GeminiApi,
     private val prompt: SystemPrompt,
+    private val estimatePrompt: SystemPrompt,
     private val dispatchers: DispatcherProvider,
 ) : ProviderRecognizer {
     override suspend fun recognize(input: RecognitionInput, configuration: AiConfiguration): RecognitionOutcome =
@@ -54,6 +56,41 @@ internal class GeminiRecognizer(
                 offline.reducedTo(AiError.NoNetwork)
             }
         }
+
+    override suspend fun estimate(labels: List<String>, configuration: AiConfiguration): EstimationOutcome =
+        withContext(dispatchers.io) {
+            try {
+                api
+                    .generateContent(
+                        configuration.geminiEndpoint(),
+                        configuration.apiKey.value,
+                        configuration.geminiEstimateRequest(labels, estimatePrompt),
+                    )
+                    .toGeminiEstimation()
+            } catch (timeout: SocketTimeoutException) {
+                timeout.estimationReducedTo(AiError.Timeout)
+            } catch (offline: IOException) {
+                offline.estimationReducedTo(AiError.NoNetwork)
+            }
+        }
+}
+
+private fun AiConfiguration.geminiEstimateRequest(labels: List<String>, prompt: SystemPrompt) = GeminiRequest(
+    contents = listOf(GeminiContent(role = "user", parts = listOf(GeminiPart(text = labels.asRequest())))),
+    systemInstruction = GeminiContent(parts = listOf(GeminiPart(text = prompt.text()))),
+    generationConfig = GeminiGenerationConfig(
+        responseSchema = GEMINI_ESTIMATION_SCHEMA,
+        maxOutputTokens = GEMINI_MAX_TOKENS,
+    ),
+)
+
+private fun Response<GeminiResponse>.toGeminiEstimation(): EstimationOutcome {
+    val candidate = body()?.candidates?.firstOrNull()
+    return when {
+        !isSuccessful -> EstimationOutcome.Failed(geminiError())
+        candidate == null -> EstimationOutcome.Failed(AiError.Unparseable)
+        else -> parseEstimation(candidate.text())
+    }
 }
 
 /**
@@ -132,6 +169,9 @@ private fun Response<GeminiResponse>.geminiDetail(): String? =
 
 /** Gemini refuse `additionalProperties` : son sous-ensemble de schéma ne le connaît pas. */
 private val GEMINI_SCHEMA: JsonObject = recognitionSchema(strict = false)
+
+/** Meme refus du mot-cle pour l'estimation : c'est le sous-ensemble qui est etroit, pas le schema. */
+private val GEMINI_ESTIMATION_SCHEMA: JsonObject = estimationSchema(strict = false)
 
 private const val GEMINI_MAX_TOKENS = 4096
 private const val STOP = "STOP"

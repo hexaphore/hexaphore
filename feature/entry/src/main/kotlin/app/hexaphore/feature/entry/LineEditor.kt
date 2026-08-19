@@ -128,12 +128,17 @@ private fun SuggestionRow(line: EntryFormLine, actions: EntryActions) {
     val suggestion = line.suggestion ?: return
     val confidence = (suggestion.confidence * PERCENT).roundToInt()
 
+    // Trois affirmations distinctes, assemblees plutot que declinees en huit
+    // chaines : ce que le modele a compris, d'ou vient la quantite, et d'ou viennent
+    // les valeurs. Elles se trompent separement, donc elles se lisent separement.
+    val marques = listOfNotNull(
+        stringResource(R.string.entry_suggestion, confidence),
+        stringResource(R.string.entry_suggestion_quantity).takeIf { suggestion.estimated },
+        stringResource(R.string.entry_suggestion_macros).takeIf { suggestion.estimatedMacros },
+    )
+
     Text(
-        text = if (suggestion.estimated) {
-            stringResource(R.string.entry_suggestion_estimated, confidence)
-        } else {
-            stringResource(R.string.entry_suggestion, confidence)
-        },
+        text = marques.joinToString(separator = MARK_SEPARATOR),
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -246,3 +251,6 @@ private val Macro.fieldRes: Int
 
 /** La confiance s'affiche en pourcentage : « 0,9 » ne se lit pas. */
 private const val PERCENT = 100
+
+/** Ce qui separe les marques d une ligne proposee. */
+private const val MARK_SEPARATOR = " · "

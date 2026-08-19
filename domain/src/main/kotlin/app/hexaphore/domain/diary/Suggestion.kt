@@ -43,4 +43,21 @@ data class Suggestion(
      * [sources]: docs/04-sources-de-donnees.md
      */
     val estimated: Boolean,
+    /**
+     * `true` quand **les macros elles-mêmes** viennent du modèle et non d'une base.
+     *
+     * Distinct d'[estimated], qui ne parle que de la quantité : une ligne peut peser
+     * exactement 66 g d'après la fiche et n'avoir aucune fiche du tout. C'est le repli
+     * de [docs/04][sources] § étape 4, et le badge qu'il exige — un chiffre inventé qui
+     * s'affiche comme un chiffre mesuré est pire que pas de chiffre du tout.
+     *
+     * **Le projet n'a pas ajouté de `FoodSource.AI_ESTIMATE`** pour le porter, malgré
+     * la lettre de [docs/04][sources] : une estimation ne devient jamais une fiche —
+     * elle n'entre pas au catalogue —, donc elle n'a pas de source à porter. Une valeur
+     * d'énumération qu'il faudrait n'écrire nulle part serait un piège pour le premier
+     * qui la persisterait.
+     *
+     * [sources]: docs/04-sources-de-donnees.md
+     */
+    val estimatedMacros: Boolean = false,
 )

@@ -8,6 +8,7 @@ import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.core.testing.InMemoryGoals
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.domain.ai.EstimatedUnit
+import app.hexaphore.domain.ai.EstimationOutcome
 import app.hexaphore.domain.ai.InMemoryPendingRecognition
 import app.hexaphore.domain.ai.Recognition
 import app.hexaphore.domain.ai.RecognizedItem
@@ -384,7 +385,13 @@ class EntryViewModelTest {
             create = CreateDraft(clock, ids),
             foods = catalogue,
             pending = pending,
-            resolve = ResolveRecognition(ResolveFoodLabel(catalogue), CreateDraft(clock, ids)),
+            resolve = ResolveRecognition(
+                ResolveFoodLabel(catalogue),
+                CreateDraft(clock, ids),
+                // Aucun repli : ces cas ne parlent pas de l'etape 4, et un estimateur
+                // qui repondrait remplirait des lignes qu'ils veulent vides.
+                estimate = { EstimationOutcome.Estimated(emptyList()) },
+            ),
         ),
         addFoodLine = AddFoodLine(catalogue, CreateDraft(clock, ids)),
         getDaySummary = GetDaySummary(diary, goals, clock),

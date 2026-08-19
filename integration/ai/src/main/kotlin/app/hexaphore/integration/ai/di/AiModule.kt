@@ -4,11 +4,14 @@ import android.content.Context
 import app.hexaphore.domain.ai.AiProbe
 import app.hexaphore.domain.ai.AiSettings
 import app.hexaphore.domain.ai.FoodRecognizer
+import app.hexaphore.domain.ai.NutritionEstimator
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.integration.ai.AnthropicApi
 import app.hexaphore.integration.ai.AnthropicRecognizer
 import app.hexaphore.integration.ai.AssetSystemPrompt
 import app.hexaphore.integration.ai.ConfiguredRecognizer
+import app.hexaphore.integration.ai.ESTIMATE_PROMPT_ASSET
+import app.hexaphore.integration.ai.EXTRACT_PROMPT_ASSET
 import app.hexaphore.integration.ai.GeminiApi
 import app.hexaphore.integration.ai.GeminiRecognizer
 import app.hexaphore.integration.ai.NetworkLog
@@ -63,9 +66,24 @@ internal object AiModule {
     @Singleton
     fun openAi(@Named(AI_CLIENT) client: OkHttpClient): OpenAiApi = openAiApi(client)
 
+    /**
+     * Les deux prompts, chacun dans son fichier.
+     *
+     * Ils ne sont pas interchangeables et ne partent pas dans les mêmes appels : le
+     * qualificatif est ce qui empêche de les confondre à la construction, là où deux
+     * `SystemPrompt` nus se seraient laissés intervertir en silence.
+     */
     @Provides
     @Singleton
-    fun systemPrompt(@ApplicationContext context: Context): SystemPrompt = AssetSystemPrompt(context)
+    @Named(EXTRACT_PROMPT)
+    fun systemPrompt(@ApplicationContext context: Context): SystemPrompt =
+        AssetSystemPrompt(context, EXTRACT_PROMPT_ASSET)
+
+    @Provides
+    @Singleton
+    @Named(ESTIMATE_PROMPT)
+    fun estimatePrompt(@ApplicationContext context: Context): SystemPrompt =
+        AssetSystemPrompt(context, ESTIMATE_PROMPT_ASSET)
 
     /**
      * **Une seule instance pour deux ports.** Analyser et sonder empruntent le même
@@ -79,16 +97,17 @@ internal object AiModule {
         api: AnthropicApi,
         geminiApi: GeminiApi,
         openAiApi: OpenAiApi,
-        prompt: SystemPrompt,
+        @Named(EXTRACT_PROMPT) prompt: SystemPrompt,
+        @Named(ESTIMATE_PROMPT) estimate: SystemPrompt,
         dispatchers: DispatcherProvider,
     ): ConfiguredRecognizer = ConfiguredRecognizer(
         settings = settings,
-        anthropic = AnthropicRecognizer(api, prompt, dispatchers),
-        gemini = GeminiRecognizer(geminiApi, prompt, dispatchers),
+        anthropic = AnthropicRecognizer(api, prompt, estimate, dispatchers),
+        gemini = GeminiRecognizer(geminiApi, prompt, estimate, dispatchers),
         // Deux instances d'une meme classe, et la difference tient en un booleen :
         // OpenAI prend un schema complet, les trois autres ne promettent que du JSON.
-        openAi = OpenAiCompatibleRecognizer(openAiApi, prompt, dispatchers, strictSchema = true),
-        compatible = OpenAiCompatibleRecognizer(openAiApi, prompt, dispatchers, strictSchema = false),
+        openAi = OpenAiCompatibleRecognizer(openAiApi, prompt, estimate, dispatchers, strictSchema = true),
+        compatible = OpenAiCompatibleRecognizer(openAiApi, prompt, estimate, dispatchers, strictSchema = false),
     )
 
     @Provides
@@ -96,6 +115,10 @@ internal object AiModule {
 
     @Provides
     fun probe(configured: ConfiguredRecognizer): AiProbe = configured
+
+    /** Le repli de l'étape 4, servi par le même objet et donc par le même fournisseur. */
+    @Provides
+    fun estimator(configured: ConfiguredRecognizer): NutritionEstimator = configured
 }
 
 /**
@@ -107,3 +130,5 @@ internal object AiModule {
  * d'Open Food Facts n'a rien à faire dans un appel payant.
  */
 private const val AI_CLIENT = "ai"
+private const val EXTRACT_PROMPT = "extract"
+private const val ESTIMATE_PROMPT = "estimate"

@@ -1,5 +1,6 @@
 package app.hexaphore.di
 
+import app.hexaphore.domain.ai.NutritionEstimator
 import app.hexaphore.domain.ai.PendingRecognition
 import app.hexaphore.domain.diary.FavoriteDishes
 import app.hexaphore.domain.food.FoodLookup
@@ -56,8 +57,11 @@ object FavoriteUseCaseModule {
      * livraison quelqu'un pour l'appeler.
      */
     @Provides
-    fun resolveRecognition(resolve: ResolveFoodLabel, create: CreateDraft): ResolveRecognition =
-        ResolveRecognition(resolve, create)
+    fun resolveRecognition(
+        resolve: ResolveFoodLabel,
+        create: CreateDraft,
+        estimate: NutritionEstimator,
+    ): ResolveRecognition = ResolveRecognition(resolve, create, estimate)
 
     @Provides
     fun resolveFoodLabel(foods: FoodSearch): ResolveFoodLabel = ResolveFoodLabel(foods)

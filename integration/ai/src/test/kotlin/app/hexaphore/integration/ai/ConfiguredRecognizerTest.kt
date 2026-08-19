@@ -5,6 +5,7 @@ import app.hexaphore.domain.ai.AiError
 import app.hexaphore.domain.ai.AiProvider
 import app.hexaphore.domain.ai.AiSettings
 import app.hexaphore.domain.ai.ApiKey
+import app.hexaphore.domain.ai.EstimationOutcome
 import app.hexaphore.domain.ai.ProbeOutcome
 import app.hexaphore.domain.ai.Recognition
 import app.hexaphore.domain.ai.RecognitionInput
@@ -60,14 +61,14 @@ class ConfiguredRecognizerTest {
     fun `une reponse illisible reste une configuration valide`() = runTest {
         // Le fournisseur a repondu : la cle est bonne et le modele existe. Echouer ici
         // enverrait quelqu'un corriger une cle qui n'a rien.
-        val recognizer = factory(anthropic = { _, _ -> RecognitionOutcome.Failed(AiError.Unparseable) })
+        val recognizer = factory(anthropic = recognizing { RecognitionOutcome.Failed(AiError.Unparseable) })
 
         assertEquals(ProbeOutcome.Reachable(vision = true), recognizer.probe(CONFIGURATION))
     }
 
     @Test
     fun `une cle refusee fait echouer le sondage`() = runTest {
-        val recognizer = factory(anthropic = { _, _ -> RecognitionOutcome.Failed(AiError.InvalidKey) })
+        val recognizer = factory(anthropic = recognizing { RecognitionOutcome.Failed(AiError.InvalidKey) })
 
         assertEquals(ProbeOutcome.Failed(AiError.InvalidKey), recognizer.probe(CONFIGURATION))
     }
@@ -78,7 +79,7 @@ class ConfiguredRecognizerTest {
         // bouton « Tester » qui dit oui a tort est pire que pas de bouton.
         var input: RecognitionInput? = null
         val recognizer = factory(
-            anthropic = { received, _ ->
+            anthropic = recognizing { received ->
                 input = received
                 RecognitionOutcome.Recognized(Recognition(items = emptyList()))
             },
@@ -123,10 +124,72 @@ class ConfiguredRecognizerTest {
         }
     }
 
-    private fun mark(implementation: String, onCall: (String) -> Unit) = ProviderRecognizer { _, _ ->
+    @Test
+    fun `une liste vide n atteint aucun fournisseur`() = runTest {
+        // Le cas courant : toutes les lignes ont ete resolues. Un appel qui partirait
+        // quand meme ne rendrait rien et se paierait.
+        val recognizer = factory(settings = { CONFIGURATION })
+
+        assertEquals(EstimationOutcome.Estimated(emptyList()), recognizer.estimate(emptyList()))
+    }
+
+    @Test
+    fun `sans configuration, aucune estimation ne part`() = runTest {
+        // Le repli ne doit pas devenir la raison pour laquelle une cle manquante se
+        // voit : la ligne reste a completer a la main, comme avant l'appel.
+        val recognizer = factory(settings = { null })
+
+        assertEquals(
+            EstimationOutcome.Failed(AiError.NoProviderConfigured),
+            recognizer.estimate(listOf("sauce maison")),
+        )
+    }
+
+    @Test
+    fun `l estimation emprunte le meme routage que l analyse`() = runTest {
+        // Sinon une cle valide chez l'un partirait chez l'autre, et le 401 accuserait
+        // la cle.
+        var atteint: String? = null
+        val recognizer = factory(
+            settings = { CONFIGURATION.copy(provider = AiProvider.MISTRAL) },
+            compatible = estimating("compatible") { atteint = it },
+        )
+
+        recognizer.estimate(listOf("sauce maison"))
+
+        assertEquals("compatible", atteint)
+    }
+
+    /** Un fournisseur qui ne sait qu'estimer, pendant du [recognizing] ci-dessous. */
+    private fun estimating(implementation: String, onCall: (String) -> Unit) = object : ProviderRecognizer {
+        override suspend fun recognize(input: RecognitionInput, configuration: AiConfiguration): RecognitionOutcome =
+            error("ce cas ne parle pas de la reconnaissance")
+
+        override suspend fun estimate(labels: List<String>, configuration: AiConfiguration): EstimationOutcome {
+            onCall(implementation)
+            return EstimationOutcome.Estimated(emptyList())
+        }
+    }
+
+    private fun mark(implementation: String, onCall: (String) -> Unit) = recognizing {
         onCall(implementation)
         RecognitionOutcome.Recognized(Recognition(items = emptyList()))
     }
+
+    /**
+     * Un fournisseur qui ne sait que reconnaitre.
+     *
+     * `ProviderRecognizer` porte deux methodes depuis l'etape 4, et ces cas ne parlent
+     * que de la premiere. L'estimation echoue donc bruyamment : un cas de routage qui
+     * l'atteindrait sans le vouloir doit s'en apercevoir.
+     */
+    private fun recognizing(onRecognize: suspend (RecognitionInput) -> RecognitionOutcome) =
+        object : ProviderRecognizer {
+            override suspend fun recognize(input: RecognitionInput, configuration: AiConfiguration) = onRecognize(input)
+
+            override suspend fun estimate(labels: List<String>, configuration: AiConfiguration): EstimationOutcome =
+                error("ce cas ne parle pas de l estimation")
+        }
 
     /**
      * La fabrique, avec des fournisseurs qui echouent bruyamment par defaut.
@@ -149,11 +212,22 @@ class ConfiguredRecognizerTest {
      * qui se tromperait de branche donnerait sinon un test vert sur le mauvais
      * fournisseur.
      */
-    private fun unused() = ProviderRecognizer { _, _ -> error("la fabrique s est trompee de fournisseur") }
+    private fun unused() = object : ProviderRecognizer {
+        override suspend fun recognize(input: RecognitionInput, configuration: AiConfiguration): RecognitionOutcome =
+            error("la fabrique s est trompee de fournisseur")
 
-    private fun record(onCall: (AiConfiguration) -> Unit) = ProviderRecognizer { _, configuration ->
-        onCall(configuration)
-        RecognitionOutcome.Recognized(Recognition(items = emptyList()))
+        override suspend fun estimate(labels: List<String>, configuration: AiConfiguration): EstimationOutcome =
+            error("la fabrique s est trompee de fournisseur")
+    }
+
+    private fun record(onCall: (AiConfiguration) -> Unit) = object : ProviderRecognizer {
+        override suspend fun recognize(input: RecognitionInput, configuration: AiConfiguration): RecognitionOutcome {
+            onCall(configuration)
+            return RecognitionOutcome.Recognized(Recognition(items = emptyList()))
+        }
+
+        override suspend fun estimate(labels: List<String>, configuration: AiConfiguration): EstimationOutcome =
+            error("ce cas ne parle pas de l estimation")
     }
 
     private companion object {

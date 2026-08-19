@@ -5,7 +5,9 @@ import app.hexaphore.domain.ai.AiError
 import app.hexaphore.domain.ai.AiProbe
 import app.hexaphore.domain.ai.AiProvider
 import app.hexaphore.domain.ai.AiSettings
+import app.hexaphore.domain.ai.EstimationOutcome
 import app.hexaphore.domain.ai.FoodRecognizer
+import app.hexaphore.domain.ai.NutritionEstimator
 import app.hexaphore.domain.ai.ProbeOutcome
 import app.hexaphore.domain.ai.RecognitionInput
 import app.hexaphore.domain.ai.RecognitionOutcome
@@ -40,10 +42,31 @@ internal class ConfiguredRecognizer(
     private val openAi: ProviderRecognizer,
     private val compatible: ProviderRecognizer,
 ) : FoodRecognizer,
+    NutritionEstimator,
     AiProbe {
     override suspend fun recognize(input: RecognitionInput): RecognitionOutcome {
         val configuration = settings.current() ?: return RecognitionOutcome.Failed(AiError.NoProviderConfigured)
         return configuration.provider.recognizer().recognize(input, configuration)
+    }
+
+    /**
+     * L'étape 4, routée comme le reste.
+     *
+     * **Sans configuration, aucun appel** — et surtout aucune estimation : une ligne
+     * non résolue reste alors à compléter à la main, ce qui est exactement ce qu'elle
+     * était avant. Le repli ne doit pas devenir la raison pour laquelle une clé
+     * manquante se voit.
+     *
+     * Une liste vide ne part jamais non plus : c'est le cas courant — tout a été
+     * résolu — et il ne coûte rien.
+     */
+    override suspend fun estimate(labels: List<String>): EstimationOutcome = when {
+        labels.isEmpty() -> EstimationOutcome.Estimated(emptyList())
+        else ->
+            settings
+                .current()
+                ?.let { configuration -> configuration.provider.recognizer().estimate(labels, configuration) }
+                ?: EstimationOutcome.Failed(AiError.NoProviderConfigured)
     }
 
     /**
