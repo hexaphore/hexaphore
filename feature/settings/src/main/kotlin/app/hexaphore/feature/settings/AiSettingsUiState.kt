@@ -63,8 +63,24 @@ sealed interface ProbeState {
 
     data class Succeeded(val vision: Boolean) : ProbeState
 
-    data class Failed(@StringRes val messageRes: Int) : ProbeState
+    /**
+     * @param detail ce que le fournisseur a répondu, quand l'issue ne suffit pas à le
+     *   diagnostiquer. Affiché **ici et nulle part ailleurs** : le bouton « Tester »
+     *   est un instrument de diagnostic, et « le service est indisponible » n'y aide
+     *   personne — ni celui qui configure, ni celui qui doit corriger.
+     */
+    data class Failed(@StringRes val messageRes: Int, val detail: String? = null) : ProbeState
 }
+
+/**
+ * Ce qu'on montre en plus du message, et seulement quand le message ne suffit pas.
+ *
+ * Une clé refusée n'a pas besoin d'être suivie de la phrase anglaise du fournisseur :
+ * « vérifiez-la » dit déjà quoi faire. `Server` est le fourre-tout, et c'est le seul
+ * cas où le message de l'application n'apprend rien de plus que « ça n'a pas marché ».
+ */
+internal val AiError.diagnostic: String?
+    get() = (this as? AiError.Server)?.let { listOfNotNull("HTTP ${it.status}", it.detail).joinToString(" · ") }
 
 /**
  * Le message d'une issue, **jamais son code**.

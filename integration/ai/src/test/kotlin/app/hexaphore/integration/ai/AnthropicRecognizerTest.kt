@@ -150,7 +150,31 @@ class AnthropicRecognizerTest {
         assertEquals(AiError.InvalidKey, failure(FORBIDDEN))
         assertEquals(AiError.QuotaExceeded, failure(PAYMENT_REQUIRED))
         assertEquals(AiError.QuotaExceeded, failure(TOO_MANY_REQUESTS))
-        assertEquals(AiError.Server(SERVER_ERROR), failure(SERVER_ERROR))
+        assertEquals(SERVER_ERROR, (failure(SERVER_ERROR) as AiError.Server).status)
+    }
+
+    @Test
+    fun `ce que le fournisseur reproche est conserve`() = runTest {
+        // Sans lui, un 400 qui refuse un champ et un 400 qui annonce un compte sans
+        // credits se disent tous les deux « le service est indisponible » -- un
+        // message qui n'aide ni celui qui configure ni celui qui doit corriger.
+        val explication = """{"error":{"message":"credit balance is too low"}}"""
+        server.enqueue(MockResponse().setResponseCode(BAD_REQUEST).setBody(explication))
+
+        val error = (recognize(RecognitionInput.Text("un jus")) as RecognitionOutcome.Failed).error
+
+        assertTrue((error as AiError.Server).detail?.contains("credit balance") == true, error.toString())
+    }
+
+    @Test
+    fun `une issue deja precise ne traine pas la phrase du fournisseur`() = runTest {
+        // « Votre cle a ete refusee. Verifiez-la » dit deja quoi faire ; y accoler
+        // l'anglais du fournisseur n'ajoute qu'un bruit.
+        server.enqueue(MockResponse().setResponseCode(UNAUTHORIZED).setBody("""{"error":{"message":"bad key"}}"""))
+
+        val error = (recognize(RecognitionInput.Text("un jus")) as RecognitionOutcome.Failed).error
+
+        assertEquals(AiError.InvalidKey, error)
     }
 
     private suspend fun failure(status: Int): AiError {
@@ -193,6 +217,7 @@ class AnthropicRecognizerTest {
     private companion object {
         const val KEY = "sk-ant-de-test"
         const val INPUT_TOKENS = 1200
+        const val BAD_REQUEST = 400
         const val UNAUTHORIZED = 401
         const val PAYMENT_REQUIRED = 402
         const val FORBIDDEN = 403

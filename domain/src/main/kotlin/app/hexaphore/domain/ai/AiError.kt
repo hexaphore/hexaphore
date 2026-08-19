@@ -53,6 +53,22 @@ sealed interface AiError {
      */
     data object NothingRecognized : AiError
 
-    /** Tout le reste, avec son statut — pour le journal, jamais pour l'écran. */
-    data class Server(val status: Int) : AiError
+    /**
+     * Tout le reste, avec son statut et **ce que le fournisseur en a dit**.
+     *
+     * [detail] est le message d'erreur brut, tel qu'il arrive. Il n'a pas sa place
+     * dans un écran d'analyse — quelqu'un qui note un repas ne peut rien en faire, et
+     * [docs/05][ia] a raison d'écrire qu'un code HTTP ne remonte jamais là.
+     *
+     * **Il en a une sur l'écran des réglages**, qui est un instrument de diagnostic :
+     * son bouton « Tester » n'existe que pour dire ce qui ne va pas avant qu'on
+     * compte dessus. « Le service est indisponible » y est un message qui ne dit rien
+     * — ni à l'utilisateur, ni à qui doit corriger. La phrase du fournisseur, elle,
+     * nomme le champ refusé ou le compte sans crédits.
+     *
+     * `null` quand le corps d'erreur est absent ou illisible.
+     *
+     * [ia]: docs/05-ia.md
+     */
+    data class Server(val status: Int, val detail: String? = null) : AiError
 }

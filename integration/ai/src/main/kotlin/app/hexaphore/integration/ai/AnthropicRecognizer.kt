@@ -123,7 +123,7 @@ private fun RecognitionInput.blocks(): List<ContentBlock> = when (this) {
 private fun Response<AnthropicResponse>.toOutcome(): RecognitionOutcome {
     val body = body()
     return when {
-        !isSuccessful -> RecognitionOutcome.Failed(code().toAiError())
+        !isSuccessful -> RecognitionOutcome.Failed(toAiError())
         body == null -> RecognitionOutcome.Failed(AiError.Unparseable)
         body.stopReason == REFUSAL -> RecognitionOutcome.Failed(AiError.NothingRecognized)
         else -> parseRecognition(body.text(), body.usage?.toDomain())
@@ -143,16 +143,34 @@ private fun AnthropicResponse.text(): String =
 private fun AnthropicUsage.toDomain() = TokenUsage(input = inputTokens, output = outputTokens)
 
 /**
- * Le code HTTP, traduit une fois — et qui ne remonte jamais tel quel à l'écran.
+ * Le code HTTP, traduit une fois — et qui ne remonte jamais tel quel à un écran
+ * d'analyse.
  *
  * `402` rejoint le quota : « crédits épuisés » et « trop de requêtes » se corrigent du
  * même côté et n'ont qu'un message pour l'utilisateur.
+ *
+ * **Le corps de l'erreur est joint aux cas non traduits**, et lui seul. Les autres ont
+ * déjà un message précis — « votre clé a été refusée » ne gagne rien à être suivi de
+ * la phrase anglaise du fournisseur. `Server` n'en a aucun : c'est le fourre-tout, et
+ * sans ce que le fournisseur en dit, personne ne peut le diagnostiquer. Un `400` qui
+ * refuse un champ et un `400` qui annonce un compte sans crédits sont deux problèmes
+ * différents que le seul chiffre confond.
  */
-private fun Int.toAiError(): AiError = when (this) {
+private fun Response<AnthropicResponse>.toAiError(): AiError = when (code()) {
     UNAUTHORIZED, FORBIDDEN -> AiError.InvalidKey
     PAYMENT_REQUIRED, TOO_MANY_REQUESTS -> AiError.QuotaExceeded
-    else -> AiError.Server(this)
+    else -> AiError.Server(code(), detail())
 }
+
+/**
+ * Ce que le fournisseur a écrit, borné.
+ *
+ * `errorBody()` ne se lit **qu'une fois** et peut jeter ; le `runCatching` couvre les
+ * deux. La borne évite qu'une page HTML d'un relais mal configuré remplisse l'écran —
+ * et ce qui compte tient toujours dans les premières lignes.
+ */
+private fun Response<AnthropicResponse>.detail(): String? =
+    runCatching { errorBody()?.string() }.getOrNull()?.trim()?.take(DETAIL_LIMIT)?.takeIf { it.isNotEmpty() }
 
 /**
  * Ce qui remplace `temperature = 0.2`, et le levier qu'on déplacera.
@@ -177,6 +195,9 @@ private const val UNAUTHORIZED = 401
 private const val PAYMENT_REQUIRED = 402
 private const val FORBIDDEN = 403
 private const val TOO_MANY_REQUESTS = 429
+
+/** Assez pour la phrase du fournisseur, pas assez pour une page d erreur entiere. */
+private const val DETAIL_LIMIT = 400
 
 private const val PHOTO_REQUEST = "Analyse ce repas."
 
