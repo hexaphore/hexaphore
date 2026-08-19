@@ -30,3 +30,32 @@ fun NavGraphBuilder.describeScreen(onProposal: () -> Unit, onClose: () -> Unit) 
         DescribeRoute(onProposal = onProposal, onClose = onClose)
     }
 }
+
+/**
+ * La modale photo, comme destination.
+ *
+ * Aucun argument non plus : on arrive avec une assiette devant soi.
+ */
+@Serializable
+data object PhotoDestination
+
+/** Ouvre la modale « Photographier ». */
+fun NavController.navigateToPhoto() {
+    navigate(PhotoDestination)
+}
+
+/**
+ * Déclare l'écran dans un graphe.
+ *
+ * Trois sorties, une de plus que la modale texte : l'échec d'une analyse photo offre
+ * **la saisie manuelle**, parce qu'un fournisseur en panne ne doit pas empêcher de
+ * noter son repas ([docs/02][parcours]). La description, elle, se corrige et se
+ * relance — la phrase est déjà tapée.
+ *
+ * [parcours]: docs/02-parcours-et-ecrans.md
+ */
+fun NavGraphBuilder.photoScreen(onProposal: () -> Unit, onManual: () -> Unit, onClose: () -> Unit) {
+    composable<PhotoDestination> {
+        PhotoRoute(onProposal = onProposal, onManual = onManual, onClose = onClose)
+    }
+}

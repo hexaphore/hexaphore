@@ -11,6 +11,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import app.hexaphore.feature.capture.describeScreen
 import app.hexaphore.feature.capture.navigateToDescribe
+import app.hexaphore.feature.capture.navigateToPhoto
+import app.hexaphore.feature.capture.photoScreen
 import app.hexaphore.feature.entry.EntryDestination
 import app.hexaphore.feature.entry.entryScreen
 import app.hexaphore.feature.entry.navigateToEntry
@@ -19,6 +21,7 @@ import app.hexaphore.feature.entry.navigateToEntryForFavorite
 import app.hexaphore.feature.entry.navigateToEntryForProposal
 import app.hexaphore.feature.entry.navigateToEntryForScan
 import app.hexaphore.feature.home.HomeDestination
+import app.hexaphore.feature.home.HomeRoutes
 import app.hexaphore.feature.home.homeScreen
 import app.hexaphore.feature.onboarding.OnboardingDestination
 import app.hexaphore.feature.onboarding.onboardingScreen
@@ -73,19 +76,22 @@ private fun HexaphoreNavHost(startDestination: Any, modifier: Modifier = Modifie
 
     NavHost(navController = navController, startDestination = startDestination, modifier = modifier) {
         homeScreen(
-            // Un seul bouton, et il ouvre la recherche : la saisie manuelle y est
-            // une branche, puisqu'un aliment tape a la main devient une fiche.
-            onAddDish = { navController.navigateToSearch() },
-            onScan = { navController.navigateToScan() },
-            // Le quatrieme mode de saisie, et le premier qui coute de l'argent :
-            // l'accueil grise le bouton tant qu'aucune cle n'est configuree.
-            onDescribe = { navController.navigateToDescribe() },
-            onEditDish = { dishId -> navController.navigateToEntry(dishId) },
-            onSetUpGoal = { navController.navigate(OnboardingDestination) },
-            // Le hub existe desormais : sa deuxieme section est arrivee, ce qui est
-            // exactement l echeance que D59 avait ecrite.
-            onOpenSettings = { navController.navigateToSettings() },
-            onOpenFavorites = { navController.navigateToFavorites() },
+            HomeRoutes(
+                // Un seul bouton, et il ouvre la recherche : la saisie manuelle y est
+                // une branche, puisqu'un aliment tape a la main devient une fiche.
+                onAddDish = { navController.navigateToSearch() },
+                onScan = { navController.navigateToScan() },
+                // Les deux modes d'IA, et les premiers gestes qui coutent de l'argent :
+                // l'accueil les grise tant qu'aucune cle n'est configuree.
+                onDescribe = { navController.navigateToDescribe() },
+                onPhotograph = { navController.navigateToPhoto() },
+                onEditDish = { dishId -> navController.navigateToEntry(dishId) },
+                onSetUpGoal = { navController.navigate(OnboardingDestination) },
+                // Le hub existe desormais : sa deuxieme section est arrivee, ce qui est
+                // exactement l echeance que D59 avait ecrite.
+                onOpenSettings = { navController.navigateToSettings() },
+                onOpenFavorites = { navController.navigateToFavorites() },
+            ),
         )
         onboardingScreen(
             // L'onboarding s'efface derriere l'accueil : y revenir par le bouton
@@ -134,6 +140,19 @@ private fun NavGraphBuilder.captureScreens(navController: NavHostController) {
         onProposal = {
             navController.popBackStack(HomeDestination, inclusive = false)
             navController.navigateToEntryForProposal()
+        },
+        onClose = { navController.popBackStack() },
+    )
+    photoScreen(
+        onProposal = {
+            navController.popBackStack(HomeDestination, inclusive = false)
+            navController.navigateToEntryForProposal()
+        },
+        // La porte de sortie que docs/02 exige : un fournisseur en panne ne doit pas
+        // empecher de noter son repas. La recherche porte aussi la saisie manuelle.
+        onManual = {
+            navController.popBackStack(HomeDestination, inclusive = false)
+            navController.navigateToSearch()
         },
         onClose = { navController.popBackStack() },
     )

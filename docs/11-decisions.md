@@ -1941,6 +1941,63 @@ Le cas de routage énumère donc les six entrées et **affirme d'abord que la ta
 
 **Ce que le vert ne prouve pas.** Aucun appel réel n'a atteint aucun de ces quatre fournisseurs, et il n'existe de clé pour aucun. Le dernier est par nature **inéprouvable** : son service n'a pas d'adresse tant que quelqu'un n'en donne pas une. Ce qui est vérifié est ce qui part sur le réseau, devant un vrai serveur local, et la traduction de ce qui revient.
 
+## D82 — La prise de vue est déléguée, et l'accord se demande une fois · ✓ validée
+
+**Contexte.** Le quatrième mode de saisie, et **le seul endroit de l'application où une donnée personnelle quitte l'appareil sans qu'un code-barres l'ait demandée**. C'est ce qui fait de cette livraison autre chose qu'un écran de plus.
+
+### L'appareil photo du système plutôt qu'un aperçu à nous
+
+[02](02-parcours-et-ecrans.md#modale--photo) décrit un aperçu CameraX avec déclencheur et bascule galerie. **Il n'est pas là**, et c'est le seul écart de forme de cette livraison.
+
+Un aperçu intégré demanderait une **seconde** implémentation de CameraX — la première sert le scan, qui analyse un flux en continu et n'a rien à partager avec une prise unique — pour un écran dont le seul travail est de remettre un JPEG. Elle serait entièrement invérifiable ici : il n'y a pas d'émulateur, et le liage, la rotation et la capture ne s'éprouvent qu'en tenant le téléphone. L'appareil photo du système, lui, apporte la mise au point, le flash et le zoom de l'appareil, écrit directement dans notre cache, et **le sélecteur de médias donne la bascule galerie sans une ligne**.
+
+Ce qui est perdu : le viseur dans l'application, et le conseil de cadrage en surimpression. Le conseil est déplacé dans le corps de l'écran, **où il se lit avant d'appuyer** plutôt que pendant qu'on vise. Le viseur, lui, se rebranchera derrière le même état le jour où quelqu'un le tiendra en main et le voudra.
+
+**La permission reste nécessaire, contre toute attente.** Déléguer une prise de vue n'en demande normalement aucune — sauf quand l'application déclare `CAMERA` dans son manifeste, ce que fait `:integration:scanner` pour le scan. Le système l'exige alors avant de lancer l'appareil photo, même si c'est lui qui prend la photo. Sans ce chemin, le déclencheur échouerait sans rien dire.
+
+### La réduction, et l'ordre qui empêche la mémoire d'exploser
+
+1024 px sur le côté long, JPEG 80 : les deux chiffres viennent de [05](05-ia.md#coût), et c'est la principale réduction de dépense du mode photo — environ 150 Ko et 250 à 400 jetons, contre plusieurs mégaoctets pour la photo d'origine, payés par l'utilisateur.
+
+Trois choses dans cet ordre : **mesurer sans décoder**, décoder **en sautant des pixels**, puis mettre à l'échelle et compresser. Décoder d'abord ferait passer une photo de douze mégapixels par un bitmap de quarante-huit mégaoctets, ce qui est le chemin le plus court vers une `OutOfMemoryError` sur un téléphone qui fait autre chose.
+
+**L'orientation EXIF est appliquée**, et ce n'est pas un détail cosmétique : un téléphone tenu debout écrit souvent une image couchée accompagnée d'une étiquette « tourne-moi ». Sans elle, le modèle reçoit une assiette de profil et estime des quantités sur une image qu'aucun humain ne verrait ainsi. `android.media.ExifInterface` suffit — celle d'AndroidX apporte des formats qu'aucun appareil photo ne produit, pour une dépendance de plus.
+
+**La géométrie est éprouvée, le décodage non**, et c'est la division habituelle : `sampleSizeFor` et `scaledSizeFor` sont de l'arithmétique et tiennent sur la JVM ; `BitmapFactory` demande un appareil.
+
+### Le consentement : une fois, et il nomme le fournisseur
+
+[05](05-ia.md#confidentialité) l'exige avant la première utilisation. Il nomme le fournisseur actif, et c'est ce qui en fait une phrase **vérifiable** : « votre photo sera envoyée à Mistral » se contredit tout seul si c'est faux, là où « à votre fournisseur » ne se vérifie pas.
+
+Il est demandé **au moment de l'envoi** et non à l'ouverture de l'écran : c'est l'envoi qui expose la photo, pas le fait de la prendre. Quelqu'un qui cadre, réfléchit et referme n'a rien envoyé et n'avait donc rien à accepter. Refuser laisse la photo en place — on peut changer d'avis sans la reprendre.
+
+Il est rangé **dans le même fichier que les clés**, non chiffré. Ce n'est pas un secret mais une trace de décision ; et surtout, effacer ses réglages d'IA doit effacer l'accord avec, parce que quelqu'un qui repart de zéro n'a rien accepté.
+
+### Ce qui protège l'argent et le repas
+
+**Annuler coupe vraiment**, comme [02](02-parcours-et-ecrans.md#modale--photo) l'écrit : une requête abandonnée qu'on laisse courir se paie quand même.
+
+**La photo survit à l'échec.** Une clé refusée ou un réseau absent ne doit jamais obliger à ressortir le téléphone au-dessus d'une assiette qu'on est peut-être en train de manger. Et l'échec offre la **saisie manuelle** : un fournisseur en panne ne doit pas empêcher de noter son repas.
+
+**Le fichier meurt dans un `finally`** — succès, échec ou annulation —, et un balayage au démarrage ramasse ce qu'un processus tué aurait laissé. Le nom est fixe plutôt qu'horodaté : deux prises ne peuvent pas être en vol — l'appareil photo du système est une activité modale —, et un nom horodaté aurait demandé de lire l'horloge, ce que le projet réserve au port `Clock`. Bénéfice inattendu : une prise qui écrase un résidu nettoie le cache au lieu de l'encombrer.
+
+Une image **choisie dans la galerie n'est jamais supprimée** : elle ne nous appartient pas.
+
+### Deux regroupements, imposés par le seuil
+
+`LongParameterList` a mordu deux fois : l'écran photo à dix rappels, et l'accueil à huit sorties une fois ses quatre modes en place. La réponse du projet est de découper plutôt que de relever le seuil — d'où `PhotoActions` et `HomeRoutes`, la forme déjà retenue pour l'accueil, la validation et les réglages. Le seuil a fait exactement ce pour quoi il est là.
+
+**Campagne de défaite : quinze sabotages, deux survivants au premier tour**, et les deux étaient des défauts de **test**, pas de code.
+
+- **« Annuler » ne mesurait que le bouton.** Retirer l'annulation du `Job` ne faisait rien tomber : le cas vérifiait que l'écran cesse d'afficher « analyse en cours », ce qu'il fait aussi bien pendant qu'une requête continue de courir — et de se payer. Il vérifie désormais que l'appel **est coupé**. C'est la deuxième fois de la tranche qu'un cas regarde l'affichage au lieu de la dépense ([D80](#d80--la-proposition-passe-par-un-dépôt-et-lécran-de-validation-ne-change-pas-dun-mot---validée) avait le même défaut sur le double appui).
+- **Le côté court ne pouvait pas tomber à zéro** avec la fixture choisie : une image de 4000 × 3 se réduit à une hauteur de 0,768, que l'arrondi remonte à 1 tout seul. Il faut descendre à 4000 × 1 pour que le garde-fou serve. Le cas passait donc sans jamais éprouver ce qu'il annonçait.
+
+Les treize autres sont tombés du premier coup : le consentement contourné, l'accord non enregistré, le fournisseur non nommé, le refus qui envoie quand même, la note non nettoyée, la note vide devenue note, l'échec qui efface la photo, la nouvelle photo qui garde l'ancien échec, la source du dépôt qui ment, l'analyse sans photo, et trois sur la géométrie.
+
+**Conséquences.** `:core:designsystem` gagne un `CameraGlyph`, troisième glyphe dessiné après l'étoile creuse et le code-barres, pour la même raison : `material-icons-core` n'en a pas, et `material-icons-extended` embarque des milliers d'icônes pour en utiliser une. L'accueil a **ses quatre modes de saisie**, les deux d'IA grisés ensemble puisque c'est la même clé qui leur manque. `:data:settings` lie un troisième port.
+
+**Ce que le vert ne prouve pas — et c'est l'essentiel ici.** **Aucune photo n'a jamais été prise par ce code.** Le décodage, l'orientation EXIF, le `FileProvider`, la permission et le retour de l'appareil photo du système ne s'éprouvent qu'en tenant le téléphone. Ce qui est vérifié est ce qui coûte de l'argent ou expose une donnée : le consentement, l'annulation, ce qui part avec la photo, ce qui est déposé, et ce qui survit à un échec.
+
 ---
 
 ## Décisions prises par défaut, à confirmer

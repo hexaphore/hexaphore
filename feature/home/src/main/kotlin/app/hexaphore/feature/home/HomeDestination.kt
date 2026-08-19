@@ -1,5 +1,6 @@
 package app.hexaphore.feature.home
 
+import androidx.compose.runtime.Immutable
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import app.hexaphore.domain.diary.DishId
@@ -10,31 +11,32 @@ import kotlinx.serialization.Serializable
 data object HomeDestination
 
 /**
- * Déclare l'accueil dans un graphe.
+ * Les sorties de l'accueil, en un seul objet.
  *
- * Les rappels sont des sorties et non des destinations : le module ne sait pas
- * vers quoi il envoie, ce qui lui évite de dépendre de `:feature:entry`, de
+ * **Des sorties et non des destinations** : le module ne sait pas vers quoi il envoie,
+ * ce qui lui évite de dépendre de `:feature:entry`, de `:feature:capture`, de
  * `:feature:onboarding` ni de `:feature:settings`. C'est `:app` qui relie, parce que
  * c'est lui qui assemble.
+ *
+ * Rassemblées le jour où les quatre modes de saisie ont été là : huit rappels passés
+ * un par un font une signature qu'on ne lit plus, et c'est la forme que le projet a
+ * déjà retenue pour [HomeActions].
  */
-fun NavGraphBuilder.homeScreen(
-    onAddDish: () -> Unit,
-    onScan: () -> Unit,
-    onDescribe: () -> Unit,
-    onEditDish: (DishId) -> Unit,
-    onSetUpGoal: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onOpenFavorites: () -> Unit,
-) {
+@Immutable
+data class HomeRoutes(
+    val onAddDish: () -> Unit,
+    val onScan: () -> Unit,
+    val onDescribe: () -> Unit,
+    val onPhotograph: () -> Unit,
+    val onEditDish: (DishId) -> Unit,
+    val onSetUpGoal: () -> Unit,
+    val onOpenSettings: () -> Unit,
+    val onOpenFavorites: () -> Unit,
+)
+
+/** Déclare l'accueil dans un graphe. */
+fun NavGraphBuilder.homeScreen(routes: HomeRoutes) {
     composable<HomeDestination> {
-        HomeRoute(
-            onAddDish = onAddDish,
-            onScan = onScan,
-            onDescribe = onDescribe,
-            onEditDish = onEditDish,
-            onSetUpGoal = onSetUpGoal,
-            onOpenSettings = onOpenSettings,
-            onOpenFavorites = onOpenFavorites,
-        )
+        HomeRoute(routes)
     }
 }

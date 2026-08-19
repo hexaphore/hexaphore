@@ -73,6 +73,7 @@
     <!-- Le bouton d'IA reste visible sans cle, et grise : cache, il ne s'apprend
          jamais ; inerte, il n'apprend rien non plus. L'appui ouvre l'explication. -->
     <string name="home_describe">Décrire un repas</string>
+    <string name="home_photograph">Photographier un repas</string>
     <string name="home_describe_unavailable">indisponible, aucune clé d\'IA</string>
     <string name="home_ai_title">Décrire un repas avec l\'IA</string>
     <string name="home_ai_explanation">Ce mode envoie votre description à un fournisseur d\'IA que vous choisissez, avec votre propre clé. Les appels vous sont facturés par ce fournisseur.</string>
