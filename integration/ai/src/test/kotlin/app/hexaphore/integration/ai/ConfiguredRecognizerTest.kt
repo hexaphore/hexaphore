@@ -3,6 +3,7 @@ package app.hexaphore.integration.ai
 import app.hexaphore.domain.ai.AiConfiguration
 import app.hexaphore.domain.ai.AiError
 import app.hexaphore.domain.ai.AiProvider
+import app.hexaphore.domain.ai.AiSettings
 import app.hexaphore.domain.ai.ApiKey
 import app.hexaphore.domain.ai.ProbeOutcome
 import app.hexaphore.domain.ai.Recognition
@@ -27,7 +28,7 @@ class ConfiguredRecognizerTest {
     @Test
     fun `sans configuration, aucun fournisseur n est appele`() = runTest {
         var seen: AiConfiguration? = null
-        val recognizer = ConfiguredRecognizer(settings = { null }, anthropic = record { seen = it }, gemini = unused())
+        val recognizer = factory(settings = { null }, anthropic = record { seen = it })
 
         val outcome = recognizer.recognize(RecognitionInput.Text("un jus"))
 
@@ -38,8 +39,7 @@ class ConfiguredRecognizerTest {
     @Test
     fun `la configuration courante accompagne l appel`() = runTest {
         var seen: AiConfiguration? = null
-        val recognizer =
-            ConfiguredRecognizer(settings = { CONFIGURATION }, anthropic = record { seen = it }, gemini = unused())
+        val recognizer = factory(settings = { CONFIGURATION }, anthropic = record { seen = it })
 
         recognizer.recognize(RecognitionInput.Text("un jus"))
 
@@ -51,7 +51,7 @@ class ConfiguredRecognizerTest {
         // C'est tout l'interet du bouton : on eprouve ce qui est dans le formulaire,
         // avant d'ecrire. Lire les reglages ici obligerait a enregistrer une cle
         // fausse pour decouvrir qu'elle est fausse.
-        val recognizer = ConfiguredRecognizer(settings = { null }, anthropic = record { }, gemini = unused())
+        val recognizer = factory(anthropic = record { })
 
         assertEquals(ProbeOutcome.Reachable(vision = true), recognizer.probe(CONFIGURATION))
     }
@@ -60,20 +60,14 @@ class ConfiguredRecognizerTest {
     fun `une reponse illisible reste une configuration valide`() = runTest {
         // Le fournisseur a repondu : la cle est bonne et le modele existe. Echouer ici
         // enverrait quelqu'un corriger une cle qui n'a rien.
-        val recognizer =
-            ConfiguredRecognizer(settings = {
-                null
-            }, anthropic = { _, _ -> RecognitionOutcome.Failed(AiError.Unparseable) }, gemini = unused())
+        val recognizer = factory(anthropic = { _, _ -> RecognitionOutcome.Failed(AiError.Unparseable) })
 
         assertEquals(ProbeOutcome.Reachable(vision = true), recognizer.probe(CONFIGURATION))
     }
 
     @Test
     fun `une cle refusee fait echouer le sondage`() = runTest {
-        val recognizer =
-            ConfiguredRecognizer(settings = {
-                null
-            }, anthropic = { _, _ -> RecognitionOutcome.Failed(AiError.InvalidKey) }, gemini = unused())
+        val recognizer = factory(anthropic = { _, _ -> RecognitionOutcome.Failed(AiError.InvalidKey) })
 
         assertEquals(ProbeOutcome.Failed(AiError.InvalidKey), recognizer.probe(CONFIGURATION))
     }
@@ -83,13 +77,11 @@ class ConfiguredRecognizerTest {
         // Un appel special, plus leger, aurait pu reussir la ou l'analyse echoue. Un
         // bouton « Tester » qui dit oui a tort est pire que pas de bouton.
         var input: RecognitionInput? = null
-        val recognizer = ConfiguredRecognizer(
-            settings = { null },
+        val recognizer = factory(
             anthropic = { received, _ ->
                 input = received
                 RecognitionOutcome.Recognized(Recognition(items = emptyList()))
             },
-            gemini = unused(),
         )
 
         recognizer.probe(CONFIGURATION)
@@ -98,26 +90,57 @@ class ConfiguredRecognizerTest {
     }
 
     @Test
-    fun `chaque fournisseur recoit ses propres appels`() = runTest {
-        // La regle que le `when` de la fabrique porte, et la seule qu'un second
-        // fournisseur rend enoncable : router vers le mauvais donnerait une cle
-        // refusee sur une cle parfaitement valide.
-        var atteint: AiProvider? = null
-        val recognizer = ConfiguredRecognizer(
-            settings = { null },
-            anthropic = mark(AiProvider.ANTHROPIC) { atteint = it },
-            gemini = mark(AiProvider.GEMINI) { atteint = it },
+    fun `chaque entree atteint l implementation qui lui revient`() = runTest {
+        // La regle que le `when` de la fabrique porte, et la seule chose qu'il decide.
+        // Router vers la mauvaise donnerait une cle refusee sur une cle parfaitement
+        // valide -- et, entre les quatre derniers, un schema envoye a qui le refuse.
+        val attendu = mapOf(
+            AiProvider.ANTHROPIC to "anthropic",
+            AiProvider.GEMINI to "gemini",
+            AiProvider.OPENAI to "openAi",
+            AiProvider.DEEPSEEK to "compatible",
+            AiProvider.MISTRAL to "compatible",
+            AiProvider.COMPATIBLE to "compatible",
         )
 
-        recognizer.probe(CONFIGURATION.copy(provider = AiProvider.GEMINI))
+        // Toutes les entrees, et non celles qu'on a pensees : une entree ajoutee sans
+        // branche ne compile pas, mais une entree ajoutee **avec** la mauvaise branche
+        // compile tres bien.
+        assertEquals(AiProvider.entries.toSet(), attendu.keys, "un fournisseur sans attente")
 
-        assertEquals(AiProvider.GEMINI, atteint)
+        attendu.forEach { (provider, implementation) ->
+            var atteint: String? = null
+            val recognizer = factory(
+                anthropic = mark("anthropic") { atteint = it },
+                gemini = mark("gemini") { atteint = it },
+                openAi = mark("openAi") { atteint = it },
+                compatible = mark("compatible") { atteint = it },
+            )
+
+            recognizer.probe(CONFIGURATION.copy(provider = provider))
+
+            assertEquals(implementation, atteint, "mauvaise implementation pour $provider")
+        }
     }
 
-    private fun mark(provider: AiProvider, onCall: (AiProvider) -> Unit) = ProviderRecognizer { _, _ ->
-        onCall(provider)
+    private fun mark(implementation: String, onCall: (String) -> Unit) = ProviderRecognizer { _, _ ->
+        onCall(implementation)
         RecognitionOutcome.Recognized(Recognition(items = emptyList()))
     }
+
+    /**
+     * La fabrique, avec des fournisseurs qui echouent bruyamment par defaut.
+     *
+     * Chaque cas ne nomme que ceux qu'il attend ; les autres crient s'ils sont
+     * atteints, plutot que de rendre une reponse plausible sur la mauvaise branche.
+     */
+    private fun factory(
+        settings: AiSettings = AiSettings { null },
+        anthropic: ProviderRecognizer = unused(),
+        gemini: ProviderRecognizer = unused(),
+        openAi: ProviderRecognizer = unused(),
+        compatible: ProviderRecognizer = unused(),
+    ) = ConfiguredRecognizer(settings, anthropic, gemini, openAi, compatible)
 
     /**
      * Un fournisseur que ces cas ne doivent jamais atteindre.

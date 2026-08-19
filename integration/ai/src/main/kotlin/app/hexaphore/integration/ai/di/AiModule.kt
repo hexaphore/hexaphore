@@ -12,10 +12,13 @@ import app.hexaphore.integration.ai.ConfiguredRecognizer
 import app.hexaphore.integration.ai.GeminiApi
 import app.hexaphore.integration.ai.GeminiRecognizer
 import app.hexaphore.integration.ai.NetworkLog
+import app.hexaphore.integration.ai.OpenAiApi
+import app.hexaphore.integration.ai.OpenAiCompatibleRecognizer
 import app.hexaphore.integration.ai.SystemPrompt
 import app.hexaphore.integration.ai.aiClient
 import app.hexaphore.integration.ai.anthropicApi
 import app.hexaphore.integration.ai.geminiApi
+import app.hexaphore.integration.ai.openAiApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -58,6 +61,10 @@ internal object AiModule {
 
     @Provides
     @Singleton
+    fun openAi(@Named(AI_CLIENT) client: OkHttpClient): OpenAiApi = openAiApi(client)
+
+    @Provides
+    @Singleton
     fun systemPrompt(@ApplicationContext context: Context): SystemPrompt = AssetSystemPrompt(context)
 
     /**
@@ -71,12 +78,17 @@ internal object AiModule {
         settings: AiSettings,
         api: AnthropicApi,
         geminiApi: GeminiApi,
+        openAiApi: OpenAiApi,
         prompt: SystemPrompt,
         dispatchers: DispatcherProvider,
     ): ConfiguredRecognizer = ConfiguredRecognizer(
         settings = settings,
         anthropic = AnthropicRecognizer(api, prompt, dispatchers),
         gemini = GeminiRecognizer(geminiApi, prompt, dispatchers),
+        // Deux instances d'une meme classe, et la difference tient en un booleen :
+        // OpenAI prend un schema complet, les trois autres ne promettent que du JSON.
+        openAi = OpenAiCompatibleRecognizer(openAiApi, prompt, dispatchers, strictSchema = true),
+        compatible = OpenAiCompatibleRecognizer(openAiApi, prompt, dispatchers, strictSchema = false),
     )
 
     @Provides

@@ -59,6 +59,21 @@ internal fun geminiApi(client: OkHttpClient): GeminiApi = Retrofit.Builder()
     .create(GeminiApi::class.java)
 
 /**
+ * La troisième et **dernière** : elle sert les quatre fournisseurs qui parlent
+ * `chat/completions`.
+ *
+ * Sa base de façade est celle d'OpenAI, et elle ne veut rien dire — chaque appel porte
+ * son URL complète, ce qui est ici la fonctionnalité même : le fournisseur
+ * « compatible » n'a pas d'adresse par défaut, et c'est l'utilisateur qui la donne.
+ */
+internal fun openAiApi(client: OkHttpClient): OpenAiApi = Retrofit.Builder()
+    .baseUrl(AiProvider.OPENAI.defaultBaseUrl)
+    .client(client)
+    .addConverterFactory(AI_JSON.asConverterFactory(JSON_MEDIA_TYPE.toMediaType()))
+    .build()
+    .create(OpenAiApi::class.java)
+
+/**
  * **`encodeDefaults` est la ligne qui fait marcher les requêtes.**
  *
  * `kotlinx.serialization` omet par défaut les champs qui valent leur valeur par

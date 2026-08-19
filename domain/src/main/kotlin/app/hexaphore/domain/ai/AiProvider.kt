@@ -48,6 +48,48 @@ enum class AiProvider(
         suggestedModels = listOf("gemini-3.5-flash-lite", "gemini-3.7-flash", "gemini-2.5-flash"),
         vision = VisionSupport.ALWAYS,
     ),
+
+    OPENAI(
+        displayName = "OpenAI",
+        defaultBaseUrl = "https://api.openai.com/",
+        // Releves sur la documentation vivante. Aucun de ces trois identifiants
+        // n'est celui que j'aurais ecrit de memoire, et c'est la troisieme fois.
+        suggestedModels = listOf("gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"),
+        vision = VisionSupport.ALWAYS,
+    ),
+
+    DEEPSEEK(
+        displayName = "DeepSeek",
+        defaultBaseUrl = "https://api.deepseek.com/",
+        suggestedModels = listOf("deepseek-v4-flash", "deepseek-v4-pro"),
+        // Sa documentation ne promet pas la lecture d'images. « Selon le modele »
+        // dit exactement ce qu'on sait : le mode photo se signalera indisponible
+        // tant qu'un sondage n'aura pas prouve le contraire.
+        vision = VisionSupport.MODEL_DEPENDENT,
+    ),
+
+    MISTRAL(
+        displayName = "Mistral",
+        defaultBaseUrl = "https://api.mistral.ai/",
+        suggestedModels = listOf("mistral-small-2603", "mistral-medium-3505", "mistral-large-2512"),
+        vision = VisionSupport.MODEL_DEPENDENT,
+    ),
+
+    /**
+     * N'importe quel service qui parle comme OpenAI.
+     *
+     * **Ce n'est pas un bouche-trou, c'est l'assurance-vie du projet** : une URL de
+     * base et un nom de modele suffisent a brancher OpenRouter, Groq, un Ollama du
+     * reseau local, LM Studio, ou un fournisseur qui n'existe pas encore. C'est le
+     * seul dont l'URL par defaut est vide -- il n'y en a pas, et en proposer une
+     * ferait croire a un service par defaut qui n'existe pas.
+     */
+    COMPATIBLE(
+        displayName = "Compatible OpenAI",
+        defaultBaseUrl = "",
+        suggestedModels = emptyList(),
+        vision = VisionSupport.MODEL_DEPENDENT,
+    ),
 }
 
 /**
