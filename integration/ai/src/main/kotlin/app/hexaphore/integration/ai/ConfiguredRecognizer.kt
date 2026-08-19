@@ -37,6 +37,8 @@ internal class ConfiguredRecognizer(
     private val settings: AiSettings,
     private val anthropic: ProviderRecognizer,
     private val gemini: ProviderRecognizer,
+    private val openAi: ProviderRecognizer,
+    private val compatible: ProviderRecognizer,
 ) : FoodRecognizer,
     AiProbe {
     override suspend fun recognize(input: RecognitionInput): RecognitionOutcome {
@@ -63,9 +65,17 @@ internal class ConfiguredRecognizer(
             is RecognitionOutcome.Failed -> outcome.error.toProbe(configuration.provider)
         }
 
+    /**
+     * **Six entrées, quatre implémentations.** Les quatre derniers fournisseurs
+     * parlent le même protocole et ne diffèrent que par un réglage — le schéma que
+     * l'un accepte et que les autres refusent —, porté par deux instances de la même
+     * classe. C'est ici, et nulle part ailleurs, qu'on sait laquelle va à qui.
+     */
     private fun AiProvider.recognizer(): ProviderRecognizer = when (this) {
         AiProvider.ANTHROPIC -> anthropic
         AiProvider.GEMINI -> gemini
+        AiProvider.OPENAI -> openAi
+        AiProvider.DEEPSEEK, AiProvider.MISTRAL, AiProvider.COMPATIBLE -> compatible
     }
 }
 

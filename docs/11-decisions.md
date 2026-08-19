@@ -1897,6 +1897,50 @@ Un quatrième sabotage n'a pas compilé, et c'est aussi une réponse : le harnai
 
 **Ce que le vert ne prouve pas.** **Aucun appel réel n'a encore abouti**, et cet écran n'a jamais été vu sur un téléphone. Le repli IA groupé de [04](04-sources-de-donnees.md#résolution--du-texte-de-lia-à-un-aliment) § étape 4 n'existe pas : un libellé introuvable arrive avec son nom et sa quantité, sans valeurs, et attend qu'on le complète à la main. La modale photo non plus, ni le compteur de coût.
 
+## D81 — Quatre fournisseurs pour une classe, parce qu'ils parlent la même langue · ✓ validée
+
+**Contexte.** Les quatre derniers de [05](05-ia.md#fournisseurs) : OpenAI, DeepSeek, Mistral, et « compatible OpenAI ». La tranche promettait six fournisseurs derrière un port ; ils y sont.
+
+### Une classe pour quatre, et ce n'est pas une économie de lignes
+
+C'est un constat : les quatre envoient le **même** JSON à la **même** route et lisent la **même** réponse. `/v1/chat/completions` est le format de fait, et c'est précisément ce qui fait du dernier une **porte** plutôt qu'un fournisseur — une URL de base et un nom de modèle suffisent à y brancher OpenRouter, Groq, un Ollama du réseau local, LM Studio, ou un service qui n'existe pas encore. Quatre classes auraient fait quatre endroits à corriger pour un champ, et auraient surtout laissé croire à quatre protocoles là où il n'y en a qu'un.
+
+**La seule variation est le schéma**, et elle est un **paramètre de construction** plutôt qu'un `when` sur le fournisseur. La règle de [12](12-plan-de-developpement.md) est explicite : un `when` sur le fournisseur ailleurs que dans la fabrique est le signal que l'abstraction a fui. La fabrique construit donc **deux instances de la même classe** — l'une qui envoie un schéma complet, l'autre qui demande seulement « du JSON » — et reste le seul endroit du projet qui sache qui est qui.
+
+Ce que le second cas perd, le prompt le rattrape : il décrit déjà la forme attendue, avec un exemple, et c'est ce qui garde **un seul parseur pour les six fournisseurs** — ce que [D76](#d76--trois-prescriptions-de-docs05-tombent-au-contact-de-lapi-et-le-raisonnement-reste-actif---validée) cherchait en préférant la sortie structurée à un outil forcé.
+
+### Le `/v1` qui ne se double pas
+
+Premier fournisseur dont l'URL se saisit **vraiment** à la main : les relais s'annoncent tantôt `https://relais/v1`, tantôt `https://relais`. Coller un second `/v1` rendrait un `404` que personne ne rapporterait à cette ligne — et l'utilisateur soupçonnerait sa clé. Le chemin n'est ajouté que s'il manque.
+
+### `content` est une chaîne **ou** un tableau, et c'est le JSON qui le dit
+
+Troisième convention rencontrée pour une même idée : blocs typés par un discriminant chez Anthropic, champ présent chez Gemini, et ici un champ dont **le type JSON** change — une chaîne pour une description, un tableau de parties dès qu'une image s'y joint.
+
+Un `String?` et une `List?` côte à côte auraient laissé exprimer « les deux à la fois », qui n'existe pas, et « ni l'un ni l'autre », qui rend un `400`. D'où un type scellé et un sérialiseur de dix lignes. Et la chaîne, jamais le tableau, dès qu'il n'y a pas d'image : les deux formes sont légales chez OpenAI, mais un relais compatible n'accepte parfois que la première — et c'est justement celui-là qu'on ne peut pas éprouver.
+
+### Une réponse tronquée n'est pas une réponse illisible
+
+Nuance que les deux premiers fournisseurs n'avaient pas. `finish_reason: "length"` dit qu'il **manque la fin** du JSON : le parseur échouerait sur un texte parfaitement bien formé jusqu'à sa coupure, et l'écran annoncerait un défaut technique là où le modèle a simplement été coupé. `content_filter` dit qu'il a décliné. Les deux rejoignent le refus d'Anthropic.
+
+### Les identifiants de modèles, relevés et non écrits de mémoire — la troisième fois
+
+`gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.6-sol` ; `deepseek-v4-flash`, `deepseek-v4-pro` ; `mistral-small-2603`, `mistral-medium-3505`, `mistral-large-2512`. **Aucun** n'est celui que j'aurais écrit de mémoire, comme aucun des identifiants Gemini ne l'était en [D79](#d79--gemini-entre-au-prix-annoncé-et-deux-tests-attrapent-ce-que-la-relecture-avait-laissé-passer---validée). La liste n'est qu'un raccourci de frappe — le champ reste libre — mais un identifiant faux rend un `404` que l'utilisateur lira comme une panne de l'application.
+
+DeepSeek et Mistral entrent en `MODEL_DEPENDENT` : la documentation du premier ne promet pas la lecture d'images, celle du second la promet sur ses généralistes et pas sur le reste de sa gamme. « Selon le modèle » dit exactement ce qu'on sait.
+
+### Le test qui compte les entrées, pas celles qu'on a pensées
+
+Le `when` de la fabrique est exhaustif : une entrée ajoutée **sans** branche ne compile pas. Mais une entrée ajoutée **avec la mauvaise branche** compile très bien — DeepSeek routé vers l'implémentation stricte enverrait un schéma à qui le refuse, et le `400` accuserait la clé.
+
+Le cas de routage énumère donc les six entrées et **affirme d'abord que la table des attentes couvre `AiProvider.entries`**. Un septième fournisseur fera tomber ce cas tant que personne n'aura dit où il va.
+
+**Campagne de défaite : onze sabotages, onze cas tombés.** Le schéma envoyé à tout le monde, la clé privée de son `Bearer`, le `/v1` doublé, une description partie en tableau, la consigne passée derrière le message, l'image passée derrière la consigne, l'arrêt tronqué banalisé, le `402` sorti du quota, le détail d'erreur supprimé, et DeepSeek routé vers le schéma strict — celui-là même qui aurait fait accuser la clé.
+
+**Conséquences.** `:integration:ai` a désormais trois interfaces Retrofit pour six fournisseurs, et c'est le bon compte : trois protocoles existent. L'écran des réglages propose les quatre nouveaux sans qu'une ligne d'interface ait bougé — il lit l'énumération —, et « compatible » y arrive avec une URL de base **vide**, ce qui suffit à interdire le bouton *Tester* tant que l'utilisateur n'en a pas donné une : le formulaire exigeait déjà les trois champs.
+
+**Ce que le vert ne prouve pas.** Aucun appel réel n'a atteint aucun de ces quatre fournisseurs, et il n'existe de clé pour aucun. Le dernier est par nature **inéprouvable** : son service n'a pas d'adresse tant que quelqu'un n'en donne pas une. Ce qui est vérifié est ce qui part sur le réseau, devant un vrai serveur local, et la traduction de ce qui revient.
+
 ---
 
 ## Décisions prises par défaut, à confirmer
