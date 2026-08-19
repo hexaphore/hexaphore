@@ -1797,6 +1797,56 @@ Vingt-deux règles défaites, vingt-six cas, **tous tombent**. Trois résultats 
 
 **Ce que le vert ne prouve pas, et c'est beaucoup ici.** Le chiffrement lui-même n'est éprouvé par aucun test : le contrat tourne sur un chiffrement de pacotille, parce que le Keystore demande un appareil. `SecretCipher` est la couture qui rend ce partage explicite plutôt que subi — ce qui s'éprouve est le rangement, et le rangement ne dépend pas de l'algorithme. Que la clé soit illisible sur le disque et protégée par le matériel se vérifie sur le Fairphone, pas ici. **Aucun appel réel n'a encore atteint Anthropic** non plus : c'est précisément ce que cet écran rend possible pour la première fois.
 
+## D78 — Le fournisseur garde la parole, parce qu'un message inventé ne se vérifie pas · ✓ validée
+
+**Contexte.** Premier essai réel du bouton **Tester** sur le Fairphone, avec une clé Anthropic et tous les réglages par défaut : « Le service est indisponible. Réessayez plus tard. » L'application avait raison sur la forme — un code HTTP que la traduction ne connaît pas devient un message général — et ce message ne permettait de rien faire.
+
+**Le défaut n'est pas la traduction, c'est qu'elle est infalsifiable.** Un même écran affichait la même phrase pour un modèle qui n'existe pas, un compte sans crédit, un champ refusé et une panne réelle du service. Aucune de ces quatre situations n'appelle le même geste, et trois d'entre elles ne sont pas des pannes. Anthropic, lui, répond `400` avec une phrase qui **nomme** la cause — un solde de crédits insuffisant se dit en toutes lettres —, et le code jetait cette phrase pour lui substituer la sienne, qui ne nomme rien.
+
+Le cas est d'autant plus net que la confusion qu'il produit est réelle : **un abonnement Claude Pro n'est pas un crédit d'API.** Ce sont deux facturations distinctes, et l'une ne recharge pas l'autre. Aucun message général ne peut dire ça ; celui du fournisseur le dit.
+
+**Ce qui remonte, et ce qui reste en bas.** `AiError.Server` gagne un `detail`, borné à 400 caractères — assez pour la phrase du fournisseur, pas assez pour une page d'erreur entière —, et l'écran des clés l'affiche **sous** le message traduit, en petit. Le message traduit reste le premier : il dit ce qu'il faut faire quand on le sait. Le détail dit ce qui s'est passé quand on ne le sait pas.
+
+Les autres issues n'en reçoivent pas. Une clé refusée et un quota dépassé nomment déjà le geste ; leur ajouter la prose du fournisseur ne ferait qu'encombrer.
+
+**Ce que ça n'expose pas.** Le corps d'erreur est celui du fournisseur, jamais la requête : la clé n'y figure pas. L'intercepteur de redaction continue par ailleurs de masquer les trois en-têtes secrets dans les journaux, et n'est pas concerné par ce chemin.
+
+**Ce que le vert ne prouve pas.** Au moment où ceci s'écrit, **aucun appel réel n'a encore abouti**. L'écran dira désormais pourquoi, et c'est tout ce que cette livraison promet.
+
+---
+
+## D79 — Gemini entre au prix annoncé, et deux tests attrapent ce que la relecture avait laissé passer · ✓ validée
+
+**Contexte.** Le deuxième fournisseur, écrit pendant que le premier attendait un diagnostic. [D76](#d76--trois-prescriptions-de-docs05-tombent-au-contact-de-lapi-et-le-raisonnement-reste-actif---validée) et [12](12-plan-de-developpement.md) annonçaient un prix : une classe, une entrée d'énumération, une branche dans le `when` de la fabrique. C'est la première fois que ce prix pouvait être vérifié plutôt qu'affirmé.
+
+**Le prix tient.** Aucun écran n'a bougé, aucun cas d'usage n'a changé, aucun test existant n'a été réécrit pour l'accueillir, et le domaine ignore toujours qu'il existe plus d'un fournisseur. L'écran des clés propose Gemini sans qu'une ligne d'interface ait été touchée : il lit l'énumération.
+
+Ce qui diffère d'Anthropic est entièrement dans l'adaptateur — le modèle voyage dans l'URL et non dans le corps, la clé dans `x-goog-api-key`, la consigne système dans un champ à part, et les blocs de contenu se distinguent par le champ présent au lieu d'un discriminant. Ce qui est partagé est tout le reste : le prompt, le schéma de réponse, le parseur, la traduction des codes HTTP, la réduction des pannes réseau et la pile HTTP entière. C'est exactement le partage que [D76](#d76--trois-prescriptions-de-docs05-tombent-au-contact-de-lapi-et-le-raisonnement-reste-actif---validée) cherchait en préférant la sortie structurée à un outil forcé.
+
+### Le schéma devient partagé, et le paramètre qui les sépare crée son propre risque
+
+Anthropic **exige** `additionalProperties: false` ; le sous-ensemble de schéma de Gemini ne connaît pas ce mot-clé et refuse la requête s'il le trouve. C'est la seule différence entre les deux schémas, d'où `recognitionSchema(strict)` plutôt que deux littéraux JSON à maintenir côte à côte.
+
+Mais un booléen qui dit la seule différence est aussi un mot qu'on peut inverser sans rien casser à la compilation. **Les deux côtés reçoivent donc un cas** : Gemini affirme l'absence, Anthropic la présence. Le second n'existait pas avant — la clôture y était une constante, donc rien ne pouvait la retirer par mégarde. Rendre une chose réglable, c'est la rendre déréglable.
+
+### `encodeDefaults` écrit aussi les `null`, et c'est un test qui l'a su avant moi
+
+Le vrai défaut de cette livraison. Une `GeminiPart` porte du texte **ou** une image, jamais les deux, et le format se lit à quel champ est présent. Avec `encodeDefaults = true` seul, chaque part partait avec l'autre champ à `null` : une image accompagnée de `"text":null`, une description accompagnée de `"inlineData":null`. Le KDoc affirmait le contraire, en toutes lettres, et la relecture ne l'a pas vu.
+
+`explicitNulls = false` répare la sérialisation ; c'est le cas « une description ne joint aucune donnée binaire » qui a fait tomber la faute, sur un corps de requête qu'aucun œil n'avait déplié. Ce que ça aurait coûté sans lui : au mieux du bruit dans chaque requête payante, au pire un refus dont rien n'aurait expliqué la cause — et l'on aurait cherché du côté du modèle. Ajouté aux pièges de [10](10-qualite-et-livraison.md#sérialiser-du-json).
+
+### Deux assertions ne testaient rien, et l'une des deux avait l'air juste
+
+`body.indexOf(PROMPT) < body.indexOf("une pomme")` prétendait vérifier que la consigne système part dans son champ. Elle vérifiait en réalité l'ordre des champs dans le JSON produit — qui est celui de la déclaration Kotlin, et n'est une propriété ni de l'API ni de la règle. L'assertion aurait tenu bon en cas de vraie régression, et serait tombée le jour où quelqu'un réordonne une `data class`. Elle énonce désormais ce qu'elle voulait dire : la consigne est **dans** `systemInstruction` et **pas dans** `contents`.
+
+L'ordre d'un **tableau**, lui, veut dire quelque chose — le modèle lit les `parts` dans l'ordre où elles arrivent, et l'image doit précéder la consigne pour la même raison que chez Anthropic. Le cas de la photo l'affirme maintenant sur le tableau lui-même, et non sur des positions de sous-chaînes.
+
+**Campagne de défaite : treize sabotages, treize cas tombés**, chacun celui qu'on visait. Le modèle retiré de l'URL, la clé déplacée d'en-tête, la clôture du schéma inversée des deux côtés, la consigne sortie de son champ puis ajoutée aux messages, l'arrêt non-`STOP` ignoré, le `403` banalisé, les deux détails d'erreur supprimés, la fabrique routée vers le mauvais fournisseur, l'image passée derrière la consigne, et `explicitNulls` retiré. Aucun cas n'a survécu à la destruction de sa règle.
+
+**Conséquences.** `reducedTo` — la panne réseau réduite à une issue, écrite plutôt que tue — devient commune aux deux fournisseurs : la question « que faire d'un réseau absent » n'a pas deux réponses. `RecognitionSchema.kt` naît pour la même raison.
+
+**Ce que le vert ne prouve pas.** **Aucun appel réel n'a atteint Gemini.** La clé fournie pour les essais n'a pas la forme d'une clé AI Studio — `AIza`, 39 caractères — mais celle d'un jeton OAuth, et le premier appel réel dira si le compte l'accepte. Les identifiants de modèles viennent de la documentation en ligne et non de mémoire, `gemini-3.5-flash-lite` par défaut ; c'est aussi ce premier appel qui dira s'ils sont accessibles à ce compte.
+
 ---
 
 ## Décisions prises par défaut, à confirmer

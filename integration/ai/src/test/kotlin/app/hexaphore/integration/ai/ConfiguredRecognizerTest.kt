@@ -27,7 +27,7 @@ class ConfiguredRecognizerTest {
     @Test
     fun `sans configuration, aucun fournisseur n est appele`() = runTest {
         var seen: AiConfiguration? = null
-        val recognizer = ConfiguredRecognizer(settings = { null }, anthropic = record { seen = it })
+        val recognizer = ConfiguredRecognizer(settings = { null }, anthropic = record { seen = it }, gemini = unused())
 
         val outcome = recognizer.recognize(RecognitionInput.Text("un jus"))
 
@@ -38,7 +38,8 @@ class ConfiguredRecognizerTest {
     @Test
     fun `la configuration courante accompagne l appel`() = runTest {
         var seen: AiConfiguration? = null
-        val recognizer = ConfiguredRecognizer(settings = { CONFIGURATION }, anthropic = record { seen = it })
+        val recognizer =
+            ConfiguredRecognizer(settings = { CONFIGURATION }, anthropic = record { seen = it }, gemini = unused())
 
         recognizer.recognize(RecognitionInput.Text("un jus"))
 
@@ -50,7 +51,7 @@ class ConfiguredRecognizerTest {
         // C'est tout l'interet du bouton : on eprouve ce qui est dans le formulaire,
         // avant d'ecrire. Lire les reglages ici obligerait a enregistrer une cle
         // fausse pour decouvrir qu'elle est fausse.
-        val recognizer = ConfiguredRecognizer(settings = { null }, anthropic = record { })
+        val recognizer = ConfiguredRecognizer(settings = { null }, anthropic = record { }, gemini = unused())
 
         assertEquals(ProbeOutcome.Reachable(vision = true), recognizer.probe(CONFIGURATION))
     }
@@ -59,20 +60,20 @@ class ConfiguredRecognizerTest {
     fun `une reponse illisible reste une configuration valide`() = runTest {
         // Le fournisseur a repondu : la cle est bonne et le modele existe. Echouer ici
         // enverrait quelqu'un corriger une cle qui n'a rien.
-        val recognizer = ConfiguredRecognizer(
-            settings = { null },
-            anthropic = { _, _ -> RecognitionOutcome.Failed(AiError.Unparseable) },
-        )
+        val recognizer =
+            ConfiguredRecognizer(settings = {
+                null
+            }, anthropic = { _, _ -> RecognitionOutcome.Failed(AiError.Unparseable) }, gemini = unused())
 
         assertEquals(ProbeOutcome.Reachable(vision = true), recognizer.probe(CONFIGURATION))
     }
 
     @Test
     fun `une cle refusee fait echouer le sondage`() = runTest {
-        val recognizer = ConfiguredRecognizer(
-            settings = { null },
-            anthropic = { _, _ -> RecognitionOutcome.Failed(AiError.InvalidKey) },
-        )
+        val recognizer =
+            ConfiguredRecognizer(settings = {
+                null
+            }, anthropic = { _, _ -> RecognitionOutcome.Failed(AiError.InvalidKey) }, gemini = unused())
 
         assertEquals(ProbeOutcome.Failed(AiError.InvalidKey), recognizer.probe(CONFIGURATION))
     }
@@ -88,12 +89,44 @@ class ConfiguredRecognizerTest {
                 input = received
                 RecognitionOutcome.Recognized(Recognition(items = emptyList()))
             },
+            gemini = unused(),
         )
 
         recognizer.probe(CONFIGURATION)
 
         assertTrue(input is RecognitionInput.Text, "le sondage doit passer par le contrat de reconnaissance")
     }
+
+    @Test
+    fun `chaque fournisseur recoit ses propres appels`() = runTest {
+        // La regle que le `when` de la fabrique porte, et la seule qu'un second
+        // fournisseur rend enoncable : router vers le mauvais donnerait une cle
+        // refusee sur une cle parfaitement valide.
+        var atteint: AiProvider? = null
+        val recognizer = ConfiguredRecognizer(
+            settings = { null },
+            anthropic = mark(AiProvider.ANTHROPIC) { atteint = it },
+            gemini = mark(AiProvider.GEMINI) { atteint = it },
+        )
+
+        recognizer.probe(CONFIGURATION.copy(provider = AiProvider.GEMINI))
+
+        assertEquals(AiProvider.GEMINI, atteint)
+    }
+
+    private fun mark(provider: AiProvider, onCall: (AiProvider) -> Unit) = ProviderRecognizer { _, _ ->
+        onCall(provider)
+        RecognitionOutcome.Recognized(Recognition(items = emptyList()))
+    }
+
+    /**
+     * Un fournisseur que ces cas ne doivent jamais atteindre.
+     *
+     * Il echoue bruyamment plutot que de rendre une reponse plausible : la fabrique
+     * qui se tromperait de branche donnerait sinon un test vert sur le mauvais
+     * fournisseur.
+     */
+    private fun unused() = ProviderRecognizer { _, _ -> error("la fabrique s est trompee de fournisseur") }
 
     private fun record(onCall: (AiConfiguration) -> Unit) = ProviderRecognizer { _, configuration ->
         onCall(configuration)

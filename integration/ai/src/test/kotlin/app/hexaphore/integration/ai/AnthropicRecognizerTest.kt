@@ -93,6 +93,18 @@ class AnthropicRecognizerTest {
     }
 
     @Test
+    fun `le schema part avec additionalProperties`() = runTest {
+        // Le pendant exact du cas de Gemini, et la raison d'etre du parametre `strict` :
+        // depuis que les deux fournisseurs partagent le meme schema, l'inverser ne coute
+        // qu'un mot. Anthropic **exige** la cloture ; Gemini la refuse.
+        server.enqueue(ok(ONE_ITEM))
+
+        recognize(RecognitionInput.Text("une pomme"))
+
+        assertTrue(server.takeRequest().body.readUtf8().contains("additionalProperties"))
+    }
+
+    @Test
     fun `une base sans barre oblique finale atteint quand meme le point d entree`() = runTest {
         server.enqueue(ok(ONE_ITEM))
 

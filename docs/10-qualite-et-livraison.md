@@ -185,6 +185,14 @@ Le fichier `~/.gradle/caches/build-cache-1/<clé>` se supprime seul, sans vider 
 
 **Room refuse à la compilation une requête dont un paramètre nommé ne sert pas.** C'est une bonne nouvelle mal placée : elle arrive sous la forme d'un échec de KSP au milieu d'autre chose. La rencontre typique est de **défaire** une règle pour vérifier qu'un test tombe — retirer le filtre d'une clause `WHERE` laisse son `:parametre` orphelin, et la défaite n'atteint jamais l'exécution ([D71](11-decisions.md#d71--le-compte-des-citations-quitte-le-catalogue-parce-quun-faux-ne-peut-pas-linventer---validée)). La couverture ne vient pas toujours d'un test.
 
+### Sérialiser du JSON
+
+**`encodeDefaults = true` écrit aussi les `null`.** Les deux réglages se lisent comme un seul et n'en font pas le même travail : `encodeDefaults` fait partir les valeurs par défaut, `explicitNulls = false` fait taire les absences. Sans le second, un champ nullable à `null` part quand même — `"inlineData":null` sur chaque part de texte envoyée à Gemini, `"text":null` sur chaque image ([D79](11-decisions.md#d79--gemini-entre-au-prix-annoncé-et-deux-tests-attrapent-ce-que-la-relecture-avait-laissé-passer---validée)).
+
+Ce qui rend le piège coûteux : le code compile, les DTO se relisent sans rien remarquer, et le fournisseur répond — jusqu'à celui qui refuse. La faute se voit en dépliant un corps de requête, ce qu'on ne fait pas spontanément. **Un cas qui affirme l'absence d'un champ** est le seul moyen de la voir sans appareil ni compte.
+
+**L'ordre des champs d'un objet JSON ne veut rien dire.** Il vaut celui de la déclaration Kotlin, et une assertion qui compare des positions de sous-chaînes dans le corps sérialisé fige la `data class` au lieu de la règle : elle survit aux vraies régressions et tombe le jour où quelqu'un réordonne deux propriétés. L'ordre d'un **tableau**, lui, est porteur — un modèle lit ses blocs de contenu dans l'ordre où ils arrivent. Affirmer l'un se fait en dépliant le JSON ; affirmer l'autre ne se fait pas.
+
 ### Vérifier sur un appareil
 
 Il n'y a pas d'émulateur dans l'environnement de développement assisté : `./gradlew check` ne prouve que la compilation, les tests et leurs hypothèses. **Ce qui s'affiche n'est jamais prouvé par un vert**, et un compte rendu de travail dit ce que le vert ne prouve pas.

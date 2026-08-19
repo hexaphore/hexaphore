@@ -39,6 +39,15 @@ enum class AiProvider(
         suggestedModels = listOf("claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5"),
         vision = VisionSupport.ALWAYS,
     ),
+
+    GEMINI(
+        displayName = "Google Gemini",
+        defaultBaseUrl = "https://generativelanguage.googleapis.com/",
+        // Releves sur la documentation vivante, pas ecrits de memoire : les
+        // identifiants que j'aurais devines n'existaient pas.
+        suggestedModels = listOf("gemini-3.5-flash-lite", "gemini-3.7-flash", "gemini-2.5-flash"),
+        vision = VisionSupport.ALWAYS,
+    ),
 }
 
 /**

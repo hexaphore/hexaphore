@@ -7,7 +7,6 @@ import app.hexaphore.domain.ai.RecognitionOutcome
 import app.hexaphore.domain.ai.TokenUsage
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import retrofit2.Response
 import java.io.IOException
@@ -73,19 +72,6 @@ internal class AnthropicRecognizer(
             }
         }
 }
-
-/**
- * Une panne réseau réduite à l'issue qui la décrit — **écrite, et non faite en silence
- * dans un `catch` vide**.
- *
- * La pile de l'exception est perdue, et c'est délibéré : elle ne dit rien que l'issue
- * ne dise, et [docs/05][ia] veut que le détail technique s'arrête ici. Ce que la
- * fonction achète est que la perte soit un geste nommé plutôt qu'un oubli — la forme
- * qu'a déjà prise `ProductLookup.Unreachable` pour Open Food Facts.
- *
- * [ia]: docs/05-ia.md
- */
-private fun IOException.reducedTo(error: AiError): RecognitionOutcome = RecognitionOutcome.Failed(error)
 
 /**
  * L'adresse complète, quelle que soit la façon dont l'utilisateur a saisi la sienne.
@@ -201,41 +187,5 @@ private const val DETAIL_LIMIT = 400
 
 private const val PHOTO_REQUEST = "Analyse ce repas."
 
-/**
- * Le schéma que la réponse **ne peut pas** enfreindre.
- *
- * Il ne borne pas `confidence` entre 0 et 1, et ce n'est pas un oubli : les
- * contraintes numériques ne font pas partie du sous-ensemble de JSON Schema que la
- * sortie structurée accepte. C'est le parseur qui ramène la valeur dans l'intervalle
- * ([D72][decisions]) — la garde existait avant le schéma et lui survit.
- *
- * [decisions]: docs/11-decisions.md
- */
-private val RECOGNITION_SCHEMA: JsonObject = Json.parseToJsonElement(
-    """
-    {
-      "type": "object",
-      "properties": {
-        "items": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "label": { "type": "string" },
-              "quantity": { "type": "number" },
-              "unit": {
-                "type": "string",
-                "enum": ["G", "ML", "PIECE", "SLICE", "TBSP", "TSP", "BOWL", "PLATE", "GLASS"]
-              },
-              "confidence": { "type": "number" }
-            },
-            "required": ["label", "quantity", "unit", "confidence"],
-            "additionalProperties": false
-          }
-        }
-      },
-      "required": ["items"],
-      "additionalProperties": false
-    }
-    """.trimIndent(),
-) as JsonObject
+/** Anthropic exige `additionalProperties: false` dans sa sortie structurée. */
+private val RECOGNITION_SCHEMA: JsonObject = recognitionSchema(strict = true)
