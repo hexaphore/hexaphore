@@ -2049,11 +2049,30 @@ Les autres sont tombés du premier coup : le repli lancé sur des lignes déjà 
 
 **Contexte.** Premier vrai usage de l'application avec une clé qui marche. Gemini répond, la modale texte produit un plat de plusieurs aliments — et il est **impossible de l'enregistrer**. Deux défauts, et une liste de reproches d'ergonomie qui tiennent tous à la même cause : l'écran de validation n'avait jamais eu à porter cinq lignes.
 
+### La fiche que le formulaire perdait
+
+**Le vrai défaut, et il a fallu deux diagnostics pour l'atteindre.** `EntryFormLine` —
+la ligne telle que l'écran la manipule — ne portait **pas** la fiche. Elle en gardait
+l'identifiant, pas l'objet. Or c'est la fiche que l'enregistrement verse au catalogue :
+un brouillon qui la portait entrait dans le formulaire, en ressortait sans, et
+l'écriture citait donc un aliment que personne n'avait versé.
+
+Invisible sur les trois autres chemins, parce qu'ils versent **avant** : la recherche
+au moment du choix, le scan à la lecture du code-barres. L'IA choisit pour
+l'utilisateur et n'écrit rien — résoudre est une lecture, et c'est une bonne règle.
+
+**Ce que ça dit du reste.** Chaque morceau était éprouvé de son côté : la résolution
+rendait bien des lignes avec leur fiche, l'enregistrement versait bien les fiches qu'on
+lui donnait. Le défaut vivait dans la **couture**, et aucun test ne traversait la
+couture. `ProposedDishSavingTest` la traverse maintenant, volontairement à travers
+`EntryForm` qui n'est pas du domaine : c'est là que la chose se perdait, et un test qui
+l'aurait contourné serait resté vert.
+
 ### Un identifiant provisoire dans une entrée de journal
 
-**Le défaut.** Un résultat de recherche de l'ANSES porte un identifiant **provisoire** — il change à chaque recherche, et c'est `place` qui rend la fiche désignable en la versant au catalogue. Or `place` rend la fiche **déjà rangée** quand elle existe, avec l'identifiant qu'elle avait, et `remember` jetait cette information. L'entrée de journal citait donc l'identifiant provisoire, la clé étrangère `food_entry.food_id → food.id` refusait, et l'écran annonçait « l'écriture n'a pas abouti » sans pouvoir dire pourquoi.
+**Une seconde ceinture, et il faut le dire : ce n'était pas le défaut.** Un résultat de recherche de l'ANSES porte un identifiant **provisoire** — il change à chaque recherche, et c'est `place` qui rend la fiche désignable en la versant au catalogue. Or `place` rend la fiche **déjà rangée** quand elle existe, avec l'identifiant qu'elle avait, et `remember` jetait cette information. L'entrée de journal citait donc l'identifiant provisoire, la clé étrangère `food_entry.food_id → food.id` refusait, et l'écran annonçait « l'écriture n'a pas abouti » sans pouvoir dire pourquoi.
 
-Il ne se voyait pas avant parce que la recherche **place au moment du choix** et propage l'identifiant rendu : le chemin manuel réconciliait sans le savoir. L'IA, elle, choisit pour l'utilisateur et n'écrit rien — résoudre est une lecture.
+La correction reste — elle ne coûte rien et ferme un chemin par lequel une entrée pourrait citer une fiche absente — mais **le cas ne se produit pas** avec les implémentations actuelles : la recherche ne distribue un identifiant provisoire qu'à une fiche qui n'est pas encore rangée. Un test qui prétendait l'éprouver a d'ailleurs été réécrit pour cette raison : sa mise en scène ne pouvait pas produire la situation qu'il annonçait.
 
 **La correction.** `FoodUsage.remember` rend la correspondance « identifiant porté → identifiant rangé », et `toEntries` l'applique. C'est le geste d'écriture qui la découvre : le lui faire rendre est la seule façon de la connaître, et ça corrige **toutes** les origines d'un coup plutôt que d'ajouter un `place` sur le chemin de l'IA.
 

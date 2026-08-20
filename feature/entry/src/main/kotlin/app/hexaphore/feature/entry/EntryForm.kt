@@ -89,6 +89,18 @@ internal data class EntryFormLine(
     val id: DraftLineId,
     val entryId: EntryId? = null,
     val foodId: FoodId? = null,
+    /**
+     * La fiche d'où vient cette ligne, quand elle n'est **pas encore au catalogue**.
+     *
+     * Elle traverse le formulaire sans y être saisissable, et c'est ce qui manquait :
+     * un brouillon la portait, l'écran la perdait, et l'enregistrement citait donc une
+     * fiche que personne n'avait versée — la base refusait l'écriture.
+     *
+     * Le défaut ne se voyait que sur le chemin de l'IA. La recherche verse la fiche au
+     * moment du choix et le scan au moment de la lecture ; l'IA, elle, choisit pour
+     * l'utilisateur et n'écrit rien, parce que résoudre est une lecture.
+     */
+    val food: Food? = null,
     val name: String = "",
     val quantity: String = "",
     val unit: QuantityUnit = QuantityUnit.Gram,
@@ -127,6 +139,7 @@ internal data class EntryFormLine(
         id = id,
         entryId = entryId,
         foodId = foodId,
+        food = food,
         name = name,
         quantity = number(quantity),
         unit = unit,
@@ -192,6 +205,7 @@ internal data class EntryFormLine(
             id = line.id,
             entryId = line.entryId,
             foodId = line.foodId,
+            food = line.food,
             name = line.name,
             quantity = line.quantity.asField(),
             unit = line.unit,
