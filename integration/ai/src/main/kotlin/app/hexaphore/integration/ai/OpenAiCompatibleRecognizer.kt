@@ -95,7 +95,7 @@ private fun Response<OpenAiResponse>.toChatEstimation(): EstimationOutcome {
     return when {
         !isSuccessful -> EstimationOutcome.Failed(chatError())
         choice == null -> EstimationOutcome.Failed(AiError.Unparseable)
-        else -> parseEstimation(choice.message?.content.orEmpty())
+        else -> parseEstimation(choice.message?.content.orEmpty(), body()?.usage?.toChatUsage())
     }
 }
 

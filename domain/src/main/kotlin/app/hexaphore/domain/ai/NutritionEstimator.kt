@@ -44,11 +44,14 @@ sealed interface EstimationOutcome {
     /**
      * Ce que le modèle a su estimer.
      *
+     * [usage] accompagne la réponse pour la même raison que celle de la
+     * reconnaissance : cet appel se paie, et le compteur doit pouvoir le dire.
+     *
      * **Pas forcément tous les libellés demandés**, et l'appelant ne doit pas le
      * supposer : un modèle qui ne sait pas quoi répondre pour « sauce maison » a raison
      * de se taire, et la ligne reste alors à compléter à la main.
      */
-    data class Estimated(val foods: List<EstimatedFood>) : EstimationOutcome
+    data class Estimated(val foods: List<EstimatedFood>, val usage: TokenUsage? = null) : EstimationOutcome
 
     data class Failed(val error: AiError) : EstimationOutcome
 }

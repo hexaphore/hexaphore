@@ -5,9 +5,11 @@ import android.content.SharedPreferences
 import app.hexaphore.data.settings.KeystoreCipher
 import app.hexaphore.data.settings.SecretCipher
 import app.hexaphore.data.settings.StoredAiCredentials
+import app.hexaphore.data.settings.StoredAiUsage
 import app.hexaphore.data.settings.StoredPhotoConsent
 import app.hexaphore.domain.ai.AiCredentials
 import app.hexaphore.domain.ai.AiSettings
+import app.hexaphore.domain.ai.AiUsageLog
 import app.hexaphore.domain.ai.PhotoConsent
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import dagger.Module
@@ -19,7 +21,7 @@ import javax.inject.Named
 import javax.inject.Singleton
 
 /**
- * Ce que ce module lie : trois ports du domaine, et rien qui sorte d'ici.
+ * Ce que ce module lie : quatre ports du domaine, et rien qui sorte d'ici.
  *
  * Le chiffrement et le fichier de préférences restent **internes** : exposer l'un ou
  * l'autre ferait de ce module le rangement à secrets de tout le projet, et le premier
@@ -66,6 +68,17 @@ internal object AiSettingsModule {
         @Named(AI_PREFERENCES) preferences: SharedPreferences,
         dispatchers: DispatcherProvider,
     ): PhotoConsent = StoredPhotoConsent(preferences, dispatchers)
+
+    /**
+     * Le compteur d'usage, dans le même fichier lui aussi.
+     *
+     * Effacer ses réglages d'IA remet le compteur à zéro, et c'est cohérent : il ne
+     * compte que ce que ces clés-là ont dépensé.
+     */
+    @Provides
+    @Singleton
+    fun usage(@Named(AI_PREFERENCES) preferences: SharedPreferences, dispatchers: DispatcherProvider): AiUsageLog =
+        StoredAiUsage(preferences, dispatchers)
 }
 
 /**

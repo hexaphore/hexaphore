@@ -89,7 +89,7 @@ private fun Response<GeminiResponse>.toGeminiEstimation(): EstimationOutcome {
     return when {
         !isSuccessful -> EstimationOutcome.Failed(geminiError())
         candidate == null -> EstimationOutcome.Failed(AiError.Unparseable)
-        else -> parseEstimation(candidate.text())
+        else -> parseEstimation(candidate.text(), body()?.usageMetadata?.toDomain())
     }
 }
 

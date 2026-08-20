@@ -72,7 +72,7 @@ private val Tolerant = Json {
  * estimation qu'on ne peut plus rattacher : elle est écartée plus haut, faute de
  * correspondance, plutôt que devinée.
  */
-internal fun parseEstimation(raw: String): EstimationOutcome {
+internal fun parseEstimation(raw: String, usage: TokenUsage? = null): EstimationOutcome {
     val foods = balancedBlocks(raw)
         .mapNotNull { block -> runCatching { Tolerant.parseToJsonElement(block) }.getOrNull() }
         .mapNotNull { it.firstArray() }
@@ -80,7 +80,7 @@ internal fun parseEstimation(raw: String): EstimationOutcome {
         ?.mapNotNull { it.toEstimateOrNull() }
         ?: return EstimationOutcome.Failed(AiError.Unparseable)
 
-    return EstimationOutcome.Estimated(foods)
+    return EstimationOutcome.Estimated(foods, usage)
 }
 
 /**
