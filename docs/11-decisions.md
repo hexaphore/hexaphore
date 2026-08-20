@@ -2094,6 +2094,25 @@ Cinq reproches, une cause : l'écran avait été conçu pour une ligne et jugé 
 - **Rien ne séparait deux aliments.** Une carte par ligne : le défaut n'était pas d'être laid mais d'être **continu**, et rien ne disait où finissait le riz et où commençait le poulet.
 - **« Un champ est vide » devant vingt-quatre champs.** L'écran **désigne** désormais : il marque la ligne, y fait défiler, colore le champ, et nomme ce qui manque — « Il manque les calories — Riz blanc, cuit ». La marque reste jusqu'au prochain appui : l'effacer à la première frappe la ferait disparaître au moment précis où l'on s'en sert.
 
+### Choisir une alternative changeait le brouillon sans changer l'écran
+
+Troisième défaut trouvé à l'usage, et le même mécanisme que les deux premiers : la
+donnée était juste, l'écran ne la montrait pas. Toucher une pastille d'alternative
+remplaçait bien la ligne — les pastilles disparaissaient, preuve que le modèle avait
+changé — mais le nom et la quantité restaient ceux d'avant.
+
+**Un champ de saisie ne relit son texte initial qu'à la première composition**
+([D45](#d45--un-champ-de-saisie-tient-son-texte-et-la-cle-de-composition-le-fait-revivre---validée)),
+et les seuls champs qui portaient une clé de composition étaient ceux des valeurs. Ils
+la portaient pour une autre raison : faire revivre les six macros quand la quantité les
+recalcule — et surtout **pas** le champ de quantité lui-même, qu'on est en train de
+taper.
+
+D'où **deux compteurs et non un** : `revision` dit que les valeurs ont été recalculées,
+`substitutions` dit que ce n'est plus le même aliment. Le premier fait revivre les
+valeurs, le second toute la ligne. Les confondre casserait l'un des deux : une clé
+unique poserait le curseur ailleurs à chaque frappe de quantité.
+
 ### Un numéro plutôt qu'une phrase
 
 Le nom proposé à la mise en favori était la liste des aliments du plat. Les libellés de l'ANSES sont à rallonge, et trois d'entre eux font un titre de cinquante caractères **qu'on efface au lieu de le corriger**. C'est « Plat 3 » désormais — le premier numéro libre, calculé par le domaine ; le mot « Plat » reste une ressource, parce que le domaine n'écrit pas d'interface.

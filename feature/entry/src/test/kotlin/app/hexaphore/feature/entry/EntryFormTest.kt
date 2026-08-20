@@ -149,6 +149,31 @@ class EntryFormTest {
     }
 
     @Test
+    fun `choisir une alternative fait revivre toute la ligne`() {
+        // Le defaut rapporte a l'usage : les pastilles disparaissaient, et le nom
+        // restait celui d'avant. Un champ de saisie ne relit son texte initial qu'a la
+        // premiere composition (D45) ; c'est ce compteur qui lui dit qu'il en commence
+        // une nouvelle -- et il doit porter **toute** la ligne, pas ses seules valeurs.
+        val line = ligne(quantity = "180")
+
+        val chosen = line.apply(LineEdit.Substitute(RIZ_COMPLET))
+
+        assertEquals(line.substitutions + 1, chosen.substitutions)
+    }
+
+    @Test
+    fun `taper une quantite ne fait pas revivre le nom`() {
+        // La contrepartie, et c'est pour elle que les deux compteurs existent : un
+        // recalcul reconstruit les valeurs, jamais le champ qu'on est en train de
+        // remplir.
+        val line = ligne(quantity = "180")
+
+        val remesuree = line.apply(LineEdit.Quantity("200"))
+
+        assertEquals(line.substitutions, remesuree.substitutions)
+    }
+
+    @Test
     fun `choisir une alternative fait revivre les champs`() {
         // Sans ce compteur, le brouillon changerait sans que l'ecran bouge : un champ
         // de saisie ne relit son texte initial qu'a la premiere composition (D45).

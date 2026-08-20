@@ -62,10 +62,16 @@ internal fun LineEditor(
             modifier = Modifier.fillMaxWidth().padding(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            NameRow(line, actions, flagged == MissingField.NAME)
-            SuggestionRow(line, actions)
-            QuantityRow(line, actions, flagged == MissingField.QUANTITY)
-            MacroGrid(line, actions, flagged == MissingField.CALORIES)
+            // Toute la ligne revit quand elle change d'aliment -- le nom et la
+            // quantite comme les valeurs. La cle des macros, elle, reste interieure :
+            // elle repond a un recalcul, qui ne doit pas deplacer le curseur du champ
+            // de quantite qu'on est en train de remplir.
+            key(line.substitutions) {
+                NameRow(line, actions, flagged == MissingField.NAME)
+                SuggestionRow(line, actions)
+                QuantityRow(line, actions, flagged == MissingField.QUANTITY)
+                MacroGrid(line, actions, flagged == MissingField.CALORIES)
+            }
         }
     }
 }

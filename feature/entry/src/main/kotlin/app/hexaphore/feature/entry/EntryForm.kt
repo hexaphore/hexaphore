@@ -123,6 +123,23 @@ internal data class EntryFormLine(
      */
     val revision: Int = 0,
     /**
+     * Combien de fois cette ligne a **changé d'aliment**.
+     *
+     * Un second compteur, et non un usage de plus de [revision], parce qu'ils ne
+     * reconstruisent pas la même chose. [revision] fait revivre les six champs de
+     * valeurs quand la quantité les recalcule — surtout pas le champ de quantité
+     * lui-même, qu'on est en train de taper. Celui-ci fait revivre **toute** la ligne,
+     * nom et quantité compris, parce que ce n'est plus le même aliment.
+     *
+     * Sans lui, choisir une alternative changeait le brouillon sans que l'écran bouge :
+     * les pastilles disparaissaient, et le nom restait celui d'avant. Un champ de
+     * saisie ne relit son texte initial qu'à la première composition ([D45][decisions]),
+     * et rien ne lui disait qu'il en commençait une nouvelle.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val substitutions: Int = 0,
+    /**
      * Ce qu'un modèle a proposé pour cette ligne, quand c'est un modèle qui l'a
      * proposée.
      *
@@ -195,7 +212,12 @@ internal data class EntryFormLine(
      */
     fun substituted(food: Food): EntryFormLine {
         val replaced = DraftLine.of(id, food).measured(number(quantity), unit)
-        return of(replaced).copy(entryId = entryId, revision = revision + 1, suggestion = null)
+        return of(replaced).copy(
+            entryId = entryId,
+            revision = revision + 1,
+            substitutions = substitutions + 1,
+            suggestion = null,
+        )
     }
 
     private fun macroValue(macro: Macro): Double? = number(macros[macro].orEmpty())
