@@ -110,8 +110,6 @@ internal data class EntryFormLine(
      * [decisions]: docs/11-decisions.md
      */
     val revision: Int = 0,
-    /** Les cinq macros hors calories sont repliées par défaut : elles sont facultatives. */
-    val expanded: Boolean = false,
     /**
      * Ce qu'un modèle a proposé pour cette ligne, quand c'est un modèle qui l'a
      * proposée.
@@ -202,9 +200,6 @@ internal data class EntryFormLine(
             reference = line.reference,
             edited = line.edited,
             suggestion = line.suggestion,
-            // Une ligne relue montre ses valeurs : les replier obligerait a deplier
-            // chaque ligne pour verifier qu'on modifie la bonne.
-            expanded = !line.values.empty,
         )
     }
 }
@@ -248,3 +243,29 @@ private fun Double?.asField(): String = when {
  * `null` reste vide : inconnu n'est pas zéro, et un arrondi ne crée pas de valeur.
  */
 private fun Double?.asWholeField(): String = this?.roundToInt()?.toString().orEmpty()
+
+/**
+ * Ce qui manque à une ligne pour être enregistrable.
+ *
+ * Trois champs seulement : un nom, une quantité, une énergie. Les cinq autres valeurs
+ * restent facultatives — un produit mal renseigné doit pouvoir entrer dans le journal
+ * avec ses trous visibles.
+ *
+ * L'ordre du `when` est celui de l'écran, de haut en bas : ce qu'on désigne est le
+ * **premier** manque, parce qu'un formulaire qui signale trois champs à la fois ne
+ * dit plus par où commencer.
+ */
+internal enum class MissingField {
+    NAME,
+    QUANTITY,
+    CALORIES,
+}
+
+/** Le premier champ manquant de cette ligne, ou `null` si elle est enregistrable. */
+internal val EntryFormLine.missing: MissingField?
+    get() = when {
+        name.isBlank() -> MissingField.NAME
+        (number(quantity) ?: 0.0) <= 0.0 -> MissingField.QUANTITY
+        number(macros[Macro.CALORIES].orEmpty()) == null -> MissingField.CALORIES
+        else -> null
+    }

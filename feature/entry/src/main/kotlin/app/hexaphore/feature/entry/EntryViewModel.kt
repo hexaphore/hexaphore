@@ -14,9 +14,7 @@ import app.hexaphore.domain.usecase.DraftOrigin
 import app.hexaphore.domain.usecase.FavoriteOutcome
 import app.hexaphore.domain.usecase.GetDaySummary
 import app.hexaphore.domain.usecase.OpenDraft
-import app.hexaphore.domain.usecase.RemoveFavoriteDish
 import app.hexaphore.domain.usecase.SaveDraft
-import app.hexaphore.domain.usecase.SaveFavoriteDish
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -52,8 +50,7 @@ internal class EntryViewModel @Inject constructor(
     private val addFoodLine: AddFoodLine,
     private val getDaySummary: GetDaySummary,
     private val saveDraft: SaveDraft,
-    private val saveFavoriteDish: SaveFavoriteDish,
-    private val removeFavoriteDish: RemoveFavoriteDish,
+    private val favorites: DraftFavorites,
 ) : ViewModel() {
     private val dishId: DishId? = savedStateHandle.get<String>(EntryDestination.DISH_ID)?.let(::DishId)
     private val foodId: FoodId? = savedStateHandle.get<String>(EntryDestination.FOOD_ID)?.let(::FoodId)
@@ -68,6 +65,15 @@ internal class EntryViewModel @Inject constructor(
 
     /** `true` quand le dernier nom proposé était déjà pris. */
     private val favoriteError = MutableStateFlow(false)
+
+    /**
+     * Le numéro à proposer au prochain favori.
+     *
+     * Calculé à l'ouverture de la boîte plutôt qu'en continu : c'est le seul moment
+     * où il sert, et un favori créé ailleurs entre-temps n'a pas à faire clignoter un
+     * champ qu'on ne regarde pas.
+     */
+    private val favoriteNumber = MutableStateFlow(1)
 
     /**
      * La journée visée, relue une seule fois.
@@ -106,6 +112,7 @@ internal class EntryViewModel @Inject constructor(
                     impact = day?.impactOf(form.toDraft()),
                     saving = status == Status.SAVING,
                     favoriteNameTaken = nameTaken,
+                    favoriteNumber = favoriteNumber.value,
                 )
             }
         }
@@ -169,12 +176,22 @@ internal class EntryViewModel @Inject constructor(
      * Un nom déjà pris est une **réponse**, pas une panne : l'écran la dit et laisse
      * le champ ouvert.
      */
+    /**
+     * La boîte de nom s'ouvre : on cherche le premier numéro libre.
+     *
+     * [label] vient de l'écran parce que le mot « Plat » est une ressource, et que le
+     * domaine n'écrit pas d'interface. Lui, il compte.
+     */
+    fun onNaming(label: (Int) -> String) {
+        viewModelScope.launch { favoriteNumber.value = runCatching { favorites.nextNumber(label) }.getOrDefault(1) }
+    }
+
     fun onFavorite(name: String) {
         val current = form.value ?: return
         favoriteError.value = false
 
         viewModelScope.launch {
-            val outcome = runCatching { saveFavoriteDish(current.toDraft(), name, current.favoriteId) }
+            val outcome = runCatching { favorites.save(current.toDraft(), name, current.favoriteId) }
             when (val result = outcome.getOrNull()) {
                 is FavoriteOutcome.Saved -> form.update { it?.copy(favoriteId = result.id) }
                 FavoriteOutcome.NameTaken -> favoriteError.value = true
@@ -186,7 +203,7 @@ internal class EntryViewModel @Inject constructor(
     fun onUnfavorite() {
         val id = form.value?.favoriteId ?: return
         form.update { it?.copy(favoriteId = null) }
-        viewModelScope.launch { runCatching { removeFavoriteDish(id) } }
+        viewModelScope.launch { runCatching { favorites.remove(id) } }
     }
 
     /** L'utilisateur corrige le nom refusé : le message cesse de s'appliquer. */
@@ -212,22 +229,13 @@ internal class EntryViewModel @Inject constructor(
     }
 
     private suspend fun open() {
-        val relu = openDraft(origin())
+        val relu = openDraft(origin(proposal, dishId, favoriteId, scannedFoodId, foodId))
         if (relu == null) {
             status.value = Status.UNAVAILABLE
         } else {
             form.value = EntryForm.of(relu)
             status.value = Status.EDITING
         }
-    }
-
-    /** Ce que la destination désigne. Un seul endroit qui lit les cinq arguments. */
-    private fun origin(): DraftOrigin = when {
-        proposal -> DraftOrigin.Proposed
-        dishId != null -> DraftOrigin.Dish(dishId)
-        favoriteId != null -> DraftOrigin.Favorite(favoriteId)
-        scannedFoodId != null -> DraftOrigin.Scanned(scannedFoodId)
-        else -> DraftOrigin.New(foodId)
     }
 
     /**
@@ -251,4 +259,24 @@ internal class EntryViewModel @Inject constructor(
     private companion object {
         const val SUBSCRIPTION_TIMEOUT_MILLIS = 5_000L
     }
+}
+
+/**
+ * Ce que la destination désigne. Un seul endroit qui lit les cinq arguments.
+ *
+ * Hors de la classe : c'est une lecture d'arguments de route, pas une capacité de
+ * l'écran, et le seuil de fonctions n'a pas à compter ce qui n'est pas un geste.
+ */
+private fun origin(
+    proposal: Boolean,
+    dishId: DishId?,
+    favoriteId: FavoriteDishId?,
+    scannedFoodId: FoodId?,
+    foodId: FoodId?,
+): DraftOrigin = when {
+    proposal -> DraftOrigin.Proposed
+    dishId != null -> DraftOrigin.Dish(dishId)
+    favoriteId != null -> DraftOrigin.Favorite(favoriteId)
+    scannedFoodId != null -> DraftOrigin.Scanned(scannedFoodId)
+    else -> DraftOrigin.New(foodId)
 }

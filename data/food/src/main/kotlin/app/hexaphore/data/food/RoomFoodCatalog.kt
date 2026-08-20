@@ -143,15 +143,17 @@ class RoomFoodCatalog @Inject constructor(
 
     override suspend fun delete(id: FoodId) = withContext(dispatchers.io) { dao.delete(id.value) }
 
-    override suspend fun remember(foods: Collection<Food>, at: Instant) = withContext(dispatchers.io) {
-        foods.forEach { food ->
-            // La fiche n'est ecrite que si elle est absente : reecrire une fiche
-            // connue defairait une correction apportee a un aliment personnel, avec
-            // les valeurs qu'un brouillon ouvert depuis dix minutes porte encore.
-            val stored = place(food)
-            marks.markUsed(stored.id.value, at.toEpochMilli())
+    override suspend fun remember(foods: Collection<Food>, at: Instant): Map<FoodId, FoodId> =
+        withContext(dispatchers.io) {
+            foods.associate { food ->
+                // La fiche n'est ecrite que si elle est absente : reecrire une fiche
+                // connue defairait une correction apportee a un aliment personnel, avec
+                // les valeurs qu'un brouillon ouvert depuis dix minutes porte encore.
+                val stored = place(food)
+                marks.markUsed(stored.id.value, at.toEpochMilli())
+                food.id to stored.id
+            }
         }
-    }
 }
 
 /**

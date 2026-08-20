@@ -128,14 +128,15 @@ class InMemoryFoodCatalog(
         foods.value = foods.value - id
     }
 
-    override suspend fun remember(foods: Collection<Food>, at: Instant) {
+    override suspend fun remember(foods: Collection<Food>, at: Instant): Map<FoodId, FoodId> {
         failIf(failure)
-        foods.forEach { food ->
+        return foods.associate { food ->
             // Les valeurs d'une fiche deja connue ne sont pas reecrites : une
             // correction apportee a un aliment personnel ne doit pas etre defaite
             // par un plat qui porte encore l'ancienne version.
             val stored = place(food)
             this.foods.replace(stored.id) { it.copy(lastUsedAt = at, useCount = it.useCount + 1) }
+            food.id to stored.id
         }
     }
 }

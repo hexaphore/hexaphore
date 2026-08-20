@@ -31,6 +31,7 @@ import app.hexaphore.domain.usecase.GetDaySummary
 import app.hexaphore.domain.usecase.GetDishDraft
 import app.hexaphore.domain.usecase.GetFavoriteDraft
 import app.hexaphore.domain.usecase.LogDish
+import app.hexaphore.domain.usecase.NextFavoriteNumber
 import app.hexaphore.domain.usecase.OpenDraft
 import app.hexaphore.domain.usecase.RemoveFavoriteDish
 import app.hexaphore.domain.usecase.ResolveFoodLabel
@@ -396,8 +397,11 @@ class EntryViewModelTest {
         addFoodLine = AddFoodLine(catalogue, CreateDraft(clock, ids)),
         getDaySummary = GetDaySummary(diary, goals, clock),
         saveDraft = SaveDraft(LogDish(diary, catalogue, favoris, clock, ids), UpdateDish(diary, ids)),
-        saveFavoriteDish = SaveFavoriteDish(favoris, ids),
-        removeFavoriteDish = RemoveFavoriteDish(favoris),
+        favorites = DraftFavorites(
+            saveFavoriteDish = SaveFavoriteDish(favoris, ids),
+            removeFavoriteDish = RemoveFavoriteDish(favoris),
+            nextFavoriteNumber = NextFavoriteNumber(favoris),
+        ),
     )
 
     private val favoris = InMemoryFavoriteDishes()

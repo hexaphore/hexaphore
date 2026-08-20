@@ -12,6 +12,7 @@ import app.hexaphore.domain.diary.ligne
 import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodSource
+import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.nutrition.NutrientValues
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -87,6 +88,41 @@ class FavoriteDishTest {
         val ligne = rejoue.lines.single()
         assertEquals("Flocons complets", ligne.name, "le nom suit la fiche vivante")
         assertEquals(240.0, ligne.values.kcal, "60 g de la fiche corrigee, et non les valeurs figees")
+    }
+
+    @Test
+    fun `une ligne corrigee a la main garde ses valeurs au rejeu`() = runTest {
+        // Le modele vivant est une bonne regle tant que la fiche dit vrai. Celui qui a
+        // complete lui-meme les valeurs d'un aliment mal renseigne -- la feta, les
+        // capres, une ligne proposee par un modele -- a dit le contraire, et rejouer
+        // la fiche lui reprendrait son travail sans prevenir.
+        catalogue.save(FLOCONS)
+        val corrigee = ligneDeFiche().copy(
+            values = ligneDeFiche().values.copy(kcal = 250.0),
+            edited = setOf(Macro.CALORIES),
+        )
+
+        val id = (saveFavorite(brouillon(corrigee), "Petit-déj") as FavoriteOutcome.Saved).id
+        val rejoue = getFavoriteDraft(id)!!
+
+        assertEquals(250.0, rejoue.lines.single().values.kcal, "la correction survit au rejeu")
+    }
+
+    @Test
+    fun `une ligne corrigee ne suit plus la fiche`() = runTest {
+        // La contrepartie, et elle est voulue : la ligne s'est deliee. Corriger la
+        // fiche ne la rattrape plus, parce qu'elle ne la cite plus.
+        catalogue.save(FLOCONS)
+        val corrigee = ligneDeFiche().copy(
+            values = ligneDeFiche().values.copy(kcal = 250.0),
+            edited = setOf(Macro.CALORIES),
+        )
+        val id = (saveFavorite(brouillon(corrigee), "Petit-déj") as FavoriteOutcome.Saved).id
+
+        catalogue.save(FLOCONS.copy(name = "Flocons complets"))
+        val rejoue = getFavoriteDraft(id)!!
+
+        assertEquals("Flocons", rejoue.lines.single().name)
     }
 
     @Test

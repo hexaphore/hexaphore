@@ -100,10 +100,21 @@ class EntryFormTest {
     }
 
     @Test
-    fun `une ligne relue est depliee`() {
-        // Repliee, il faudrait deplier chaque ligne pour verifier qu'on modifie
-        // la bonne.
-        assertTrue(EntryFormLine.of(ligne().toDraftLine()).expanded)
+    fun `ce qui manque a une ligne se nomme, dans l ordre de l ecran`() {
+        // « Un champ est vide » n'aide personne devant vingt-quatre champs. L'ordre
+        // est celui de l'ecran, de haut en bas : on designe le premier manque, parce
+        // qu'en signaler trois ne dit plus par ou commencer.
+        assertEquals(MissingField.NAME, ligne(name = "").missing)
+        assertEquals(MissingField.QUANTITY, ligne(quantity = "").missing)
+        assertEquals(MissingField.CALORIES, ligne(kcal = "").missing)
+        assertNull(ligne().missing, "une ligne complete ne manque de rien")
+    }
+
+    @Test
+    fun `une quantite nulle manque autant qu une quantite absente`() {
+        // Zero gramme de riz n'est pas une saisie : c'est une ligne qu'on n'a pas
+        // finie.
+        assertEquals(MissingField.QUANTITY, ligne(quantity = "0").missing)
     }
 
     @Test

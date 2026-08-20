@@ -2045,6 +2045,52 @@ Les autres sont tombés du premier coup : le repli lancé sur des lignes déjà 
 
 **Ce que le vert ne prouve pas.** Aucune estimation réelle n'a jamais été demandée à un modèle, donc **on ne sait pas ce qu'elles valent**. C'est la seule partie du projet dont les chiffres ne sont adossés à rien de traçable, et c'est exactement pourquoi elle le dit sur chaque ligne. Le jour où de vraies estimations tomberont, la question à se poser ne sera pas « est-ce que ça marche » mais « est-ce que c'est assez juste pour être proposé ».
 
+## D85 — Deux défauts que seul l'usage réel pouvait montrer, et un écran qui cesse de faire chercher · ✓ validée
+
+**Contexte.** Premier vrai usage de l'application avec une clé qui marche. Gemini répond, la modale texte produit un plat de plusieurs aliments — et il est **impossible de l'enregistrer**. Deux défauts, et une liste de reproches d'ergonomie qui tiennent tous à la même cause : l'écran de validation n'avait jamais eu à porter cinq lignes.
+
+### Un identifiant provisoire dans une entrée de journal
+
+**Le défaut.** Un résultat de recherche de l'ANSES porte un identifiant **provisoire** — il change à chaque recherche, et c'est `place` qui rend la fiche désignable en la versant au catalogue. Or `place` rend la fiche **déjà rangée** quand elle existe, avec l'identifiant qu'elle avait, et `remember` jetait cette information. L'entrée de journal citait donc l'identifiant provisoire, la clé étrangère `food_entry.food_id → food.id` refusait, et l'écran annonçait « l'écriture n'a pas abouti » sans pouvoir dire pourquoi.
+
+Il ne se voyait pas avant parce que la recherche **place au moment du choix** et propage l'identifiant rendu : le chemin manuel réconciliait sans le savoir. L'IA, elle, choisit pour l'utilisateur et n'écrit rien — résoudre est une lecture.
+
+**La correction.** `FoodUsage.remember` rend la correspondance « identifiant porté → identifiant rangé », et `toEntries` l'applique. C'est le geste d'écriture qui la découvre : le lui faire rendre est la seule façon de la connaître, et ça corrige **toutes** les origines d'un coup plutôt que d'ajouter un `place` sur le chemin de l'IA.
+
+### Un favori qui reprenait les corrections de son auteur
+
+**Le défaut.** Compléter à la main une ligne mal renseignée — la feta, les câpres, une ligne proposée par un modèle —, mettre le plat en favori, le rejouer : les corrections avaient disparu.
+
+Et c'était **écrit exprès**. [D62](#d62--un-favori-est-un-modèle-vivant-et-létoile-est-son-seul-interrupteur---validée) fait du favori un modèle vivant : une ligne qui cite une fiche se reconstruit depuis la fiche courante, pour que corriger ses flocons corrige tous les petits-déjeuners à venir.
+
+**La correction.** Le modèle vivant est une bonne règle **tant que la fiche dit vrai**. Celui qui a complété lui-même les valeurs a dit le contraire, et le projet a déjà un mot pour ça : `edited`, qui empêche le recalcul de réécrire une valeur corrigée. Une ligne corrigée entre donc dans le favori **déliée** de sa fiche, et ses valeurs figées prennent le relais. La contrepartie est voulue : cette ligne ne suivra plus la fiche, parce qu'elle ne la cite plus.
+
+### Ce que l'écran de validation faisait chercher
+
+Cinq reproches, une cause : l'écran avait été conçu pour une ligne et jugé sur une ligne.
+
+- **Le balayage supprimait sans qu'on l'ait voulu.** Il reste le raccourci d'un geste sur une liste qu'on parcourt — l'accueil le garde — mais cet écran est un **formulaire** : on y fait glisser son doigt pour atteindre un champ. La corbeille suffit, et elle demande de viser.
+- **Six champs pleine largeur, puis six autres.** Écrire « 254 » dans un champ de cinquante caractères allonge l'écran pour rien : les valeurs passent **deux par ligne**, dans l'ordre de l'hexagone lu de gauche à droite.
+- **Le pliage des macros disparaît.** Cette application sert à suivre des macros ; les cacher demandait un geste de plus par aliment pour voir ce qu'on était venu voir. Le raisonnement d'origine — « les afficher laisserait croire qu'il faut les remplir » — ne tient plus depuis que ce qui manque se **dit** à l'enregistrement.
+- **Rien ne séparait deux aliments.** Une carte par ligne : le défaut n'était pas d'être laid mais d'être **continu**, et rien ne disait où finissait le riz et où commençait le poulet.
+- **« Un champ est vide » devant vingt-quatre champs.** L'écran **désigne** désormais : il marque la ligne, y fait défiler, colore le champ, et nomme ce qui manque — « Il manque les calories — Riz blanc, cuit ». La marque reste jusqu'au prochain appui : l'effacer à la première frappe la ferait disparaître au moment précis où l'on s'en sert.
+
+### Un numéro plutôt qu'une phrase
+
+Le nom proposé à la mise en favori était la liste des aliments du plat. Les libellés de l'ANSES sont à rallonge, et trois d'entre eux font un titre de cinquante caractères **qu'on efface au lieu de le corriger**. C'est « Plat 3 » désormais — le premier numéro libre, calculé par le domaine ; le mot « Plat » reste une ressource, parce que le domaine n'écrit pas d'interface.
+
+### Quatre fournisseurs en réserve
+
+Anthropic et Gemini ont été éprouvés sur un vrai compte. Les quatre autres sont écrits, testés, et leur campagne de défaite est passée — mais **aucun appel réel ne les a jamais atteints**, et les proposer ferait payer à quelqu'un la découverte d'un défaut que personne n'a cherché.
+
+Leur carte reste **visible et en retrait**, avec une phrase qui dit pourquoi : la cacher laisserait croire qu'ils n'existent pas. Un drapeau sur l'énumération plutôt qu'une suppression — rien n'est perdu, le `when` de la fabrique reste exhaustif, et le jour où l'un d'eux est éprouvé il revient en changeant un mot.
+
+**Conséquences.** Trois seuils ont mordu au passage — la longueur d'une fonction, le nombre de fonctions d'un fichier, le nombre de paramètres d'un constructeur — et la réponse a été la même trois fois : découper selon ce que les choses sont. `MissingFieldGuide.kt` porte le guidage vers le champ manquant, `DraftFavorites` regroupe les trois gestes de l'étoile.
+
+**Ce que le vert ne prouve pas.** Les deux défauts corrigés ont chacun leur cas, sur les deux implémentations du catalogue. L'ergonomie, elle, ne s'éprouve qu'en tenant le téléphone : ce qui est écrit ici est un pari sur ce qui se lira mieux, et il se juge à l'usage.
+
+**Ce qui reste ouvert.** La résolution choisit encore mal : « 5 cacahuètes » devient 500 g — le forfait `PIECE` à 100 g, faute de portion nommée pour une cacahuète — et « une mandarine » tombe sur un nectar. Le modèle ne connaît pas les libellés de l'ANSES, et le score les rapproche à l'aveugle. C'est un sujet à part entière, et il attend sa livraison.
+
 ---
 
 ## Décisions prises par défaut, à confirmer

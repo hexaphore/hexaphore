@@ -26,7 +26,19 @@ data class AiSettingsUiState(
 )
 
 /** Une ligne de la liste : qui, et où il en est. */
-data class ProviderRow(val provider: AiProvider, val configured: Boolean, val active: Boolean)
+data class ProviderRow(
+    val provider: AiProvider,
+    val configured: Boolean,
+    val active: Boolean,
+    /**
+     * `true` quand ce fournisseur est écrit mais pas encore éprouvé sur un vrai compte.
+     *
+     * Sa carte s'affiche quand même, en retrait et sans formulaire : le cacher
+     * laisserait croire qu'il n'existe pas, et le proposer ferait payer à quelqu'un la
+     * découverte d'un défaut que personne n'a cherché.
+     */
+    val suspended: Boolean = false,
+)
 
 /**
  * Le formulaire ouvert.

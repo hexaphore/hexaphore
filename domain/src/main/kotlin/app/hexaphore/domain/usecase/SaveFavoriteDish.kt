@@ -31,6 +31,11 @@ sealed interface FavoriteOutcome {
  * enregistrées en plus, comme contenu d'une ligne tapée à la main et comme repli le
  * jour où la fiche citée aura disparu ([D62][decisions]).
  *
+ * **Sauf pour une ligne corrigée à la main**, qui entre **déliée** de sa fiche. Le
+ * modèle vivant est une bonne règle tant que la fiche dit vrai ; celui qui a complété
+ * lui-même les valeurs d'un aliment mal renseigné a précisément dit le contraire, et
+ * rejouer la fiche lui reprendrait son travail sans prévenir.
+ *
  * **Le nom est unique.** Deux « Petit-déj » dans une liste ne se distinguent plus, et
  * choisir devient un pari. La vérification est faite ici, et la base la double d'un
  * index : une règle d'unicité tenue par la seule discipline d'écriture n'en est pas une.
@@ -71,7 +76,15 @@ class SaveFavoriteDish(private val favorites: FavoriteDishes, private val ids: I
  */
 private fun EntryDraft.toComponents(): List<FavoriteComponent> = lines.map { line ->
     FavoriteComponent(
-        foodId = line.foodId,
+        // **Une ligne corrigee a la main se delie de sa fiche.** Le favori est un
+        // modele vivant : une ligne qui cite une fiche se rejoue depuis la fiche
+        // courante, et corriger ses flocons corrige tous les petits-dejeuners a venir
+        // (D62). Mais celui qui a complete lui-meme les valeurs d'une fiche
+        // incomplete -- la feta, les capres, une ligne proposee par un modele --
+        // n'attend pas qu'on les lui reprenne au rejeu. Sa correction gagne, et le
+        // lien tombe : c'est la meme regle que `edited` fait deja respecter au
+        // recalcul, appliquee au rejeu.
+        foodId = line.foodId.takeIf { line.edited.isEmpty() },
         name = line.name.trim(),
         quantity = checkNotNull(line.quantity) { "Ligne sans quantite : ${line.name}" },
         unit = line.unit,
@@ -79,3 +92,33 @@ private fun EntryDraft.toComponents(): List<FavoriteComponent> = lines.map { lin
         values = line.values,
     )
 }
+
+/**
+ * Le premier numéro libre pour nommer un plat favori.
+ *
+ * **Un numéro et non une phrase** : « Plat » est un mot d'interface, et le domaine
+ * n'en écrit pas. Ce qu'il sait, lui, c'est lesquels sont déjà pris.
+ *
+ * La proposition précédente était la liste des aliments du plat — « Riz blanc cuit,
+ * Blanc de poulet sans peau, Haricots verts appertisés égouttés ». Les libellés de
+ * l'ANSES sont à rallonge, et trois d'entre eux font un titre de cinquante caractères
+ * qu'on efface au lieu de le corriger. Un numéro se garde ou se remplace, mais il ne
+ * se subit pas.
+ */
+class NextFavoriteNumber(private val favorites: FavoriteDishes) {
+    /**
+     * @param taken dit si un nom est déjà pris, tel que l'écran l'écrirait.
+     *
+     * Une lambda plutôt qu'un patron de chaîne : c'est l'appelant qui connaît le mot,
+     * et le cas d'usage se contente de compter jusqu'à ce qu'il tombe sur un libre.
+     * La borne évite une boucle sans fin si quelque chose répondait « pris » à tout.
+     */
+    suspend operator fun invoke(taken: (Int) -> String): Int {
+        var number = 1
+        while (number <= MAX_ATTEMPTS && favorites.nameTaken(taken(number))) number++
+        return number
+    }
+}
+
+/** Cent plats favoris nommés « Plat n » : au-delà, le nom proposé n'est plus le sujet. */
+private const val MAX_ATTEMPTS = 100

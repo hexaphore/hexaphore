@@ -11,6 +11,7 @@ import app.hexaphore.domain.usecase.AddFoodLine
 import app.hexaphore.domain.usecase.CreateDraft
 import app.hexaphore.domain.usecase.GetDishDraft
 import app.hexaphore.domain.usecase.GetFavoriteDraft
+import app.hexaphore.domain.usecase.NextFavoriteNumber
 import app.hexaphore.domain.usecase.OpenDraft
 import app.hexaphore.domain.usecase.RemoveFavoriteDish
 import app.hexaphore.domain.usecase.ResolveFoodLabel
@@ -72,6 +73,10 @@ object FavoriteUseCaseModule {
     @Provides
     fun saveFavoriteDish(favorites: FavoriteDishes, ids: IdGenerator): SaveFavoriteDish =
         SaveFavoriteDish(favorites, ids)
+
+    /** Le premier numéro libre, pour proposer « Plat 3 » plutôt qu'une liste d'aliments. */
+    @Provides
+    fun nextFavoriteNumber(favorites: FavoriteDishes): NextFavoriteNumber = NextFavoriteNumber(favorites)
 
     @Provides
     fun toggleDishFavorite(

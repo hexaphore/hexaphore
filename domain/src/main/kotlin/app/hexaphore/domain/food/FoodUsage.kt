@@ -33,6 +33,14 @@ interface FoodUsage {
      * Les valeurs d'une fiche déjà connue **ne sont pas réécrites**. Une correction
      * apportée à un aliment personnel ne doit pas être défaite par un plat rouvert
      * qui porte encore l'ancienne version.
+     *
+     * @return **ce que chaque fiche est devenue**, de l'identifiant qu'elle portait
+     *   vers celui sous lequel elle est rangée. Les deux diffèrent dès qu'une fiche de
+     *   l'ANSES était déjà au catalogue : le résultat de recherche porte un
+     *   identifiant provisoire, la fiche rangée garde le sien, et une entrée de journal
+     *   qui citerait le provisoire désignerait une fiche absente — ce que la base
+     *   refuse. Rendre la correspondance ici est la seule façon de la connaître :
+     *   c'est le geste d'écriture qui la découvre.
      */
-    suspend fun remember(foods: Collection<Food>, at: Instant)
+    suspend fun remember(foods: Collection<Food>, at: Instant): Map<FoodId, FoodId>
 }

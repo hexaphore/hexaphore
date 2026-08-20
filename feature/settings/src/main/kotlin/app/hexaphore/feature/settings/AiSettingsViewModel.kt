@@ -12,6 +12,7 @@ import app.hexaphore.domain.ai.AiSetup
 import app.hexaphore.domain.ai.ApiKey
 import app.hexaphore.domain.ai.ProbeOutcome
 import app.hexaphore.domain.ai.ProviderCredentials
+import app.hexaphore.domain.ai.ProviderStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -51,7 +52,12 @@ class AiSettingsViewModel @Inject constructor(private val credentials: AiCredent
     val uiState: StateFlow<AiSettingsUiState> = combine(setup, editor) { stored, edited ->
         AiSettingsUiState(
             rows = AiProvider.entries.map {
-                ProviderRow(provider = it, configured = it in stored.credentials, active = it == stored.active)
+                ProviderRow(
+                    provider = it,
+                    configured = it in stored.credentials,
+                    active = it == stored.active,
+                    suspended = it.status == ProviderStatus.SUSPENDED,
+                )
             },
             open = edited.open,
             form = edited.form,

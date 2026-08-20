@@ -126,6 +126,13 @@
     <string name="ai_active">Utilisé</string>
     <string name="ai_configured">Clé enregistrée</string>
     <string name="ai_not_configured">Aucune clé</string>
+
+    <!-- Les quatre fournisseurs ecrits mais pas encore eprouves sur un vrai compte.
+         Leur carte reste visible : la cacher laisserait croire qu'ils n'existent pas,
+         et les proposer ferait payer a quelqu'un la decouverte d'un defaut que
+         personne n'a cherche. -->
+    <string name="ai_provider_soon">Bientôt</string>
+    <string name="ai_provider_suspended">Ce fournisseur est écrit et testé, mais aucun appel réel ne l\'a encore éprouvé. Il sera proposé quand ce sera fait. En attendant, Anthropic et Google Gemini fonctionnent.</string>
     <string name="ai_key_label">Clé API</string>
     <string name="ai_model_label">Modèle</string>
     <string name="ai_base_url_label">URL de base</string>

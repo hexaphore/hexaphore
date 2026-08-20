@@ -9,6 +9,10 @@ import app.hexaphore.domain.diary.EntrySource
 import app.hexaphore.domain.diary.JOUR
 import app.hexaphore.domain.diary.brouillon
 import app.hexaphore.domain.diary.ligne
+import app.hexaphore.domain.food.Food
+import app.hexaphore.domain.food.FoodId
+import app.hexaphore.domain.food.FoodSource
+import app.hexaphore.domain.nutrition.NutrientValues
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -32,6 +36,32 @@ class LogDishTest {
         val plat = diary.dishes.single()
         assertEquals(JOUR, plat.date)
         assertEquals(listOf("Riz", "Poulet"), plat.entries.map { it.displayName })
+    }
+
+    @Test
+    fun `une fiche deja au catalogue est citee sous son identifiant range`() = runTest {
+        // Le defaut qui rendait un plat de l'IA inenregistrable. Un resultat de
+        // recherche porte un identifiant **provisoire** ; si la fiche est deja au
+        // catalogue, elle y garde le sien, et une entree qui citerait le provisoire
+        // designerait une fiche absente -- ce que la base refuse.
+        val rangee = ciqual(id = "f-riz-range", ref = "9104")
+        catalogue.save(rangee)
+        val provisoire = ciqual(id = "provisoire-1", ref = "9104")
+
+        logDish(brouillon(ligne("a", fiche = provisoire)))
+
+        assertEquals(rangee.id, diary.dishes.single().entries.single().foodId)
+    }
+
+    @Test
+    fun `une fiche inconnue garde l identifiant qu elle portait`() = runTest {
+        // Le cas courant : la fiche entre au catalogue sous l'identifiant que la
+        // ligne connait, et il n'y a rien a reconcilier.
+        val fiche = ciqual(id = "f-poulet", ref = "36001")
+
+        logDish(brouillon(ligne("a", fiche = fiche)))
+
+        assertEquals(fiche.id, diary.dishes.single().entries.single().foodId)
     }
 
     @Test
@@ -96,3 +126,12 @@ class LogDishTest {
         assertNotEquals(EntrySource.MANUAL, diary.dishes.single().source)
     }
 }
+
+/** Une fiche de l'ANSES, telle que la recherche en rend une. */
+private fun ciqual(id: String, ref: String) = Food(
+    id = FoodId(id),
+    source = FoodSource.CIQUAL,
+    sourceRef = ref,
+    name = "Riz blanc, cuit",
+    per100g = NutrientValues(kcal = 130.0),
+)

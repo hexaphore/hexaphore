@@ -31,6 +31,8 @@ internal sealed interface EntryUiState {
          * plutôt que de tout retaper.
          */
         val favoriteNameTaken: Boolean = false,
+        /** Le numéro proposé pour nommer ce plat : « Plat 3 ». */
+        val favoriteNumber: Int = 1,
     ) : EntryUiState {
         /** `true` quand ce plat est dans la liste des favoris. */
         val favorite: Boolean get() = form.favoriteId != null

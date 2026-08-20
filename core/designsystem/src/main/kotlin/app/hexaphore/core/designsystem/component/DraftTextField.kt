@@ -72,6 +72,14 @@ fun DraftTextField(
      * emmène au champ suivant.
      */
     minLines: Int = 1,
+    /**
+     * `true` quand ce champ est **celui qui manque**.
+     *
+     * Il se colore, et son libellé avec. Un formulaire de vingt-quatre champs dont un
+     * seul bloque l'enregistrement ne se parcourt pas à l'œil : c'est le champ qui
+     * doit se désigner, pas l'utilisateur qui doit le chercher.
+     */
+    isError: Boolean = false,
     accept: (String) -> Boolean = { true },
 ) {
     var value by remember { mutableStateOf(TextFieldValue(initial, TextRange(initial.length))) }
@@ -84,7 +92,8 @@ fun DraftTextField(
                 onValueChange(candidate.text)
             }
         },
-        label = { Text(text = label, color = labelColor) },
+        label = { Text(text = label, color = if (isError) MaterialTheme.colorScheme.error else labelColor) },
+        isError = isError,
         singleLine = minLines == 1,
         minLines = minLines,
         // Decimal et non Number : le separateur decimal doit etre atteignable, et

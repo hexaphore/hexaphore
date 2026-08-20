@@ -10,12 +10,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -44,31 +45,62 @@ import kotlin.math.roundToInt
  * @see docs/02-parcours-et-ecrans.md
  */
 @Composable
-internal fun LineEditor(line: EntryFormLine, actions: EntryActions, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = Spacing.sm),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+internal fun LineEditor(
+    line: EntryFormLine,
+    actions: EntryActions,
+    modifier: Modifier = Modifier,
+    flagged: MissingField? = null,
+) {
+    // Une carte par aliment. Le defaut precedent n'etait pas d'etre laid mais d'etre
+    // **continu** : six champs les uns sous les autres, puis six autres, et rien ne
+    // disait ou finissait le riz et ou commencait le poulet.
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
-        NameRow(line, actions)
-        SuggestionRow(line, actions)
-        QuantityRow(line, actions)
-
-        MacroField(line = line, macro = Macro.CALORIES, actions = actions)
-
-        TextButton(onClick = { actions.onLineEdit(line.id, LineEdit.ToggleDetails) }) {
-            Text(
-                text = stringResource(
-                    if (line.expanded) R.string.entry_hide_macros else R.string.entry_show_macros,
-                ),
-                style = MaterialTheme.typography.labelLarge,
-            )
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            NameRow(line, actions, flagged == MissingField.NAME)
+            SuggestionRow(line, actions)
+            QuantityRow(line, actions, flagged == MissingField.QUANTITY)
+            MacroGrid(line, actions, flagged == MissingField.CALORIES)
         }
+    }
+}
 
-        if (line.expanded) {
-            DETAILED_MACROS.forEach { macro ->
-                key(macro) { MacroField(line = line, macro = macro, actions = actions) }
+/**
+ * Les six valeurs, **toutes visibles**, deux par ligne.
+ *
+ * **Plus de plier-déplier.** Cette application sert à suivre des macros : les cacher
+ * derrière un bouton demandait un geste de plus par aliment pour voir ce qu'on est
+ * venu voir. Le repli tenait à un raisonnement qui ne vaut plus — « les cinq autres
+ * sont facultatives, les afficher laisserait croire qu'il faut les remplir » — parce
+ * que ce qui manque se dit maintenant autrement : le champ vide se signale à
+ * l'enregistrement, et l'écran y emmène.
+ *
+ * **Deux par ligne**, parce qu'un champ pleine largeur pour écrire « 254 » gaspille
+ * cinquante caractères d'espace et allonge l'écran d'autant. L'ordre reste celui de
+ * l'hexagone et des barres de l'accueil : la position sert de second canal en cas de
+ * daltonisme, et elle ne renseigne que si elle est la même partout.
+ */
+@Composable
+private fun MacroGrid(line: EntryFormLine, actions: EntryActions, flagged: Boolean = false) {
+    MACRO_PAIRS.forEach { pair ->
+        key(pair.first()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                pair.forEach { macro ->
+                    key(macro) {
+                        MacroField(
+                            line = line,
+                            macro = macro,
+                            actions = actions,
+                            modifier = Modifier.weight(1f),
+                            isError = flagged && macro == Macro.CALORIES,
+                        )
+                    }
+                }
             }
         }
     }
@@ -84,7 +116,7 @@ internal fun LineEditor(line: EntryFormLine, actions: EntryActions, modifier: Mo
  * connaît.
  */
 @Composable
-private fun NameRow(line: EntryFormLine, actions: EntryActions) {
+private fun NameRow(line: EntryFormLine, actions: EntryActions, flagged: Boolean = false) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -94,6 +126,7 @@ private fun NameRow(line: EntryFormLine, actions: EntryActions) {
             onValueChange = { actions.onLineEdit(line.id, LineEdit.Name(it)) },
             label = stringResource(R.string.entry_field_name),
             modifier = Modifier.weight(1f),
+            isError = flagged,
         )
         IconButton(onClick = { actions.onRemoveLine(line.id) }) {
             Icon(
@@ -176,7 +209,7 @@ private fun SuggestionRow(line: EntryFormLine, actions: EntryActions) {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun QuantityRow(line: EntryFormLine, actions: EntryActions) {
+private fun QuantityRow(line: EntryFormLine, actions: EntryActions, flagged: Boolean = false) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         DraftTextField(
             initial = line.quantity,
@@ -184,6 +217,7 @@ private fun QuantityRow(line: EntryFormLine, actions: EntryActions) {
             label = stringResource(R.string.entry_field_quantity),
             modifier = Modifier.fillMaxWidth(),
             keyboardType = KeyboardType.Decimal,
+            isError = flagged,
             accept = String::isNumberField,
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -206,23 +240,36 @@ private fun QuantityRow(line: EntryFormLine, actions: EntryActions) {
  * La teinte ne renseigne pas seule — le nom est écrit à côté.
  */
 @Composable
-private fun MacroField(line: EntryFormLine, macro: Macro, actions: EntryActions) {
+private fun MacroField(
+    line: EntryFormLine,
+    macro: Macro,
+    actions: EntryActions,
+    modifier: Modifier = Modifier,
+    isError: Boolean = false,
+) {
     // La cle porte la revision : un recalcul reconstruit le champ avec sa nouvelle
     // valeur, alors qu'une frappe -- qui ne l'incremente pas -- laisse le curseur ou
     // il est. Sans elle, le brouillon changerait sans que l'ecran bouge.
     key(line.revision) {
-        MacroTextField(line, macro, actions)
+        MacroTextField(line, macro, actions, modifier, isError)
     }
 }
 
 @Composable
-private fun MacroTextField(line: EntryFormLine, macro: Macro, actions: EntryActions) {
+private fun MacroTextField(
+    line: EntryFormLine,
+    macro: Macro,
+    actions: EntryActions,
+    modifier: Modifier = Modifier,
+    isError: Boolean = false,
+) {
     DraftTextField(
         initial = line.macros[macro].orEmpty(),
         onValueChange = { actions.onLineEdit(line.id, LineEdit.MacroValue(macro, it)) },
         label = stringResource(macro.fieldRes),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         labelColor = NeonTheme.macros[macro].base,
+        isError = isError,
         // Des entiers : personne ne compte les demi-grammes, et le separateur
         // decimal disparait du clavier comme du filtre.
         keyboardType = KeyboardType.Number,
@@ -231,13 +278,17 @@ private fun MacroTextField(line: EntryFormLine, macro: Macro, actions: EntryActi
 }
 
 /**
- * Les cinq macros repliées, dans l'ordre angulaire de l'hexagone.
+ * Les six valeurs par paires, dans l'ordre angulaire de l'hexagone.
  *
- * Le même ordre que les barres de l'accueil et que les quartiers de la figure : la
- * position sert de second canal en cas de daltonisme, et elle ne renseigne que si
- * elle est la même partout.
+ * Le même ordre que les barres de l'accueil et que les quartiers de la figure, lu de
+ * gauche à droite puis ligne suivante : la position sert de second canal en cas de
+ * daltonisme, et elle ne renseigne que si elle est la même partout.
  */
-private val DETAILED_MACROS = listOf(Macro.PROTEIN, Macro.FIBER, Macro.CARBS, Macro.SUGARS, Macro.FAT)
+private val MACRO_PAIRS = listOf(
+    listOf(Macro.CALORIES, Macro.PROTEIN),
+    listOf(Macro.FIBER, Macro.CARBS),
+    listOf(Macro.SUGARS, Macro.FAT),
+)
 
 private val Macro.fieldRes: Int
     @StringRes get() = when (this) {

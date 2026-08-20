@@ -127,12 +127,23 @@ private fun ProviderCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { actions.onOpen(row.provider) }
+                // Une carte en reserve ne se deplie pas : il n'y a rien a y saisir
+                // tant que le fournisseur n'a pas ete eprouve sur un vrai compte.
+                .then(if (row.suspended) Modifier else Modifier.clickable { actions.onOpen(row.provider) })
                 .padding(Spacing.cardPadding),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             ProviderHeader(row)
-            if (open) ProviderEditor(row.provider, form, probe, actions)
+
+            if (row.suspended) {
+                Text(
+                    text = stringResource(R.string.ai_provider_suspended),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else if (open) {
+                ProviderEditor(row.provider, form, probe, actions)
+            }
         }
     }
 }
@@ -279,6 +290,7 @@ private fun ProviderForm.actionAvailability(probe: ProbeState) = when {
 
 private val ProviderRow.statusRes: Int
     get() = when {
+        suspended -> R.string.ai_provider_soon
         active -> R.string.ai_active
         configured -> R.string.ai_configured
         else -> R.string.ai_not_configured

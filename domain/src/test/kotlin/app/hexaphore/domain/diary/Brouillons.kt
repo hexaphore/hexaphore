@@ -1,6 +1,8 @@
 package app.hexaphore.domain.diary
 
+import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodId
+import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.nutrition.NutrientValues
 import java.time.LocalDate
 
@@ -23,14 +25,18 @@ internal fun ligne(
     foodId: FoodId? = null,
     kcal: Double? = 195.0,
     fibres: Double? = 1.2,
+    fiche: Food? = null,
+    corrigees: Set<Macro> = emptySet(),
 ) = DraftLine(
     id = DraftLineId(id),
     entryId = entryId,
-    foodId = foodId,
+    foodId = foodId ?: fiche?.id,
+    food = fiche,
     name = nom,
     quantity = quantite,
     unit = unite,
     values = NutrientValues(kcal = kcal, protein = 4.0, carbs = 42.0, sugars = 0.2, fat = 0.5, fiber = fibres),
+    edited = corrigees,
 )
 
 internal fun brouillon(
