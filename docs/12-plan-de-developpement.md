@@ -256,6 +256,69 @@ Le reste de la tranche, dans l'ordre où il se livrera : le compteur de coût ; 
 
 ---
 
+## Demandes issues de l'usage réel
+
+Trois demandes formulées après les premières analyses réelles, et qui ne rentrent dans
+aucune tranche existante. Elles sont écrites ici plutôt que dans une tranche parce que
+les tranches décrivent des **capacités** et que celles-ci corrigent la façon dont une
+capacité déjà livrée se comporte quand on s'en sert vraiment.
+
+### Les calories proposées à partir des macros
+
+Corriger les macros d'une ligne laisse l'énergie inchangée, et c'est elle qui décide
+si la ligne est enregistrable. Quand les quatre valeurs qui la déterminent sont
+saisies, l'écran doit **proposer** — jamais imposer — le calcul correspondant.
+
+Les facteurs sont ceux du règlement européen 1169/2011 : 4 kcal/g pour les protéines et
+les glucides, 9 pour les lipides, 2 pour les fibres. Les glucides y sont déclarés
+**hors fibres**, ce qui est la convention de CIQUAL comme d'Open Food Facts : les
+additionner tels quels ne compte donc rien deux fois.
+
+**Ce qui reste à arbitrer** : ce que devient une valeur ainsi calculée. Elle n'est pas
+mesurée, mais elle n'est pas non plus devinée par un modèle — elle se déduit de ce que
+l'utilisateur a saisi. La marquer comme corrigée à la main ([D45](11-decisions.md)) est le plus
+cohérent : elle ne doit plus être recalculée par la quantité, et elle survit à la mise
+en favori.
+
+### Un titre court sur chaque fiche
+
+Les libellés de l'ANSES décrivent une préparation — « Poulet, blanc, sans peau, cuit au
+four, sans matière grasse ajoutée » — et c'est ce qui rend une liste de trois aliments
+illisible. Une seconde colonne, courte, tenue à côté du libellé d'origine.
+
+**Le libellé d'origine ne bouge jamais** : c'est lui qui relie la fiche à sa source, et
+c'est sur lui que la recherche compare. Le titre court est un affichage.
+
+### La complétion des valeurs manquantes, sans écraser la source
+
+CIQUAL laisse des trous — la feta sans énergie déterminée, les câpres —, et Open Food
+Facts en laisse bien plus. Un petit modèle peut les combler.
+
+**La règle qui commande toute la conception : ne jamais écraser une valeur d'origine.**
+Une valeur complétée et une valeur mesurée ne se rangent pas au même endroit, sans quoi
+un nouvel import de la table de l'ANSES écraserait les complétions, ou pire, les
+prendrait pour des mesures. Il faut donc des colonnes distinctes et une lecture qui
+préfère l'originale quand elle existe.
+
+C'est le raisonnement de [D83](11-decisions.md#d83--le-repli-invente-des-chiffres-une-seule-fois-et-en-le-disant---validée),
+poussé un cran plus loin : là, une estimation ne devenait jamais une fiche ; ici elle
+entre au catalogue, et doit donc porter sa provenance **valeur par valeur**.
+
+**Ce qui reste à arbitrer**, et qui change beaucoup de choses :
+
+- **Quand.** À l'import de CIQUAL — une fois, hors ligne, mais 3 484 fiches à payer ?
+  Au premier usage d'une fiche — étalé, mais imprévisible ? En tâche de fond ?
+- **Avec quoi.** Un « petit modèle » est un modèle de plus à configurer, ou le
+  fournisseur déjà actif à effort réduit.
+- **Ce que l'écran en dit.** Une valeur complétée reste une valeur inventée. La marque
+  existe déjà pour une ligne — `Suggestion.estimatedMacros` —, mais elle ne dit rien
+  d'une fiche du catalogue dont trois valeurs sur six viennent d'un modèle.
+- **Ce qu'il advient d'une complétion quand la source se met à jour.** Une valeur
+  mesurée qui arrive doit prendre la place de la valeur complétée à l'affichage — mais
+  la complétion doit-elle être effacée, ou gardée en cas de retour en arrière ?
+
+---
+
 ## Les quatre décisions qu'on ne rattrape pas
 
 Tout le reste se corrige à peu de frais. Ces quatre-là contaminent l'ensemble du code si elles arrivent tard.
