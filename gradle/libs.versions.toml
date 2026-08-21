@@ -77,6 +77,11 @@ androidxTest = "1.6.1"
 # SQLite, celle qui ecrit ciqual.db. Il n'entre dans aucun APK.
 sqliteJdbc = "3.47.1.0"
 
+# SDK Anthropic, pour la seule tache `generateShortNames`. Hors APK lui aussi : les
+# six fournisseurs de l'application passent par Retrofit et leurs propres DTO, et
+# rien de ce SDK n'entre dans le graphe de :app.
+anthropicJava = "2.34.0"
+
 # --- Build inclus -------------------------------------------------------------
 # Version des regles detekt maison. Le build composite substitue le projet local
 # a cette coordonnee : le numero ne sert qu'a nommer la dependance.
@@ -153,6 +158,7 @@ robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectr
 androidx-test-core = { module = "androidx.test:core", version.ref = "androidxTest" }
 
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqliteJdbc" }
+anthropic-java = { module = "com.anthropic:anthropic-java", version.ref = "anthropicJava" }
 
 [plugins]
 

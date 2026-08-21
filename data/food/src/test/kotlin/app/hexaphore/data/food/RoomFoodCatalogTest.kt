@@ -11,6 +11,8 @@ import app.hexaphore.domain.food.Food
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -84,8 +86,48 @@ class RoomFoodCatalogTest : FoodCatalogContract() {
         catalogue(reference = listOf(POMME_DE_REFERENCE, POIRE_DE_REFERENCE, CREME_BRULEE))
     }
 
+    /**
+     * Le titre court, depuis le CSV versionné jusqu'au modèle de domaine.
+     *
+     * **La couture entière**, et c'est là qu'elle se romprait sans qu'un test de
+     * module ne le voie : `short-names.csv` est lu par une tâche Gradle, écrit dans
+     * une colonne de `ciqual.db`, relu par `CiqualDatabase`, puis porté par `Food`.
+     * Chaque morceau a son test ; celui-ci est le seul qui parte du fichier livré.
+     *
+     * Le code choisi est l'une des six lignes écrites à la main, donc il survit à la
+     * génération — qui ne redemande que les codes absents du fichier.
+     */
+    @Test
+    fun `un titre court du fichier livre remonte jusqu au modele`() {
+        val ligne = CiqualDatabase(ApplicationProvider.getApplicationContext()).byCode(CODE_AVEC_TITRE)
+
+        checkNotNull(ligne) { "le code $CODE_AVEC_TITRE n'est plus dans la table livree : la fixture est perimee" }
+        assertEquals("Cuisse de poulet rotie", ligne.shortName)
+        assertEquals("le libelle d'origine ne bouge pas", "Poulet, cuisse, viande rôtie/cuite au four", ligne.name)
+    }
+
+    /**
+     * Un libellé déjà lisible n'a pas de titre court, et ce n'est pas un trou.
+     *
+     * Sans ce cas, une lecture qui rendrait toujours la même chaîne — le libellé, par
+     * exemple — passerait le test précédent sans rien mesurer.
+     */
+    @Test
+    fun `une fiche sans titre court en rend aucun`() {
+        val ligne = CiqualDatabase(ApplicationProvider.getApplicationContext()).byCode(CODE_SANS_TITRE)
+
+        checkNotNull(ligne) { "le code $CODE_SANS_TITRE n'est plus dans la table livree : la fixture est perimee" }
+        assertNull(ligne.shortName)
+    }
+
     private companion object {
         val MAINTENANT: Instant = Instant.parse("2026-08-10T10:00:00Z")
+
+        /** « Poulet, cuisse, viande rôtie/cuite au four », l'une des six lignes écrites à la main. */
+        const val CODE_AVEC_TITRE = "36006"
+
+        /** « Bigorneau, cru » : quatorze caractères, il n'y a rien à raccourcir. */
+        const val CODE_SANS_TITRE = "20009"
     }
 }
 

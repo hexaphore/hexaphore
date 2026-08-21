@@ -146,6 +146,31 @@ private fun NameRow(line: EntryFormLine, actions: EntryActions, flagged: Boolean
             )
         }
     }
+    OriginalLabel(line)
+}
+
+/**
+ * Le libellé publié par l'ANSES, sous le champ, quand un titre court l'a remplacé.
+ *
+ * **C'est lui qui distingue deux préparations du même aliment** — sans peau ou avec,
+ * cuit au four ou frit — et le titre court, par construction, en abandonne une partie.
+ * Les listes s'en passent parce qu'on y balaie ; ici on valide ce qui va entrer au
+ * journal, et c'est le seul moment où la précision vaut la place qu'elle prend.
+ *
+ * Absent dès que le champ a été retouché : ce qui est affiché n'est alors plus le
+ * titre court de la fiche, et rappeler un libellé « d'origine » sous un nom que
+ * l'utilisateur a écrit lui-même désignerait autre chose que ce qu'il lit.
+ */
+@Composable
+private fun OriginalLabel(line: EntryFormLine) {
+    val original = line.food?.name ?: return
+    if (original == line.name) return
+
+    Text(
+        text = original,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 /**

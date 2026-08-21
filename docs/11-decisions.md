@@ -2258,6 +2258,70 @@ Accepter le calcul **éteint l'étoile**, comme toute retouche de ligne : le bro
 
 **Ce que le vert ne prouve pas.** Que la pastille se voie, qu'elle tombe sous le pouce, et qu'elle n'encombre pas une carte qui porte déjà douze champs — rien de tout cela ne s'éprouve sans tenir le téléphone. Ce qui est vérifié est ce que le geste écrit : la valeur, sa marque, son arrondi, et le fait qu'elle survive au rejeu d'un favori — ce dernier cas traversant volontairement la couture jusqu'à `GetFavoriteDraft`, sur le modèle de `ProposedDishSavingTest`.
 
+## D88 — Le titre court se fabrique hors de l'application, et il ne touche jamais au libellé · ✓ validée
+
+**Contexte.** Deuxième demande d'usage ([12](12-plan-de-developpement.md#un-titre-court-sur-chaque-fiche)). Les libellés de l'ANSES décrivent une préparation — « Poulet, blanc, sans peau, cuit au four, sans matière grasse ajoutée » — et **2 091 des 3 484 fiches dépassent trente caractères**. Trois d'entre elles rendent une liste illisible.
+
+### Un revirement, et il vient d'un chiffre
+
+Le plan posait la question « quand la passe tourne » comme si le coût la commandait — « une fois, mais 3 484 fiches à payer ». **Le chiffre a été mesuré avant de trancher, et il ne dissuade rien** : les 3 484 titres valent entre 0,20 $ et 0,40 $ selon le modèle. Ce qui coûte n'est pas l'argent, ce sont les soixante-dix requêtes et leur durée.
+
+La conception a d'abord suivi un bouton dans les Réglages, puis Charly a tranché autrement : **la passe se fait hors de l'application, et son résultat entre au dépôt.** C'est le meilleur des deux, et pour une raison que le coût masquait : la table de l'ANSES ne change qu'à sa publication, donc re-raccourcir les mêmes libellés sur chaque téléphone est un travail refait pour rien. L'application ne gagne ni bouton, ni prompt en asset, ni compteur à payer.
+
+### Deux passes et non une, parce que ce ne sont pas deux facettes d'une chose
+
+Un titre court est un **affichage** qui n'invente aucun chiffre et concerne 2 091 fiches. Une valeur complétée est un **chiffre inventé** qui n'en concerne que 313, et qui exige une provenance valeur par valeur, une migration et un affichage qui le dise. Les livrer ensemble aurait retenu la première — sans risque et utile tout de suite — derrière la seconde. Celle-ci reste ouverte.
+
+### Un CSV versionné, comme les portions
+
+`tooling/ciqual/short-names.csv`, à côté de `servings.csv` et lu par la même tâche. Ce n'est pas une commodité : c'est ce qui rend le résultat **relisible et corrigeable ligne à ligne**, sans rien relancer ni repayer. Un titre raté se répare en éditant une ligne, et la correction survit à la génération suivante — qui ne redemande que les codes absents du fichier.
+
+C'est aussi ce qui rend la passe **reprenable**, la seule propriété qui rende soixante-dix requêtes supportables : le fichier est réécrit après chaque lot, donc une coupure au trentième reprend au trentième.
+
+Le lecteur est aussi sévère que celui des portions, et pour la même raison — ce fichier est écrit par une machine puis corrigé par une personne, donc c'est là que les deux se trompent. Un code inexistant, un titre vide, plus long que quarante caractères ou plus long que le libellé qu'il remplace arrêtent l'import en nommant la ligne.
+
+### Le titre ne vit pas dans le catalogue, et c'est [D54](#d54--un-bandeau-de-rayons-et-deux-familles-qui-ne-se-combinent-pas-pareil---validée) qui l'avait déjà tranché
+
+La table `food` ne le stocke pas. Il se relit dans `ciqual.db` par le code de la fiche, **exactement comme le rayon**, et pour le même raisonnement : une copie figerait le titre du jour où elle a été faite, corriger un titre à rallonge n'atteindrait jamais les fiches déjà utilisées, et une migration ne pourrait pas le rattraper — les deux bases sont deux fichiers. C'est une propriété de la **référence**, pas de la copie.
+
+Le bénéfice est immédiat : **aucune migration Room**, et les fiches déjà versées au catalogue — celles qu'on utilise le plus — reçoivent leur titre sans rien faire. `categoriesOf` devient donc `annotationsOf` et rend les deux en une requête : deux questions posées à la même table pour les mêmes codes, et les séparer aurait fait deux allers-retours par affichage.
+
+### Le libellé d'origine ne bouge jamais
+
+Il relie la fiche à sa source, et **c'est sur lui que l'index de recherche est bâti** : un index sur le titre court ne trouverait plus « poulet cuit au four sans matière grasse ». Une seule propriété décide de ce qui s'affiche — `Food.displayName`, le titre court sinon le libellé — parce que quatre listes, l'écran de validation et le nom d'une nouvelle ligne posent la même question, et que six réponses divergeraient au premier oubli.
+
+Ce nom-là est celui qu'une ligne neuve prend, donc celui que le journal fige : l'accueil devient lisible lui aussi, et c'est l'écran qu'on regarde tous les jours. L'écran de validation, lui, **rappelle le libellé d'origine** sous le champ — c'est lui qui distingue deux préparations du même aliment, et on valide ce qui va entrer au journal. Le rappel disparaît dès que le champ est retouché : sous un nom qu'on a écrit soi-même, un « libellé d'origine » désignerait autre chose que ce qu'on lit.
+
+**Une conséquence assumée** : deux fiches peuvent recevoir le même titre court, et une liste ne les distinguerait plus. Le prompt demande de garder ce qui distingue, mais un modèle qui ne voit qu'un lot de cinquante ne peut pas garantir l'unicité sur trois mille. L'import **les nomme sans bloquer** — en faire une condition rendrait la table impossible à produire, alors qu'un avertissement se corrige à la main.
+
+### La clé appartient à l'utilisateur, y compris dans une tâche Gradle
+
+La tâche la lit d'une propriété passée à l'invocation — `-PanthropicApiKey=…` — et rien d'autre. Elle n'est ni lue d'un fichier, ni écrite dans un fichier, ni journalisée, ni citée dans un message d'erreur : un message qui la porterait la ferait entrer dans un journal de build, c'est-à-dire dans un endroit qu'on partage sans y penser. La tâche ne déclare **ni entrée ni sortie** à Gradle, parce qu'une tâche qu'on paie doit partir quand on la lance, et non quand Gradle l'estime nécessaire.
+
+Le SDK Anthropic entre dans `:tooling:ciqual-import` et **nulle part ailleurs** : l'application parle à ses six fournisseurs par Retrofit et ses propres DTO, et rien de ce SDK n'atteint le graphe de `:app`. Le modèle par défaut est `claude-opus-5`, remplaçable par `-PshortNamesModel=…` ; le choix du modèle appartient à celui qui paie.
+
+**La réponse se lit en texte, pas en JSON.** Une ligne « code, tabulation, titre », et toute ligne sans tabulation est ignorée — ce qui absorbe un préambule ou un commentaire ajouté malgré la consigne. Perdre cinquante titres déjà payés parce que le modèle a écrit « Voici : » serait le pire des deux maux. Le rattachement se fait par **code**, jamais par libellé, exactement comme [D83](#d83--le-repli-invente-des-chiffres-une-seule-fois-et-en-le-disant---validée) l'a établi pour l'estimation : un modèle qui reformule produit un résultat qu'on ne peut plus rattacher, et on l'écarte plutôt que de le deviner.
+
+### Six titres écrits à la main
+
+Le CSV n'est pas vide, et ce n'est pas de la décoration. Tant que la passe n'a pas tourné, une chaîne complète sans une seule donnée ne s'éprouve pas : le test qui part du fichier livré n'aurait rien à lire. Six lignes écrites à la main servent d'exemple de ce qu'on attend **et** rendent la couture vérifiable de bout en bout. La génération ne les redemandera pas.
+
+**Campagne de défaite : dix-neuf sabotages, dix-neuf cas tombés — après quatre corrections.**
+
+Quatre règles n'étaient pas couvertes, et trois d'entre elles portaient sur des cas que je croyais écrits :
+
+- **Un test qui ne testait pas ce qu'il annonçait.** « Un titre plus long que le libellé est écarté » utilisait un libellé de soixante-six caractères, donc un titre plus long dépassait aussi la longueur maximale — et c'est **elle** qui l'écartait. La règle visée n'était jamais atteinte. Il a fallu une fixture de trente-deux caractères pour isoler les deux.
+- La virgule dans un titre du CSV, et le titre trop long du CSV : deux cas que je croyais couverts par leurs jumeaux du générateur.
+- **La colonne écrite par le writer** n'était éprouvée par personne : le sabotage visait les tests de `:data:food`, qui lisent l'asset **déjà produit** et qu'aucune modification du writer n'atteint. La cible était mauvaise autant que la couverture.
+
+Deux tours ont rapporté « rien n'a tourné » plutôt qu'une survie, et le harnais a eu raison d'exiger un nombre de cas exécutés supérieur à zéro : un sabotage qui cassait un *smart cast* et ne compilait pas, et un `NoClassDefFoundError` dû à l'état incrémental de Kotlin — le piège de [10](10-qualite-et-livraison.md#gradle) sous un troisième visage.
+
+**Conséquences.** `ciqual.db` gagne une colonne, donc `CiqualDatabase.REVISION` passe à 3 — c'est ce qui force la recopie sur un appareil déjà installé, et sans quoi la première requête aurait échoué chez Charly seulement. Le fichier grossit d'une page SQLite, 4 096 octets. Deux constats detekt ont mordu : les cinq chemins de l'import deviennent un type nommé plutôt qu'une déconstruction, et la lecture du CSV perd un `return`.
+
+**Ce que le vert ne prouve pas.** Aucun appel réel n'a été fait : la tâche est écrite, compilée et sa logique éprouvée sans réseau, mais **personne n'a encore vu un titre produit par un modèle**. Ce qui est vérifié est la chaîne — le CSV lu, la colonne écrite, la lecture, le modèle, l'affichage — sur six titres écrits à la main. La qualité des 2 085 autres est une question qui se posera quand ils existeront, et le fichier est fait pour qu'on y réponde en corrigeant des lignes.
+
+Ni la lisibilité des listes ni le rappel sous le champ ne s'éprouvent sans tenir le téléphone.
+
 ---
 
 ## Décisions prises par défaut, à confirmer

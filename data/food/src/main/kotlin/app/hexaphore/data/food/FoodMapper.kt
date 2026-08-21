@@ -22,11 +22,18 @@ import java.time.Instant
  * **Les huit valeurs traversent telles quelles.** Un `?: 0.0` sur l'une d'elles
  * serait la dernière occasion de perdre la distinction entre inconnu et zéro.
  */
-internal fun FoodEntity.toDomain(servings: List<FoodServing> = emptyList(), category: FoodCategory? = null) = Food(
+internal fun FoodEntity.toDomain(
+    servings: List<FoodServing> = emptyList(),
+    category: FoodCategory? = null,
+    shortName: String? = null,
+) = Food(
     id = FoodId(id),
     source = source.toFoodSource(),
     sourceRef = sourceRef,
     name = name,
+    // Il ne vient pas de cette table : la copie n'en porte pas, il se relit dans la
+    // base de reference par le code de la fiche, comme le rayon.
+    shortName = shortName,
     brand = brand,
     category = category,
     per100g = NutrientValues(
@@ -108,6 +115,7 @@ internal fun CiqualFoodRow.toDomain(id: FoodId, servings: List<CiqualServingRow>
     source = FoodSource.CIQUAL,
     sourceRef = code,
     name = name,
+    shortName = shortName,
     brand = null,
     category = category.toFoodCategory(),
     per100g = NutrientValues(

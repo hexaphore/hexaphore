@@ -55,6 +55,23 @@ data class Food(
     /** Code CIQUAL ou code-barres. `null` pour un aliment personnel sans origine. */
     val sourceRef: String? = null,
     val name: String,
+    /**
+     * Le libellé raccourci, quand la fiche en a un.
+     *
+     * **Un affichage, et rien d'autre.** [name] ne bouge jamais : c'est lui qui relie
+     * la fiche à sa source, et c'est sur lui que la recherche compare — un index bâti
+     * sur un titre court ne trouverait plus « poulet cuit au four sans matière grasse ».
+     *
+     * Il ne vit pas dans la table du catalogue : pour une fiche de l'ANSES, il se
+     * relit dans la base de référence par son code, comme le rayon et les portions.
+     * Une copie figerait le titre du jour où elle a été faite, et le corriger
+     * n'atteindrait jamais les fiches déjà utilisées.
+     *
+     * `null` veut dire « le libellé se lit très bien tel quel » : c'est le cas des
+     * deux cinquièmes de la table, des produits scannés et de tout aliment personnel,
+     * que l'utilisateur a nommé lui-même.
+     */
+    val shortName: String? = null,
     val brand: String? = null,
     /**
      * Le rayon, quand la fiche en a un.
@@ -102,6 +119,20 @@ data class Food(
 ) {
     /** La portion proposée par défaut, s'il y en a une. */
     val defaultServing: FoodServing? get() = servings.firstOrNull { it.isDefault }
+
+    /**
+     * Le nom sous lequel cette fiche se montre : le titre court s'il existe, sinon
+     * le libellé.
+     *
+     * Un seul endroit décide, et c'est ce qui compte : quatre listes, l'écran de
+     * validation et le nom que prend une nouvelle ligne de journal posent la même
+     * question, et six réponses divergeraient au premier oubli. C'est aussi ce nom
+     * que `FoodEntry.displayName` fige à l'enregistrement — le journal garde donc ce
+     * qui était affiché le jour où on l'a écrit ([D05][decisions]).
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val displayName: String get() = shortName ?: name
 
     /**
      * Ce qu'une fiche modifiable a de particulier.
