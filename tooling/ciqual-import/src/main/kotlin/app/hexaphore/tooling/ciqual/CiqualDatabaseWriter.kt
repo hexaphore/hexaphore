@@ -18,14 +18,14 @@ import java.sql.Types
  * [modele]: docs/07-modele-de-donnees.md
  */
 internal class CiqualDatabaseWriter(private val target: File) {
-    fun write(foods: List<CiqualFood>, servings: List<CiqualServing>) {
+    fun write(foods: List<CiqualFood>, servings: List<CiqualServing>, shortNames: List<CiqualShortName>) {
         target.parentFile.mkdirs()
         target.delete()
 
         DriverManager.getConnection("jdbc:sqlite:${target.absolutePath}").use { connection ->
             connection.autoCommit = false
             connection.createSchema()
-            connection.insertFoods(foods)
+            connection.insertFoods(foods, shortNames.associate { it.code to it.shortName })
             connection.insertServings(servings)
             connection.commit()
             // Une base livree dans un APK est lue et jamais ecrite : la compacter
@@ -50,12 +50,17 @@ internal class CiqualDatabaseWriter(private val target: File) {
      * `rowid` de `ciqual_food` — le laisser attribuer par SQLite des deux côtés
      * marcherait par coïncidence, jusqu'au jour où une insertion échoue au milieu.
      */
-    private fun Connection.insertFoods(foods: List<CiqualFood>) {
+    private fun Connection.insertFoods(foods: List<CiqualFood>, shortNames: Map<String, String>) {
         batch(INSERT_FOOD, foods.withIndex()) { (index, food) ->
             integer(index + 1)
             text(food.code)
             text(food.name)
             text(SearchText.normalise(food.name))
+            // `NULL` quand aucun titre court n'a ete ecrit pour ce code, et c'est le
+            // cas courant : un libelle deja lisible n'en recoit pas. L'affichage
+            // retombe alors sur le libelle d'origine, ce qui est le comportement
+            // d'avant cette colonne.
+            text(shortNames[food.code])
             text(food.groupName)
             // Le nom de l'enumeration du domaine, et non un entier : une
             // renumerotation silencieuse rangerait les poissons dans les desserts,
@@ -114,8 +119,8 @@ internal class CiqualDatabaseWriter(private val target: File) {
     }
 
     internal companion object {
-        /** `rowid`, `code`, `name`, `name_search`, `group_name`, `category`, puis les teneurs. */
-        private const val FIXED_COLUMNS = 6
+        /** `rowid`, `code`, `name`, `name_search`, `short_name`, `group_name`, `category`, puis les teneurs. */
+        private const val FIXED_COLUMNS = 7
 
         val SCHEMA =
             listOf(
@@ -125,6 +130,10 @@ internal class CiqualDatabaseWriter(private val target: File) {
                     code TEXT NOT NULL UNIQUE,
                     name TEXT NOT NULL,
                     name_search TEXT NOT NULL,
+                    -- Le titre court, quand un libelle en valait la peine. NULL
+                    -- signifie « le libelle d'origine suffit », jamais « pas encore
+                    -- traite » : la generation ne demande que les libelles longs.
+                    short_name TEXT,
                     group_name TEXT,
                     category TEXT,
                     ${Nutrient.entries.joinToString(",\n                    ") { "${it.column} REAL" }}
@@ -162,7 +171,7 @@ internal class CiqualDatabaseWriter(private val target: File) {
         // reordonner Nutrient reordonne les deux ensemble, ou aucune des deux.
         val INSERT_FOOD =
             buildString {
-                append("INSERT INTO ciqual_food (rowid, code, name, name_search, group_name, category")
+                append("INSERT INTO ciqual_food (rowid, code, name, name_search, short_name, group_name, category")
                 Nutrient.entries.forEach { append(", ").append(it.column) }
                 append(") VALUES (")
                 append(List(FIXED_COLUMNS + Nutrient.entries.size) { "?" }.joinToString())

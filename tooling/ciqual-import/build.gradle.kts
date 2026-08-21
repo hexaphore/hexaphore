@@ -16,6 +16,11 @@ dependencies {
     // base ; celle d'Android ne fait que la lire.
     implementation(libs.sqlite.jdbc)
 
+    // Pour la seule tache `generateShortNames`. L'application, elle, parle a ses six
+    // fournisseurs par Retrofit et ses propres DTO : ce SDK n'entre dans aucun APK,
+    // et le prendre ici ne lie personne d'autre a Anthropic.
+    implementation(libs.anthropic.java)
+
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
@@ -33,6 +38,7 @@ dependencies {
 
 val sourceArchive = layout.projectDirectory.file("../ciqual/ciqual-2025-11-03-xml.zip").asFile
 val servingsTable = layout.projectDirectory.file("../ciqual/servings.csv").asFile
+val shortNamesTable = layout.projectDirectory.file("../ciqual/short-names.csv").asFile
 val sourceChecksums = layout.projectDirectory.file("../ciqual/SOURCE.sha256").asFile
 val generatedDatabase = rootProject.layout.projectDirectory.file("core/database/src/main/assets/ciqual.db").asFile
 
@@ -43,13 +49,44 @@ tasks.register<JavaExec>("importCiqual") {
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("app.hexaphore.tooling.ciqual.CiqualImportKt")
 
-    inputs.files(sourceArchive, servingsTable, sourceChecksums)
+    inputs.files(sourceArchive, servingsTable, shortNamesTable, sourceChecksums)
     outputs.file(generatedDatabase)
 
     args(
         sourceArchive.absolutePath,
         servingsTable.absolutePath,
+        shortNamesTable.absolutePath,
         sourceChecksums.absolutePath,
         generatedDatabase.absolutePath,
+    )
+}
+
+// --- La tache des titres courts ----------------------------------------------
+//
+// Elle appelle un fournisseur, donc elle coute de l'argent et un compte. Elle n'a
+// pour cette raison ni entree ni sortie declaree a Gradle : la marquer a jour la
+// rendrait muette le jour ou l'on veut completer ce qui manque, et une tache qu'on
+// paie doit partir quand on la lance, pas quand Gradle l'estime necessaire.
+//
+// La cle vient de la ligne de commande et n'est ni lue d'un fichier, ni ecrite dans
+// un fichier, ni conservee. Elle appartient a l'utilisateur.
+//
+//   ./gradlew generateShortNames -PanthropicApiKey=... [-PshortNamesModel=...]
+
+val shortNamesModel = providers.gradleProperty("shortNamesModel").getOrElse("claude-opus-5")
+val anthropicApiKey = providers.gradleProperty("anthropicApiKey").getOrElse("")
+
+tasks.register<JavaExec>("generateShortNames") {
+    group = LifecycleBasePlugin.BUILD_GROUP
+    description = "Ecrit tooling/ciqual/short-names.csv. Demande -PanthropicApiKey=... et depense."
+
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("app.hexaphore.tooling.ciqual.GenerateShortNamesKt")
+
+    args(
+        sourceArchive.absolutePath,
+        shortNamesTable.absolutePath,
+        shortNamesModel,
+        anthropicApiKey,
     )
 }

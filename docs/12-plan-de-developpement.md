@@ -301,6 +301,21 @@ illisible. Une seconde colonne, courte, tenue à côté du libellé d'origine.
 **Le libellé d'origine ne bouge jamais** : c'est lui qui relie la fiche à sa source, et
 c'est sur lui que la recherche compare. Le titre court est un affichage.
 
+> **Livrée** ([D88](11-decisions.md#d88--le-titre-court-se-fabrique-hors-de-lapplication-et-il-ne-touche-jamais-au-libellé---validée)).
+> La chaîne entière : un CSV versionné à côté de `servings.csv`, une colonne de
+> `ciqual.db`, `Food.shortName`, et l'affichage dans les listes comme sur les
+> nouvelles lignes de journal. L'écran de validation rappelle le libellé d'origine
+> sous le champ.
+>
+> **La passe ne tourne pas dans l'application** : `./gradlew generateShortNames
+> -PanthropicApiKey=...` produit le fichier, qu'on relit et corrige à la main avant
+> de relancer `importCiqual`. Six titres y sont écrits à la main ; les 2 085 autres
+> attendent que la tâche soit lancée. Tant qu'elle ne l'est pas, chaque fiche
+> s'affiche sous son libellé, comme avant.
+>
+> Le coût a été mesuré avant d'arbitrer, et il ne dissuade rien : **0,20 à 0,40 $**
+> pour les 3 484 fiches. Ce qui coûte, ce sont les soixante-dix requêtes.
+
 ### La complétion des valeurs manquantes, sans écraser la source
 
 CIQUAL laisse des trous — la feta sans énergie déterminée, les câpres —, et Open Food
@@ -316,18 +331,24 @@ C'est le raisonnement de [D83](11-decisions.md#d83--le-repli-invente-des-chiffre
 poussé un cran plus loin : là, une estimation ne devenait jamais une fiche ; ici elle
 entre au catalogue, et doit donc porter sa provenance **valeur par valeur**.
 
-**Ce qui reste à arbitrer**, et qui change beaucoup de choses :
+**Ce qui est arbitré**, et qui reste à construire :
 
-- **Quand.** À l'import de CIQUAL — une fois, hors ligne, mais 3 484 fiches à payer ?
-  Au premier usage d'une fiche — étalé, mais imprévisible ? En tâche de fond ?
-- **Avec quoi.** Un « petit modèle » est un modèle de plus à configurer, ou le
-  fournisseur déjà actif à effort réduit.
-- **Ce que l'écran en dit.** Une valeur complétée reste une valeur inventée. La marque
-  existe déjà pour une ligne — `Suggestion.estimatedMacros` —, mais elle ne dit rien
-  d'une fiche du catalogue dont trois valeurs sur six viennent d'un modèle.
-- **Ce qu'il advient d'une complétion quand la source se met à jour.** Une valeur
-  mesurée qui arrive doit prendre la place de la valeur complétée à l'affichage — mais
-  la complétion doit-elle être effacée, ou gardée en cas de retour en arrière ?
+- **Quand.** Hors de l'application, comme le titre court : une tâche qu'on lance à la
+  main, un fichier versionné. Seules **313 fiches sur 3 484** ont un trou — 0,04 $.
+- **Avec quoi.** La même tâche et le même modèle que le titre court
+  ([D88](11-decisions.md#d88--le-titre-court-se-fabrique-hors-de-lapplication-et-il-ne-touche-jamais-au-libellé---validée)),
+  mais **une passe distincte** : un titre est un affichage, une valeur complétée est
+  un chiffre inventé, et les deux n'appellent ni la même prudence ni la même relecture.
+- **Ce que l'écran en dit.** Valeur par valeur, au contour pointillé de
+  [D25](11-decisions.md) — jamais une couleur, et jamais une marque de fiche : une
+  fiche dont trois valeurs sur six sont complétées doit dire **lesquelles**.
+- **Ce qu'il advient d'une complétion quand la source se met à jour.** Elle est
+  **effacée**. Une estimation a été produite contre un état précis de la fiche ;
+  l'état change, elle ne décrit plus cette fiche-là, et la garder ferait resurgir un
+  chiffre périmé si la mesure repartait. La refaire coûte quelques centimes.
+
+Ce qui reste à faire est donc l'essentiel : les colonnes distinctes, la lecture qui
+préfère l'originale, la marque à l'écran, et la seconde passe.
 
 ---
 

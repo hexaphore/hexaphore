@@ -9,6 +9,14 @@ import java.io.File
 data class CiqualFoodRow(
     val code: String,
     val name: String,
+    /**
+     * Le titre court, quand ce libellé en valait un.
+     *
+     * `null` veut dire « le libellé se lit très bien tel quel », pas « pas encore
+     * traité » : la génération ne demande que les libellés à rallonge. L'affichage
+     * retombe alors sur [name], ce qu'il faisait avant que cette colonne existe.
+     */
+    val shortName: String?,
     val groupName: String?,
     /** Le rayon du bandeau, sous le nom de l'énumération du domaine. `null` s'il n'en a pas. */
     val category: String?,
@@ -24,6 +32,15 @@ data class CiqualFoodRow(
 
 /** Une portion usuelle de `ciqual_serving`. */
 data class CiqualServingRow(val label: String, val grams: Double, val isDefault: Boolean)
+
+/**
+ * Ce que la table de l'ANSES sait d'une fiche que le catalogue a copiée.
+ *
+ * Deux informations qui n'appartiennent pas à la copie : le rayon du bandeau et le
+ * titre court. `null` des deux côtés est une réponse — une huile n'a pas de rayon,
+ * un libellé déjà lisible n'a pas de titre court.
+ */
+data class CiqualAnnotations(val category: String?, val shortName: String?)
 
 /**
  * La table de l'ANSES, embarquée en lecture seule.
@@ -88,23 +105,33 @@ class CiqualDatabase(private val context: Context) {
         }
 
     /**
-     * Les rayons de plusieurs fiches, en une requête.
+     * Ce que la table de référence sait de plusieurs fiches, en une requête.
      *
-     * Une fiche copiée dans le catalogue **ne stocke pas** son rayon : il se relit
-     * ici, par son code, comme les portions ([D54][decisions]). Une requête par ligne
-     * en ferait des centaines pour un seul affichage — d'où le lot.
+     * Une fiche copiée dans le catalogue **ne stocke ni son rayon ni son titre
+     * court** : les deux se relisent ici, par code, comme les portions
+     * ([D54][decisions]). Une copie figerait la correspondance du jour où elle a été
+     * faite — corriger un rayon ou un titre à rallonge ne l'atteindrait jamais, et
+     * une migration ne pourrait pas le rattraper, les deux bases étant deux fichiers.
+     * Ce sont des propriétés de la **référence**, pas de la copie, contrairement aux
+     * six valeurs, que le journal fige exprès ([D05][decisions]).
+     *
+     * Les deux ensemble et non deux appels : ce sont deux questions posées à la même
+     * table pour les mêmes codes, et les séparer ferait deux allers-retours par
+     * affichage.
      *
      * [decisions]: docs/11-decisions.md
      */
-    fun categoriesOf(codes: Collection<String>): Map<String, String> {
+    fun annotationsOf(codes: Collection<String>): Map<String, CiqualAnnotations> {
         if (codes.isEmpty()) return emptyMap()
         val distinct = codes.distinct()
-        val sql = "SELECT code, category FROM ciqual_food WHERE code IN (${distinct.joinToString { "?" }})"
+        val sql = "SELECT code, category, short_name FROM ciqual_food WHERE code IN (${distinct.joinToString { "?" }})"
 
         return database.rawQuery(sql, distinct.toTypedArray()).use { cursor ->
             cursor
-                .map { it.getString(0) to it.optionalString(1) }
-                .mapNotNull { (code, category) -> category?.let { code to it } }
+                .map {
+                    it.getString(0) to
+                        CiqualAnnotations(category = it.optionalString(1), shortName = it.optionalString(2))
+                }
                 .toMap()
         }
     }
@@ -165,14 +192,14 @@ class CiqualDatabase(private val context: Context) {
          * À incrémenter dès que `CiqualDatabaseWriter.SCHEMA` change, ou que
          * `CiqualCategories` réarbitre un rayon.
          */
-        const val REVISION = 2
+        const val REVISION = 3
         const val FILE_PREFIX = "ciqual-"
         const val FILE_NAME = "$FILE_PREFIX$EDITION-r$REVISION.db"
 
         const val SELECT_COLUMNS =
             """
-            SELECT code, name, group_name, category, kcal_100, protein_100, carb_100,
-                   sugar_100, fat_100, fiber_100, saturated_fat_100, salt_100
+            SELECT code, name, short_name, group_name, category, kcal_100, protein_100,
+                   carb_100, sugar_100, fat_100, fiber_100, saturated_fat_100, salt_100
             """
 
         /**
@@ -224,6 +251,7 @@ private fun Cursor.toFoodRow(): CiqualFoodRow {
     return CiqualFoodRow(
         code = getString(column++),
         name = getString(column++),
+        shortName = optionalString(column++),
         groupName = optionalString(column++),
         category = optionalString(column++),
         kcal100 = optionalDouble(column++),

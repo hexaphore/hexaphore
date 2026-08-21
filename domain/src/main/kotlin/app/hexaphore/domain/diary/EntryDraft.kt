@@ -203,7 +203,11 @@ data class DraftLine(
                 id = id,
                 foodId = food.id,
                 food = food,
-                name = food.name,
+                // Le titre court quand la fiche en a un : c'est ce nom-la que le
+                // journal figera, et l'accueil est l'ecran ou un libelle a rallonge
+                // se paie tous les jours. Le libelle d'origine reste lisible sous le
+                // champ, porte par [food].
+                name = food.displayName,
                 quantity = quantity,
                 unit = unit ?: QuantityUnit.Gram,
                 values = food.per100g.per(quantity * (unit?.gramsPerUnit ?: 1.0)),

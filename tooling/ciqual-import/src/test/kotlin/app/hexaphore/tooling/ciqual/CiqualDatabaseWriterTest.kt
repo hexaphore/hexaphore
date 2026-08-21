@@ -116,6 +116,40 @@ class CiqualDatabaseWriterTest {
     }
 
     @Test
+    fun `le titre court est ecrit a cote du libelle, sans le remplacer`() {
+        // Le libelle d'origine ne bouge jamais : c'est lui qui relie la fiche a sa
+        // source, et c'est sur lui que la recherche compare. Le titre court est une
+        // seconde colonne, jamais une reecriture de la premiere.
+        val titre = CiqualShortName("13039", "Pomme crue")
+
+        write(listOf(POMME), emptyList(), listOf(titre)).use { connection ->
+            assertEquals("Pomme crue", connection.shortName("13039"))
+            assertEquals("Pomme, chair et peau, crue", connection.name("13039"))
+        }
+    }
+
+    @Test
+    fun `un aliment sans titre court garde une colonne nulle`() {
+        // L'absence est une reponse : « le libelle se lit tres bien tel quel », et
+        // non « pas encore traite ». Une chaine vide obligerait chaque lecture a
+        // distinguer les deux.
+        write(POMME, CREME).use { assertNull(it.shortName("13039"), "aucun titre n'a ete ecrit pour elle") }
+    }
+
+    @Test
+    fun `le titre court d un aliment ne deborde pas sur un autre`() {
+        // Les titres sont lies par code, pas par position : une liaison
+        // positionnelle collerait le titre de la pomme sur la creme des que l'ordre
+        // des deux listes differerait.
+        val titre = CiqualShortName("39213", "Creme brulee")
+
+        write(listOf(POMME, CREME), emptyList(), listOf(titre)).use { connection ->
+            assertEquals("Creme brulee", connection.shortName("39213"))
+            assertNull(connection.shortName("13039"))
+        }
+    }
+
+    @Test
     fun `le mode parcours rend les aliments d un rayon`() {
         // Une pastille, aucun mot : la requete ne passe pas par l'index plein texte.
         write(POMME, CREME, THE).use { connection ->
@@ -128,9 +162,13 @@ class CiqualDatabaseWriterTest {
 
     private fun write(vararg foods: CiqualFood): Connection = write(foods.toList(), emptyList())
 
-    private fun write(foods: List<CiqualFood>, servings: List<CiqualServing>): Connection {
+    private fun write(
+        foods: List<CiqualFood>,
+        servings: List<CiqualServing>,
+        shortNames: List<CiqualShortName> = emptyList(),
+    ): Connection {
         val file = File(directory.toFile(), "ciqual.db")
-        CiqualDatabaseWriter(file).write(foods, servings)
+        CiqualDatabaseWriter(file).write(foods, servings, shortNames)
         return DriverManager.getConnection("jdbc:sqlite:${file.absolutePath}")
     }
 
@@ -157,8 +195,14 @@ class CiqualDatabaseWriterTest {
             }
         }
 
-    private fun Connection.category(code: String): String? =
-        prepareStatement("SELECT category FROM ciqual_food WHERE code = ?").use { statement ->
+    private fun Connection.category(code: String): String? = textColumn("category", code)
+
+    private fun Connection.shortName(code: String): String? = textColumn("short_name", code)
+
+    private fun Connection.name(code: String): String? = textColumn("name", code)
+
+    private fun Connection.textColumn(column: String, code: String): String? =
+        prepareStatement("SELECT $column FROM ciqual_food WHERE code = ?").use { statement ->
             statement.setString(1, code)
             statement.executeQuery().use { rows ->
                 rows.next()

@@ -47,7 +47,7 @@ internal fun FoodRow(food: Food, actions: SearchActions) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = food.name,
+                text = food.displayName,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -78,7 +78,7 @@ internal fun FoodRow(food: Food, actions: SearchActions) {
                 imageVector = if (food.favorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                 contentDescription = stringResource(
                     if (food.favorite) R.string.search_unpin else R.string.search_pin,
-                    food.name,
+                    food.displayName,
                 ),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -87,7 +87,7 @@ internal fun FoodRow(food: Food, actions: SearchActions) {
             IconButton(onClick = { actions.onDelete(food) }) {
                 Icon(
                     imageVector = Icons.Filled.Delete,
-                    contentDescription = stringResource(R.string.search_delete, food.name),
+                    contentDescription = stringResource(R.string.search_delete, food.displayName),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

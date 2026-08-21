@@ -1,0 +1,33 @@
+# Titres courts, associes a un code CIQUAL.
+#
+# Les libelles de l'ANSES decrivent une preparation complete -- « Poulet,
+# blanc, sans peau, cuit au four, sans matiere grasse ajoutee » -- et trois
+# d'entre eux rendent une liste illisible. Cette table porte le raccourci.
+#
+# Le libelle d'origine ne bouge jamais : c'est lui qui relie la fiche a sa
+# source, et c'est sur lui que la recherche compare. Un titre court n'est
+# qu'un affichage.
+#
+# Produit par la tache `generateShortNames`, puis **relu et corrigeable a la
+# main**. Une correction survit a la generation suivante, qui ne redemande
+# que les codes absents de ce fichier.
+#
+# Un titre doit etre plus court que son libelle d'origine et tenir en
+# 40 caracteres, sans quoi l'import s'arrete en nommant la ligne.
+#
+# --- Les six lignes ci-dessous sont ecrites a la main -------------------------
+#
+# Elles ne viennent d'aucun modele : elles servent d'exemple de ce qu'on
+# attend, et surtout elles rendent la chaine eprouvable de bout en bout tant
+# que la passe n'a pas tourne. Un test les lit dans la base livree.
+#
+# La generation ne les redemandera pas : elle ne demande que les codes absents
+# de ce fichier.
+
+code_ciqual,titre_court
+13121,Pomme Granny Smith pelee
+19575,Yaourt aromatise sucre
+20360,Lentilles cuites
+25019,Ravioli au boeuf
+36006,Cuisse de poulet rotie
+36041,Filet de poulet grille bio

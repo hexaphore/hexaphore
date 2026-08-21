@@ -31,7 +31,7 @@ Colonnes utilisées, sous leur intitulé exact dans le fichier source :
 
 ### Import au build
 
-Une tâche Gradle (`:tooling:ciqual-import:importCiqual`) transforme le XML de l'ANSES en base SQLite pré-construite, livrée dans `core/database/src/main/assets/ciqual.db` — **824 Ko**, et non les 4 Mo estimés ici : sur les 74 constituants publiés, huit sont retenus.
+Une tâche Gradle (`:tooling:ciqual-import:importCiqual`) transforme le XML de l'ANSES en base SQLite pré-construite, livrée dans `core/database/src/main/assets/ciqual.db` — **928 Ko**, et non les 4 Mo estimés ici : sur les 74 constituants publiés, huit sont retenus.
 
 Le fichier source brut est versionné dans le dépôt sous `tooling/ciqual/`, et la base générée l'est aussi : sans elle, un `git clone` suivi d'un build donnerait une application vide. Les quatre fichiers de l'ANSES y sont sous forme d'archive, lue sans être décompressée sur disque : `compo.xml` pèse 69 Mo pour 257 816 enregistrements, et 2 Mo compressés.
 

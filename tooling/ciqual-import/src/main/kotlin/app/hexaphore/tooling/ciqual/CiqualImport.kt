@@ -16,25 +16,54 @@ import java.security.MessageDigest
  * et un message d'erreur illisible est un message perdu.
  */
 fun main(args: Array<String>) {
-    require(args.size == ARGUMENT_COUNT) {
-        "Usage : importCiqual <archive.zip> <servings.csv> <SOURCE.sha256> <sortie.db>"
-    }
-    val files = args.map(::File)
-    val (archive, servings, checksums) = files
-    val output = files.last()
+    val paths = ImportPaths.of(args)
 
-    verifyChecksum(archive, checksums)
+    verifyChecksum(paths.archive, paths.checksums)
 
-    val table = CiqualArchive(archive).use { CiqualReader(it).read() }
+    val table = CiqualArchive(paths.archive).use { CiqualReader(it).read() }
     failOnUnrecognisedValues(table.unrecognised)
 
-    val portions = ServingsCsv.read(servings, table.foods.map { it.code }.toSet())
-    CiqualDatabaseWriter(output).write(table.foods, portions)
+    val portions = ServingsCsv.read(paths.servings, table.foods.map { it.code }.toSet())
+    // Les libelles servent a valider : un titre court doit designer un code qui
+    // existe, et etre plus court que ce qu'il remplace.
+    val titles = ShortNamesCsv.read(paths.shortNames, table.foods.associate { it.code to it.name })
+    CiqualDatabaseWriter(paths.output).write(table.foods, portions, titles)
 
-    report(table.foods, portions, output)
+    report(table.foods, portions, titles, paths.output)
 }
 
-private const val ARGUMENT_COUNT = 4
+/**
+ * Les cinq chemins de l'import, nommes.
+ *
+ * Un type plutot qu'une deconstruction : a cinq elements, l'ordre ne se lit plus, et
+ * intervertir servings.csv et short-names.csv produirait une erreur d'en-tete qui
+ * parle d'autre chose que du vrai probleme.
+ */
+private data class ImportPaths(
+    val archive: File,
+    val servings: File,
+    val shortNames: File,
+    val checksums: File,
+    val output: File,
+) {
+    companion object {
+        fun of(args: Array<String>): ImportPaths {
+            require(args.size == ARGUMENT_COUNT) {
+                "Usage : importCiqual <archive.zip> <servings.csv> <short-names.csv> <SOURCE.sha256> <sortie.db>"
+            }
+            val files = args.map(::File)
+            return ImportPaths(
+                archive = files[0],
+                servings = files[1],
+                shortNames = files[2],
+                checksums = files[3],
+                output = files[4],
+            )
+        }
+    }
+}
+
+private const val ARGUMENT_COUNT = 5
 
 /**
  * Le controle d'empreinte demande par docs/04.
@@ -103,16 +132,52 @@ private fun failOnUnrecognisedValues(unrecognised: List<UnrecognisedValue>) {
 
 private const val SHOWN_SAMPLES = 20
 
-private fun report(foods: List<CiqualFood>, servings: List<CiqualServing>, output: File) {
+private fun report(
+    foods: List<CiqualFood>,
+    servings: List<CiqualServing>,
+    titles: List<CiqualShortName>,
+    output: File,
+) {
     val missing = Nutrient.entries.associateWith { nutrient -> foods.count { it[nutrient] == null } }
+    val worthShortening = foods.count { it.name.length > ShortNamesCsv.WORTH_SHORTENING }
 
     println("ciqual.db ecrite : ${output.absolutePath}")
     println("  ${foods.size} aliments, ${servings.size} portions, ${output.length() / KILOBYTE} Ko")
+    // Le second chiffre est celui qui informe : un titre court manquant sur un
+    // libelle deja lisible n'est pas un trou, un titre manquant sur un libelle a
+    // rallonge en est un.
+    println("  ${titles.size} titres courts, sur $worthShortening libelles qui en valent la peine")
+    reportAmbiguousTitles(titles)
     println("  valeurs inconnues, par colonne (NULL, jamais zero) :")
     missing.forEach { (nutrient, count) ->
         println("    ${nutrient.column.padEnd(NUTRIENT_COLUMN_WIDTH)} $count / ${foods.size}")
     }
     reportCategories(foods)
+}
+
+/**
+ * Deux fiches sous le meme titre court : signale, jamais bloquant.
+ *
+ * Un titre court abandonne ce qui ne distingue rien, et deux fiches voisines peuvent
+ * se retrouver sous le meme nom -- « Poulet roti » pour la version avec peau et celle
+ * sans. Dans une liste de recherche, ou le libelle d'origine ne s'affiche pas, les
+ * deux deviennent alors indiscernables.
+ *
+ * **Un avertissement et non une erreur** : le modele ne voit qu'un lot de cinquante
+ * a la fois et ne peut pas garantir l'unicite sur trois mille, donc en faire une
+ * condition d'import rendrait la table impossible a produire. Ce qui est possible,
+ * c'est de nommer les collisions pour qu'on les corrige a la main dans le CSV.
+ */
+private fun reportAmbiguousTitles(titles: List<CiqualShortName>) {
+    val collisions = titles.groupBy { it.shortName.lowercase() }.filterValues { it.size > 1 }
+    if (collisions.isEmpty()) return
+
+    println("  ${collisions.size} titre(s) court(s) porte(s) par plusieurs fiches :")
+    collisions.entries.take(SHOWN_SAMPLES).forEach { (title, duplicates) ->
+        println("    $title : ${duplicates.joinToString { it.code }}")
+    }
+    if (collisions.size > SHOWN_SAMPLES) println("    ... et ${collisions.size - SHOWN_SAMPLES} autre(s).")
+    println("    Une liste de recherche ne les distinguera pas. A departager dans short-names.csv.")
 }
 
 /**

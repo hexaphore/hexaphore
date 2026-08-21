@@ -1,5 +1,6 @@
 package app.hexaphore.data.food
 
+import app.hexaphore.core.database.ciqual.CiqualAnnotations
 import app.hexaphore.core.database.ciqual.CiqualDatabase
 import app.hexaphore.core.database.dao.FoodDao
 import app.hexaphore.core.database.dao.FoodMarksDao
@@ -7,7 +8,6 @@ import app.hexaphore.core.database.entity.FoodEntity
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.food.FavoriteFoods
 import app.hexaphore.domain.food.Food
-import app.hexaphore.domain.food.FoodCategory
 import app.hexaphore.domain.food.FoodFilter
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodLookup
@@ -100,14 +100,17 @@ class RoomFoodCatalog @Inject constructor(
     }
 
     override suspend fun byId(id: FoodId): Food? = withContext(dispatchers.io) {
-        dao.byId(id.value)?.let { it.toDomain(ciqual.servingsOf(it.source, it.sourceRef), ciqual.categoryOf(it)) }
+        dao.byId(id.value)?.let {
+            val known = ciqual.annotationOf(it)
+            it.toDomain(ciqual.servingsOf(it.source, it.sourceRef), known?.category.toFoodCategory(), known?.shortName)
+        }
     }
 
     override fun observeRecent(limit: Int): Flow<List<Food>> =
-        marks.observeRecent(limit).map(ciqual::withServingsAndCategories).flowOn(dispatchers.io)
+        marks.observeRecent(limit).map(ciqual::withServingsAndAnnotations).flowOn(dispatchers.io)
 
     override fun observeFavorites(): Flow<List<Food>> =
-        marks.observeFavorites().map(ciqual::withServingsAndCategories).flowOn(dispatchers.io)
+        marks.observeFavorites().map(ciqual::withServingsAndAnnotations).flowOn(dispatchers.io)
 
     override suspend fun setFavorite(id: FoodId, favorite: Boolean) = withContext(dispatchers.io) {
         marks.setFavorite(id.value, favorite, clock.now().toEpochMilli())
@@ -170,7 +173,7 @@ private fun CiqualDatabase.results(
     limit: Int,
     ids: IdGenerator,
 ): List<Food> {
-    val local = withCategories(rows).filter(filter::matches)
+    val local = withAnnotations(rows).filter(filter::matches)
     // Une qualite demandee ecarte la table de l'ANSES : une ligne qui n'a pas ete
     // versee au catalogue n'est ni personnelle ni epinglee.
     val proposed = if (filter.traits.isEmpty()) notYetCopied(local, normalised, filter, limit, ids) else emptyList()
@@ -205,34 +208,38 @@ private fun CiqualDatabase.notYetCopied(
 }
 
 /**
- * Le rayon des fiches copiées, relu dans la table de l'ANSES.
+ * Le rayon et le titre court des fiches copiées, relus dans la table de l'ANSES.
  *
- * **Il n'est pas stocké dans `food`, et c'est un choix.** Une copie figerait la
+ * **Ils ne sont pas stockés dans `food`, et c'est un choix.** Une copie figerait la
  * correspondance du jour où elle a été faite : corriger un rayon dans
- * `CiqualCategories` ne l'atteindrait jamais, et une migration ne pourrait pas le
- * rattraper — les deux bases sont deux fichiers ([D54][decisions]). Le rayon est une
- * propriété de la **référence**, pas de la copie, contrairement aux six valeurs, que
- * le journal fige exprès ([D05][decisions]).
+ * `CiqualCategories`, ou un titre à rallonge dans `short-names.csv`, ne l'atteindrait
+ * jamais — et une migration ne pourrait pas le rattraper, les deux bases étant deux
+ * fichiers ([D54][decisions]). Ce sont des propriétés de la **référence**, pas de la
+ * copie, contrairement aux six valeurs, que le journal fige exprès ([D05][decisions]).
  *
  * En un seul lot : une requête par ligne en ferait des centaines par affichage.
  *
  * [decisions]: docs/11-decisions.md
  */
-private fun CiqualDatabase.withCategories(rows: List<FoodEntity>): List<Food> {
-    val categories = categoriesOf(rows.mapNotNull { it.ciqualCode })
-    return rows.map { it.toDomain(category = categories[it.ciqualCode].toFoodCategory()) }
-}
-
-/** Comme [withCategories], plus les portions — pour les listes courtes qui les affichent. */
-private fun CiqualDatabase.withServingsAndCategories(rows: List<FoodEntity>): List<Food> {
-    val categories = categoriesOf(rows.mapNotNull { it.ciqualCode })
+private fun CiqualDatabase.withAnnotations(rows: List<FoodEntity>): List<Food> {
+    val annotations = annotationsOf(rows.mapNotNull { it.ciqualCode })
     return rows.map {
-        it.toDomain(servingsOf(it.source, it.sourceRef), categories[it.ciqualCode].toFoodCategory())
+        val known = annotations[it.ciqualCode]
+        it.toDomain(category = known?.category.toFoodCategory(), shortName = known?.shortName)
     }
 }
 
-private fun CiqualDatabase.categoryOf(row: FoodEntity): FoodCategory? =
-    row.ciqualCode?.let { categoriesOf(listOf(it))[it] }.toFoodCategory()
+/** Comme [withAnnotations], plus les portions — pour les listes courtes qui les affichent. */
+private fun CiqualDatabase.withServingsAndAnnotations(rows: List<FoodEntity>): List<Food> {
+    val annotations = annotationsOf(rows.mapNotNull { it.ciqualCode })
+    return rows.map {
+        val known = annotations[it.ciqualCode]
+        it.toDomain(servingsOf(it.source, it.sourceRef), known?.category.toFoodCategory(), known?.shortName)
+    }
+}
+
+private fun CiqualDatabase.annotationOf(row: FoodEntity): CiqualAnnotations? =
+    row.ciqualCode?.let { annotationsOf(listOf(it))[it] }
 
 /** Le code de l'ANSES d'une fiche, quand elle en vient. Lui seul désigne un rayon. */
 private val FoodEntity.ciqualCode: String? get() = sourceRef.takeIf { source == FoodSource.CIQUAL.name }
