@@ -28,6 +28,35 @@ data class CiqualFoodRow(
     val fiber100: Double?,
     val saturatedFat100: Double?,
     val salt100: Double?,
+    /**
+     * Les teneurs complétées par un modèle, **dans leur propre champ**.
+     *
+     * Elles ne sont pas fusionnées ici et ne le seront pas plus bas : c'est la
+     * lecture du domaine qui préfère l'originale et retient laquelle a servi. Les
+     * mêler dès la base ferait perdre la seule information qui compte — laquelle des
+     * deux a répondu.
+     *
+     * Les six compteurs affichés seulement : compléter des acides gras saturés que
+     * personne ne regarde serait une dépense pour une valeur que rien ne vérifierait.
+     */
+    val estimated: CiqualEstimates = CiqualEstimates(),
+)
+
+/**
+ * Les six teneurs qu'un modèle a comblées pour une fiche, quand il en a comblé.
+ *
+ * Toutes nulles dans le cas courant — 91 % des fiches de l'ANSES n'ont aucun trou.
+ * `null` signifie ici « rien n'a été complété », ce qui n'est pas la même chose que
+ * « la teneur vaut zéro » : cette dernière est une valeur, et elle se range dans le
+ * champ d'origine ou dans celui-ci selon qui l'a donnée.
+ */
+data class CiqualEstimates(
+    val kcal100: Double? = null,
+    val protein100: Double? = null,
+    val carb100: Double? = null,
+    val sugar100: Double? = null,
+    val fat100: Double? = null,
+    val fiber100: Double? = null,
 )
 
 /** Une portion usuelle de `ciqual_serving`. */
@@ -192,14 +221,16 @@ class CiqualDatabase(private val context: Context) {
          * À incrémenter dès que `CiqualDatabaseWriter.SCHEMA` change, ou que
          * `CiqualCategories` réarbitre un rayon.
          */
-        const val REVISION = 3
+        const val REVISION = 4
         const val FILE_PREFIX = "ciqual-"
         const val FILE_NAME = "$FILE_PREFIX$EDITION-r$REVISION.db"
 
         const val SELECT_COLUMNS =
             """
             SELECT code, name, short_name, group_name, category, kcal_100, protein_100,
-                   carb_100, sugar_100, fat_100, fiber_100, saturated_fat_100, salt_100
+                   carb_100, sugar_100, fat_100, fiber_100, saturated_fat_100, salt_100,
+                   kcal_100_est, protein_100_est, carb_100_est, sugar_100_est,
+                   fat_100_est, fiber_100_est
             """
 
         /**
@@ -261,7 +292,18 @@ private fun Cursor.toFoodRow(): CiqualFoodRow {
         fat100 = optionalDouble(column++),
         fiber100 = optionalDouble(column++),
         saturatedFat100 = optionalDouble(column++),
-        salt100 = optionalDouble(column),
+        salt100 = optionalDouble(column++),
+        // Les six colonnes de completion, dans l'ordre des compteurs. Elles se lisent
+        // a cote des mesures et jamais a leur place : c'est la lecture du domaine qui
+        // choisit, et elle ne peut choisir que si les deux lui arrivent separement.
+        estimated = CiqualEstimates(
+            kcal100 = optionalDouble(column++),
+            protein100 = optionalDouble(column++),
+            carb100 = optionalDouble(column++),
+            sugar100 = optionalDouble(column++),
+            fat100 = optionalDouble(column++),
+            fiber100 = optionalDouble(column),
+        ),
     )
 }
 

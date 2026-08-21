@@ -2,6 +2,7 @@ package app.hexaphore.tooling.ciqual
 
 import app.hexaphore.domain.food.FoodCategory
 import app.hexaphore.domain.food.SearchText
+import app.hexaphore.domain.nutrition.Macro
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -122,7 +123,7 @@ class CiqualDatabaseWriterTest {
         // seconde colonne, jamais une reecriture de la premiere.
         val titre = CiqualShortName("13039", "Pomme crue")
 
-        write(listOf(POMME), emptyList(), listOf(titre)).use { connection ->
+        write(foods = listOf(POMME), shortNames = listOf(titre)).use { connection ->
             assertEquals("Pomme crue", connection.shortName("13039"))
             assertEquals("Pomme, chair et peau, crue", connection.name("13039"))
         }
@@ -143,9 +144,57 @@ class CiqualDatabaseWriterTest {
         // des deux listes differerait.
         val titre = CiqualShortName("39213", "Creme brulee")
 
-        write(listOf(POMME, CREME), emptyList(), listOf(titre)).use { connection ->
+        write(foods = listOf(POMME, CREME), shortNames = listOf(titre)).use { connection ->
             assertEquals("Creme brulee", connection.shortName("39213"))
             assertNull(connection.shortName("13039"))
+        }
+    }
+
+    @Test
+    fun `une teneur completee va dans sa propre colonne, jamais dans celle de la mesure`() {
+        // **La regle qui commande toute cette passe.** Melees, un nouvel import de la
+        // table de l'ANSES ecraserait les completions -- ou pire, les prendrait pour
+        // des mesures.
+        val completion = CiqualCompletion("13039", Macro.FIBER, 2.4)
+
+        write(foods = listOf(POMME), completions = listOf(completion)).use { connection ->
+            assertEquals(2.4, connection.estimatedNutrient("13039", Nutrient.FIBER))
+            assertEquals(POMME[Nutrient.FIBER], connection.nutrient("13039", Nutrient.FIBER))
+        }
+    }
+
+    @Test
+    fun `sans completion, les colonnes d estimation restent nulles`() {
+        // `NULL` veut dire « rien n'a ete complete », et c'est le cas de 91 % de la
+        // table. Un zero y affirmerait qu'un modele a repondu zero.
+        write(POMME, CREME).use { assertNull(it.estimatedNutrient("13039", Nutrient.KCAL)) }
+    }
+
+    @Test
+    fun `la completion d un aliment ne deborde pas sur un autre`() {
+        // Liees par code **et** par teneur : une liaison positionnelle collerait
+        // l'estimation de la pomme sur la creme des que l'ordre differerait.
+        val completion = CiqualCompletion("39213", Macro.CALORIES, 300.0)
+
+        write(foods = listOf(POMME, CREME), completions = listOf(completion)).use { connection ->
+            assertEquals(300.0, connection.estimatedNutrient("39213", Nutrient.KCAL))
+            assertNull(connection.estimatedNutrient("13039", Nutrient.KCAL))
+        }
+    }
+
+    @Test
+    fun `chaque completion va dans la colonne de sa propre teneur`() {
+        // Sans ce cas, une liaison qui ecrirait toutes les valeurs dans la premiere
+        // colonne passerait les trois precedents.
+        val completions = listOf(
+            CiqualCompletion("13039", Macro.CALORIES, 52.0),
+            CiqualCompletion("13039", Macro.FIBER, 2.4),
+        )
+
+        write(foods = listOf(POMME), completions = completions).use { connection ->
+            assertEquals(52.0, connection.estimatedNutrient("13039", Nutrient.KCAL))
+            assertEquals(2.4, connection.estimatedNutrient("13039", Nutrient.FIBER))
+            assertNull(connection.estimatedNutrient("13039", Nutrient.PROTEIN))
         }
     }
 
@@ -164,11 +213,12 @@ class CiqualDatabaseWriterTest {
 
     private fun write(
         foods: List<CiqualFood>,
-        servings: List<CiqualServing>,
+        servings: List<CiqualServing> = emptyList(),
         shortNames: List<CiqualShortName> = emptyList(),
+        completions: List<CiqualCompletion> = emptyList(),
     ): Connection {
         val file = File(directory.toFile(), "ciqual.db")
-        CiqualDatabaseWriter(file).write(foods, servings, shortNames)
+        CiqualDatabaseWriter(file).write(foods, servings, shortNames, completions)
         return DriverManager.getConnection("jdbc:sqlite:${file.absolutePath}")
     }
 
@@ -188,6 +238,16 @@ class CiqualDatabaseWriterTest {
 
     private fun Connection.nutrient(code: String, nutrient: Nutrient): Double? =
         prepareStatement("SELECT ${nutrient.column} FROM ciqual_food WHERE code = ?").use { statement ->
+            statement.setString(1, code)
+            statement.executeQuery().use { rows ->
+                rows.next()
+                rows.getDouble(1).takeUnless { rows.wasNull() }
+            }
+        }
+
+    /** La teneur **completee**, lue dans la colonne qui lui est propre. */
+    private fun Connection.estimatedNutrient(code: String, nutrient: Nutrient): Double? =
+        prepareStatement("SELECT ${nutrient.column}_est FROM ciqual_food WHERE code = ?").use { statement ->
             statement.setString(1, code)
             statement.executeQuery().use { rows ->
                 rows.next()

@@ -331,7 +331,23 @@ C'est le raisonnement de [D83](11-decisions.md#d83--le-repli-invente-des-chiffre
 poussé un cran plus loin : là, une estimation ne devenait jamais une fiche ; ici elle
 entre au catalogue, et doit donc porter sa provenance **valeur par valeur**.
 
-**Ce qui est arbitré**, et qui reste à construire :
+> **Livrée** ([D89](11-decisions.md#d89--une-valeur-complétée-ne-se-range-pas-où-une-valeur-mesurée-se-range---validée)).
+> Six colonnes distinctes dans `ciqual.db`, une lecture qui préfère toujours
+> l'originale, `Food.estimated` qui dit valeur par valeur d'où chaque teneur vient,
+> et un contour en pointillés sur le champ concerné. Corriger une valeur efface sa
+> marque, et elle seule.
+>
+> **Trois barrières, et elles ne se recouvrent pas** : on ne demande que les trous,
+> le fichier refuse une complétion sur une teneur publiée, et la lecture préfère
+> l'originale. La troisième n'était éprouvée par personne — la campagne de défaite
+> l'a trouvée, parce que la situation ne peut pas exister dans la base livrée.
+>
+> **La passe ne tourne pas dans l'application** : `./gradlew generateCompletions
+> -PanthropicApiKey=...`, puis relecture à la main et `importCiqual`. Deux
+> complétions y sont écrites à la main ; les **553 autres** attendent la tâche —
+> 555 teneurs manquent au total, réparties sur 313 fiches.
+
+**Ce qui a été arbitré :**
 
 - **Quand.** Hors de l'application, comme le titre court : une tâche qu'on lance à la
   main, un fichier versionné. Seules **313 fiches sur 3 484** ont un trou — 0,04 $.

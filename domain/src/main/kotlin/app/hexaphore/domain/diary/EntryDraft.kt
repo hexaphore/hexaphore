@@ -102,6 +102,28 @@ data class DraftLine(
      */
     val edited: Set<Macro> = emptySet(),
     /**
+     * Celles des valeurs de cette ligne qui viennent d'une **fiche complétée par un
+     * modèle** plutôt que d'une mesure.
+     *
+     * Héritée de [Food.estimated] à la naissance de la ligne, et recalculée avec le
+     * reste : une valeur estimée pour 100 g reste estimée pour 180 g. C'est ce qui
+     * permet à l'écran de valider de dire, champ par champ, ce qui a été mesuré et
+     * ce qui a été deviné.
+     *
+     * **Corriger une valeur à la main efface sa marque** : elle n'est plus l'avis
+     * d'un modèle mais celui de l'utilisateur, et continuer à la présenter comme
+     * incertaine serait faux. Les deux ensembles sont donc exclusifs par
+     * construction — voir [corrected].
+     *
+     * Distincte de `Suggestion.estimatedMacros`, qui dit que **la ligne entière** a
+     * été devinée par un modèle qu'on venait d'interroger ([D83][decisions]).
+     * Celle-ci dit qu'une fiche du catalogue avait un trou, et lequel. Les deux
+     * peuvent coexister, et elles se trompent séparément.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val estimated: Set<Macro> = emptySet(),
+    /**
      * Ce qu'un modèle a proposé pour cette ligne, quand c'est un modèle qui l'a
      * proposée.
      *
@@ -174,7 +196,10 @@ data class DraftLine(
      * gramme suivant.
      */
     fun corrected(macro: Macro, value: Double?): DraftLine =
-        copy(values = values.with(macro, value), edited = edited + macro)
+        // La marque d'estimation tombe : cette valeur n'est plus l'avis d'un modele
+        // mais celui de l'utilisateur, et continuer a la presenter comme incertaine
+        // serait faux.
+        copy(values = values.with(macro, value), edited = edited + macro, estimated = estimated - macro)
 
     companion object {
         /** Une ligne vierge, telle que la produit « Ajouter une ligne ». */
@@ -213,6 +238,9 @@ data class DraftLine(
                 values = food.per100g.per(quantity * (unit?.gramsPerUnit ?: 1.0)),
                 servings = servings,
                 reference = food.per100g,
+                // Une valeur estimee pour 100 g reste estimee pour 180 g : la regle
+                // de trois ne transforme pas une supposition en mesure.
+                estimated = food.estimated,
             )
         }
 

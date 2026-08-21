@@ -1,5 +1,6 @@
 package app.hexaphore.domain.food
 
+import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.nutrition.NutrientValues
 import java.time.Instant
 
@@ -83,6 +84,29 @@ data class Food(
      */
     val category: FoodCategory? = null,
     val per100g: NutrientValues,
+    /**
+     * Celles des six teneurs qui **viennent d'un modèle** et non d'une mesure.
+     *
+     * CIQUAL laisse des trous — 313 fiches sur 3 484 en ont au moins un — et un
+     * petit modèle peut les combler. Mais **une valeur complétée reste une valeur
+     * inventée**, et la fiche doit le porter valeur par valeur : une fiche dont trois
+     * teneurs sur six viennent d'un modèle n'est ni une fiche mesurée ni une
+     * estimation, et un drapeau unique aurait menti dans les deux sens.
+     *
+     * C'est [D83][decisions] poussé d'un cran : là, une estimation ne devenait jamais
+     * une fiche ; ici elle entre au catalogue. Et c'est le même vocabulaire que
+     * `DraftLine.edited`, qui dit déjà quelles valeurs d'une ligne n'ont pas été
+     * calculées — un `Set<Macro>` plutôt que six booléens, parce que la question se
+     * pose de la même façon pour les six.
+     *
+     * **La valeur d'origine n'est jamais écrasée.** Elle et la complétion ne se
+     * rangent pas au même endroit : sans cela, un nouvel import de la table de
+     * l'ANSES écraserait les complétions — ou pire, les prendrait pour des mesures.
+     * [per100g] porte ce qui s'affiche, et ce champ dit d'où chaque valeur vient.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val estimated: Set<Macro> = emptySet(),
     val servings: List<FoodServing> = emptyList(),
     /** Quantité proposée à l'ouverture. `null` vaut 100 g. */
     val defaultServingG: Double? = null,

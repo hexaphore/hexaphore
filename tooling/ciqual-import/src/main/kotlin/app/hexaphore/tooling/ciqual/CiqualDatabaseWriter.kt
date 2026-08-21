@@ -1,6 +1,7 @@
 package app.hexaphore.tooling.ciqual
 
 import app.hexaphore.domain.food.SearchText
+import app.hexaphore.domain.nutrition.Macro
 import java.io.File
 import java.sql.Connection
 import java.sql.DriverManager
@@ -18,14 +19,23 @@ import java.sql.Types
  * [modele]: docs/07-modele-de-donnees.md
  */
 internal class CiqualDatabaseWriter(private val target: File) {
-    fun write(foods: List<CiqualFood>, servings: List<CiqualServing>, shortNames: List<CiqualShortName>) {
+    fun write(
+        foods: List<CiqualFood>,
+        servings: List<CiqualServing>,
+        shortNames: List<CiqualShortName>,
+        completions: List<CiqualCompletion> = emptyList(),
+    ) {
         target.parentFile.mkdirs()
         target.delete()
 
         DriverManager.getConnection("jdbc:sqlite:${target.absolutePath}").use { connection ->
             connection.autoCommit = false
             connection.createSchema()
-            connection.insertFoods(foods, shortNames.associate { it.code to it.shortName })
+            connection.insertFoods(
+                foods,
+                shortNames.associate { it.code to it.shortName },
+                completions.groupBy { it.code },
+            )
             connection.insertServings(servings)
             connection.commit()
             // Une base livree dans un APK est lue et jamais ecrite : la compacter
@@ -50,7 +60,11 @@ internal class CiqualDatabaseWriter(private val target: File) {
      * `rowid` de `ciqual_food` — le laisser attribuer par SQLite des deux côtés
      * marcherait par coïncidence, jusqu'au jour où une insertion échoue au milieu.
      */
-    private fun Connection.insertFoods(foods: List<CiqualFood>, shortNames: Map<String, String>) {
+    private fun Connection.insertFoods(
+        foods: List<CiqualFood>,
+        shortNames: Map<String, String>,
+        completions: Map<String, List<CiqualCompletion>>,
+    ) {
         batch(INSERT_FOOD, foods.withIndex()) { (index, food) ->
             integer(index + 1)
             text(food.code)
@@ -68,6 +82,12 @@ internal class CiqualDatabaseWriter(private val target: File) {
             // forcement celle qui l'a ecrite.
             text(food.category?.name)
             Nutrient.entries.forEach { real(food[it]) }
+            // **Les completions dans leurs propres colonnes.** Melees aux mesures,
+            // un nouvel import de la table de l'ANSES les ecraserait -- ou pire, les
+            // prendrait pour des mesures. La lecture prefere toujours l'originale,
+            // et c'est cette separation qui le rend possible.
+            val estimated = completions[food.code].orEmpty().associate { it.macro.nutrient to it.value }
+            ESTIMATED_NUTRIENTS.forEach { real(estimated[it]) }
         }
         batch(INSERT_FTS, foods.withIndex()) { (index, food) ->
             integer(index + 1)
@@ -122,6 +142,19 @@ internal class CiqualDatabaseWriter(private val target: File) {
         /** `rowid`, `code`, `name`, `name_search`, `short_name`, `group_name`, `category`, puis les teneurs. */
         private const val FIXED_COLUMNS = 7
 
+        /**
+         * Les six teneurs qu'une complétion peut porter.
+         *
+         * Les huit colonnes de [Nutrient] moins les deux que l'application n'affiche
+         * pas : compléter des acides gras saturés que personne ne regarde serait une
+         * dépense pour une valeur inventée que rien ne vérifierait jamais.
+         *
+         * L'ordre vient de [Macro], et il est **le même** pour le schéma et pour la
+         * liaison — la seule façon de ne pas décaler six colonnes le jour où on en
+         * ajoute une.
+         */
+        val ESTIMATED_NUTRIENTS: List<Nutrient> = Macro.entries.map { it.nutrient }
+
         val SCHEMA =
             listOf(
                 """
@@ -136,7 +169,13 @@ internal class CiqualDatabaseWriter(private val target: File) {
                     short_name TEXT,
                     group_name TEXT,
                     category TEXT,
-                    ${Nutrient.entries.joinToString(",\n                    ") { "${it.column} REAL" }}
+                    ${Nutrient.entries.joinToString(",\n                    ") { "${it.column} REAL" }},
+                    -- Les teneurs completees par un modele, dans leurs propres
+                    -- colonnes. **Jamais melees aux mesures** : un nouvel import de
+                    -- la table de l'ANSES les ecraserait, ou pire les prendrait pour
+                    -- des mesures. Six et non huit : on ne complete que ce que
+                    -- l'application affiche.
+                    ${ESTIMATED_NUTRIENTS.joinToString(",\n                    ") { "${it.column}_est REAL" }}
                 )
                 """.trimIndent(),
                 // Index sans contenu, tokenizer `simple`.
@@ -173,8 +212,9 @@ internal class CiqualDatabaseWriter(private val target: File) {
             buildString {
                 append("INSERT INTO ciqual_food (rowid, code, name, name_search, short_name, group_name, category")
                 Nutrient.entries.forEach { append(", ").append(it.column) }
+                ESTIMATED_NUTRIENTS.forEach { append(", ").append(it.column).append("_est") }
                 append(") VALUES (")
-                append(List(FIXED_COLUMNS + Nutrient.entries.size) { "?" }.joinToString())
+                append(List(FIXED_COLUMNS + Nutrient.entries.size + ESTIMATED_NUTRIENTS.size) { "?" }.joinToString())
                 append(")")
             }
 

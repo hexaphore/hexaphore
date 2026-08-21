@@ -231,7 +231,10 @@ CREATE TABLE ciqual_food (
     short_name TEXT, group_name TEXT, category TEXT,
     kcal_100 REAL, protein_100 REAL, carb_100 REAL,
     sugar_100 REAL, fat_100 REAL, fiber_100 REAL,
-    saturated_fat_100 REAL, salt_100 REAL
+    saturated_fat_100 REAL, salt_100 REAL,
+    -- Les teneurs complétées par un modèle, **jamais mêlées aux mesures**.
+    kcal_100_est REAL, protein_100_est REAL, carb_100_est REAL,
+    sugar_100_est REAL, fat_100_est REAL, fiber_100_est REAL
 );
 CREATE INDEX index_ciqual_food_category ON ciqual_food(category);
 CREATE VIRTUAL TABLE ciqual_fts USING fts4(name_search, content="", tokenize=simple);
@@ -247,7 +250,9 @@ Trois écarts avec ce qui était prévu, tous documentés en [D49](11-decisions.
 - **L'index est sans contenu.** On n'en attend qu'un `docid`, que `rowid` relie au catalogue. Le `rowid` est donc attribué explicitement des deux côtés : le laisser à SQTLite marcherait par coïncidence.
 - **Pas de colonne `density`.** CIQUAL ne la publie pas, et rien ne la calcule avant le résolveur de la tranche 6. Une colonne que rien ne remplit n'est pas une préparation. Cette base n'étant jamais migrée mais remplacée en bloc, l'ajouter le jour venu ne coûte rien.
 
-Deux colonnes se sont ajoutées depuis, et **aucune des deux n'est copiée dans `food`** : `category`, le rayon du bandeau de recherche ([D54](11-decisions.md)), et `short_name`, le titre court ([D88](11-decisions.md#d88--le-titre-court-se-fabrique-hors-de-lapplication-et-il-ne-touche-jamais-au-libellé---validée)). Ce sont des propriétés de la **référence** et non de la copie : les stocker dans `food` figerait la valeur du jour où la fiche a été copiée, et les corriger n'atteindrait jamais celles qu'on utilise déjà. Elles se relisent ici, par code, en un seul lot.
+Des colonnes se sont ajoutées depuis, et **aucune n'est copiée dans `food`** : `category`, le rayon du bandeau de recherche ([D54](11-decisions.md)), `short_name`, le titre court ([D88](11-decisions.md#d88--le-titre-court-se-fabrique-hors-de-lapplication-et-il-ne-touche-jamais-au-libellé---validée)), et les six `*_est`, les teneurs complétées ([D89](11-decisions.md#d89--une-valeur-complétée-ne-se-range-pas-où-une-valeur-mesurée-se-range---validée)). Ce sont des propriétés de la **référence** et non de la copie : les stocker dans `food` figerait la valeur du jour où la fiche a été copiée, et les corriger n'atteindrait jamais celles qu'on utilise déjà. Elles se relisent ici, par code, en un seul lot.
+
+**Les six colonnes de complétion sont distinctes des six mesures, et c'est la règle qui commande toute la seconde passe.** Mêlées, un nouvel import de la table de l'ANSES écraserait les complétions — ou pire, les prendrait pour des mesures. La lecture préfère toujours l'originale, et `Food.estimated` retient laquelle a servi.
 
 Une colonne ajoutée à cette base ne demande pas de migration, mais elle demande d'incrémenter `CiqualDatabase.REVISION` : c'est ce qui change le nom du fichier copié et force la recopie sur un appareil déjà installé. Sans cela, la première requête sur la colonne neuve échouerait chez l'utilisateur et jamais en développement, où l'installation est toujours fraîche.
 

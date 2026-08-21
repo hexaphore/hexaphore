@@ -2298,7 +2298,7 @@ Ce nom-là est celui qu'une ligne neuve prend, donc celui que le journal fige : 
 
 La tâche la lit d'une propriété passée à l'invocation — `-PanthropicApiKey=…` — et rien d'autre. Elle n'est ni lue d'un fichier, ni écrite dans un fichier, ni journalisée, ni citée dans un message d'erreur : un message qui la porterait la ferait entrer dans un journal de build, c'est-à-dire dans un endroit qu'on partage sans y penser. La tâche ne déclare **ni entrée ni sortie** à Gradle, parce qu'une tâche qu'on paie doit partir quand on la lance, et non quand Gradle l'estime nécessaire.
 
-Le SDK Anthropic entre dans `:tooling:ciqual-import` et **nulle part ailleurs** : l'application parle à ses six fournisseurs par Retrofit et ses propres DTO, et rien de ce SDK n'atteint le graphe de `:app`. Le modèle par défaut est `claude-opus-5`, remplaçable par `-PshortNamesModel=…` ; le choix du modèle appartient à celui qui paie.
+Le SDK Anthropic entre dans `:tooling:ciqual-import` et **nulle part ailleurs** : l'application parle à ses six fournisseurs par Retrofit et ses propres DTO, et rien de ce SDK n'atteint le graphe de `:app`. Le modèle par défaut est `claude-opus-5`, remplaçable par `-PcatalogueModel=…` ; le choix du modèle appartient à celui qui paie.
 
 **La réponse se lit en texte, pas en JSON.** Une ligne « code, tabulation, titre », et toute ligne sans tabulation est ignorée — ce qui absorbe un préambule ou un commentaire ajouté malgré la consigne. Perdre cinquante titres déjà payés parce que le modèle a écrit « Voici : » serait le pire des deux maux. Le rattachement se fait par **code**, jamais par libellé, exactement comme [D83](#d83--le-repli-invente-des-chiffres-une-seule-fois-et-en-le-disant---validée) l'a établi pour l'estimation : un modèle qui reformule produit un résultat qu'on ne peut plus rattacher, et on l'écarte plutôt que de le deviner.
 
@@ -2321,6 +2321,61 @@ Deux tours ont rapporté « rien n'a tourné » plutôt qu'une survie, et le har
 **Ce que le vert ne prouve pas.** Aucun appel réel n'a été fait : la tâche est écrite, compilée et sa logique éprouvée sans réseau, mais **personne n'a encore vu un titre produit par un modèle**. Ce qui est vérifié est la chaîne — le CSV lu, la colonne écrite, la lecture, le modèle, l'affichage — sur six titres écrits à la main. La qualité des 2 085 autres est une question qui se posera quand ils existeront, et le fichier est fait pour qu'on y réponde en corrigeant des lignes.
 
 Ni la lisibilité des listes ni le rappel sous le champ ne s'éprouvent sans tenir le téléphone.
+
+## D89 — Une valeur complétée ne se range pas où une valeur mesurée se range · ✓ validée
+
+**Contexte.** La seconde moitié de la demande d'usage sur le catalogue, et **l'exception la plus lourde du projet à sa propre règle**. [D83](#d83--le-repli-invente-des-chiffres-une-seule-fois-et-en-le-disant---validée) posait qu'une estimation ne devient jamais une fiche ; ici elle y entre. CIQUAL laisse **313 fiches sur 3 484 avec au moins un trou**, dont 143 sans aucune énergie déterminée — la feta, les câpres, l'oignon au vinaigre. Une ligne sans énergie n'est pas enregistrable, donc ces fiches sont inutilisables en l'état.
+
+### La règle qui commande toute la conception
+
+**Une valeur complétée et une valeur mesurée ne se rangent pas au même endroit.** Six colonnes distinctes dans `ciqual_food`, jamais mêlées aux huit d'origine. Sans cela, un nouvel import de la table de l'ANSES écraserait les complétions — ou pire, les prendrait pour des mesures, et plus rien ne dirait lesquelles.
+
+La lecture préfère toujours l'originale, et le champ `Food.estimated` dit laquelle a servi. **La marque suit ce qui s'affiche, pas ce qui est stocké** : le jour où l'ANSES publie enfin la teneur, la mesure l'emporte et la ligne cesse d'être marquée, même si le fichier porte encore l'estimation.
+
+### Trois barrières plutôt qu'une, et elles ne se recouvrent pas
+
+1. **On ne demande que les trous.** Une teneur publiée n'est jamais soumise : la poser reviendrait à inviter un modèle à contredire une mesure.
+2. **Le fichier refuse une complétion sur une teneur publiée**, et arrête l'import en nommant la ligne. Une telle ligne est soit fautive, soit un reliquat, et dans les deux cas elle doit se voir plutôt que dormir en attendant qu'un import ultérieur la fasse resurgir.
+3. **La lecture préfère l'originale.** Une seconde ceinture, et il a fallu la campagne de défaite pour découvrir qu'elle n'était éprouvée par personne — voir plus bas.
+
+### La provenance se porte valeur par valeur
+
+`Food.estimated: Set<Macro>`, et non un drapeau de fiche. Une fiche dont trois teneurs sur six viennent d'un modèle n'est ni une fiche mesurée ni une estimation : un drapeau unique aurait menti dans les deux sens. C'est le vocabulaire de `DraftLine.edited`, qui pose déjà la même question pour les six.
+
+La marque **descend jusqu'à la ligne de saisie** et survit au recalcul : une valeur estimée pour 100 g reste estimée pour 180 g. La règle de trois ne transforme pas une supposition en mesure — c'est le pendant exact de « une valeur inconnue le reste ».
+
+**Corriger une valeur efface sa marque, et elle seule.** La valeur est celle de l'utilisateur désormais ; continuer à la présenter comme incertaine serait faux. Les autres teneurs de la même ligne gardent la leur : les effacer ensemble ferait passer pour mesurée une valeur toujours devinée. Les deux gestes qui écrivent une valeur — la saisie et l'acceptation du calcul de [D87](#d87--les-calories-se-proposent-et-une-valeur-minorée-se-dit-au-lieu-de-se-taire---validée) — appliquent la même règle.
+
+### Un contour en pointillés, et pas une couleur
+
+Le champ concerné prend le contour que [D25](#d25--lestimation-ia-se-signale-par-une-forme-pas-par-une-couleur---validée) réserve à l'estimé depuis la tranche 2 : une forme, jamais une teinte qui travaillerait seule. Il est dessiné **par-dessus** la bordure de `OutlinedTextField`, qui ne se laisse pas remplacer sans réécrire le composant — un `drawWithContent` au même rayon la recouvre exactement, là où une réimplémentation coûterait la gestion du focus, de l'erreur et du libellé flottant.
+
+### Deux passes distinctes, pas une symétrie de façade
+
+Même mécanique que [D88](#d88--le-titre-court-se-fabrique-hors-de-lapplication-et-il-ne-touche-jamais-au-libellé---validée) — une tâche lancée à la main, un CSV versionné, une reprise après chaque lot — mais **un fichier, une tâche et une relecture séparés**. Un titre court est un affichage qui n'invente aucun chiffre ; une teneur complétée entrera dans un journal alimentaire. Chacune doit pouvoir être lancée, relue et refusée sans l'autre.
+
+Une ligne par **valeur** et non par fiche : c'est la granularité de la règle, et c'est ce qui rend une complétion supprimable seule. Les lots sont de vingt contre cinquante — un chiffre nutritionnel demande plus d'attention qu'un raccourci de libellé, et il y a dix fois moins de trous que de libellés à raccourcir.
+
+Deux bornes physiques écartent ce qui ne peut pas être : **cent grammes pour cent grammes**, et **950 kcal** pour l'énergie, parce que cent grammes d'huile pure en valent 900. Zéro, lui, est accepté : une huile contient réellement zéro gramme de glucides, et refuser ce zéro ferait redemander éternellement une valeur que le modèle a raison de donner.
+
+### Ce qu'il advient d'une complétion périmée
+
+Elle est **retirée**, et c'est la tâche de génération qui le fait — la seule qui réécrive le fichier. Une estimation a été produite contre un état précis de la fiche ; l'état change, elle ne décrit plus cette fiche-là, et la garder ferait resurgir un chiffre périmé si la mesure repartait. Le retrait est annoncé : une ligne qui disparaît d'un fichier versionné doit s'expliquer, sans quoi le diff se lit comme une perte.
+
+**Campagne de défaite : vingt-huit sabotages, vingt-huit cas tombés — après trois corrections.**
+
+Trois règles n'étaient pas couvertes, et **deux d'entre elles ne pouvaient pas l'être** par les tests existants :
+
+- **La lecture qui préfère l'originale, et la marque qui ne suit que ce qui s'affiche.** Les deux sabotages survivaient, et pour une raison qui est presque un compliment à la conception : une fiche portant à la fois une mesure et une complétion pour la même teneur **ne peut pas sortir de la base livrée**, puisque le lecteur du CSV refuse cette ligne. Aucun test parti du fichier livré ne pouvait donc serrer cette ceinture. `FoodMapperTest` la serre sur une ligne construite à la main — c'est la forme exacte du défaut de [D85](#d85--deux-défauts-que-seul-lusage-réel-pouvait-montrer-et-un-écran-qui-cesse-de-faire-chercher---validée) : une règle couverte en apparence par des cas incapables de la mettre en défaut.
+- **Une macro inconnue dans la réponse du modèle.** Le cas existait, mais plaçait la ligne fautive **en premier** : un repli silencieux sur un compteur quelconque était écrasé par la ligne suivante, et `toMap` gardait la bonne valeur. Le cas passait sans rien mesurer. Déplacer la ligne fautive en second le fait tomber.
+
+Deux sabotages ont dû être réécrits parce qu'ils cassaient un *smart cast* et ne compilaient pas, et un tour a rapporté « rien n'a tourné » sur un état incrémental corrompu. Le harnais a distingué les trois cas de la survie, ce qu'il fallait : trois campagnes de suite, ce compte a évité une conclusion fausse.
+
+**Conséquences.** `ciqual.db` gagne six colonnes et passe en `REVISION` 4. `DraftTextField` gagne un paramètre et le tracé qui va avec — le premier élément du design system que cette tranche touche. `Macro.nutrient` relie les deux vocabulaires par un `when` exhaustif : ajouter un septième compteur cessera de compiler plutôt que de se taire.
+
+**Ce que le vert ne prouve pas.** **Aucune estimation réelle n'a été demandée à un modèle.** C'est la même phrase qu'en [D83](#d83--le-repli-invente-des-chiffres-une-seule-fois-et-en-le-disant---validée), et elle pèse plus lourd ici : ces chiffres entreront au catalogue et se retrouveront dans un journal. Les deux complétions du fichier livré sont écrites à la main, et calculées — pas devinées. La question à se poser quand les vraies arriveront n'est pas « est-ce que ça marche » mais « est-ce assez juste pour être compté ».
+
+Le contour en pointillés ne s'éprouve qu'en tenant le téléphone, et il se peut qu'il se confonde avec la bordure de focus du champ.
 
 ---
 

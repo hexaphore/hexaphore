@@ -110,6 +110,14 @@ internal data class EntryFormLine(
     val reference: NutrientValues? = null,
     val edited: Set<Macro> = emptySet(),
     /**
+     * Les valeurs qui viennent d'une **fiche completee par un modele**.
+     *
+     * Elle traverse le formulaire sans etre saisissable : c'est une provenance, pas
+     * une donnee qu'on corrige. Le champ concerne porte un contour en pointilles,
+     * et la marque tombe des qu'on y touche.
+     */
+    val estimated: Set<Macro> = emptySet(),
+    /**
      * Combien de fois la quantité a réécrit les valeurs de cette ligne.
      *
      * **C'est ce qui fait revivre les champs.** Un champ de saisie tient son propre
@@ -175,6 +183,7 @@ internal data class EntryFormLine(
         servings = servings,
         reference = reference,
         edited = edited,
+        estimated = estimated,
         suggestion = suggestion,
     )
 
@@ -235,6 +244,7 @@ internal data class EntryFormLine(
             servings = line.servings,
             reference = line.reference,
             edited = line.edited,
+            estimated = line.estimated,
             suggestion = line.suggestion,
         )
     }
