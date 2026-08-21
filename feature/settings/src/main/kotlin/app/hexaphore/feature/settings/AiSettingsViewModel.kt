@@ -9,14 +9,19 @@ import app.hexaphore.domain.ai.AiCredentials
 import app.hexaphore.domain.ai.AiProbe
 import app.hexaphore.domain.ai.AiProvider
 import app.hexaphore.domain.ai.AiSetup
+import app.hexaphore.domain.ai.AiUsageEntry
+import app.hexaphore.domain.ai.AiUsageLog
 import app.hexaphore.domain.ai.ApiKey
 import app.hexaphore.domain.ai.ProbeOutcome
 import app.hexaphore.domain.ai.ProviderCredentials
+import app.hexaphore.domain.ai.estimatedCost
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -35,8 +40,11 @@ import javax.inject.Inject
  * repayer un appel à chaque correction de modèle.
  */
 @HiltViewModel
-class AiSettingsViewModel @Inject constructor(private val credentials: AiCredentials, private val probe: AiProbe) :
-    ViewModel() {
+class AiSettingsViewModel @Inject constructor(
+    private val credentials: AiCredentials,
+    private val probe: AiProbe,
+    usageLog: AiUsageLog,
+) : ViewModel() {
     private val editor = MutableStateFlow(Editor())
 
     /**
@@ -48,7 +56,19 @@ class AiSettingsViewModel @Inject constructor(private val credentials: AiCredent
     private val setup: StateFlow<AiSetup> =
         credentials.observe().stateIn(viewModelScope, SharingStarted.Eagerly, AiSetup())
 
-    val uiState: StateFlow<AiSettingsUiState> = combine(setup, editor) { stored, edited ->
+    /**
+     * Le compteur, observé et non relu.
+     *
+     * L'écran reste ouvert pendant qu'on appuie sur « Tester » : un compteur qui ne
+     * bougerait qu'à la réouverture laisserait croire que l'essai n'a rien coûté.
+     */
+    private val usage: StateFlow<List<UsageRow>> = usageLog
+        .observe()
+        .map { entries -> entries.map { it.toRow() } }
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    val uiState: StateFlow<AiSettingsUiState> = combine(setup, editor, usage) { stored, edited, counted ->
         AiSettingsUiState(
             rows = AiProvider.entries.map {
                 ProviderRow(provider = it, configured = it in stored.credentials, active = it == stored.active)
@@ -56,6 +76,7 @@ class AiSettingsViewModel @Inject constructor(private val credentials: AiCredent
             open = edited.open,
             form = edited.form,
             probe = edited.probe,
+            usage = counted,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, AiSettingsUiState())
 
@@ -167,3 +188,12 @@ private fun ProbeOutcome.toState(): ProbeState = when (this) {
     is ProbeOutcome.Reachable -> ProbeState.Succeeded(vision)
     is ProbeOutcome.Failed -> ProbeState.Failed(error.messageRes, error.diagnostic)
 }
+
+/** Un compte du domaine, prêt à s'afficher : les jetons additionnés, le prix estimé. */
+private fun AiUsageEntry.toRow() = UsageRow(
+    provider = provider,
+    model = model,
+    calls = calls,
+    tokens = input + output,
+    cost = estimatedCost(),
+)

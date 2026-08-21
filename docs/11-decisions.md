@@ -2045,6 +2045,41 @@ Les autres sont tombés du premier coup : le repli lancé sur des lignes déjà 
 
 **Ce que le vert ne prouve pas.** Aucune estimation réelle n'a jamais été demandée à un modèle, donc **on ne sait pas ce qu'elles valent**. C'est la seule partie du projet dont les chiffres ne sont adossés à rien de traçable, et c'est exactement pourquoi elle le dit sur chaque ligne. Le jour où de vraies estimations tomberont, la question à se poser ne sera pas « est-ce que ça marche » mais « est-ce que c'est assez juste pour être proposé ».
 
+## D84 — Le compteur dit ce qui est facturé, dans la devise où la facture tombe · ✓ validée
+
+**Contexte.** [05](05-ia.md#coût) : *« L'utilisateur paie ses appels : il a le droit de savoir combien. »* Un compteur local, une table de tarifs embarquée, **datée et signalée comme indicative**.
+
+### Par modèle, alors que docs/05 ne demande qu'un compteur par fournisseur
+
+Les tarifs sont attachés aux **modèles** : un compte agrégé par fournisseur ne pourrait plus se convertir en argent. L'écran, lui, affiche une ligne par modèle sous le nom du fournisseur — c'est une question d'affichage, pas de mesure.
+
+### On compte ce qui est facturé, pas ce qui est tenté
+
+Une clé refusée, un quota dépassé, un réseau absent, un délai dépassé : rien n'a été produit chez le fournisseur, et les compter gonflerait un chiffre dont **tout l'intérêt est d'être comparable à une facture**.
+
+Une réponse **illisible ou vide**, en revanche, a été produite — donc payée. Elle est comptée sans ses jetons, que la réponse n'a pas rendus : annoncer zéro jeton serait pire que de n'en annoncer aucun, et c'est la règle qui gouverne déjà les six valeurs nutritionnelles.
+
+### Les prix sont relevés, pas écrits de mémoire — et arrondis vers le haut
+
+Relevés le 19 août 2026 sur les pages de tarifs des cinq fournisseurs. **Deux prudences volontaires**, qui vont dans le même sens — ne jamais annoncer moins cher que la réalité :
+
+- Sonnet 5 est en tarif d'introduction jusqu'au 31 août 2026 ; c'est le tarif **plein** qui est inscrit, parce qu'une estimation qui expire sans prévenir ment le lendemain.
+- DeepSeek facture moitié prix hors des heures pleines ; ce sont les **heures pleines** qui sont inscrites, parce que l'application ne sait pas à quelle heure l'appel est parti.
+
+Un modèle absent de la table n'a **pas** de prix, et l'écran affiche ses jetons seuls plutôt qu'une moyenne inventée. C'est le cas de tout modèle saisi à la main, et de tous ceux du fournisseur « compatible » — dont personne ne peut connaître le tarif, puisque personne ne sait quel service il désigne.
+
+### En dollars, et non en euros
+
+[05](05-ia.md#coût) écrit « une estimation en euros ». Les cinq fournisseurs facturent en **dollars**. Convertir demanderait un taux de change que l'application n'a aucun moyen de connaître : il faudrait l'inventer, le figer, et le voir vieillir plus vite que les tarifs eux-mêmes. Une estimation dans la devise où la facture tombe est vérifiable ; une conversion à un taux inventé ne l'est pas. L'écran le dit : *« seule sa facture fait foi »*.
+
+### Pas de Room pour trois entiers
+
+Trois entiers par couple fournisseur-modèle, jamais interrogés autrement qu'en bloc, sans date ni relation. Une table aurait apporté une migration, un DAO et un schéma exporté pour une somme que les préférences portent aussi bien — dans le **même fichier que les clés**, pour qu'un effacement des réglages d'IA remette le compteur à zéro : il ne compte que ce que ces clés-là ont dépensé.
+
+**Conséquences.** Deux seuils ont mordu coup sur coup : la fabrique passait huit paramètres, puis le module Hilt douze fonctions. La pile HTTP part donc dans son propre module — `AiHttpModule` — et les trois interfaces Retrofit voyagent ensemble dans un `AiApis`. Le découpage suit ce que les choses **sont** (le transport d'un côté, les ports du domaine de l'autre), pas un compte à respecter.
+
+**Ce que le vert ne prouve pas.** Les prix eux-mêmes ne sont éprouvés par aucun test — un test qui les recopierait ne vérifierait que ma capacité à copier deux fois la même chose. Ce qui est éprouvé est la règle de trois, l'accumulation, et les deux refus : pas de montant pour un modèle inconnu, pas de zéro à la place d'un inconnu.
+
 ---
 
 ## Décisions prises par défaut, à confirmer

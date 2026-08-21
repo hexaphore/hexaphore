@@ -111,7 +111,7 @@ private fun Response<AnthropicResponse>.toEstimation(): EstimationOutcome {
     return when {
         !isSuccessful -> EstimationOutcome.Failed(toAiError())
         body == null -> EstimationOutcome.Failed(AiError.Unparseable)
-        else -> parseEstimation(body.text())
+        else -> parseEstimation(body.text(), body.usage?.toDomain())
     }
 }
 
