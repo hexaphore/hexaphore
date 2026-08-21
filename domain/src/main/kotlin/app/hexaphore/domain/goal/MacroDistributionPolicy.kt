@@ -1,5 +1,9 @@
 package app.hexaphore.domain.goal
 
+import app.hexaphore.domain.nutrition.KCAL_PER_GRAM_CARB
+import app.hexaphore.domain.nutrition.KCAL_PER_GRAM_FAT
+import app.hexaphore.domain.nutrition.KCAL_PER_GRAM_FIBER
+import app.hexaphore.domain.nutrition.KCAL_PER_GRAM_PROTEIN
 import kotlin.math.roundToInt
 
 /** Ce que l'utilisateur cherche à faire. Trois cartes à l'onboarding ([docs/02][parcours]).
@@ -149,15 +153,3 @@ object MacroDistributionPolicy {
     private const val MAX_SUGAR_RATIO = 0.10
     private const val MINIMUM_CARBS = 100.0
 }
-
-/**
- * Les facteurs d'Atwater, utilisés partout dans le projet.
- *
- * Les fibres à 2 kcal/g suivent le règlement UE 1169/2011, cohérent avec CIQUAL et
- * Open Food Facts. L'alcool (7 kcal/g) n'est pas modélisé en v1 : les boissons
- * alcoolisées sont saisies via leur fiche, dont les calories sont déjà justes.
- */
-const val KCAL_PER_GRAM_PROTEIN = 4.0
-const val KCAL_PER_GRAM_CARB = 4.0
-const val KCAL_PER_GRAM_FAT = 9.0
-const val KCAL_PER_GRAM_FIBER = 2.0

@@ -34,6 +34,18 @@
     <string name="entry_field_fat">Lipides (g)</string>
     <string name="entry_field_fiber">Fibres (g)</string>
 
+    <!-- L'énergie déduite des quatre autres valeurs, selon le règlement UE 1169/2011.
+         Le libellé dit d'où vient le chiffre : « Calculer » laisserait croire que rien
+         n'est encore fait, alors que le calcul est déjà là et n'attend qu'un accord. -->
+    <string name="entry_energy_proposal">D\'après les macros : %1$d kcal</string>
+    <!-- Ce que l'appui va faire. « 297 kcal » annoncé seul ne laisse pas deviner que
+         la valeur en remplace une autre. -->
+    <string name="entry_energy_proposal_a11y">Remplacer les calories par %1$d, calculées d\'après les macros</string>
+    <!-- Les fibres n'étaient pas renseignées : elles n'ont rien apporté au calcul, qui
+         est donc minoré. Une valeur minorée qui s'annonce débloque la ligne ; la même
+         valeur silencieuse serait un chiffre inventé de plus. -->
+    <string name="entry_energy_without_fiber">Hors fibres, non renseignées</string>
+
     <string name="entry_add_line">Ajouter un aliment</string>
     <string name="entry_remove_line">Supprimer</string>
 

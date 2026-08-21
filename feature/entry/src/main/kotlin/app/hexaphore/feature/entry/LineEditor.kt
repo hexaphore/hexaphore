@@ -71,6 +71,10 @@ internal fun LineEditor(
                 SuggestionRow(line, actions)
                 QuantityRow(line, actions, flagged == MissingField.QUANTITY)
                 MacroGrid(line, actions, flagged == MissingField.CALORIES)
+                // Sous la grille et non a cote du champ d'energie : la proposition
+                // se deduit des trois autres valeurs, et la placer contre l'une
+                // d'elles laisserait croire qu'elle n'en regarde qu'une.
+                EnergyProposalRow(line, actions)
             }
         }
     }

@@ -1,5 +1,9 @@
 package app.hexaphore.domain.goal
 
+import app.hexaphore.domain.nutrition.KCAL_PER_GRAM_CARB
+import app.hexaphore.domain.nutrition.KCAL_PER_GRAM_FAT
+import app.hexaphore.domain.nutrition.KCAL_PER_GRAM_FIBER
+import app.hexaphore.domain.nutrition.KCAL_PER_GRAM_PROTEIN
 import app.hexaphore.domain.nutrition.Macro
 
 /**

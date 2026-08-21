@@ -34,6 +34,16 @@ internal sealed interface LineEdit {
      * n'était pas traitée — c'est exactement ce que ce type fermé achète.
      */
     data class Substitute(val food: Food) : LineEdit
+
+    /**
+     * Le calcul de l'énergie d'après les macros, accepté.
+     *
+     * **Sans valeur portée**, et c'est volontaire : la ligne recalcule au moment où
+     * elle applique. Transporter le chiffre affiché ferait de l'écran la source d'une
+     * valeur nutritionnelle, alors qu'il n'en est que le miroir — et rendrait
+     * possible d'écrire une énergie que la règle du domaine n'aurait pas proposée.
+     */
+    data object AcceptEnergy : LineEdit
 }
 
 /**
@@ -50,4 +60,7 @@ internal fun EntryFormLine.apply(edit: LineEdit): EntryFormLine = when (edit) {
     is LineEdit.Measurement -> remeasured(quantity, edit.value)
     is LineEdit.MacroValue -> copy(macros = macros + (edit.macro to edit.value), edited = edited + edit.macro)
     is LineEdit.Substitute -> substituted(edit.food)
+    // Une energie calculee est une energie voulue : elle se marque comme une saisie,
+    // et le champ doit renaitre pour la montrer.
+    LineEdit.AcceptEnergy -> withComputedEnergy()
 }
