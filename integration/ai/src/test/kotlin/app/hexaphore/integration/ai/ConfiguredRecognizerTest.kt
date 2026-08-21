@@ -1,5 +1,6 @@
 package app.hexaphore.integration.ai
 
+import app.hexaphore.core.testing.InMemoryAiUsage
 import app.hexaphore.domain.ai.AiConfiguration
 import app.hexaphore.domain.ai.AiError
 import app.hexaphore.domain.ai.AiProvider
@@ -10,6 +11,7 @@ import app.hexaphore.domain.ai.ProbeOutcome
 import app.hexaphore.domain.ai.Recognition
 import app.hexaphore.domain.ai.RecognitionInput
 import app.hexaphore.domain.ai.RecognitionOutcome
+import app.hexaphore.domain.ai.TokenUsage
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -171,6 +173,74 @@ class ConfiguredRecognizerTest {
         }
     }
 
+    @Test
+    fun `une analyse reussie est comptee, avec ses jetons`() = runTest {
+        // L'utilisateur paie ses appels : il a le droit de savoir combien.
+        val recognizer = factory(
+            settings = { CONFIGURATION },
+            anthropic = recognizing {
+                RecognitionOutcome.Recognized(Recognition(emptyList(), TokenUsage(input = 900, output = 80)))
+            },
+        )
+
+        recognizer.recognize(RecognitionInput.Text("un jus"))
+
+        val compte = usage.recorded.single()
+        assertEquals(AiProvider.ANTHROPIC, compte.provider)
+        assertEquals(CONFIGURATION.model, compte.model)
+        assertEquals(900, compte.input)
+        assertEquals(80, compte.output)
+    }
+
+    @Test
+    fun `une reponse illisible est comptee, sans ses jetons`() = runTest {
+        // Elle a ete produite, donc payee. Annoncer zero jeton serait pire que de n'en
+        // annoncer aucun.
+        val recognizer = factory(
+            settings = { CONFIGURATION },
+            anthropic = recognizing { RecognitionOutcome.Failed(AiError.Unparseable) },
+        )
+
+        recognizer.recognize(RecognitionInput.Text("un jus"))
+
+        assertEquals(1, usage.recorded.single().calls)
+        assertEquals(0, usage.recorded.single().input)
+    }
+
+    @Test
+    fun `une cle refusee n est pas comptee`() = runTest {
+        // Rien n'a ete produit chez le fournisseur : compter gonflerait un chiffre dont
+        // tout l'interet est d'etre comparable a une facture.
+        val recognizer = factory(
+            settings = { CONFIGURATION },
+            anthropic = recognizing { RecognitionOutcome.Failed(AiError.InvalidKey) },
+        )
+
+        recognizer.recognize(RecognitionInput.Text("un jus"))
+
+        assertEquals(emptyList<Any>(), usage.recorded)
+    }
+
+    @Test
+    fun `le repli est compte comme le reste`() = runTest {
+        val recognizer = factory(
+            settings = { CONFIGURATION },
+            anthropic = estimatingWith(TokenUsage(input = 120, output = 40)),
+        )
+
+        recognizer.estimate(listOf("sauce maison"))
+
+        assertEquals(120, usage.recorded.single().input)
+    }
+
+    private fun estimatingWith(tokens: TokenUsage) = object : ProviderRecognizer {
+        override suspend fun recognize(input: RecognitionInput, configuration: AiConfiguration): RecognitionOutcome =
+            error("ce cas ne parle pas de la reconnaissance")
+
+        override suspend fun estimate(labels: List<String>, configuration: AiConfiguration): EstimationOutcome =
+            EstimationOutcome.Estimated(emptyList(), tokens)
+    }
+
     private fun mark(implementation: String, onCall: (String) -> Unit) = recognizing {
         onCall(implementation)
         RecognitionOutcome.Recognized(Recognition(items = emptyList()))
@@ -203,7 +273,10 @@ class ConfiguredRecognizerTest {
         gemini: ProviderRecognizer = unused(),
         openAi: ProviderRecognizer = unused(),
         compatible: ProviderRecognizer = unused(),
-    ) = ConfiguredRecognizer(settings, anthropic, gemini, openAi, compatible)
+    ) = ConfiguredRecognizer(settings, usage, anthropic, gemini, openAi, compatible)
+
+    /** Le compteur, inspecte par les cas qui parlent de ce qui est facture. */
+    private val usage = InMemoryAiUsage()
 
     /**
      * Un fournisseur que ces cas ne doivent jamais atteindre.

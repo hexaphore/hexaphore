@@ -215,7 +215,9 @@ Puis **la modale photo, et l'accord qui se demande une fois** ([D82](11-decision
 
 Puis **le repli IA groupé** ([D83](11-decisions.md#d83--le-repli-invente-des-chiffres-une-seule-fois-et-en-le-disant---validée)) : l'étape 4 de [04](04-sources-de-donnees.md), et l'exception à la règle qui veut que le modèle identifie et que les bases calculent. Un seul appel pour toutes les lignes non résolues, rien qui entre au catalogue — une estimation ne porte aucune fiche, donc l'interdit est structurel —, et un badge sur chaque ligne concernée.
 
-Le reste de la tranche, dans l'ordre où il se livrera : le compteur de coût ; enfin la contribution à Open Food Facts ([D70](11-decisions.md#d70--contribuer-à-open-food-facts-entre-en-tranche-6-parce-que-la-couverture-nest-pas-la-même-partout---validée)).
+Puis **le compteur de coût** ([D84](11-decisions.md#d84--le-compteur-dit-ce-qui-est-facturé-dans-la-devise-où-la-facture-tombe---validée)) : par modèle et non par fournisseur, parce que les tarifs sont attachés aux modèles ; il compte ce qui est **facturé** et non ce qui est tenté ; et il annonce des dollars, la devise où la facture tombe.
+
+Le reste de la tranche : la contribution à Open Food Facts ([D70](11-decisions.md#d70--contribuer-à-open-food-facts-entre-en-tranche-6-parce-que-la-couverture-nest-pas-la-même-partout---validée)).
 
 **Trois points arbitrés d'avance**, écrits en [D73](11-decisions.md#d73--la-portion-de-la-fiche-lemporte-sur-le-forfait-et-la-densité-attend-son-auteur---validée) : les boutons IA restent visibles et **grisés** sans clé, le modèle par défaut est `claude-opus-5`, et les appels passent par **Retrofit** comme Open Food Facts — une seule pile HTTP pour les six fournisseurs, donc un seul intercepteur de redaction.
 

@@ -2,6 +2,7 @@ package app.hexaphore.feature.settings
 
 import app.hexaphore.core.designsystem.component.messageRes
 import app.hexaphore.core.testing.InMemoryAiCredentials
+import app.hexaphore.core.testing.InMemoryAiUsage
 import app.hexaphore.domain.ai.AiConfiguration
 import app.hexaphore.domain.ai.AiError
 import app.hexaphore.domain.ai.AiProbe
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.Test
 internal class AiSettingsViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private val credentials = InMemoryAiCredentials()
+    private val usage = InMemoryAiUsage()
     private var probed: AiConfiguration? = null
     private var outcome: ProbeOutcome = ProbeOutcome.Reachable(vision = true)
 
@@ -198,7 +200,7 @@ internal class AiSettingsViewModelTest {
         assertNotNull(viewModel.uiState.value.rows.firstOrNull { it.provider == AiProvider.ANTHROPIC })
     }
 
-    private fun viewModel() = AiSettingsViewModel(credentials, probe)
+    private fun viewModel() = AiSettingsViewModel(credentials, probe, usage)
 
     private companion object {
         val CLE = ProviderCredentials(

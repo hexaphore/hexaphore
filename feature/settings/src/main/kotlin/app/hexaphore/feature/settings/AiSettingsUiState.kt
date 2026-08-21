@@ -23,7 +23,26 @@ data class AiSettingsUiState(
     val open: AiProvider? = null,
     val form: ProviderForm = ProviderForm(),
     val probe: ProbeState = ProbeState.Idle,
+    /**
+     * Ce que les analyses ont consommé, regroupé par fournisseur.
+     *
+     * En bas de l'écran, comme [docs/02][parcours] le prévoit, et **sous** la liste
+     * des clés : on vient ici pour brancher un fournisseur, on repart en sachant ce
+     * qu'il a coûté.
+     *
+     * [parcours]: docs/02-parcours-et-ecrans.md
+     */
+    val usage: List<UsageRow> = emptyList(),
 )
+
+/**
+ * Une ligne de compteur : un modèle, ce qu'il a consommé, ce que ça a coûté.
+ *
+ * [cost] est `null` quand le modèle n'a pas de tarif connu — un modèle saisi à la
+ * main, ou n'importe lequel derrière le fournisseur « compatible ». L'écran affiche
+ * alors les jetons seuls, plutôt qu'un montant inventé.
+ */
+data class UsageRow(val provider: AiProvider, val model: String, val calls: Int, val tokens: Int, val cost: Double?)
 
 /** Une ligne de la liste : qui, et où il en est. */
 data class ProviderRow(

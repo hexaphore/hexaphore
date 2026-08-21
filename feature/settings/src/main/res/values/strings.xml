@@ -123,6 +123,15 @@
     <!-- L'écran des fournisseurs. -->
     <string name="ai_title">Intelligence artificielle</string>
     <string name="ai_intro">Vos clés restent sur cet appareil, chiffrées par son trousseau. Les appels partent vers votre fournisseur, sans intermédiaire : Hexaphore n\'a pas de serveur.</string>
+
+    <!-- Le compteur d'usage. La date du releve accompagne le montant : docs/05 veut
+         que la table de tarifs soit datee et signalee comme indicative, parce qu'une
+         estimation perimee presentee comme exacte serait pire que pas d'estimation. -->
+    <string name="ai_usage_title">Ce que vos analyses ont consommé</string>
+    <string name="ai_usage_line">%1$s · %2$s — %3$d appel(s), %4$d jetons</string>
+    <string name="ai_usage_cost">≈ %1$.2f $ US</string>
+    <string name="ai_usage_cost_unknown">Tarif inconnu pour ce modèle : jetons seuls.</string>
+    <string name="ai_usage_disclaimer">Estimation indicative, d\'après les tarifs relevés le %1$s. Votre fournisseur facture en dollars ; seule sa facture fait foi.</string>
     <string name="ai_active">Utilisé</string>
     <string name="ai_configured">Clé enregistrée</string>
     <string name="ai_not_configured">Aucune clé</string>

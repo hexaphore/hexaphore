@@ -108,6 +108,8 @@ internal fun AiSettingsScreen(state: AiSettingsUiState, actions: AiSettingsActio
                 )
             }
 
+            UsageCounter(state.usage)
+
             // De l'air sous la derniere carte : le clavier remonte le contenu, et un
             // bouton colle au bord bas se manque.
             Spacer(modifier = Modifier.padding(bottom = Spacing.xl))

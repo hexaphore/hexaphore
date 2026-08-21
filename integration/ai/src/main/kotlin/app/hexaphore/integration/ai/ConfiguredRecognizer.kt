@@ -5,12 +5,14 @@ import app.hexaphore.domain.ai.AiError
 import app.hexaphore.domain.ai.AiProbe
 import app.hexaphore.domain.ai.AiProvider
 import app.hexaphore.domain.ai.AiSettings
+import app.hexaphore.domain.ai.AiUsageLog
 import app.hexaphore.domain.ai.EstimationOutcome
 import app.hexaphore.domain.ai.FoodRecognizer
 import app.hexaphore.domain.ai.NutritionEstimator
 import app.hexaphore.domain.ai.ProbeOutcome
 import app.hexaphore.domain.ai.RecognitionInput
 import app.hexaphore.domain.ai.RecognitionOutcome
+import app.hexaphore.domain.ai.TokenUsage
 import app.hexaphore.domain.ai.VisionSupport
 
 /**
@@ -37,6 +39,7 @@ import app.hexaphore.domain.ai.VisionSupport
  */
 internal class ConfiguredRecognizer(
     private val settings: AiSettings,
+    private val usage: AiUsageLog,
     private val anthropic: ProviderRecognizer,
     private val gemini: ProviderRecognizer,
     private val openAi: ProviderRecognizer,
@@ -46,7 +49,10 @@ internal class ConfiguredRecognizer(
     AiProbe {
     override suspend fun recognize(input: RecognitionInput): RecognitionOutcome {
         val configuration = settings.current() ?: return RecognitionOutcome.Failed(AiError.NoProviderConfigured)
-        return configuration.provider.recognizer().recognize(input, configuration)
+        val outcome = configuration.provider.recognizer().recognize(input, configuration)
+
+        usage.recordIfBilled(configuration, outcome.billing())
+        return outcome
     }
 
     /**
@@ -65,7 +71,11 @@ internal class ConfiguredRecognizer(
         else ->
             settings
                 .current()
-                ?.let { configuration -> configuration.provider.recognizer().estimate(labels, configuration) }
+                ?.let { configuration ->
+                    val outcome = configuration.provider.recognizer().estimate(labels, configuration)
+                    usage.recordIfBilled(configuration, outcome.billing())
+                    outcome
+                }
                 ?: EstimationOutcome.Failed(AiError.NoProviderConfigured)
     }
 
@@ -128,3 +138,50 @@ private fun AiProvider.reachable() = ProbeOutcome.Reachable(vision = vision == V
 
 /** Aussi court que possible : le sondage se paie, et il se paie souvent. */
 private val PROBE = RecognitionInput.Text("un verre d'eau")
+
+/**
+ * Ce qu'un appel a coûté, quand il a coûté quelque chose.
+ *
+ * **On compte ce qui est facturé, pas ce qui est tenté.** Une clé refusée, un quota
+ * dépassé, un réseau absent ou un délai dépassé n'ont rien produit chez le
+ * fournisseur : les compter gonflerait un chiffre dont tout l'intérêt est d'être
+ * comparable à une facture.
+ *
+ * Une réponse **illisible ou vide**, en revanche, a été produite — donc payée —, et
+ * elle est comptée sans ses jetons, que la réponse n'a pas rendus. Annoncer zéro jeton
+ * serait pire que de n'en annoncer aucun : c'est la même règle que partout ailleurs
+ * dans ce projet, où une valeur absente vaut *inconnu*.
+ */
+private sealed interface Billing {
+    /** Le fournisseur a répondu, et voici ce qu'il a compté — s'il l'a dit. */
+    data class Billed(val usage: TokenUsage?) : Billing
+
+    /** Rien n'a été produit, donc rien n'a été facturé. */
+    data object None : Billing
+}
+
+private fun RecognitionOutcome.billing(): Billing = when (this) {
+    is RecognitionOutcome.Recognized -> Billing.Billed(recognition.usage)
+    is RecognitionOutcome.Failed -> error.billing()
+}
+
+private fun EstimationOutcome.billing(): Billing = when (this) {
+    is EstimationOutcome.Estimated -> Billing.Billed(usage)
+    is EstimationOutcome.Failed -> error.billing()
+}
+
+/**
+ * Un échec facturé, ou un échec gratuit.
+ *
+ * Seules deux issues signifient « le fournisseur a répondu » : une réponse qu'on n'a
+ * pas su lire, et une réponse lisible sans rien d'exploitable. Toutes les autres
+ * arrivent avant que le modèle ait travaillé.
+ */
+private fun AiError.billing(): Billing = when (this) {
+    AiError.Unparseable, AiError.NothingRecognized -> Billing.Billed(usage = null)
+    else -> Billing.None
+}
+
+private suspend fun AiUsageLog.recordIfBilled(configuration: AiConfiguration, billing: Billing) {
+    if (billing is Billing.Billed) record(configuration.provider, configuration.model, billing.usage)
+}
