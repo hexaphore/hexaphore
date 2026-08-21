@@ -27,9 +27,12 @@ fun main(args: Array<String>) {
     // Les libelles servent a valider : un titre court doit designer un code qui
     // existe, et etre plus court que ce qu'il remplace.
     val titles = ShortNamesCsv.read(paths.shortNames, table.foods.associate { it.code to it.name })
-    CiqualDatabaseWriter(paths.output).write(table.foods, portions, titles)
+    // La table entiere, cette fois : une completion doit viser un trou qui existe
+    // encore, et c'est la seule facon de le savoir.
+    val completions = CompletionsCsv.read(paths.completions, table.foods.associateBy { it.code })
+    CiqualDatabaseWriter(paths.output).write(table.foods, portions, titles, completions)
 
-    report(table.foods, portions, titles, paths.output)
+    report(table.foods, portions, titles, completions, paths.output)
 }
 
 /**
@@ -43,27 +46,30 @@ private data class ImportPaths(
     val archive: File,
     val servings: File,
     val shortNames: File,
+    val completions: File,
     val checksums: File,
     val output: File,
 ) {
     companion object {
         fun of(args: Array<String>): ImportPaths {
             require(args.size == ARGUMENT_COUNT) {
-                "Usage : importCiqual <archive.zip> <servings.csv> <short-names.csv> <SOURCE.sha256> <sortie.db>"
+                "Usage : importCiqual <archive.zip> <servings.csv> <short-names.csv> " +
+                    "<completions.csv> <SOURCE.sha256> <sortie.db>"
             }
             val files = args.map(::File)
             return ImportPaths(
                 archive = files[0],
                 servings = files[1],
                 shortNames = files[2],
-                checksums = files[3],
-                output = files[4],
+                completions = files[3],
+                checksums = files[4],
+                output = files[5],
             )
         }
     }
 }
 
-private const val ARGUMENT_COUNT = 5
+private const val ARGUMENT_COUNT = 6
 
 /**
  * Le controle d'empreinte demande par docs/04.
@@ -136,6 +142,7 @@ private fun report(
     foods: List<CiqualFood>,
     servings: List<CiqualServing>,
     titles: List<CiqualShortName>,
+    completions: List<CiqualCompletion>,
     output: File,
 ) {
     val missing = Nutrient.entries.associateWith { nutrient -> foods.count { it[nutrient] == null } }
@@ -149,8 +156,12 @@ private fun report(
     println("  ${titles.size} titres courts, sur $worthShortening libelles qui en valent la peine")
     reportAmbiguousTitles(titles)
     println("  valeurs inconnues, par colonne (NULL, jamais zero) :")
+    val completed = completions.groupingBy { it.macro.nutrient }.eachCount()
     missing.forEach { (nutrient, count) ->
-        println("    ${nutrient.column.padEnd(NUTRIENT_COLUMN_WIDTH)} $count / ${foods.size}")
+        // Ce qui est complete se lit **a cote** du trou et non a sa place : la
+        // colonne d'origine reste vide, et c'est tout l'objet de cette separation.
+        val estimated = completed[nutrient]?.let { " (dont $it completees)" }.orEmpty()
+        println("    ${nutrient.column.padEnd(NUTRIENT_COLUMN_WIDTH)} $count / ${foods.size}$estimated")
     }
     reportCategories(foods)
 }

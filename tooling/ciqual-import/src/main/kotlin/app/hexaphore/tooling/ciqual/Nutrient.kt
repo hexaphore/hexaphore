@@ -1,6 +1,7 @@
 package app.hexaphore.tooling.ciqual
 
 import app.hexaphore.domain.food.FoodCategory
+import app.hexaphore.domain.nutrition.Macro
 
 /**
  * Les colonnes de CIQUAL que l'application retient, et le code sous lequel l'ANSES
@@ -68,3 +69,21 @@ data class CiqualFood(
 
 /** Une portion usuelle, lue dans `servings.csv`. */
 data class CiqualServing(val code: String, val label: String, val grams: Double, val isDefault: Boolean)
+
+/**
+ * La colonne CIQUAL que chacun des six compteurs de l'application désigne.
+ *
+ * Deux vocabulaires pour la même chose : [Macro] est celui du domaine, [Nutrient]
+ * celui de la table de l'ANSES — qui en publie deux de plus, non affichées. Un `when`
+ * exhaustif plutôt qu'une correspondance par nom : ajouter un septième compteur
+ * cesserait de compiler ici, là où une table de chaînes se serait tue.
+ */
+internal val Macro.nutrient: Nutrient
+    get() = when (this) {
+        Macro.CALORIES -> Nutrient.KCAL
+        Macro.PROTEIN -> Nutrient.PROTEIN
+        Macro.CARBS -> Nutrient.CARB
+        Macro.SUGARS -> Nutrient.SUGAR
+        Macro.FAT -> Nutrient.FAT
+        Macro.FIBER -> Nutrient.FIBER
+    }

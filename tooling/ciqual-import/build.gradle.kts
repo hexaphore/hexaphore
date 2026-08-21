@@ -16,9 +16,9 @@ dependencies {
     // base ; celle d'Android ne fait que la lire.
     implementation(libs.sqlite.jdbc)
 
-    // Pour la seule tache `generateShortNames`. L'application, elle, parle a ses six
-    // fournisseurs par Retrofit et ses propres DTO : ce SDK n'entre dans aucun APK,
-    // et le prendre ici ne lie personne d'autre a Anthropic.
+    // Pour les deux taches de catalogue, et pour elles seules. L'application, elle,
+    // parle a ses six fournisseurs par Retrofit et ses propres DTO : ce SDK n'entre
+    // dans aucun APK, et le prendre ici ne lie personne d'autre a Anthropic.
     implementation(libs.anthropic.java)
 
     testImplementation(libs.junit.jupiter)
@@ -39,6 +39,7 @@ dependencies {
 val sourceArchive = layout.projectDirectory.file("../ciqual/ciqual-2025-11-03-xml.zip").asFile
 val servingsTable = layout.projectDirectory.file("../ciqual/servings.csv").asFile
 val shortNamesTable = layout.projectDirectory.file("../ciqual/short-names.csv").asFile
+val completionsTable = layout.projectDirectory.file("../ciqual/completions.csv").asFile
 val sourceChecksums = layout.projectDirectory.file("../ciqual/SOURCE.sha256").asFile
 val generatedDatabase = rootProject.layout.projectDirectory.file("core/database/src/main/assets/ciqual.db").asFile
 
@@ -49,13 +50,14 @@ tasks.register<JavaExec>("importCiqual") {
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("app.hexaphore.tooling.ciqual.CiqualImportKt")
 
-    inputs.files(sourceArchive, servingsTable, shortNamesTable, sourceChecksums)
+    inputs.files(sourceArchive, servingsTable, shortNamesTable, completionsTable, sourceChecksums)
     outputs.file(generatedDatabase)
 
     args(
         sourceArchive.absolutePath,
         servingsTable.absolutePath,
         shortNamesTable.absolutePath,
+        completionsTable.absolutePath,
         sourceChecksums.absolutePath,
         generatedDatabase.absolutePath,
     )
@@ -71,9 +73,9 @@ tasks.register<JavaExec>("importCiqual") {
 // La cle vient de la ligne de commande et n'est ni lue d'un fichier, ni ecrite dans
 // un fichier, ni conservee. Elle appartient a l'utilisateur.
 //
-//   ./gradlew generateShortNames -PanthropicApiKey=... [-PshortNamesModel=...]
+//   ./gradlew generateShortNames -PanthropicApiKey=... [-PcatalogueModel=...]
 
-val shortNamesModel = providers.gradleProperty("shortNamesModel").getOrElse("claude-opus-5")
+val catalogueModel = providers.gradleProperty("catalogueModel").getOrElse("claude-opus-5")
 val anthropicApiKey = providers.gradleProperty("anthropicApiKey").getOrElse("")
 
 tasks.register<JavaExec>("generateShortNames") {
@@ -86,7 +88,30 @@ tasks.register<JavaExec>("generateShortNames") {
     args(
         sourceArchive.absolutePath,
         shortNamesTable.absolutePath,
-        shortNamesModel,
+        catalogueModel,
+        anthropicApiKey,
+    )
+}
+
+// --- La tache des teneurs completees -----------------------------------------
+//
+// Distincte de la precedente, et pas par symetrie : un titre court est un affichage,
+// une teneur completee est un chiffre invente qui entrera dans un journal. Chacune
+// doit pouvoir etre lancee, relue et refusee sans l'autre.
+//
+//   ./gradlew generateCompletions -PanthropicApiKey=... [-PcatalogueModel=...]
+
+tasks.register<JavaExec>("generateCompletions") {
+    group = LifecycleBasePlugin.BUILD_GROUP
+    description = "Ecrit tooling/ciqual/completions.csv. Demande -PanthropicApiKey=... et depense."
+
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("app.hexaphore.tooling.ciqual.GenerateCompletionsKt")
+
+    args(
+        sourceArchive.absolutePath,
+        completionsTable.absolutePath,
+        catalogueModel,
         anthropicApiKey,
     )
 }

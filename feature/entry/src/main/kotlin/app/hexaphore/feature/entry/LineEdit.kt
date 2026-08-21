@@ -58,7 +58,13 @@ internal fun EntryFormLine.apply(edit: LineEdit): EntryFormLine = when (edit) {
     // se marque et cesse de suivre.
     is LineEdit.Quantity -> remeasured(edit.value)
     is LineEdit.Measurement -> remeasured(quantity, edit.value)
-    is LineEdit.MacroValue -> copy(macros = macros + (edit.macro to edit.value), edited = edited + edit.macro)
+    is LineEdit.MacroValue -> copy(
+        macros = macros + (edit.macro to edit.value),
+        edited = edited + edit.macro,
+        // La valeur est la sienne desormais : la presenter encore comme estimee
+        // serait faux. Meme regle que `DraftLine.corrected`.
+        estimated = estimated - edit.macro,
+    )
     is LineEdit.Substitute -> substituted(edit.food)
     // Une energie calculee est une energie voulue : elle se marque comme une saisie,
     // et le champ doit renaitre pour la montrer.

@@ -8,6 +8,8 @@ import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.core.testing.TestDispatchers
 import app.hexaphore.domain.food.Food
+import app.hexaphore.domain.food.FoodId
+import app.hexaphore.domain.nutrition.Macro
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -120,13 +122,55 @@ class RoomFoodCatalogTest : FoodCatalogContract() {
         assertNull(ligne.shortName)
     }
 
+    /**
+     * Une teneur complétée, depuis le CSV versionné jusqu'au modèle de domaine.
+     *
+     * **La couture entière de la seconde passe.** `completions.csv` est lu par une
+     * tâche Gradle, écrit dans une colonne **distincte** de `ciqual.db`, relu, puis
+     * fondu par le mapper — qui préfère l'originale et retient laquelle a servi.
+     *
+     * Le code choisi est l'une des deux lignes écrites à la main : les câpres au
+     * vinaigre, dont l'ANSES ne détermine pas l'énergie.
+     */
+    @Test
+    fun `une teneur completee du fichier livre remonte marquee`() {
+        val ligne = CiqualDatabase(ApplicationProvider.getApplicationContext()).byCode(CODE_COMPLETE)
+
+        checkNotNull(ligne) { "le code $CODE_COMPLETE n'est plus dans la table livree : la fixture est perimee" }
+        assertNull("l ANSES ne determine pas cette energie", ligne.kcal100)
+        assertEquals(39.0, ligne.estimated.kcal100)
+
+        val food = ligne.toDomain(FoodId("provisoire"), emptyList())
+        assertEquals("la completion comble le trou a l affichage", 39.0, food.per100g.kcal)
+        assertEquals("et la fiche dit d ou elle vient", setOf(Macro.CALORIES), food.estimated)
+    }
+
+    /**
+     * Ce que l'ANSES publie n'est jamais marqué, et jamais remplacé.
+     *
+     * Sans ce cas, un mapper qui marquerait tout, ou qui préférerait la complétion,
+     * passerait le test précédent sans rien mesurer.
+     */
+    @Test
+    fun `une teneur mesuree n est ni marquee ni remplacee`() {
+        val ligne = CiqualDatabase(ApplicationProvider.getApplicationContext()).byCode(CODE_COMPLETE)!!
+
+        val food = ligne.toDomain(FoodId("provisoire"), emptyList())
+
+        assertEquals("les fibres sont mesurees", ligne.fiber100, food.per100g.fiber)
+        assertEquals("et rien d autre que l energie n est marque", setOf(Macro.CALORIES), food.estimated)
+    }
+
     private companion object {
         val MAINTENANT: Instant = Instant.parse("2026-08-10T10:00:00Z")
+
+        /** « Câpres, au vinaigre » : sans énergie déterminée, complétée à la main. */
+        const val CODE_COMPLETE = "11040"
 
         /** « Poulet, cuisse, viande rôtie/cuite au four », l'une des six lignes écrites à la main. */
         const val CODE_AVEC_TITRE = "36006"
 
-        /** « Bigorneau, cru » : quatorze caractères, il n'y a rien à raccourcir. */
+        /** « Carotte, crue » : treize caractères, il n'y a rien à raccourcir. */
         const val CODE_SANS_TITRE = "20009"
     }
 }

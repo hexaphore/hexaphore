@@ -305,6 +305,11 @@ private fun MacroTextField(
         modifier = modifier,
         labelColor = NeonTheme.macros[macro].base,
         isError = isError,
+        // Le contour en pointilles de D25 : cette valeur vient d'un modele, pas
+        // d'une mesure. Une fiche dont trois teneurs sur six ont ete completees le
+        // dit champ par champ, parce qu'une marque de ligne mentirait sur les trois
+        // autres.
+        estimated = macro in line.estimated,
         // Des entiers : personne ne compte les demi-grammes, et le separateur
         // decimal disparait du clavier comme du filtre.
         keyboardType = KeyboardType.Number,

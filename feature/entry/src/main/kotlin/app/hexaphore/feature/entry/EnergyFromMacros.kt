@@ -90,6 +90,10 @@ internal fun EntryFormLine.withComputedEnergy(): EntryFormLine {
     return copy(
         macros = macros + (Macro.CALORIES to proposal.kcal.roundToInt().toString()),
         edited = edited + Macro.CALORIES,
+        // Si l'energie venait d'une fiche completee, elle n'en vient plus : c'est
+        // l'utilisateur qui vient de la vouloir, et le contour en pointilles doit
+        // tomber avec la marque.
+        estimated = estimated - Macro.CALORIES,
         revision = revision + 1,
     )
 }

@@ -135,6 +135,36 @@ class EnergyFromMacrosTest {
         assertNotEquals(emptySet<Macro>(), intacte.apply(LineEdit.AcceptEnergy).edited)
     }
 
+    @Test
+    fun `corriger un champ efface sa marque d estimation`() {
+        // La valeur est celle de l'utilisateur desormais : le contour en pointilles
+        // designerait un chiffre que personne n'a devine.
+        val estimee = feta().copy(estimated = setOf(Macro.CALORIES, Macro.FIBER))
+
+        val corrigee = estimee.apply(LineEdit.MacroValue(Macro.CALORIES, "300"))
+
+        assertEquals(setOf(Macro.FIBER), corrigee.estimated, "et seulement la sienne")
+    }
+
+    @Test
+    fun `accepter le calcul efface la marque de l energie`() {
+        // Meme regle par un autre geste : si l'energie venait d'une fiche completee,
+        // elle n'en vient plus.
+        val estimee = feta().copy(estimated = setOf(Macro.CALORIES))
+
+        assertEquals(emptySet<Macro>(), estimee.apply(LineEdit.AcceptEnergy).estimated)
+    }
+
+    @Test
+    fun `la marque traverse le formulaire sans se perdre`() {
+        // La couture que le formulaire a deja perdue une fois : un brouillon portait
+        // la fiche, l'ecran la perdait, et l'enregistrement citait un aliment absent
+        // (D85). Le meme aller-retour, pour la provenance.
+        val ligne = feta().copy(estimated = setOf(Macro.CALORIES))
+
+        assertEquals(setOf(Macro.CALORIES), EntryFormLine.of(ligne.toDraftLine()).estimated)
+    }
+
     private fun brouillon(line: EntryFormLine) = EntryDraft(
         date = JOUR,
         source = EntrySource.MANUAL,

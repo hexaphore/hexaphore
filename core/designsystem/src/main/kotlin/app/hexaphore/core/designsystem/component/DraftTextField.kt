@@ -10,12 +10,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import app.hexaphore.core.designsystem.theme.Radius
 
 /**
  * Un champ dont l'affichage ne dépend d'aucun aller-retour d'état.
@@ -80,9 +89,23 @@ fun DraftTextField(
      * doit se désigner, pas l'utilisateur qui doit le chercher.
      */
     isError: Boolean = false,
+    /**
+     * `true` quand la valeur affichée **vient d'un modèle et non d'une mesure**.
+     *
+     * Le champ prend alors un contour en pointillés, la forme que le projet réserve
+     * depuis [D25][decisions] à ce qui a été estimé — jamais une couleur, qui
+     * travaillerait seule et ne dirait rien à qui ne distingue pas les teintes.
+     *
+     * Elle disparaît dès que l'utilisateur touche au champ : la valeur est alors la
+     * sienne, et continuer à la présenter comme incertaine serait faux.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    estimated: Boolean = false,
     accept: (String) -> Boolean = { true },
 ) {
     var value by remember { mutableStateOf(TextFieldValue(initial, TextRange(initial.length))) }
+    val ink = MaterialTheme.colorScheme.onSurfaceVariant
 
     OutlinedTextField(
         value = value,
@@ -103,9 +126,42 @@ fun DraftTextField(
             imeAction = if (minLines == 1) ImeAction.Next else ImeAction.Default,
         ),
         visualTransformation = visualTransformation,
-        modifier = modifier,
+        modifier = if (estimated) modifier.dashedOutline(ink) else modifier,
     )
 }
+
+/**
+ * Le contour en pointillés d'une valeur estimée, dessiné **par-dessus** celui du champ.
+ *
+ * `OutlinedTextField` peint sa propre bordure et ne se laisse pas remplacer sans
+ * réécrire tout le composant. Un second tracé au même rayon la recouvre exactement, ce
+ * qui coûte un `drawWithContent` là où une réimplémentation coûterait la gestion du
+ * focus, de l'erreur et du libellé flottant.
+ *
+ * Le trait est plus épais que celui du champ : un pointillé fin se lit comme un défaut
+ * de rendu, et il doit se voir pour signaler quelque chose ([D25][decisions]).
+ *
+ * [decisions]: docs/11-decisions.md
+ */
+private fun Modifier.dashedOutline(color: Color): Modifier = drawWithContent {
+    drawContent()
+    val stroke = DashedStroke.toPx()
+    val inset = stroke / 2f
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(inset, inset),
+        size = Size(size.width - stroke, size.height - stroke),
+        cornerRadius = CornerRadius(Radius.field.toPx()),
+        style = Stroke(
+            width = stroke,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(DashOn.toPx(), DashOff.toPx())),
+        ),
+    )
+}
+
+private val DashedStroke: Dp = 1.5.dp
+private val DashOn: Dp = 3.dp
+private val DashOff: Dp = 2.dp
 
 /**
  * Ce qu'un champ numérique laisse entrer.

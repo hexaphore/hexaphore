@@ -9,6 +9,7 @@ import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodServing
 import app.hexaphore.domain.food.FoodSource
 import app.hexaphore.domain.food.SearchText
+import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.nutrition.NutrientValues
 import java.time.Instant
 
@@ -118,15 +119,50 @@ internal fun CiqualFoodRow.toDomain(id: FoodId, servings: List<CiqualServingRow>
     shortName = shortName,
     brand = null,
     category = category.toFoodCategory(),
+    // **L'originale l'emporte toujours.** La complétion n'intervient que là où
+    // l'ANSES n'a rien déterminé, et le champ suivant dit lesquelles ont servi.
     per100g = NutrientValues(
-        kcal = kcal100,
-        protein = protein100,
-        carbs = carb100,
-        sugars = sugar100,
-        fat = fat100,
-        fiber = fiber100,
+        kcal = kcal100 ?: estimated.kcal100,
+        protein = protein100 ?: estimated.protein100,
+        carbs = carb100 ?: estimated.carb100,
+        sugars = sugar100 ?: estimated.sugar100,
+        fat = fat100 ?: estimated.fat100,
+        fiber = fiber100 ?: estimated.fiber100,
     ),
+    estimated = estimatedMacros(),
     servings = servings.map { FoodServing(label = it.label, grams = it.grams, isDefault = it.isDefault) },
 )
+
+/**
+ * Les compteurs dont la valeur affichée vient d'un modèle.
+ *
+ * **Une complétion qui ne sert pas n'est pas signalée.** Le jour où l'ANSES publie
+ * enfin la teneur, la mesure l'emporte et la ligne cesse d'être marquée — même si le
+ * fichier porte encore l'estimation. C'est ce qui rend la règle sûre : la marque suit
+ * ce qui est affiché, pas ce qui est stocké.
+ *
+ * Le `when` est exhaustif sur [Macro] : ajouter un septième compteur cesserait de
+ * compiler ici plutôt que de l'oublier en silence.
+ */
+private fun CiqualFoodRow.estimatedMacros(): Set<Macro> = Macro.entries
+    .filterTo(mutableSetOf()) { macro ->
+        val measured = when (macro) {
+            Macro.CALORIES -> kcal100
+            Macro.PROTEIN -> protein100
+            Macro.CARBS -> carb100
+            Macro.SUGARS -> sugar100
+            Macro.FAT -> fat100
+            Macro.FIBER -> fiber100
+        }
+        val completed = when (macro) {
+            Macro.CALORIES -> estimated.kcal100
+            Macro.PROTEIN -> estimated.protein100
+            Macro.CARBS -> estimated.carb100
+            Macro.SUGARS -> estimated.sugar100
+            Macro.FAT -> estimated.fat100
+            Macro.FIBER -> estimated.fiber100
+        }
+        measured == null && completed != null
+    }
 
 internal fun CiqualServingRow.toDomain() = FoodServing(label = label, grams = grams, isDefault = isDefault)

@@ -63,8 +63,8 @@ La flèche du bas remonte : `:data` dépend de `:domain`, jamais l'inverse. Un `
 :feature:weight
 :feature:settings           Profil et objectifs, recalcul, compteurs fixés à la main
 
-:tooling:ciqual-import      Deux tâches Gradle, hors APK : XML ANSES → SQLite, et
-                            les titres courts demandés à un modèle (D88)
+:tooling:ciqual-import      Trois tâches Gradle, hors APK : XML ANSES → SQLite, les
+                            titres courts (D88) et les teneurs complétées (D89)
 ```
 
 Un artefact vit à côté de cette liste sans y figurer : `build-logic/detekt-rules`, qui contient les trois règles d'analyse statique de [10](10-qualite-et-livraison.md#analyse-statique). Ce n'est pas un module du projet mais un **build inclus** : son code tourne sur la JVM de Gradle, pas sur un téléphone, et il n'a rien à faire dans le graphe de dépendances de l'application ([D16](11-decisions.md#d16--les-règles-detekt-vivent-dans-un-build-inclus---par-défaut)).

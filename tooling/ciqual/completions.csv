@@ -1,0 +1,35 @@
+# Teneurs completees par un modele, associees a un code CIQUAL.
+#
+# CIQUAL laisse des trous : 143 fiches n'ont aucune energie determinee -- la
+# feta, les capres, l'oignon au vinaigre -- et une ligne sans energie n'est pas
+# enregistrable. Ce fichier les comble.
+#
+# **Une valeur completee reste une valeur inventee.** Elle ne remplace jamais
+# une mesure : elle vit dans ses propres colonnes, la lecture prefere toujours
+# l'originale, et l'ecran dit champ par champ ce qui a ete devine.
+#
+# Une ligne par valeur, et non par fiche : c'est la granularite de la regle,
+# et c'est ce qui rend une completion supprimable seule.
+#
+# Produit par la tache `generateCompletions`, puis **relu et corrigeable a la
+# main**. Une correction survit a la generation suivante, qui ne redemande que
+# les trous absents de ce fichier -- et qui retire les lignes dont l'ANSES
+# publie desormais la mesure.
+#
+# Une teneur que l'ANSES publie arrete l'import : la ligne est soit fautive,
+# soit un reliquat, et dans les deux cas elle doit se voir.
+#
+# --- Les deux lignes ci-dessous sont ecrites a la main ------------------------
+#
+# Elles ne viennent d'aucun modele. Elles rendent la chaine eprouvable de bout
+# en bout tant que la passe n'a pas tourne, et elles montrent ce qu'on attend.
+#
+# Les deux fiches publient leurs macros mais pas leur energie. Le calcul du
+# reglement UE 1169/2011 la donne, aux arrondis pres :
+#
+#   11040 Capres, au vinaigre : 4x2,18 + 4x3,5 + 9x0,86 + 2x3,6 = 39 kcal
+#   11055 Oignon au vinaigre  : 4x0,6  + 4x2,5 + 9x0,15 + 2x1,8 = 17 kcal
+
+code_ciqual,macro,teneur
+11040,CALORIES,39
+11055,CALORIES,17
