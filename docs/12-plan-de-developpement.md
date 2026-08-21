@@ -276,11 +276,21 @@ les glucides, 9 pour les lipides, 2 pour les fibres. Les glucides y sont déclar
 **hors fibres**, ce qui est la convention de CIQUAL comme d'Open Food Facts : les
 additionner tels quels ne compte donc rien deux fois.
 
-**Ce qui reste à arbitrer** : ce que devient une valeur ainsi calculée. Elle n'est pas
-mesurée, mais elle n'est pas non plus devinée par un modèle — elle se déduit de ce que
-l'utilisateur a saisi. La marquer comme corrigée à la main ([D45](11-decisions.md)) est le plus
-cohérent : elle ne doit plus être recalculée par la quantité, et elle survit à la mise
-en favori.
+Si l'utilisateur choisit de recalculer les calories, la nouvelle mesure doit remplacer l'ancienne valeur.
+
+> **Livrée** ([D87](11-decisions.md#d87--les-calories-se-proposent-et-une-valeur-minorée-se-dit-au-lieu-de-se-taire---validée)).
+> Une pastille sous les six champs, qui n'apparaît que quand l'énergie manque ou
+> qu'elle contredit les macros de plus de 10 kcal **et** de plus de 10 %. La valeur
+> acceptée est marquée corrigée à la main : elle cesse de suivre la quantité et
+> survit au rejeu d'un favori.
+>
+> Deux points ont été tranchés en route, contre la lettre écrite ici. Les fibres
+> absentes **n'empêchent pas** de proposer quand l'énergie manque — sans quoi la
+> pastille serait muette sur les lignes venues d'un modèle, qui ont le droit de se
+> taire sur les fibres ([D83](11-decisions.md)) — et la valeur dit alors qu'elle est
+> minorée. En revanche, quand l'énergie **est** là et que les fibres manquent, rien
+> n'est proposé : l'écart peut n'être que les fibres qu'on ignore, et quinze fiches
+> de l'ANSES y auraient perdu une mesure au profit d'un calcul incomplet.
 
 ### Un titre court sur chaque fiche
 

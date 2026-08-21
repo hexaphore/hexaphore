@@ -2206,6 +2206,58 @@ Un survivant apparent n'en était pas un : `domain.jar` était **vide** — le p
 
 **Ce que le vert ne prouve pas.** L'appui long, le menu et le titre de l'écran ne s'éprouvent qu'en tenant le téléphone. Ce qui est vérifié est ce qui écrit : le modèle réécrit, le journal délié, le repas non créé, et le numéro qui avance.
 
+## D87 — Les calories se proposent, et une valeur minorée se dit au lieu de se taire · ✓ validée
+
+**Contexte.** Première des trois demandes issues de l'usage réel ([12](12-plan-de-developpement.md#demandes-issues-de-lusage-réel)). Corriger les macros d'une ligne laissait l'énergie inchangée — et c'est elle qui décide si la ligne est enregistrable. Les facteurs du règlement UE 1169/2011 la déduisent des quatre autres : 4 kcal/g pour les protéines et les glucides, 9 pour les lipides, 2 pour les fibres. Les glucides y sont déclarés **hors fibres**, comme dans CIQUAL et dans Open Food Facts, si bien que les additionner tels quels ne compte rien deux fois — c'est [D24](#d24--les-fibres-sont-déduites-du-solde-glucidique---validée) prise par l'autre bout.
+
+### Une proposition, et le mot n'est pas décoratif
+
+Une pastille à toucher, jamais un champ qui se remplit. Un écran qui écrirait tout seul dans un champ que quelqu'un vient de remplir ferait exactement ce que `edited` existe pour empêcher, et il le ferait au moment le plus dommageable : celui où l'on est en train de corriger.
+
+### La valeur calculée est marquée corrigée à la main
+
+Arbitré avec Charly, et c'est le seul comportement cohérent : les macros dont elle se déduit ne suivent déjà plus la quantité, puisqu'on vient de les écrire. La laisser suivre la référence pour 100 g la ferait diverger d'elles au gramme suivant.
+
+**La contrepartie ne mord que dans un cas, et il fallait le mesurer avant de trancher.** Une ligne corrigée entre dans un favori **déliée** de sa fiche ([D85](#d85--deux-défauts-que-seul-lusage-réel-pouvait-montrer-et-un-écran-qui-cesse-de-faire-chercher---validée)). Quand ce sont les macros qu'on vient de corriger, la ligne est déjà déliée et le calcul n'y change rien. Le seul cas nouveau est celui d'une fiche dont l'énergie manque **à la source** — la feta, les câpres, 143 fiches de l'ANSES : accepter le calcul y délie la ligne. C'est voulu, et c'est le comportement utile : la fiche n'a toujours pas d'énergie, donc un favori qui la citerait la reprendrait vide au rejeu.
+
+### Trois situations, dont une qui interdit de proposer
+
+- **L'énergie manque.** La ligne n'est pas enregistrable, c'est le cas que la demande nomme en premier.
+- **L'énergie contredit les macros.** Le défaut qui a motivé la demande : après correction, l'énergie d'avant reste en place — présente, donc silencieuse, et fausse. Ne proposer que sur une énergie absente l'aurait laissé passer entier.
+- **Les fibres manquent et l'énergie est là : on ne propose rien.** L'écart observé peut n'être **que** les fibres qu'on ignore, et remplacer une mesure par un calcul minoré serait une régression. Quinze fiches de l'ANSES sont exactement dans ce cas, et c'est en les comptant que la règle a été écrite.
+
+### Les fibres absentes valent zéro, mais seulement pour débloquer
+
+Exiger les quatre valeurs, comme la lettre du plan le demandait, aurait rendu la proposition muette là où elle sert le plus : une ligne proposée par un modèle a le **droit** de se taire sur les fibres ([D83](#d83--le-repli-invente-des-chiffres-une-seule-fois-et-en-le-disant---validée)), et 55 fiches de l'ANSES n'ont ni énergie ni fibres.
+
+La valeur est donc minorée d'au plus 2 kcal par gramme ignoré, **et l'écran l'écrit** — « hors fibres, non renseignées ». Une valeur minorée qui s'annonce débloque la ligne ; la même valeur silencieuse serait un chiffre inventé de plus. Le zéro de commodité ne s'échappe jamais du calcul : c'est tout le travail du garde-fou ci-dessus.
+
+### Deux seuils, parce qu'un seul a toujours un angle mort
+
+Un seuil relatif seul ferait clignoter la proposition sur les petites lignes — 3 kcal d'écart sur une tisane en font 60 %. Un seuil absolu seul se tairait sur un plat de 2 000 kcal faux de 1 %. Les deux doivent tomber : **10 kcal et 10 %**. En deçà, l'écart n'est pas une erreur mais l'arrondi à l'entier des six champs ([D52](#d52--deux-savedstatehandle-une-seule-saisie-manuelle-des-grammes-entiers---validée)), qui ne se rattrape pas.
+
+### Le geste ne transporte pas le chiffre
+
+`LineEdit.AcceptEnergy` est un `data object` sans valeur : la ligne recalcule au moment où elle applique. Transporter le chiffre affiché ferait de l'écran la source d'une valeur nutritionnelle, alors qu'il n'en est que le miroir, et rendrait possible d'écrire une énergie que la règle n'aurait pas proposée.
+
+### Ce que le compteur de révision achète ici
+
+`revision` avance, sans quoi **rien ne se verrait** : le brouillon porterait la nouvelle énergie pendant que le champ afficherait l'ancienne. C'est la forme exacte des trois derniers défauts trouvés à l'usage — la donnée était juste, l'écran ne la montrait pas — et [D45](#d45--un-champ-de-saisie-tient-son-texte-lui-même---validée) dit pourquoi elle se reproduit : un champ ne relit sa valeur initiale qu'à la première composition.
+
+### Les facteurs d'Atwater déménagent
+
+Ils vivaient dans `goal/MacroDistributionPolicy.kt`, où ils sont nés, et leur propre KDoc les disait « utilisés partout dans le projet ». Ce sont des facteurs de **nutrition** : le calcul d'objectif n'est qu'un de leurs deux usages, et faire dépendre `nutrition` de `goal` pour les atteindre aurait inversé la dépendance qui a du sens. Ils sont dans `nutrition/MacroEnergy.kt`, et les deux fichiers de `goal` les importent.
+
+**Campagne de défaite : treize sabotages, treize cas tombés.** Les quatre facteurs, les sucres comptés deux fois, les glucides absents passés pour zéro, le garde-fou des fibres, l'énergie absente non proposée, chacun des deux seuils séparément, la valeur minorée non signalée, la marque `edited`, le compteur de révision, l'arrondi, et le geste rendu inerte.
+
+Le premier tour a rapporté **treize « rien n'a tourné »**, et c'était le harnais et non le code : `subprocess` ne peut pas exécuter le `gradlew` shell sous Windows. Le compte rendu aurait dit « treize règles non couvertes » si le harnais n'avait pas exigé qu'un nombre de cas **exécutés** soit supérieur à zéro avant de conclure quoi que ce soit. C'est la même leçon que le `domain.jar` vide de [D86](#d86--la-liste-des-favoris-devient-lendroit-où-on-les-gère-et-le-numéro-ne-recule-pas---validée), par une autre porte.
+
+**Conséquences.** Un fichier de domaine, `nutrition/MacroEnergy.kt`, et un fichier d'écran, `feature/entry/EnergyFromMacros.kt`. Le second existe parce que `EntryForm.kt` était **exactement** au seuil de onze fonctions par fichier : la réponse du projet est de découper selon ce que les choses sont, et « la proposition d'énergie » en est une, comme `MissingFieldGuide` l'est.
+
+Accepter le calcul **éteint l'étoile**, comme toute retouche de ligne : le brouillon cesse d'être celui que le favori décrit ([D62](#d62--un-favori-est-un-modèle-vivant-et-létoile-est-son-seul-interrupteur---validée)). Ce n'est pas un effet de bord, c'est la règle qui s'applique.
+
+**Ce que le vert ne prouve pas.** Que la pastille se voie, qu'elle tombe sous le pouce, et qu'elle n'encombre pas une carte qui porte déjà douze champs — rien de tout cela ne s'éprouve sans tenir le téléphone. Ce qui est vérifié est ce que le geste écrit : la valeur, sa marque, son arrondi, et le fait qu'elle survive au rejeu d'un favori — ce dernier cas traversant volontairement la couture jusqu'à `GetFavoriteDraft`, sur le modèle de `ProposedDishSavingTest`.
+
 ---
 
 ## Décisions prises par défaut, à confirmer
