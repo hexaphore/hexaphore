@@ -76,4 +76,19 @@ interface FavoriteDishDao {
 
     @Query("UPDATE favorite_dish SET use_count = use_count + 1 WHERE id = :id")
     suspend fun markUsed(id: String)
+
+    /**
+     * Détache les plats déjà enregistrés qui citaient ce favori.
+     *
+     * **Ici et non dans `DiaryDao`**, bien que la requête écrive dans `dish` : ce
+     * qu'elle répond est une question sur le **favori** — que deviennent ceux qui le
+     * citaient quand il change. Le seuil de fonctions a forcé le choix ; il tombait
+     * juste.
+     *
+     * Un `UPDATE` et non une relecture suivie de réécritures : ce qui change est une
+     * colonne, les lignes des plats ne sont pas touchées, et la base fait le travail
+     * en une passe quel qu'en soit le nombre.
+     */
+    @Query("UPDATE dish SET favorite_id = NULL WHERE favorite_id = :favorite")
+    suspend fun unlinkFromDishes(favorite: String)
 }

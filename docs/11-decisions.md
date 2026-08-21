@@ -2129,6 +2129,48 @@ Leur carte reste **visible et en retrait**, avec une phrase qui dit pourquoi : l
 
 **Ce qui reste ouvert.** La résolution choisit encore mal : « 5 cacahuètes » devient 500 g — le forfait `PIECE` à 100 g, faute de portion nommée pour une cacahuète — et « une mandarine » tombe sur un nectar. Le modèle ne connaît pas les libellés de l'ANSES, et le score les rapproche à l'aveugle. C'est un sujet à part entière, et il attend sa livraison.
 
+## D86 — La liste des favoris devient l'endroit où on les gère, et le numéro ne recule pas · ✓ validée
+
+**Contexte.** Deux demandes d'usage : gérer ses favoris depuis leur liste, et un nom proposé qui ne réutilise pas un numéro libéré.
+
+### Un revirement assumé sur D62
+
+[D62](#d62--un-favori-est-un-modèle-vivant-et-létoile-est-son-seul-interrupteur---validée) réservait la suppression à **l'étoile de l'écran de validation** : un seul endroit pour la décision, donc rien à tenir d'accord. Le raisonnement était bon et la conséquence mauvaise.
+
+La liste est le **seul endroit où l'on regarde ses favoris en tant que liste**, donc le seul où l'on s'aperçoit qu'il y en a un de trop ou un à corriger. Y arriver par l'étoile demandait de **rejouer** le favori — c'est-à-dire d'ouvrir un repas qu'on ne voulait pas noter, puis de se souvenir d'annuler. Le coût de l'unicité était payé par le geste le plus fréquent.
+
+Un appui long y ouvre donc « Modifier » et « Supprimer », comme sur un plat de l'accueil. La suppression **ne demande pas confirmation**, à la différence d'un plat du journal : un favori est un modèle, pas un fait. Le supprimer ne perd aucune donnée — les repas déjà notés gardent leurs lignes — et le refaire coûte une étoile.
+
+### Le même écran, un autre sens du mot « enregistrer »
+
+« Modifier » ouvre l'écran de validation **sur le favori lui-même**. Même écran, mêmes lignes, même étoile ; ce qui change est ce qu'enregistrer veut dire — réécrire le modèle, sans rien ajouter au journal. On est venu corriger, pas manger.
+
+Un **drapeau de route** plutôt qu'une seconde destination, et un écran qui **le dit** : son titre devient « Modifier le favori » et son bouton « Enregistrer le favori ». Un écran qui annoncerait « Nouvelle saisie » alors qu'il réécrit un modèle mentirait sur ce que l'appui va faire — et c'est exactement le genre de mensonge que les trois défauts précédents ont rendu coûteux.
+
+Le nom, lui, ne se redemande pas : on modifie un favori depuis sa liste, où il est déjà nommé.
+
+### Les plats qui citaient le favori le perdent
+
+**Pas de répercussion en chaîne** : leurs lignes ne bougent pas d'un gramme, et c'est la règle du journal depuis [D05](#d05--le-journal-fige-ses-valeurs---validée) — un registre d'événements ne se réécrit pas.
+
+Ce qui tombe est la **provenance**. « Rejoué depuis les Flocons du matin » n'est plus vérifiable quand les Flocons du matin ont changé de contenu : un lien qui ment vaut moins qu'un lien absent. Le port du journal gagne donc `unlinkFavorite`, servi par un `UPDATE` d'une colonne — la requête vit dans le DAO **des favoris** bien qu'elle écrive dans `dish`, parce que ce qu'elle répond est une question sur le favori.
+
+### Le compteur qui ne redescend jamais
+
+Le nom proposé était le premier « Plat n » libre. Supprimer « Plat 1 » faisait donc réapparaître ce nom au favori suivant — deux favoris successifs indiscernables dans un historique, et un nom qu'on venait d'écarter qui revient.
+
+`FavoriteNumbering` est un **compteur, pas un décompte** : il avance à chaque proposition et ne compte pas les favoris existants. Il vit dans les préférences et non dans la base — c'est un état d'interface, un entier sans date ni relation, et une table lui aurait apporté une migration et un schéma exporté pour rien.
+
+**Les deux règles se complètent** : le compteur garantit qu'un numéro ne réapparaît pas, et la vérification d'unicité qu'il n'en heurte pas un que quelqu'un a nommé « Plat 4 » à la main. Le verrou du compteur n'est pas décoratif : lire puis écrire n'est pas atomique, et deux ouvertures rapprochées de la boîte rendraient le même numéro.
+
+**Campagne de défaite : six sabotages, six cas tombés.** Le déliement supprimé, le modèle non réécrit, un favori disparu passé pour un succès, un favori vidé accepté, le compteur remis à 1, le nom pris non enjambé.
+
+Un survivant apparent n'en était pas un : `domain.jar` était **vide** — le piège de [10](10-qualite-et-livraison.md#gradle) —, donc rien ne compilait et aucun cas ne pouvait tomber. Le harnais comptait « zéro échec » là où il fallait lire « zéro exécution ». Rejoué après suppression du jar, le cas tombe.
+
+**Conséquences.** `DraftFavorites` porte un quatrième geste — le seuil de fonctions du `ViewModel` a d'ailleurs forcé à l'y déplacer plutôt qu'à l'y laisser. `:data:diary` ouvre son propre fichier de préférences : les réglages d'IA ne rangent pas les noms de plats, et effacer l'un ne doit pas remettre l'autre à zéro. Le graphe de navigation, lui, a dû se couper en deux — la capture d'un côté, la recherche et les favoris de l'autre.
+
+**Ce que le vert ne prouve pas.** L'appui long, le menu et le titre de l'écran ne s'éprouvent qu'en tenant le téléphone. Ce qui est vérifié est ce qui écrit : le modèle réécrit, le journal délié, le repas non créé, et le numéro qui avance.
+
 ---
 
 ## Décisions prises par défaut, à confirmer

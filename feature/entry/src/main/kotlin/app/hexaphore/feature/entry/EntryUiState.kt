@@ -33,6 +33,14 @@ internal sealed interface EntryUiState {
         val favoriteNameTaken: Boolean = false,
         /** Le numéro proposé pour nommer ce plat : « Plat 3 ». */
         val favoriteNumber: Int = 1,
+        /**
+         * `true` quand on modifie **le favori lui-même** et non un repas.
+         *
+         * L'écran est le même ; ce qui change est ce qu'enregistrer veut dire, et il
+         * doit le dire — son titre comme son bouton. Un écran qui annonce « Nouvelle
+         * saisie » alors qu'il réécrit un modèle ment sur ce que l'appui va faire.
+         */
+        val editingFavorite: Boolean = false,
     ) : EntryUiState {
         /** `true` quand ce plat est dans la liste des favoris. */
         val favorite: Boolean get() = form.favoriteId != null

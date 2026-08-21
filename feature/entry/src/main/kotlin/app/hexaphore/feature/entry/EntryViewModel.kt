@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import app.hexaphore.domain.diary.DaySummary
 import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.diary.DraftLineId
+import app.hexaphore.domain.diary.EntryDraft
 import app.hexaphore.domain.diary.FavoriteDishId
 import app.hexaphore.domain.diary.impactOf
 import app.hexaphore.domain.food.FoodId
@@ -59,6 +60,7 @@ internal class EntryViewModel @Inject constructor(
     private val scannedFoodId: FoodId? =
         savedStateHandle.get<String>(EntryDestination.SCANNED_FOOD_ID)?.let(::FoodId)
     private val proposal: Boolean = savedStateHandle.get<Boolean>(EntryDestination.PROPOSAL) == true
+    private val editingFavorite: Boolean = savedStateHandle.get<Boolean>(EntryDestination.EDITING_FAVORITE) == true
 
     private val form = MutableStateFlow<EntryForm?>(null)
     private val status = MutableStateFlow(Status.LOADING)
@@ -113,6 +115,7 @@ internal class EntryViewModel @Inject constructor(
                     saving = status == Status.SAVING,
                     favoriteNameTaken = nameTaken,
                     favoriteNumber = favoriteNumber.value,
+                    editingFavorite = editingFavorite,
                 )
             }
         }
@@ -216,6 +219,13 @@ internal class EntryViewModel @Inject constructor(
         status.value = Status.EDITING
     }
 
+    /**
+     * Enregistrer, et ce que le mot veut dire ici.
+     *
+     * **Deux sens pour un bouton**, selon d'où l'on vient. Le cas courant note un repas
+     * au journal ; celui qui vient de la liste des favoris réécrit le **modèle**, sans
+     * rien ajouter à la journée — on est venu corriger, pas manger.
+     */
     fun onSave() {
         val current = form.value ?: return
         val draft = current.toDraft()
@@ -223,7 +233,7 @@ internal class EntryViewModel @Inject constructor(
 
         status.value = Status.SAVING
         viewModelScope.launch {
-            val written = runCatching { saveDraft(draft) }
+            val written = runCatching { if (editingFavorite) favorites.rewrite(draft) else saveDraft(draft) }
             status.value = if (written.isSuccess) Status.SAVED else Status.FAILED
         }
     }

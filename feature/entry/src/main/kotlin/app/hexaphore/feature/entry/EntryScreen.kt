@@ -223,7 +223,11 @@ private fun DraftHeader(state: EntryUiState.Content, actions: EntryActions, date
         ) {
             Text(
                 text = stringResource(
-                    if (state.form.dishId == null) R.string.entry_title_new else R.string.entry_title_edit,
+                    when {
+                        state.editingFavorite -> R.string.entry_title_favorite
+                        state.form.dishId == null -> R.string.entry_title_new
+                        else -> R.string.entry_title_edit
+                    },
                 ),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -336,6 +340,7 @@ private fun DraftActions(
                         when {
                             state.saving -> R.string.entry_saving
                             state.emptying -> R.string.entry_delete_dish
+                            state.editingFavorite -> R.string.entry_save_favorite
                             else -> R.string.entry_save
                         },
                     ),

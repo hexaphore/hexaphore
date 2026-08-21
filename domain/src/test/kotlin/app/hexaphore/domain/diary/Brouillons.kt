@@ -44,4 +44,11 @@ internal fun brouillon(
     dishId: DishId? = null,
     source: EntrySource = EntrySource.MANUAL,
     date: LocalDate = JOUR,
-) = EntryDraft(dishId = dishId, date = date, source = source, lines = lignes.toList())
+    favoriteId: FavoriteDishId? = null,
+) = EntryDraft(
+    dishId = dishId,
+    date = date,
+    source = source,
+    lines = lignes.toList(),
+    favoriteId = favoriteId,
+)

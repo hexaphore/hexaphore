@@ -56,4 +56,19 @@ interface DiaryRepository {
 
     /** Retire un plat et, avec lui, toutes ses lignes. */
     suspend fun deleteDish(id: DishId)
+
+    /**
+     * Détache de [favorite] les plats déjà enregistrés qui le citaient.
+     *
+     * **Le journal ne se réécrit pas, mais une provenance peut cesser d'être vraie.**
+     * Un plat marqué « rejoué depuis les Flocons du matin » alors que ce favori a
+     * changé de contenu annoncerait une origine qu'on ne peut plus vérifier : le lien
+     * tombe, les lignes du plat restent intactes.
+     *
+     * C'est l'inverse d'une répercussion en chaîne, et c'est voulu : modifier un
+     * modèle ne touche à aucun repas déjà noté ([D05][decisions]).
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    suspend fun unlinkFavorite(favorite: FavoriteDishId)
 }

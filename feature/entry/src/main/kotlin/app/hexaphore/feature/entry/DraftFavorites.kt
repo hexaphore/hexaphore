@@ -6,6 +6,7 @@ import app.hexaphore.domain.usecase.FavoriteOutcome
 import app.hexaphore.domain.usecase.NextFavoriteNumber
 import app.hexaphore.domain.usecase.RemoveFavoriteDish
 import app.hexaphore.domain.usecase.SaveFavoriteDish
+import app.hexaphore.domain.usecase.UpdateFavoriteDish
 import javax.inject.Inject
 
 /**
@@ -21,11 +22,24 @@ class DraftFavorites @Inject constructor(
     private val saveFavoriteDish: SaveFavoriteDish,
     private val removeFavoriteDish: RemoveFavoriteDish,
     private val nextFavoriteNumber: NextFavoriteNumber,
+    private val updateFavoriteDish: UpdateFavoriteDish,
 ) {
     suspend fun save(draft: EntryDraft, name: String, existing: FavoriteDishId?): FavoriteOutcome =
         saveFavoriteDish(draft, name, existing)
 
     suspend fun remove(id: FavoriteDishId) = removeFavoriteDish(id)
+
+    /**
+     * Réécrit le modèle que ce brouillon décrit, et délie les plats qui le citaient.
+     *
+     * **Un favori disparu est un échec**, pas un succès silencieux : l'écran garde la
+     * saisie et propose de réessayer, là où ne rien dire aurait laissé croire que la
+     * correction était enregistrée.
+     */
+    suspend fun rewrite(draft: EntryDraft) {
+        val id = checkNotNull(draft.favoriteId) { "Modification d'un favori sans favori." }
+        checkNotNull(updateFavoriteDish(draft, id)) { "Favori disparu pendant la modification." }
+    }
 
     /** Le premier numéro libre : « Plat 3 ». Le mot vient de l'écran, le compte d'ici. */
     suspend fun nextNumber(label: (Int) -> String): Int = nextFavoriteNumber(label)

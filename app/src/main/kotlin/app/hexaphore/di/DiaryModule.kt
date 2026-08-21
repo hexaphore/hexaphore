@@ -1,15 +1,22 @@
 package app.hexaphore.di
 
+import android.content.Context
+import android.content.SharedPreferences
 import app.hexaphore.data.diary.RoomDiaryRepository
 import app.hexaphore.data.diary.RoomFavoriteDishes
 import app.hexaphore.data.diary.RoomFoodCitations
+import app.hexaphore.data.diary.StoredFavoriteNumbering
+import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.diary.DiaryRepository
 import app.hexaphore.domain.diary.FavoriteDishes
+import app.hexaphore.domain.diary.FavoriteNumbering
 import app.hexaphore.domain.food.FoodCitations
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Named
 import javax.inject.Singleton
 
 /**
@@ -47,6 +54,25 @@ object DiaryModule {
     fun favoriteDishes(store: RoomFavoriteDishes): FavoriteDishes = store
 
     /**
+     * Le compteur des noms proposés, dans son propre fichier de préférences.
+     *
+     * À part des réglages d'IA : ce n'est ni un secret ni une préférence, mais un état
+     * de nommage, et effacer l'un ne doit pas remettre l'autre à zéro.
+     */
+    @Provides
+    @Singleton
+    @Named(DIARY_PREFERENCES)
+    fun preferences(@ApplicationContext context: Context): SharedPreferences =
+        context.getSharedPreferences(DIARY_PREFERENCES_FILE, Context.MODE_PRIVATE)
+
+    @Provides
+    @Singleton
+    fun favoriteNumbering(
+        @Named(DIARY_PREFERENCES) preferences: SharedPreferences,
+        dispatchers: DispatcherProvider,
+    ): FavoriteNumbering = StoredFavoriteNumbering(preferences, dispatchers)
+
+    /**
      * Le compte des citations, fourni ici alors que c'est un port du **catalogue**.
      *
      * Ce n'est pas un rangement approximatif : le compte se dérive des entrées de
@@ -60,3 +86,8 @@ object DiaryModule {
     @Provides
     fun foodCitations(citations: RoomFoodCitations): FoodCitations = citations
 }
+
+/** Un fichier à part : les réglages d'IA ne rangent pas les noms de plats. */
+private const val DIARY_PREFERENCES_FILE = "diary"
+
+private const val DIARY_PREFERENCES = "diary"

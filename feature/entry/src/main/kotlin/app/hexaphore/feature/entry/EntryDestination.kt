@@ -59,6 +59,16 @@ data class EntryDestination(
      * une cinquième origine, comme les quatre autres.
      */
     val proposal: Boolean = false,
+    /**
+     * `true` quand on vient **modifier le favori lui-même**, et non le rejouer.
+     *
+     * Le brouillon est le même — c'est le contenu du favori —, mais l'enregistrement
+     * change de sens : il réécrit le modèle et n'ajoute aucun repas au journal. Un
+     * drapeau plutôt qu'une seconde destination, parce que c'est le même écran, la
+     * même liste de lignes et la même étoile ; seul le bouton d'enregistrement répond
+     * à une autre question.
+     */
+    val editingFavorite: Boolean = false,
 ) {
     companion object {
         /**
@@ -80,6 +90,9 @@ data class EntryDestination(
 
         /** Idem, pour le favori qu'une saisie rejoue. */
         internal val FAVORITE_ID: String = EntryDestination::favoriteId.name
+
+        /** Idem, pour le mode qui modifie le favori au lieu de le rejouer. */
+        internal val EDITING_FAVORITE: String = EntryDestination::editingFavorite.name
 
         /** Idem, pour le produit qu'un scan vient de verser au catalogue. */
         internal val SCANNED_FOOD_ID: String = EntryDestination::scannedFoodId.name
@@ -118,6 +131,15 @@ fun NavController.navigateToEntry(dishId: DishId? = null) {
 /** Ouvre une saisie neuve, préremplie depuis une fiche d'aliment. */
 fun NavController.navigateToEntryForFavorite(favoriteId: FavoriteDishId) {
     navigate(EntryDestination(favoriteId = favoriteId.value))
+}
+
+/**
+ * Ouvre le **favori lui-même**, pour le corriger.
+ *
+ * Même écran, même contenu ; ce qui change est ce qu'enregistrer veut dire.
+ */
+fun NavController.navigateToFavoriteEditor(favoriteId: FavoriteDishId) {
+    navigate(EntryDestination(favoriteId = favoriteId.value, editingFavorite = true))
 }
 
 fun NavController.navigateToEntryFor(foodId: FoodId) {

@@ -1,10 +1,12 @@
 package app.hexaphore.domain.usecase
 
+import app.hexaphore.domain.diary.DiaryRepository
 import app.hexaphore.domain.diary.EntryDraft
 import app.hexaphore.domain.diary.FavoriteComponent
 import app.hexaphore.domain.diary.FavoriteDish
 import app.hexaphore.domain.diary.FavoriteDishId
 import app.hexaphore.domain.diary.FavoriteDishes
+import app.hexaphore.domain.diary.FavoriteNumbering
 import app.hexaphore.domain.identity.IdGenerator
 
 /**
@@ -94,6 +96,39 @@ private fun EntryDraft.toComponents(): List<FavoriteComponent> = lines.map { lin
 }
 
 /**
+ * Réécrit un favori existant, **sans enregistrer de repas**.
+ *
+ * C'est la seconde vie de l'écran de validation : il sert d'éditeur au modèle
+ * lui-même. Le plat n'entre pas au journal — on est venu corriger un modèle, pas noter
+ * un repas —, et le nom du favori ne change pas : on le modifie depuis sa liste, où
+ * il est déjà nommé.
+ *
+ * **Les plats déjà enregistrés qui citaient ce favori le perdent.** Pas de
+ * répercussion en chaîne : leurs lignes ne bougent pas d'un gramme. Ce qui tombe est
+ * la **provenance** — « rejoué depuis les Flocons du matin » n'est plus vérifiable
+ * quand les Flocons du matin ont changé de contenu. Un lien qui ment vaut moins qu'un
+ * lien absent.
+ */
+class UpdateFavoriteDish(private val favorites: FavoriteDishes, private val diary: DiaryRepository) {
+    /**
+     * @return `null` si le favori a disparu entre l'ouverture et l'enregistrement.
+     * @throws IllegalArgumentException si le brouillon n'a aucune ligne enregistrable :
+     *   un favori vidé ne rejouerait rien, et ce n'est pas ainsi qu'on le supprime.
+     */
+    suspend operator fun invoke(draft: EntryDraft, id: FavoriteDishId): FavoriteDish? {
+        require(draft.lines.isNotEmpty() && draft.lines.all { it.complete }) {
+            "Brouillon incomplet : un favori sans ligne enregistrable ne rejouerait rien."
+        }
+
+        val existing = favorites.byId(id) ?: return null
+        favorites.save(existing.copy(components = draft.toComponents()))
+        diary.unlinkFavorite(id)
+
+        return existing
+    }
+}
+
+/**
  * Le premier numéro libre pour nommer un plat favori.
  *
  * **Un numéro et non une phrase** : « Plat » est un mot d'interface, et le domaine
@@ -105,20 +140,28 @@ private fun EntryDraft.toComponents(): List<FavoriteComponent> = lines.map { lin
  * qu'on efface au lieu de le corriger. Un numéro se garde ou se remplace, mais il ne
  * se subit pas.
  */
-class NextFavoriteNumber(private val favorites: FavoriteDishes) {
+class NextFavoriteNumber(private val numbering: FavoriteNumbering, private val favorites: FavoriteDishes) {
     /**
      * @param taken dit si un nom est déjà pris, tel que l'écran l'écrirait.
      *
-     * Une lambda plutôt qu'un patron de chaîne : c'est l'appelant qui connaît le mot,
-     * et le cas d'usage se contente de compter jusqu'à ce qu'il tombe sur un libre.
+     * **Le compteur avance, et le nom pris est enjambé.** Les deux règles se
+     * complètent : le compteur garantit qu'un numéro ne réapparaît pas après une
+     * suppression, la vérification qu'il ne heurte pas un favori nommé « Plat 4 » à la
+     * main. Une lambda plutôt qu'un patron de chaîne, parce que c'est l'appelant qui
+     * connaît le mot.
+     *
      * La borne évite une boucle sans fin si quelque chose répondait « pris » à tout.
      */
     suspend operator fun invoke(taken: (Int) -> String): Int {
-        var number = 1
-        while (number <= MAX_ATTEMPTS && favorites.nameTaken(taken(number))) number++
+        var number = numbering.next()
+        var attempts = 0
+        while (attempts < MAX_ATTEMPTS && favorites.nameTaken(taken(number))) {
+            number = numbering.next()
+            attempts++
+        }
         return number
     }
 }
 
-/** Cent plats favoris nommés « Plat n » : au-delà, le nom proposé n'est plus le sujet. */
+/** Cent noms déjà pris d'affilée : au-delà, le nom proposé n'est plus le sujet. */
 private const val MAX_ATTEMPTS = 100

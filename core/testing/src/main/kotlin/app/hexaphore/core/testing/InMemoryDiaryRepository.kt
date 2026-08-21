@@ -4,6 +4,7 @@ import app.hexaphore.domain.diary.DiaryRepository
 import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.diary.EntryId
+import app.hexaphore.domain.diary.FavoriteDishId
 import app.hexaphore.domain.food.FoodCitations
 import app.hexaphore.domain.food.FoodId
 import kotlinx.coroutines.flow.Flow
@@ -86,6 +87,14 @@ class InMemoryDiaryRepository(initial: List<Dish> = emptyList()) :
     override suspend fun deleteDish(id: DishId) {
         failure?.let { throw it }
         state.update { dishes -> dishes.filterNot { it.id == id } }
+    }
+
+    override suspend fun unlinkFavorite(favorite: FavoriteDishId) {
+        failure?.let { throw it }
+        // Les lignes ne bougent pas : ce qui tombe est la provenance, pas le repas.
+        state.update { dishes ->
+            dishes.map { if (it.favoriteId == favorite) it.copy(favoriteId = null) else it }
+        }
     }
 
     /**

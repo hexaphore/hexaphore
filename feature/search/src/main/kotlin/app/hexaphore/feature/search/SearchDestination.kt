@@ -111,10 +111,11 @@ fun NavGraphBuilder.searchScreens(
     onPick: (FoodId, addToDraft: Boolean) -> Unit,
     onManualEntry: (name: String, addToDraft: Boolean) -> Unit,
     onPickFavorite: (FavoriteDishId) -> Unit,
+    onEditFavorite: (FavoriteDishId) -> Unit,
     onClose: () -> Unit,
 ) {
     composable<FavoritesDestination> {
-        FavoritesRoute(onPick = onPickFavorite, onClose = onClose)
+        FavoritesRoute(onPick = onPickFavorite, onEdit = onEditFavorite, onClose = onClose)
     }
     composable<SearchDestination> { entry ->
         val addToDraft = entry.toRoute<SearchDestination>().addToDraft

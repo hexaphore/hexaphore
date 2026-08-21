@@ -6,6 +6,7 @@ import app.hexaphore.core.testing.InMemoryFavoriteDishes
 import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.domain.diary.FavoriteDishId
+import app.hexaphore.domain.diary.FavoriteNumbering
 import app.hexaphore.domain.diary.JOUR
 import app.hexaphore.domain.diary.brouillon
 import app.hexaphore.domain.diary.ligne
@@ -142,6 +143,70 @@ class FavoriteDishTest {
     }
 
     @Test
+    fun `le numero propose ne redescend jamais`() = runTest {
+        // Supprimer « Plat 1 » ne doit pas faire reapparaitre ce nom au favori
+        // suivant : le compteur avance, il ne compte pas les favoris existants.
+        val numbering = InMemoryFavoriteNumbering()
+        val proposer = NextFavoriteNumber(numbering, favoris)
+
+        val premier = proposer { "Plat $it" }
+        val second = proposer { "Plat $it" }
+
+        assertEquals(1, premier)
+        assertEquals(2, second)
+    }
+
+    @Test
+    fun `un nom deja pris a la main est enjambe`() = runTest {
+        // Les deux regles se completent : le compteur evite qu'un numero reapparaisse,
+        // la verification qu'il heurte un favori nomme « Plat 2 » a la main.
+        saveFavorite(brouillon(ligne("a")), "Plat 1")
+        val proposer = NextFavoriteNumber(InMemoryFavoriteNumbering(), favoris)
+
+        assertEquals(2, proposer { "Plat $it" })
+    }
+
+    @Test
+    fun `modifier un favori reecrit le modele sans noter de repas`() = runTest {
+        // On est venu corriger un modele, pas manger. Le journal ne doit rien y gagner.
+        val id = (saveFavorite(brouillon(ligne("a", nom = "Flocons")), "Petit-déj") as FavoriteOutcome.Saved).id
+
+        updateFavorite(brouillon(ligne("b", nom = "Flocons complets"), favoriteId = id), id)
+
+        assertEquals(listOf("Flocons complets"), favoris.byId(id)!!.components.map { it.name })
+        assertTrue(diary.dishes.isEmpty(), "modifier un modele n'ajoute aucun repas")
+    }
+
+    @Test
+    fun `les plats qui citaient le favori le perdent`() = runTest {
+        // Pas de repercussion en chaine : leurs lignes ne bougent pas d'un gramme.
+        // Ce qui tombe est la provenance, qui n'est plus verifiable.
+        val id = (saveFavorite(brouillon(ligne("a")), "Petit-déj") as FavoriteOutcome.Saved).id
+        val plat = LogDish(diary, catalogue, favoris, clock, ids)(brouillon(ligne("a"), favoriteId = id))
+
+        updateFavorite(brouillon(ligne("b", nom = "Autre chose"), favoriteId = id), id)
+
+        val enregistre = diary.dish(plat)!!
+        assertNull(enregistre.favoriteId, "le lien tombe")
+        assertEquals(1, enregistre.entries.size, "et les lignes restent")
+    }
+
+    @Test
+    fun `modifier un favori disparu ne rend rien`() = runTest {
+        val fantome = FavoriteDishId("fav-disparu")
+
+        assertNull(updateFavorite(brouillon(ligne("a")), fantome))
+    }
+
+    @Test
+    fun `un favori vide de ses lignes est refuse`() = runTest {
+        // Ce n'est pas ainsi qu'on supprime un favori : la liste a un geste pour ca.
+        val id = (saveFavorite(brouillon(ligne("a")), "Petit-déj") as FavoriteOutcome.Saved).id
+
+        assertThrows<IllegalArgumentException> { updateFavorite(brouillon(), id) }
+    }
+
+    @Test
     fun `un brouillon rejoue porte le lien vers son favori`() = runTest {
         val id = (saveFavorite(brouillon(ligne("a")), "Petit-déj") as FavoriteOutcome.Saved).id
 
@@ -188,6 +253,7 @@ class FavoriteDishTest {
     private val diary = InMemoryDiaryRepository()
     private val catalogue = InMemoryFoodCatalog()
     private val favoris = InMemoryFavoriteDishes()
+    private val updateFavorite = UpdateFavoriteDish(favoris, diary)
     private val clock = FixedClock.atNoon(JOUR)
     private val ids = SequentialIdGenerator("fav")
 
@@ -208,4 +274,17 @@ class FavoriteDishTest {
             per100g = NutrientValues(kcal = 363.0, protein = 13.5, carbs = 60.0, sugars = 1.0, fat = 7.0, fiber = 10.0),
         )
     }
+}
+
+/**
+ * Le compteur, en mémoire.
+ *
+ * Il **avance vraiment**, comme celui qui écrit dans les préférences : un faux qui
+ * rendrait toujours 1 laisserait passer exactement la régression que ce port existe
+ * pour empêcher.
+ */
+private class InMemoryFavoriteNumbering : FavoriteNumbering {
+    private var next = 1
+
+    override suspend fun next(): Int = next++
 }
