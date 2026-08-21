@@ -40,7 +40,11 @@ class RoomDiaryRepositoryTest : DiaryContract() {
             .also(bases::add)
 
         return OpenJournal(
-            diary = RoomDiaryRepository(dao = base.diaryDao(), clock = FixedClock(MAINTENANT)),
+            diary = RoomDiaryRepository(
+                dao = base.diaryDao(),
+                favorites = base.favoriteDishDao(),
+                clock = FixedClock(MAINTENANT),
+            ),
             citations = RoomFoodCitations(base.foodCitationsDao()),
             // La cle etrangere de food_entry.food_id refuse une citation vers rien :
             // la fiche doit exister avant le plat qui la cite.

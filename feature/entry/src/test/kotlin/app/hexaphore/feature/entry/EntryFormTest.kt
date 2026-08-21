@@ -100,10 +100,21 @@ class EntryFormTest {
     }
 
     @Test
-    fun `une ligne relue est depliee`() {
-        // Repliee, il faudrait deplier chaque ligne pour verifier qu'on modifie
-        // la bonne.
-        assertTrue(EntryFormLine.of(ligne().toDraftLine()).expanded)
+    fun `ce qui manque a une ligne se nomme, dans l ordre de l ecran`() {
+        // « Un champ est vide » n'aide personne devant vingt-quatre champs. L'ordre
+        // est celui de l'ecran, de haut en bas : on designe le premier manque, parce
+        // qu'en signaler trois ne dit plus par ou commencer.
+        assertEquals(MissingField.NAME, ligne(name = "").missing)
+        assertEquals(MissingField.QUANTITY, ligne(quantity = "").missing)
+        assertEquals(MissingField.CALORIES, ligne(kcal = "").missing)
+        assertNull(ligne().missing, "une ligne complete ne manque de rien")
+    }
+
+    @Test
+    fun `une quantite nulle manque autant qu une quantite absente`() {
+        // Zero gramme de riz n'est pas une saisie : c'est une ligne qu'on n'a pas
+        // finie.
+        assertEquals(MissingField.QUANTITY, ligne(quantity = "0").missing)
     }
 
     @Test
@@ -135,6 +146,31 @@ class EntryFormTest {
         // 111 kcal pour 100 g, ramenes a 180 g : les valeurs suivent la fiche choisie.
         assertEquals("200", chosen.macros[Macro.CALORIES])
         assertNull(chosen.suggestion, "la ligne est desormais un choix, pas une proposition")
+    }
+
+    @Test
+    fun `choisir une alternative fait revivre toute la ligne`() {
+        // Le defaut rapporte a l'usage : les pastilles disparaissaient, et le nom
+        // restait celui d'avant. Un champ de saisie ne relit son texte initial qu'a la
+        // premiere composition (D45) ; c'est ce compteur qui lui dit qu'il en commence
+        // une nouvelle -- et il doit porter **toute** la ligne, pas ses seules valeurs.
+        val line = ligne(quantity = "180")
+
+        val chosen = line.apply(LineEdit.Substitute(RIZ_COMPLET))
+
+        assertEquals(line.substitutions + 1, chosen.substitutions)
+    }
+
+    @Test
+    fun `taper une quantite ne fait pas revivre le nom`() {
+        // La contrepartie, et c'est pour elle que les deux compteurs existent : un
+        // recalcul reconstruit les valeurs, jamais le champ qu'on est en train de
+        // remplir.
+        val line = ligne(quantity = "180")
+
+        val remesuree = line.apply(LineEdit.Quantity("200"))
+
+        assertEquals(line.substitutions, remesuree.substitutions)
     }
 
     @Test

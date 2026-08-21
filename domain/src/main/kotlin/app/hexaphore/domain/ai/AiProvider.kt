@@ -32,6 +32,19 @@ enum class AiProvider(
      */
     val suggestedModels: List<String>,
     val vision: VisionSupport,
+    /**
+     * Si ce fournisseur est proposé aujourd'hui, ou tenu en réserve.
+     *
+     * **Le code des six existe et passe ses tests.** Ce qui manque aux quatre derniers
+     * est ce qu'aucun test ne donne : un appel réel, avec une vraie clé, sur un vrai
+     * compte. Les proposer sans cela reviendrait à faire payer à quelqu'un la
+     * découverte d'un défaut que personne n'a cherché.
+     *
+     * Un drapeau plutôt qu'une suppression : rien n'est perdu, le `when` de la fabrique
+     * reste exhaustif, et le jour où l'un d'eux est éprouvé, il revient en changeant un
+     * mot.
+     */
+    val status: ProviderStatus = ProviderStatus.READY,
 ) {
     ANTHROPIC(
         displayName = "Anthropic",
@@ -56,12 +69,14 @@ enum class AiProvider(
         // n'est celui que j'aurais ecrit de memoire, et c'est la troisieme fois.
         suggestedModels = listOf("gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.6-sol"),
         vision = VisionSupport.ALWAYS,
+        status = ProviderStatus.SUSPENDED,
     ),
 
     DEEPSEEK(
         displayName = "DeepSeek",
         defaultBaseUrl = "https://api.deepseek.com/",
         suggestedModels = listOf("deepseek-v4-flash", "deepseek-v4-pro"),
+        status = ProviderStatus.SUSPENDED,
         // Sa documentation ne promet pas la lecture d'images. « Selon le modele »
         // dit exactement ce qu'on sait : le mode photo se signalera indisponible
         // tant qu'un sondage n'aura pas prouve le contraire.
@@ -73,6 +88,7 @@ enum class AiProvider(
         defaultBaseUrl = "https://api.mistral.ai/",
         suggestedModels = listOf("mistral-small-2603", "mistral-medium-3505", "mistral-large-2512"),
         vision = VisionSupport.MODEL_DEPENDENT,
+        status = ProviderStatus.SUSPENDED,
     ),
 
     /**
@@ -89,7 +105,21 @@ enum class AiProvider(
         defaultBaseUrl = "",
         suggestedModels = emptyList(),
         vision = VisionSupport.MODEL_DEPENDENT,
+        status = ProviderStatus.SUSPENDED,
     ),
+}
+
+/**
+ * Proposé, ou tenu en réserve.
+ *
+ * Deux fournisseurs ont été éprouvés sur un vrai compte ; les quatre autres attendent
+ * de l'être. **Ce n'est pas une question de code** — il est écrit, testé, et sa
+ * campagne de défaite est passée — mais de vérification : un appel réel dit des choses
+ * qu'aucun serveur local ne dit, et c'est l'utilisateur qui paierait la découverte.
+ */
+enum class ProviderStatus {
+    READY,
+    SUSPENDED,
 }
 
 /**

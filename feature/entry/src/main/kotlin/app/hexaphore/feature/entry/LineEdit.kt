@@ -7,12 +7,15 @@ import app.hexaphore.domain.nutrition.Macro
 /**
  * Ce qu'une interaction peut changer sur une ligne.
  *
- * Un type fermé plutôt que cinq méthodes de `ViewModel` et cinq lambdas dans
- * [EntryActions]. Le gain n'est pas la brièveté : c'est qu'ajouter un champ — la
- * confiance d'une proposition en tranche 6, le marqueur « estimée » d'une valeur —
- * ajoute une variante que le `when` refuse de compiler tant qu'elle n'est pas
- * traitée. Cinq méthodes indépendantes auraient laissé la sixième s'ajouter en
- * silence, et l'oubli n'aurait été visible que sur l'appareil.
+ * Un type fermé plutôt qu'une méthode de `ViewModel` et une lambda par geste dans
+ * [EntryActions]. Le gain n'est pas la brièveté : c'est qu'ajouter un champ ajoute une
+ * variante que le `when` refuse de compiler tant qu'elle n'est pas traitée. Des
+ * méthodes indépendantes auraient laissé la suivante s'ajouter en silence, et l'oubli
+ * n'aurait été visible que sur l'appareil.
+ *
+ * **Plus de pliage.** Les six valeurs sont toujours visibles : cette application sert
+ * à suivre des macros, et les cacher derrière un bouton demandait un geste de plus par
+ * aliment pour voir ce qu'on est venu voir.
  */
 internal sealed interface LineEdit {
     data class Name(val value: String) : LineEdit
@@ -31,9 +34,6 @@ internal sealed interface LineEdit {
      * n'était pas traitée — c'est exactement ce que ce type fermé achète.
      */
     data class Substitute(val food: Food) : LineEdit
-
-    /** Déplie ou replie les cinq valeurs facultatives. */
-    data object ToggleDetails : LineEdit
 }
 
 /**
@@ -50,5 +50,4 @@ internal fun EntryFormLine.apply(edit: LineEdit): EntryFormLine = when (edit) {
     is LineEdit.Measurement -> remeasured(quantity, edit.value)
     is LineEdit.MacroValue -> copy(macros = macros + (edit.macro to edit.value), edited = edited + edit.macro)
     is LineEdit.Substitute -> substituted(edit.food)
-    LineEdit.ToggleDetails -> copy(expanded = !expanded)
 }

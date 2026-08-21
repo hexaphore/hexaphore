@@ -20,6 +20,7 @@ import app.hexaphore.feature.entry.navigateToEntryFor
 import app.hexaphore.feature.entry.navigateToEntryForFavorite
 import app.hexaphore.feature.entry.navigateToEntryForProposal
 import app.hexaphore.feature.entry.navigateToEntryForScan
+import app.hexaphore.feature.entry.navigateToFavoriteEditor
 import app.hexaphore.feature.home.HomeDestination
 import app.hexaphore.feature.home.HomeRoutes
 import app.hexaphore.feature.home.homeScreen
@@ -177,6 +178,17 @@ private fun NavGraphBuilder.captureScreens(navController: NavHostController) {
         },
         onClose = { navController.popBackStack() },
     )
+    searchScreens(navController)
+}
+
+/**
+ * La recherche, les favoris, et l'aliment personnel.
+ *
+ * Sortis de [captureScreens] quand le seuil de longueur a mordu, et le découpage suit
+ * ce que les choses sont : ces trois destinations partagent un point d'entrée et une
+ * règle — elles s'effacent derrière la validation.
+ */
+private fun NavGraphBuilder.searchScreens(navController: NavHostController) {
     searchScreens(
         onPick = { foodId, addToDraft ->
             if (addToDraft) {
@@ -202,6 +214,13 @@ private fun NavGraphBuilder.captureScreens(navController: NavHostController) {
         onPickFavorite = { favoriteId ->
             navController.popBackStack(HomeDestination, inclusive = false)
             navController.navigateToEntryForFavorite(favoriteId)
+        },
+        // Modifier le favori lui-meme : meme ecran, mais enregistrer y reecrit le
+        // modele au lieu de noter un repas. La liste s'efface derriere, comme pour un
+        // rejeu -- revenir en arriere doit rendre l'accueil.
+        onEditFavorite = { favoriteId ->
+            navController.popBackStack(HomeDestination, inclusive = false)
+            navController.navigateToFavoriteEditor(favoriteId)
         },
         onClose = { navController.popBackStack() },
     )

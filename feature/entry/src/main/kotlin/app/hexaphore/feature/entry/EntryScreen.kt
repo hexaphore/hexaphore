@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -28,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -36,13 +38,12 @@ import app.hexaphore.core.designsystem.component.NeonButton
 import app.hexaphore.core.designsystem.component.NeonButtonAvailability
 import app.hexaphore.core.designsystem.component.NeonButtonStyle
 import app.hexaphore.core.designsystem.component.SourceBadge
-import app.hexaphore.core.designsystem.component.SwipeToDelete
 import app.hexaphore.core.designsystem.theme.NeonTheme
 import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.domain.diary.DraftImpact
+import app.hexaphore.domain.diary.DraftLineId
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.nutrition.Macro
-import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import kotlin.math.abs
@@ -81,6 +82,7 @@ internal fun EntryRoute(
                 onAddFood = onAddFood,
                 onRemoveLine = viewModel::onRemoveLine,
                 onSave = viewModel::onSave,
+                onNaming = viewModel::onNaming,
                 onFavorite = viewModel::onFavorite,
                 onUnfavorite = viewModel::onUnfavorite,
                 onDismissFavoriteError = viewModel::onDismissFavoriteError,
@@ -139,15 +141,20 @@ private fun DraftEditor(state: EntryUiState.Content, actions: EntryActions) {
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val incomplete = stringResource(R.string.entry_incomplete_hint)
-    val onIncomplete: () -> Unit = {
-        scope.launch {
-            // Une seule barre a la fois : trois appuis empilaient trois fois le
-            // meme message, et le troisieme s'affichait dix secondes plus tard.
-            snackbarHostState.currentSnackbarData?.dismiss()
-            snackbarHostState.showSnackbar(incomplete)
-        }
-    }
+    val listState = rememberLazyListState()
+
+    // La ligne dont un champ manque, telle qu'elle a ete designee au dernier appui.
+    // Elle reste marquee jusqu'a ce qu'on reessaie : effacer la marque a la premiere
+    // frappe ferait disparaitre l'indication au moment ou l'on s'en sert.
+    var flagged by remember { mutableStateOf<DraftLineId?>(null) }
+
+    val onIncomplete = rememberMissingFieldGuide(
+        lines = state.form.lines,
+        listState = listState,
+        snackbarHostState = snackbarHostState,
+        scope = scope,
+        onFlag = { flagged = it },
+    )
 
     Box(
         modifier = Modifier
@@ -155,6 +162,7 @@ private fun DraftEditor(state: EntryUiState.Content, actions: EntryActions) {
             .safeDrawingPadding(),
     ) {
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = Spacing.screenMargin),
@@ -165,13 +173,17 @@ private fun DraftEditor(state: EntryUiState.Content, actions: EntryActions) {
                 DraftHeader(state, actions, dateFormatter)
             }
 
+            // **Plus de balayage ici.** Il reste le raccourci d'un geste sur une
+            // liste qu'on parcourt -- l'accueil le garde --, mais cet ecran est un
+            // formulaire : on y fait glisser son doigt pour atteindre un champ, et
+            // une ligne entiere disparaissait sans qu'on l'ait voulu. La corbeille
+            // suffit, et elle demande de viser.
             items(items = state.form.lines, key = { it.id.value }) { line ->
-                SwipeToDelete(
-                    label = stringResource(R.string.entry_remove_line),
-                    onDelete = { actions.onRemoveLine(line.id) },
-                ) {
-                    LineEditor(line = line, actions = actions)
-                }
+                LineEditor(
+                    line = line,
+                    actions = actions,
+                    flagged = line.missing.takeIf { line.id == flagged },
+                )
             }
 
             item(key = "pied") {
@@ -211,7 +223,11 @@ private fun DraftHeader(state: EntryUiState.Content, actions: EntryActions, date
         ) {
             Text(
                 text = stringResource(
-                    if (state.form.dishId == null) R.string.entry_title_new else R.string.entry_title_edit,
+                    when {
+                        state.editingFavorite -> R.string.entry_title_favorite
+                        state.form.dishId == null -> R.string.entry_title_new
+                        else -> R.string.entry_title_edit
+                    },
                 ),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -227,9 +243,14 @@ private fun DraftHeader(state: EntryUiState.Content, actions: EntryActions, date
             }
         }
 
+        val context = LocalContext.current
+        LaunchedEffect(naming) {
+            if (naming) actions.onNaming { number -> context.getString(R.string.entry_favorite_proposal, number) }
+        }
+
         if (naming) {
             FavoriteNameDialog(
-                proposal = state.form.proposedFavoriteName(),
+                proposal = stringResource(R.string.entry_favorite_proposal, state.favoriteNumber),
                 nameTaken = state.favoriteNameTaken,
                 onConfirm = actions.onFavorite,
                 onDismiss = {
@@ -319,6 +340,7 @@ private fun DraftActions(
                         when {
                             state.saving -> R.string.entry_saving
                             state.emptying -> R.string.entry_delete_dish
+                            state.editingFavorite -> R.string.entry_save_favorite
                             else -> R.string.entry_save
                         },
                     ),

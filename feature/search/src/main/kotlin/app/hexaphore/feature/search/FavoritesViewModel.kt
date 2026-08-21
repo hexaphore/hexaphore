@@ -3,8 +3,10 @@ package app.hexaphore.feature.search
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.hexaphore.domain.diary.FavoriteDish
+import app.hexaphore.domain.diary.FavoriteDishId
 import app.hexaphore.domain.diary.FavoriteDishes
 import app.hexaphore.domain.food.SearchText
+import app.hexaphore.domain.usecase.RemoveFavoriteDish
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -44,7 +47,10 @@ internal sealed interface FavoritesUiState {
  * [decisions]: docs/11-decisions.md
  */
 @HiltViewModel
-internal class FavoritesViewModel @Inject constructor(favorites: FavoriteDishes) : ViewModel() {
+internal class FavoritesViewModel @Inject constructor(
+    private val favorites: FavoriteDishes,
+    private val removeFavoriteDish: RemoveFavoriteDish,
+) : ViewModel() {
     private val query = MutableStateFlow("")
 
     val uiState: StateFlow<FavoritesUiState> =
@@ -61,6 +67,24 @@ internal class FavoritesViewModel @Inject constructor(favorites: FavoriteDishes)
 
     fun onQueryChange(value: String) {
         query.value = value
+    }
+
+    /**
+     * Retire un favori de la liste.
+     *
+     * **Un second chemin vers la même décision**, et c'est un revirement assumé :
+     * [D62][decisions] réservait la suppression à l'étoile de l'écran de validation,
+     * pour n'avoir qu'un endroit à tenir. La liste est pourtant le seul endroit où
+     * l'on regarde ses favoris en tant que liste, donc le seul où l'on s'aperçoit
+     * qu'il y en a un de trop — et l'atteindre par l'étoile demandait de le rejouer
+     * d'abord, c'est-à-dire d'ouvrir un repas qu'on ne voulait pas noter.
+     *
+     * La liste ne se recharge pas : elle observe, et le favori disparaît de lui-même.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    fun onDelete(id: FavoriteDishId) {
+        viewModelScope.launch { runCatching { removeFavoriteDish(id) } }
     }
 
     private companion object {

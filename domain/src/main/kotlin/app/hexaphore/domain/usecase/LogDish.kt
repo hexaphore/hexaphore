@@ -49,7 +49,11 @@ class LogDish(
         // fiches, et une entree qui pointe vers une fiche absente n'existe pas -- la
         // base la refuse. L'ordre inverse aurait paru plus prudent et n'aurait
         // jamais fonctionne.
-        foodUsage.remember(draft.foods, now)
+        //
+        // Ce que l'ecriture rend est la correspondance entre l'identifiant qu'une
+        // ligne portait et celui sous lequel la fiche est rangee : les deux different
+        // des qu'un aliment de l'ANSES etait deja au catalogue.
+        val placed = foodUsage.remember(draft.foods, now)
 
         // Un favori rejoue remonte dans la liste, au meme endroit et pour la meme
         // raison que les fiches : cette liste dit ce qu'on mange, pas ce qu'on a
@@ -63,7 +67,7 @@ class LogDish(
                 date = draft.date,
                 source = draft.source,
                 loggedAt = now,
-                entries = draft.toEntries(id, ids),
+                entries = draft.toEntries(id, ids, placed),
                 favoriteId = draft.favoriteId,
             ),
         )

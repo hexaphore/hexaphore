@@ -14,6 +14,7 @@ import app.hexaphore.domain.ai.AiUsageLog
 import app.hexaphore.domain.ai.ApiKey
 import app.hexaphore.domain.ai.ProbeOutcome
 import app.hexaphore.domain.ai.ProviderCredentials
+import app.hexaphore.domain.ai.ProviderStatus
 import app.hexaphore.domain.ai.estimatedCost
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -71,7 +72,12 @@ class AiSettingsViewModel @Inject constructor(
     val uiState: StateFlow<AiSettingsUiState> = combine(setup, editor, usage) { stored, edited, counted ->
         AiSettingsUiState(
             rows = AiProvider.entries.map {
-                ProviderRow(provider = it, configured = it in stored.credentials, active = it == stored.active)
+                ProviderRow(
+                    provider = it,
+                    configured = it in stored.credentials,
+                    active = it == stored.active,
+                    suspended = it.status == ProviderStatus.SUSPENDED,
+                )
             },
             open = edited.open,
             form = edited.form,

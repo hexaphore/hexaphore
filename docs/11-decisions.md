@@ -2080,6 +2080,132 @@ Trois entiers par couple fournisseur-modèle, jamais interrogés autrement qu'en
 
 **Ce que le vert ne prouve pas.** Les prix eux-mêmes ne sont éprouvés par aucun test — un test qui les recopierait ne vérifierait que ma capacité à copier deux fois la même chose. Ce qui est éprouvé est la règle de trois, l'accumulation, et les deux refus : pas de montant pour un modèle inconnu, pas de zéro à la place d'un inconnu.
 
+## D85 — Deux défauts que seul l'usage réel pouvait montrer, et un écran qui cesse de faire chercher · ✓ validée
+
+**Contexte.** Premier vrai usage de l'application avec une clé qui marche. Gemini répond, la modale texte produit un plat de plusieurs aliments — et il est **impossible de l'enregistrer**. Deux défauts, et une liste de reproches d'ergonomie qui tiennent tous à la même cause : l'écran de validation n'avait jamais eu à porter cinq lignes.
+
+### La fiche que le formulaire perdait
+
+**Le vrai défaut, et il a fallu deux diagnostics pour l'atteindre.** `EntryFormLine` —
+la ligne telle que l'écran la manipule — ne portait **pas** la fiche. Elle en gardait
+l'identifiant, pas l'objet. Or c'est la fiche que l'enregistrement verse au catalogue :
+un brouillon qui la portait entrait dans le formulaire, en ressortait sans, et
+l'écriture citait donc un aliment que personne n'avait versé.
+
+Invisible sur les trois autres chemins, parce qu'ils versent **avant** : la recherche
+au moment du choix, le scan à la lecture du code-barres. L'IA choisit pour
+l'utilisateur et n'écrit rien — résoudre est une lecture, et c'est une bonne règle.
+
+**Ce que ça dit du reste.** Chaque morceau était éprouvé de son côté : la résolution
+rendait bien des lignes avec leur fiche, l'enregistrement versait bien les fiches qu'on
+lui donnait. Le défaut vivait dans la **couture**, et aucun test ne traversait la
+couture. `ProposedDishSavingTest` la traverse maintenant, volontairement à travers
+`EntryForm` qui n'est pas du domaine : c'est là que la chose se perdait, et un test qui
+l'aurait contourné serait resté vert.
+
+### Un identifiant provisoire dans une entrée de journal
+
+**Une seconde ceinture, et il faut le dire : ce n'était pas le défaut.** Un résultat de recherche de l'ANSES porte un identifiant **provisoire** — il change à chaque recherche, et c'est `place` qui rend la fiche désignable en la versant au catalogue. Or `place` rend la fiche **déjà rangée** quand elle existe, avec l'identifiant qu'elle avait, et `remember` jetait cette information. L'entrée de journal citait donc l'identifiant provisoire, la clé étrangère `food_entry.food_id → food.id` refusait, et l'écran annonçait « l'écriture n'a pas abouti » sans pouvoir dire pourquoi.
+
+La correction reste — elle ne coûte rien et ferme un chemin par lequel une entrée pourrait citer une fiche absente — mais **le cas ne se produit pas** avec les implémentations actuelles : la recherche ne distribue un identifiant provisoire qu'à une fiche qui n'est pas encore rangée. Un test qui prétendait l'éprouver a d'ailleurs été réécrit pour cette raison : sa mise en scène ne pouvait pas produire la situation qu'il annonçait.
+
+**La correction.** `FoodUsage.remember` rend la correspondance « identifiant porté → identifiant rangé », et `toEntries` l'applique. C'est le geste d'écriture qui la découvre : le lui faire rendre est la seule façon de la connaître, et ça corrige **toutes** les origines d'un coup plutôt que d'ajouter un `place` sur le chemin de l'IA.
+
+### Un favori qui reprenait les corrections de son auteur
+
+**Le défaut.** Compléter à la main une ligne mal renseignée — la feta, les câpres, une ligne proposée par un modèle —, mettre le plat en favori, le rejouer : les corrections avaient disparu.
+
+Et c'était **écrit exprès**. [D62](#d62--un-favori-est-un-modèle-vivant-et-létoile-est-son-seul-interrupteur---validée) fait du favori un modèle vivant : une ligne qui cite une fiche se reconstruit depuis la fiche courante, pour que corriger ses flocons corrige tous les petits-déjeuners à venir.
+
+**La correction.** Le modèle vivant est une bonne règle **tant que la fiche dit vrai**. Celui qui a complété lui-même les valeurs a dit le contraire, et le projet a déjà un mot pour ça : `edited`, qui empêche le recalcul de réécrire une valeur corrigée. Une ligne corrigée entre donc dans le favori **déliée** de sa fiche, et ses valeurs figées prennent le relais. La contrepartie est voulue : cette ligne ne suivra plus la fiche, parce qu'elle ne la cite plus.
+
+### Ce que l'écran de validation faisait chercher
+
+Cinq reproches, une cause : l'écran avait été conçu pour une ligne et jugé sur une ligne.
+
+- **Le balayage supprimait sans qu'on l'ait voulu.** Il reste le raccourci d'un geste sur une liste qu'on parcourt — l'accueil le garde — mais cet écran est un **formulaire** : on y fait glisser son doigt pour atteindre un champ. La corbeille suffit, et elle demande de viser.
+- **Six champs pleine largeur, puis six autres.** Écrire « 254 » dans un champ de cinquante caractères allonge l'écran pour rien : les valeurs passent **deux par ligne**, dans l'ordre de l'hexagone lu de gauche à droite.
+- **Le pliage des macros disparaît.** Cette application sert à suivre des macros ; les cacher demandait un geste de plus par aliment pour voir ce qu'on était venu voir. Le raisonnement d'origine — « les afficher laisserait croire qu'il faut les remplir » — ne tient plus depuis que ce qui manque se **dit** à l'enregistrement.
+- **Rien ne séparait deux aliments.** Une carte par ligne : le défaut n'était pas d'être laid mais d'être **continu**, et rien ne disait où finissait le riz et où commençait le poulet.
+- **« Un champ est vide » devant vingt-quatre champs.** L'écran **désigne** désormais : il marque la ligne, y fait défiler, colore le champ, et nomme ce qui manque — « Il manque les calories — Riz blanc, cuit ». La marque reste jusqu'au prochain appui : l'effacer à la première frappe la ferait disparaître au moment précis où l'on s'en sert.
+
+### Choisir une alternative changeait le brouillon sans changer l'écran
+
+Troisième défaut trouvé à l'usage, et le même mécanisme que les deux premiers : la
+donnée était juste, l'écran ne la montrait pas. Toucher une pastille d'alternative
+remplaçait bien la ligne — les pastilles disparaissaient, preuve que le modèle avait
+changé — mais le nom et la quantité restaient ceux d'avant.
+
+**Un champ de saisie ne relit son texte initial qu'à la première composition**
+([D45](#d45--un-champ-de-saisie-tient-son-texte-et-la-cle-de-composition-le-fait-revivre---validée)),
+et les seuls champs qui portaient une clé de composition étaient ceux des valeurs. Ils
+la portaient pour une autre raison : faire revivre les six macros quand la quantité les
+recalcule — et surtout **pas** le champ de quantité lui-même, qu'on est en train de
+taper.
+
+D'où **deux compteurs et non un** : `revision` dit que les valeurs ont été recalculées,
+`substitutions` dit que ce n'est plus le même aliment. Le premier fait revivre les
+valeurs, le second toute la ligne. Les confondre casserait l'un des deux : une clé
+unique poserait le curseur ailleurs à chaque frappe de quantité.
+
+### Un numéro plutôt qu'une phrase
+
+Le nom proposé à la mise en favori était la liste des aliments du plat. Les libellés de l'ANSES sont à rallonge, et trois d'entre eux font un titre de cinquante caractères **qu'on efface au lieu de le corriger**. C'est « Plat 3 » désormais — le premier numéro libre, calculé par le domaine ; le mot « Plat » reste une ressource, parce que le domaine n'écrit pas d'interface.
+
+### Quatre fournisseurs en réserve
+
+Anthropic et Gemini ont été éprouvés sur un vrai compte. Les quatre autres sont écrits, testés, et leur campagne de défaite est passée — mais **aucun appel réel ne les a jamais atteints**, et les proposer ferait payer à quelqu'un la découverte d'un défaut que personne n'a cherché.
+
+Leur carte reste **visible et en retrait**, avec une phrase qui dit pourquoi : la cacher laisserait croire qu'ils n'existent pas. Un drapeau sur l'énumération plutôt qu'une suppression — rien n'est perdu, le `when` de la fabrique reste exhaustif, et le jour où l'un d'eux est éprouvé il revient en changeant un mot.
+
+**Conséquences.** Trois seuils ont mordu au passage — la longueur d'une fonction, le nombre de fonctions d'un fichier, le nombre de paramètres d'un constructeur — et la réponse a été la même trois fois : découper selon ce que les choses sont. `MissingFieldGuide.kt` porte le guidage vers le champ manquant, `DraftFavorites` regroupe les trois gestes de l'étoile.
+
+**Ce que le vert ne prouve pas.** Les deux défauts corrigés ont chacun leur cas, sur les deux implémentations du catalogue. L'ergonomie, elle, ne s'éprouve qu'en tenant le téléphone : ce qui est écrit ici est un pari sur ce qui se lira mieux, et il se juge à l'usage.
+
+**Ce qui reste ouvert.** La résolution choisit encore mal : « 5 cacahuètes » devient 500 g — le forfait `PIECE` à 100 g, faute de portion nommée pour une cacahuète — et « une mandarine » tombe sur un nectar. Le modèle ne connaît pas les libellés de l'ANSES, et le score les rapproche à l'aveugle. C'est un sujet à part entière, et il attend sa livraison.
+
+## D86 — La liste des favoris devient l'endroit où on les gère, et le numéro ne recule pas · ✓ validée
+
+**Contexte.** Deux demandes d'usage : gérer ses favoris depuis leur liste, et un nom proposé qui ne réutilise pas un numéro libéré.
+
+### Un revirement assumé sur D62
+
+[D62](#d62--un-favori-est-un-modèle-vivant-et-létoile-est-son-seul-interrupteur---validée) réservait la suppression à **l'étoile de l'écran de validation** : un seul endroit pour la décision, donc rien à tenir d'accord. Le raisonnement était bon et la conséquence mauvaise.
+
+La liste est le **seul endroit où l'on regarde ses favoris en tant que liste**, donc le seul où l'on s'aperçoit qu'il y en a un de trop ou un à corriger. Y arriver par l'étoile demandait de **rejouer** le favori — c'est-à-dire d'ouvrir un repas qu'on ne voulait pas noter, puis de se souvenir d'annuler. Le coût de l'unicité était payé par le geste le plus fréquent.
+
+Un appui long y ouvre donc « Modifier » et « Supprimer », comme sur un plat de l'accueil. La suppression **ne demande pas confirmation**, à la différence d'un plat du journal : un favori est un modèle, pas un fait. Le supprimer ne perd aucune donnée — les repas déjà notés gardent leurs lignes — et le refaire coûte une étoile.
+
+### Le même écran, un autre sens du mot « enregistrer »
+
+« Modifier » ouvre l'écran de validation **sur le favori lui-même**. Même écran, mêmes lignes, même étoile ; ce qui change est ce qu'enregistrer veut dire — réécrire le modèle, sans rien ajouter au journal. On est venu corriger, pas manger.
+
+Un **drapeau de route** plutôt qu'une seconde destination, et un écran qui **le dit** : son titre devient « Modifier le favori » et son bouton « Enregistrer le favori ». Un écran qui annoncerait « Nouvelle saisie » alors qu'il réécrit un modèle mentirait sur ce que l'appui va faire — et c'est exactement le genre de mensonge que les trois défauts précédents ont rendu coûteux.
+
+Le nom, lui, ne se redemande pas : on modifie un favori depuis sa liste, où il est déjà nommé.
+
+### Les plats qui citaient le favori le perdent
+
+**Pas de répercussion en chaîne** : leurs lignes ne bougent pas d'un gramme, et c'est la règle du journal depuis [D05](#d05--le-journal-fige-ses-valeurs---validée) — un registre d'événements ne se réécrit pas.
+
+Ce qui tombe est la **provenance**. « Rejoué depuis les Flocons du matin » n'est plus vérifiable quand les Flocons du matin ont changé de contenu : un lien qui ment vaut moins qu'un lien absent. Le port du journal gagne donc `unlinkFavorite`, servi par un `UPDATE` d'une colonne — la requête vit dans le DAO **des favoris** bien qu'elle écrive dans `dish`, parce que ce qu'elle répond est une question sur le favori.
+
+### Le compteur qui ne redescend jamais
+
+Le nom proposé était le premier « Plat n » libre. Supprimer « Plat 1 » faisait donc réapparaître ce nom au favori suivant — deux favoris successifs indiscernables dans un historique, et un nom qu'on venait d'écarter qui revient.
+
+`FavoriteNumbering` est un **compteur, pas un décompte** : il avance à chaque proposition et ne compte pas les favoris existants. Il vit dans les préférences et non dans la base — c'est un état d'interface, un entier sans date ni relation, et une table lui aurait apporté une migration et un schéma exporté pour rien.
+
+**Les deux règles se complètent** : le compteur garantit qu'un numéro ne réapparaît pas, et la vérification d'unicité qu'il n'en heurte pas un que quelqu'un a nommé « Plat 4 » à la main. Le verrou du compteur n'est pas décoratif : lire puis écrire n'est pas atomique, et deux ouvertures rapprochées de la boîte rendraient le même numéro.
+
+**Campagne de défaite : six sabotages, six cas tombés.** Le déliement supprimé, le modèle non réécrit, un favori disparu passé pour un succès, un favori vidé accepté, le compteur remis à 1, le nom pris non enjambé.
+
+Un survivant apparent n'en était pas un : `domain.jar` était **vide** — le piège de [10](10-qualite-et-livraison.md#gradle) —, donc rien ne compilait et aucun cas ne pouvait tomber. Le harnais comptait « zéro échec » là où il fallait lire « zéro exécution ». Rejoué après suppression du jar, le cas tombe.
+
+**Conséquences.** `DraftFavorites` porte un quatrième geste — le seuil de fonctions du `ViewModel` a d'ailleurs forcé à l'y déplacer plutôt qu'à l'y laisser. `:data:diary` ouvre son propre fichier de préférences : les réglages d'IA ne rangent pas les noms de plats, et effacer l'un ne doit pas remettre l'autre à zéro. Le graphe de navigation, lui, a dû se couper en deux — la capture d'un côté, la recherche et les favoris de l'autre.
+
+**Ce que le vert ne prouve pas.** L'appui long, le menu et le titre de l'écran ne s'éprouvent qu'en tenant le téléphone. Ce qui est vérifié est ce qui écrit : le modèle réécrit, le journal délié, le repas non créé, et le numéro qui avance.
+
 ---
 
 ## Décisions prises par défaut, à confirmer

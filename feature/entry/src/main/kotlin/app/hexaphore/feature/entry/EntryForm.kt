@@ -89,6 +89,18 @@ internal data class EntryFormLine(
     val id: DraftLineId,
     val entryId: EntryId? = null,
     val foodId: FoodId? = null,
+    /**
+     * La fiche d'où vient cette ligne, quand elle n'est **pas encore au catalogue**.
+     *
+     * Elle traverse le formulaire sans y être saisissable, et c'est ce qui manquait :
+     * un brouillon la portait, l'écran la perdait, et l'enregistrement citait donc une
+     * fiche que personne n'avait versée — la base refusait l'écriture.
+     *
+     * Le défaut ne se voyait que sur le chemin de l'IA. La recherche verse la fiche au
+     * moment du choix et le scan au moment de la lecture ; l'IA, elle, choisit pour
+     * l'utilisateur et n'écrit rien, parce que résoudre est une lecture.
+     */
+    val food: Food? = null,
     val name: String = "",
     val quantity: String = "",
     val unit: QuantityUnit = QuantityUnit.Gram,
@@ -110,8 +122,23 @@ internal data class EntryFormLine(
      * [decisions]: docs/11-decisions.md
      */
     val revision: Int = 0,
-    /** Les cinq macros hors calories sont repliées par défaut : elles sont facultatives. */
-    val expanded: Boolean = false,
+    /**
+     * Combien de fois cette ligne a **changé d'aliment**.
+     *
+     * Un second compteur, et non un usage de plus de [revision], parce qu'ils ne
+     * reconstruisent pas la même chose. [revision] fait revivre les six champs de
+     * valeurs quand la quantité les recalcule — surtout pas le champ de quantité
+     * lui-même, qu'on est en train de taper. Celui-ci fait revivre **toute** la ligne,
+     * nom et quantité compris, parce que ce n'est plus le même aliment.
+     *
+     * Sans lui, choisir une alternative changeait le brouillon sans que l'écran bouge :
+     * les pastilles disparaissaient, et le nom restait celui d'avant. Un champ de
+     * saisie ne relit son texte initial qu'à la première composition ([D45][decisions]),
+     * et rien ne lui disait qu'il en commençait une nouvelle.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    val substitutions: Int = 0,
     /**
      * Ce qu'un modèle a proposé pour cette ligne, quand c'est un modèle qui l'a
      * proposée.
@@ -129,6 +156,7 @@ internal data class EntryFormLine(
         id = id,
         entryId = entryId,
         foodId = foodId,
+        food = food,
         name = name,
         quantity = number(quantity),
         unit = unit,
@@ -184,7 +212,12 @@ internal data class EntryFormLine(
      */
     fun substituted(food: Food): EntryFormLine {
         val replaced = DraftLine.of(id, food).measured(number(quantity), unit)
-        return of(replaced).copy(entryId = entryId, revision = revision + 1, suggestion = null)
+        return of(replaced).copy(
+            entryId = entryId,
+            revision = revision + 1,
+            substitutions = substitutions + 1,
+            suggestion = null,
+        )
     }
 
     private fun macroValue(macro: Macro): Double? = number(macros[macro].orEmpty())
@@ -194,6 +227,7 @@ internal data class EntryFormLine(
             id = line.id,
             entryId = line.entryId,
             foodId = line.foodId,
+            food = line.food,
             name = line.name,
             quantity = line.quantity.asField(),
             unit = line.unit,
@@ -202,9 +236,6 @@ internal data class EntryFormLine(
             reference = line.reference,
             edited = line.edited,
             suggestion = line.suggestion,
-            // Une ligne relue montre ses valeurs : les replier obligerait a deplier
-            // chaque ligne pour verifier qu'on modifie la bonne.
-            expanded = !line.values.empty,
         )
     }
 }
@@ -248,3 +279,29 @@ private fun Double?.asField(): String = when {
  * `null` reste vide : inconnu n'est pas zéro, et un arrondi ne crée pas de valeur.
  */
 private fun Double?.asWholeField(): String = this?.roundToInt()?.toString().orEmpty()
+
+/**
+ * Ce qui manque à une ligne pour être enregistrable.
+ *
+ * Trois champs seulement : un nom, une quantité, une énergie. Les cinq autres valeurs
+ * restent facultatives — un produit mal renseigné doit pouvoir entrer dans le journal
+ * avec ses trous visibles.
+ *
+ * L'ordre du `when` est celui de l'écran, de haut en bas : ce qu'on désigne est le
+ * **premier** manque, parce qu'un formulaire qui signale trois champs à la fois ne
+ * dit plus par où commencer.
+ */
+internal enum class MissingField {
+    NAME,
+    QUANTITY,
+    CALORIES,
+}
+
+/** Le premier champ manquant de cette ligne, ou `null` si elle est enregistrable. */
+internal val EntryFormLine.missing: MissingField?
+    get() = when {
+        name.isBlank() -> MissingField.NAME
+        (number(quantity) ?: 0.0) <= 0.0 -> MissingField.QUANTITY
+        number(macros[Macro.CALORIES].orEmpty()) == null -> MissingField.CALORIES
+        else -> null
+    }

@@ -6,12 +6,14 @@ import app.hexaphore.core.testing.InMemoryFavoriteDishes
 import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.domain.diary.FavoriteDishId
+import app.hexaphore.domain.diary.FavoriteNumbering
 import app.hexaphore.domain.diary.JOUR
 import app.hexaphore.domain.diary.brouillon
 import app.hexaphore.domain.diary.ligne
 import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.food.FoodSource
+import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.nutrition.NutrientValues
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -90,6 +92,41 @@ class FavoriteDishTest {
     }
 
     @Test
+    fun `une ligne corrigee a la main garde ses valeurs au rejeu`() = runTest {
+        // Le modele vivant est une bonne regle tant que la fiche dit vrai. Celui qui a
+        // complete lui-meme les valeurs d'un aliment mal renseigne -- la feta, les
+        // capres, une ligne proposee par un modele -- a dit le contraire, et rejouer
+        // la fiche lui reprendrait son travail sans prevenir.
+        catalogue.save(FLOCONS)
+        val corrigee = ligneDeFiche().copy(
+            values = ligneDeFiche().values.copy(kcal = 250.0),
+            edited = setOf(Macro.CALORIES),
+        )
+
+        val id = (saveFavorite(brouillon(corrigee), "Petit-déj") as FavoriteOutcome.Saved).id
+        val rejoue = getFavoriteDraft(id)!!
+
+        assertEquals(250.0, rejoue.lines.single().values.kcal, "la correction survit au rejeu")
+    }
+
+    @Test
+    fun `une ligne corrigee ne suit plus la fiche`() = runTest {
+        // La contrepartie, et elle est voulue : la ligne s'est deliee. Corriger la
+        // fiche ne la rattrape plus, parce qu'elle ne la cite plus.
+        catalogue.save(FLOCONS)
+        val corrigee = ligneDeFiche().copy(
+            values = ligneDeFiche().values.copy(kcal = 250.0),
+            edited = setOf(Macro.CALORIES),
+        )
+        val id = (saveFavorite(brouillon(corrigee), "Petit-déj") as FavoriteOutcome.Saved).id
+
+        catalogue.save(FLOCONS.copy(name = "Flocons complets"))
+        val rejoue = getFavoriteDraft(id)!!
+
+        assertEquals("Flocons", rejoue.lines.single().name)
+    }
+
+    @Test
     fun `rejouer un favori dont la fiche a disparu garde la ligne`() = runTest {
         // Les valeurs enregistrees avec le favori prennent le relais. Refuser la
         // ligne, ou rejouer un plat ampute sans le dire, seraient deux facons de
@@ -103,6 +140,70 @@ class FavoriteDishTest {
         val ligne = rejoue.lines.single()
         assertEquals("Flocons", ligne.name, "le nom fige prend le relais")
         assertEquals(218.0, ligne.values.kcal)
+    }
+
+    @Test
+    fun `le numero propose ne redescend jamais`() = runTest {
+        // Supprimer « Plat 1 » ne doit pas faire reapparaitre ce nom au favori
+        // suivant : le compteur avance, il ne compte pas les favoris existants.
+        val numbering = InMemoryFavoriteNumbering()
+        val proposer = NextFavoriteNumber(numbering, favoris)
+
+        val premier = proposer { "Plat $it" }
+        val second = proposer { "Plat $it" }
+
+        assertEquals(1, premier)
+        assertEquals(2, second)
+    }
+
+    @Test
+    fun `un nom deja pris a la main est enjambe`() = runTest {
+        // Les deux regles se completent : le compteur evite qu'un numero reapparaisse,
+        // la verification qu'il heurte un favori nomme « Plat 2 » a la main.
+        saveFavorite(brouillon(ligne("a")), "Plat 1")
+        val proposer = NextFavoriteNumber(InMemoryFavoriteNumbering(), favoris)
+
+        assertEquals(2, proposer { "Plat $it" })
+    }
+
+    @Test
+    fun `modifier un favori reecrit le modele sans noter de repas`() = runTest {
+        // On est venu corriger un modele, pas manger. Le journal ne doit rien y gagner.
+        val id = (saveFavorite(brouillon(ligne("a", nom = "Flocons")), "Petit-déj") as FavoriteOutcome.Saved).id
+
+        updateFavorite(brouillon(ligne("b", nom = "Flocons complets"), favoriteId = id), id)
+
+        assertEquals(listOf("Flocons complets"), favoris.byId(id)!!.components.map { it.name })
+        assertTrue(diary.dishes.isEmpty(), "modifier un modele n'ajoute aucun repas")
+    }
+
+    @Test
+    fun `les plats qui citaient le favori le perdent`() = runTest {
+        // Pas de repercussion en chaine : leurs lignes ne bougent pas d'un gramme.
+        // Ce qui tombe est la provenance, qui n'est plus verifiable.
+        val id = (saveFavorite(brouillon(ligne("a")), "Petit-déj") as FavoriteOutcome.Saved).id
+        val plat = LogDish(diary, catalogue, favoris, clock, ids)(brouillon(ligne("a"), favoriteId = id))
+
+        updateFavorite(brouillon(ligne("b", nom = "Autre chose"), favoriteId = id), id)
+
+        val enregistre = diary.dish(plat)!!
+        assertNull(enregistre.favoriteId, "le lien tombe")
+        assertEquals(1, enregistre.entries.size, "et les lignes restent")
+    }
+
+    @Test
+    fun `modifier un favori disparu ne rend rien`() = runTest {
+        val fantome = FavoriteDishId("fav-disparu")
+
+        assertNull(updateFavorite(brouillon(ligne("a")), fantome))
+    }
+
+    @Test
+    fun `un favori vide de ses lignes est refuse`() = runTest {
+        // Ce n'est pas ainsi qu'on supprime un favori : la liste a un geste pour ca.
+        val id = (saveFavorite(brouillon(ligne("a")), "Petit-déj") as FavoriteOutcome.Saved).id
+
+        assertThrows<IllegalArgumentException> { updateFavorite(brouillon(), id) }
     }
 
     @Test
@@ -152,6 +253,7 @@ class FavoriteDishTest {
     private val diary = InMemoryDiaryRepository()
     private val catalogue = InMemoryFoodCatalog()
     private val favoris = InMemoryFavoriteDishes()
+    private val updateFavorite = UpdateFavoriteDish(favoris, diary)
     private val clock = FixedClock.atNoon(JOUR)
     private val ids = SequentialIdGenerator("fav")
 
@@ -172,4 +274,17 @@ class FavoriteDishTest {
             per100g = NutrientValues(kcal = 363.0, protein = 13.5, carbs = 60.0, sugars = 1.0, fat = 7.0, fiber = 10.0),
         )
     }
+}
+
+/**
+ * Le compteur, en mémoire.
+ *
+ * Il **avance vraiment**, comme celui qui écrit dans les préférences : un faux qui
+ * rendrait toujours 1 laisserait passer exactement la régression que ce port existe
+ * pour empêcher.
+ */
+private class InMemoryFavoriteNumbering : FavoriteNumbering {
+    private var next = 1
+
+    override suspend fun next(): Int = next++
 }

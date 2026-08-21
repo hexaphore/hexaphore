@@ -121,14 +121,3 @@ internal fun FavoriteNameDialog(
         },
     )
 }
-
-/**
- * Le nom proposé : les aliments du plat, dans l'ordre, jusqu'à trois.
- *
- * Trois et non tous : au-delà, la proposition devient une phrase qu'on efface au lieu
- * de la corriger, ce qui la rend inutile.
- */
-internal fun EntryForm.proposedFavoriteName(): String =
-    lines.take(PROPOSED_NAME_PARTS).joinToString(separator = ", ") { it.name.trim() }
-
-private const val PROPOSED_NAME_PARTS = 3

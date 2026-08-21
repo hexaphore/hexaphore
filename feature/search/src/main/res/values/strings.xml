@@ -100,6 +100,12 @@
          fait par l'étoile de l'écran de validation, là où on l'a mis. -->
     <string name="favorites_title">Vos plats favoris</string>
     <string name="favorites_search">Chercher un plat</string>
+    <!-- L'appui long ouvre les deux gestes, comme sur un plat de l'accueil. La
+         liste est le seul endroit ou l'on regarde ses favoris en tant que liste,
+         donc le seul ou l'on voit qu'il y en a un de trop. -->
+    <string name="favorites_menu">Modifier ou supprimer</string>
+    <string name="favorites_menu_edit">Modifier</string>
+    <string name="favorites_menu_delete">Supprimer</string>
     <string name="favorites_pick">rejouer ce plat</string>
     <string name="favorites_close">Retour</string>
     <string name="favorites_empty">Aucun plat favori pour l\'instant. Composez un plat, puis touchez l\'étoile en haut de l\'écran pour le retrouver ici.</string>

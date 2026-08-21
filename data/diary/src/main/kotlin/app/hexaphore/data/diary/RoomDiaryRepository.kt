@@ -1,10 +1,12 @@
 package app.hexaphore.data.diary
 
 import app.hexaphore.core.database.dao.DiaryDao
+import app.hexaphore.core.database.dao.FavoriteDishDao
 import app.hexaphore.domain.diary.DiaryRepository
 import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.diary.EntryId
+import app.hexaphore.domain.diary.FavoriteDishId
 import app.hexaphore.domain.time.Clock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -31,7 +33,11 @@ import javax.inject.Inject
  * @see docs/06-architecture.md
  * @see docs/11-decisions.md — D29
  */
-class RoomDiaryRepository @Inject constructor(private val dao: DiaryDao, private val clock: Clock) : DiaryRepository {
+class RoomDiaryRepository @Inject constructor(
+    private val dao: DiaryDao,
+    private val favorites: FavoriteDishDao,
+    private val clock: Clock,
+) : DiaryRepository {
     override fun observeDay(date: LocalDate): Flow<List<Dish>> =
         dao.observeDay(date.toString()).map { dishes -> dishes.map { it.toDomain() } }
 
@@ -45,4 +51,6 @@ class RoomDiaryRepository @Inject constructor(private val dao: DiaryDao, private
     override suspend fun deleteEntry(id: EntryId) = dao.deleteEntry(id.value)
 
     override suspend fun deleteDish(id: DishId) = dao.deleteDish(id.value)
+
+    override suspend fun unlinkFavorite(favorite: FavoriteDishId) = favorites.unlinkFromDishes(favorite.value)
 }

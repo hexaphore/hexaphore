@@ -316,21 +316,30 @@ data class EntryDraft(
  * Les identifiants manquants sont tirés de [ids] plutôt que du hasard ambiant :
  * c'est ce qui rend `LogDish` vérifiable autrement qu'en relisant la base.
  *
+ * @param placed ce que `FoodUsage.remember` vient d'écrire : la correspondance entre
+ *   l'identifiant qu'une ligne portait et celui sous lequel la fiche est rangée. Vide
+ *   pour un plat rouvert, dont les fiches sont déjà au catalogue.
+ *
  * @throws IllegalStateException si une ligne est incomplète. L'appelant vérifie
  *   [EntryDraft.saveable] avant : une ligne à moitié saisie n'a pas de conversion
  *   raisonnable, et en inventer une écrirait un chiffre que personne n'a donné.
  */
-fun EntryDraft.toEntries(dishId: DishId, ids: IdGenerator): List<FoodEntry> = lines.map { line ->
-    FoodEntry(
-        id = line.entryId ?: EntryId(ids.next()),
-        dishId = dishId,
-        foodId = line.foodId,
-        displayName = line.name.trim(),
-        quantity = checkNotNull(line.quantity) { "Ligne sans quantite : ${line.name}" },
-        unit = line.unit.code,
-        grams = checkNotNull(line.grams) { "Ligne sans quantite : ${line.name}" },
-        // Les cinq valeurs facultatives traversent telles quelles ; seule l'energie
-        // est exigee, et son absence est une erreur de l'appelant, pas un zero.
-        macros = checkNotNull(line.values.toMacros()) { "Ligne sans energie : ${line.name}" },
-    )
-}
+fun EntryDraft.toEntries(dishId: DishId, ids: IdGenerator, placed: Map<FoodId, FoodId> = emptyMap()): List<FoodEntry> =
+    lines.map { line ->
+        FoodEntry(
+            id = line.entryId ?: EntryId(ids.next()),
+            dishId = dishId,
+            // La fiche **telle qu'elle est rangee**, et non telle que la ligne l'a connue :
+            // un resultat de recherche porte un identifiant provisoire, et une entree qui
+            // le citerait designerait une fiche absente. La base refuse, et l'ecran
+            // annonce « l'ecriture n'a pas abouti » sans pouvoir dire pourquoi.
+            foodId = line.foodId?.let { placed[it] ?: it },
+            displayName = line.name.trim(),
+            quantity = checkNotNull(line.quantity) { "Ligne sans quantite : ${line.name}" },
+            unit = line.unit.code,
+            grams = checkNotNull(line.grams) { "Ligne sans quantite : ${line.name}" },
+            // Les cinq valeurs facultatives traversent telles quelles ; seule l'energie
+            // est exigee, et son absence est une erreur de l'appelant, pas un zero.
+            macros = checkNotNull(line.values.toMacros()) { "Ligne sans energie : ${line.name}" },
+        )
+    }

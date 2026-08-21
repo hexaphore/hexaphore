@@ -2,7 +2,9 @@ package app.hexaphore.di
 
 import app.hexaphore.domain.ai.NutritionEstimator
 import app.hexaphore.domain.ai.PendingRecognition
+import app.hexaphore.domain.diary.DiaryRepository
 import app.hexaphore.domain.diary.FavoriteDishes
+import app.hexaphore.domain.diary.FavoriteNumbering
 import app.hexaphore.domain.food.FoodLookup
 import app.hexaphore.domain.food.FoodSearch
 import app.hexaphore.domain.identity.IdGenerator
@@ -11,6 +13,7 @@ import app.hexaphore.domain.usecase.AddFoodLine
 import app.hexaphore.domain.usecase.CreateDraft
 import app.hexaphore.domain.usecase.GetDishDraft
 import app.hexaphore.domain.usecase.GetFavoriteDraft
+import app.hexaphore.domain.usecase.NextFavoriteNumber
 import app.hexaphore.domain.usecase.OpenDraft
 import app.hexaphore.domain.usecase.RemoveFavoriteDish
 import app.hexaphore.domain.usecase.ResolveFoodLabel
@@ -18,6 +21,7 @@ import app.hexaphore.domain.usecase.ResolveRecognition
 import app.hexaphore.domain.usecase.SaveFavoriteDish
 import app.hexaphore.domain.usecase.ToggleDishFavorite
 import app.hexaphore.domain.usecase.UpdateDish
+import app.hexaphore.domain.usecase.UpdateFavoriteDish
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -72,6 +76,19 @@ object FavoriteUseCaseModule {
     @Provides
     fun saveFavoriteDish(favorites: FavoriteDishes, ids: IdGenerator): SaveFavoriteDish =
         SaveFavoriteDish(favorites, ids)
+
+    /** Le premier numéro libre, pour proposer « Plat 3 » plutôt qu'une liste d'aliments. */
+    @Provides
+    fun nextFavoriteNumber(numbering: FavoriteNumbering, favorites: FavoriteDishes): NextFavoriteNumber =
+        NextFavoriteNumber(numbering, favorites)
+
+    /**
+     * La modification d'un favori, qui touche aux deux : le modèle et la provenance
+     * des plats qui le citaient.
+     */
+    @Provides
+    fun updateFavoriteDish(favorites: FavoriteDishes, diary: DiaryRepository): UpdateFavoriteDish =
+        UpdateFavoriteDish(favorites, diary)
 
     @Provides
     fun toggleDishFavorite(

@@ -7,6 +7,10 @@
          quand la recherche puis l'IA arriveront. -->
     <string name="entry_title_new">Nouvelle saisie</string>
     <string name="entry_title_edit">Modifier le plat</string>
+    <!-- Le meme ecran sert d'editeur au favori lui-meme. Il doit le dire : un titre
+         qui annonce « nouvelle saisie » alors qu'on reecrit un modele ment sur ce que
+         l'appui va faire. -->
+    <string name="entry_title_favorite">Modifier le favori</string>
 
     <string name="entry_field_name">Aliment</string>
 
@@ -30,11 +34,13 @@
     <string name="entry_field_fat">Lipides (g)</string>
     <string name="entry_field_fiber">Fibres (g)</string>
 
-    <string name="entry_show_macros">Détailler les valeurs nutritionnelles</string>
-    <string name="entry_hide_macros">Replier les valeurs nutritionnelles</string>
-
     <string name="entry_add_line">Ajouter un aliment</string>
     <string name="entry_remove_line">Supprimer</string>
+
+    <!-- Le nom propose. Les libelles de l'ANSES sont a rallonge : trois d'entre
+         eux faisaient un titre de cinquante caracteres qu'on efface au lieu de le
+         corriger. Un numero se garde ou se remplace, il ne se subit pas. -->
+    <string name="entry_favorite_proposal">Plat %1$d</string>
     <!-- Le balayage n'est pas le seul chemin : un geste sans représentation visible
          est introuvable pour qui ne le connaît pas, et hors d'atteinte au lecteur
          d'écran. Le nom est repris pour que « Supprimer » désigne quelque chose. -->
@@ -46,6 +52,7 @@
     <string name="entry_over">Vous dépasserez de %1$d kcal aujourd\'hui</string>
 
     <string name="entry_save">Enregistrer</string>
+    <string name="entry_save_favorite">Enregistrer le favori</string>
     <string name="entry_saving">Enregistrement…</string>
     <!-- Un plat relu et vidé de ses lignes se supprime : le bouton le dit, plutôt
          que de laisser le plat disparaître sous le libellé « Enregistrer ». -->
@@ -68,7 +75,11 @@
          de la saisie là où « Fermer » ne dit que ce qu'il advient de l'écran. -->
     <string name="entry_cancel">Annuler</string>
     <!-- Le bouton indisponible répond à l'appui ; cette phrase est ce qu'il répond. -->
-    <string name="entry_incomplete_hint">Chaque ligne demande un aliment, une quantité et des calories. Les cinq autres valeurs restent facultatives : un champ laissé vide veut dire « inconnu », pas « zéro ».</string>
+    <!-- Ce qui manque, nomme, et de quel aliment. « Un champ est vide » n'aide
+         personne devant vingt-quatre champs : l'ecran designe le premier et y va. -->
+    <string name="entry_missing_name">Il manque le nom de cet aliment</string>
+    <string name="entry_missing_quantity">Il manque la quantité</string>
+    <string name="entry_missing_calories">Il manque les calories</string>
 
     <string name="entry_close">Fermer</string>
 

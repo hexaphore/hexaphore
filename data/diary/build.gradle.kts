@@ -20,6 +20,8 @@ dependencies {
     implementation(projects.core.database)
 
     implementation(libs.kotlinx.coroutines.core)
+    // Pour SharedPreferences.edit {} : un commit qu'on ne peut pas oublier.
+    implementation(libs.androidx.core.ktx)
 
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)

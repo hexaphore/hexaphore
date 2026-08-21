@@ -17,6 +17,7 @@ import app.hexaphore.domain.diary.DishId
 import app.hexaphore.domain.diary.DraftLineId
 import app.hexaphore.domain.diary.EntryId
 import app.hexaphore.domain.diary.EntrySource
+import app.hexaphore.domain.diary.FavoriteNumbering
 import app.hexaphore.domain.diary.FoodEntry
 import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.food.FoodId
@@ -31,6 +32,7 @@ import app.hexaphore.domain.usecase.GetDaySummary
 import app.hexaphore.domain.usecase.GetDishDraft
 import app.hexaphore.domain.usecase.GetFavoriteDraft
 import app.hexaphore.domain.usecase.LogDish
+import app.hexaphore.domain.usecase.NextFavoriteNumber
 import app.hexaphore.domain.usecase.OpenDraft
 import app.hexaphore.domain.usecase.RemoveFavoriteDish
 import app.hexaphore.domain.usecase.ResolveFoodLabel
@@ -38,6 +40,7 @@ import app.hexaphore.domain.usecase.ResolveRecognition
 import app.hexaphore.domain.usecase.SaveDraft
 import app.hexaphore.domain.usecase.SaveFavoriteDish
 import app.hexaphore.domain.usecase.UpdateDish
+import app.hexaphore.domain.usecase.UpdateFavoriteDish
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.filterIsInstance
@@ -396,11 +399,27 @@ class EntryViewModelTest {
         addFoodLine = AddFoodLine(catalogue, CreateDraft(clock, ids)),
         getDaySummary = GetDaySummary(diary, goals, clock),
         saveDraft = SaveDraft(LogDish(diary, catalogue, favoris, clock, ids), UpdateDish(diary, ids)),
-        saveFavoriteDish = SaveFavoriteDish(favoris, ids),
-        removeFavoriteDish = RemoveFavoriteDish(favoris),
+        favorites = DraftFavorites(
+            saveFavoriteDish = SaveFavoriteDish(favoris, ids),
+            removeFavoriteDish = RemoveFavoriteDish(favoris),
+            nextFavoriteNumber = NextFavoriteNumber(numerotation, favoris),
+            updateFavoriteDish = UpdateFavoriteDish(favoris, diary),
+        ),
     )
 
     private val favoris = InMemoryFavoriteDishes()
+
+    /**
+     * Un compteur qui avance vraiment, comme celui des préférences.
+     *
+     * Un faux qui rendrait toujours 1 laisserait passer exactement la régression que
+     * ce port existe pour empêcher.
+     */
+    private val numerotation = object : FavoriteNumbering {
+        private var next = 1
+
+        override suspend fun next(): Int = next++
+    }
 
     /** Le dépôt des propositions, partagé entre l'écran qui dépose et celui qui reprend. */
     private val pending = InMemoryPendingRecognition()

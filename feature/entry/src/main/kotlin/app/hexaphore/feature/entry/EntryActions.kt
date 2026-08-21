@@ -30,6 +30,8 @@ internal data class EntryActions(
      *
      * [decisions]: docs/11-decisions.md
      */
+    /** La boîte de nom s'ouvre : l'écran demande le premier numéro libre. */
+    val onNaming: ((Int) -> String) -> Unit,
     val onFavorite: (String) -> Unit,
     /** Éteindre l'étoile **supprime** le favori : c'est le seul chemin pour l'ôter. */
     val onUnfavorite: () -> Unit,
