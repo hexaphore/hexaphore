@@ -2377,6 +2377,63 @@ Deux sabotages ont dû être réécrits parce qu'ils cassaient un *smart cast* e
 
 Le contour en pointillés ne s'éprouve qu'en tenant le téléphone, et il se peut qu'il se confonde avec la bordure de focus du champ.
 
+## D90 — La contribution part sous le compte de l'utilisateur, et jamais sans lui · ✓ validée
+
+**Contexte.** La dernière pièce de la tranche 6, et **la première écriture sortante de l'application** : [01](01-perimetre.md#contraintes-fermes) n'en prévoit aucune, tout le reste ne fait que lire. [D70](#d70--contribuer-à-open-food-facts-entre-en-tranche-6-parce-que-la-couverture-nest-pas-la-même-partout---validée) avait laissé trois questions ouvertes pour ne pas les improviser ; elles sont tranchées ici, et **le relevé sur la documentation en a transformé une**.
+
+### « Compte ou anonyme » n'était pas la bonne question
+
+D70 posait le choix comme si Open Food Facts acceptait les deux. Le relevé dit autre chose : les lectures ne demandent que le `User-Agent`, mais **toute écriture exige une authentification**. Il n'y a pas de contribution anonyme.
+
+Restaient deux comptes possibles, et le second se disqualifie tout seul : un **compte global d'application** existe bien — avec `app_name`, `app_version` et un `app_uuid` salé par utilisateur pour que les modérateurs bannissent sélectivement — mais son mot de passe devrait vivre dans l'APK. Ce projet est publié sous GPL-3.0 : ce serait un secret publié, et le premier qui le lirait écrirait dans Open Food Facts au nom de tout le monde.
+
+C'est donc **le compte de l'utilisateur**, saisi dans les réglages et rangé par le même chiffrement que les clés d'IA. Sans compte, le bouton **n'apparaît pas** plutôt que de refuser : c'est la règle des modes d'IA sans clé, et un bouton qui explique pourquoi il ne marche pas encombre un écran qu'on est venu lire.
+
+L'identifiant est chiffré comme le mot de passe. Il est public sur le site, mais il est **la moitié d'un secret** : le laisser en clair réduirait le mot de passe au seul obstacle. `OffAccount.toString()` n'imprime ni l'un ni l'autre — un `data class` imprime tous ses champs par défaut, et c'est ainsi qu'un secret entre dans un journal de plantage.
+
+### Ce qui part : quatre gardes, et aucune n'est décorative
+
+Une fiche est contribuable si elle est **personnelle**, porte un **code-barres valide**, n'a **aucune valeur estimée** et porte un **nom**.
+
+- Personnelle, parce qu'on ne reverse pas la table de l'ANSES à Open Food Facts, et qu'on n'écrit pas par-dessus le travail d'un autre contributeur sans voir ce qu'il avait mis.
+- Un code-barres dont `Barcode.of` vérifie la clé de contrôle : une suite de chiffres qui n'en est pas un désignerait un produit qui n'existe pas.
+- **Aucune valeur estimée**, et c'est la garde qui compte le plus. Un chiffre complété par un modèle ([D89](#d89--une-valeur-complétée-ne-se-range-pas-où-une-valeur-mesurée-se-range---validée)) qui entre dans une base publique y devient une mesure pour tous ceux qui le liront.
+- Un nom, seul champ que le service exige en pratique.
+
+**Une teneur inconnue ne part pas.** Elle n'est pas envoyée à zéro : l'envoyer écrirait dans une base publique une mesure que personne n'a faite. C'est la règle du projet, appliquée là où elle sort de l'appareil.
+
+La règle vit dans `FoodContribution.of` et non dans l'écran, qui l'oublierait — et un type distinct de `Food` la rend structurelle : ce qui n'est pas dans `FoodContribution` ne peut pas partir.
+
+### Le bac à sable, parce que personne n'a jamais vu cet envoi partir
+
+Open Food Facts offre une instance de test sur `world.openfoodfacts.net` : le même logiciel, un jeu de données jetable. Un interrupteur des réglages y bascule l'envoi, **éteint par défaut** — une contribution qui partirait par défaut vers un bac à sable serait une contribution qui n'existe pas, offerte à quelqu'un qui croit contribuer.
+
+Un réglage et non une variante de compilation : c'est en le basculant qu'on vérifie qu'un envoi aboutit, et une `buildConfigField` demanderait de réinstaller l'application pour ça.
+
+### Aucun retrait exponentiel, contrairement à la lecture
+
+Ce n'est pas un oubli. Une lecture rejouée trois fois ne coûte que du temps ; une écriture rejouée sans que personne l'ait demandé est une action sortante de plus. Le service range par code-barres, donc un second envoi ne créerait pas de doublon — et c'est **parce que réessayer est sûr** que le geste peut rester à l'utilisateur, qui voit l'échec et rappuie s'il le veut.
+
+Quatre issues et non deux : envoyé, compte refusé, injoignable, refusé par le service. Elles appellent quatre conduites — rien faire, corriger son compte, attendre, renoncer — et les fondre en « ça n'a pas marché » ferait chercher au hasard. Le refus garde **la phrase du service** plutôt qu'un message inventé, comme les fournisseurs d'IA gardent la leur ([D78](#d78--le-fournisseur-garde-la-parole-parce-quun-message-inventé-ne-se-vérifie-pas---validée)).
+
+### Une URL en dur a fait partir des requêtes réelles depuis les tests
+
+**Le défaut le plus instructif de cette livraison, et il s'est vu tout de suite parce que le test traverse un vrai serveur.** Le contributeur lisait l'instance dans une constante ; le test montait sa pile devant `MockWebServer`, mais l'appel visait `world.openfoodfacts.org`. Les cas partaient donc **pour de vrai** sur la base publique, puis attendaient indéfiniment une requête locale qui n'arriverait jamais.
+
+Une dizaine de `POST` ont ainsi atteint Open Food Facts avant que la cause soit trouvée. Ils portaient un compte inexistant, donc ils ont tous été refusés et **rien n'a été écrit** — mais c'est un coup de chance de conception, pas une précaution.
+
+Les deux instances sont désormais **injectées**. Une URL en dur dans une classe qui écrit dehors n'est pas un détail de câblage : c'est ce qui décide si un test est un test. Et la bascule y gagne deux cas qui l'éprouvent pour de bon, sur deux serveurs locaux.
+
+**Campagne de défaite : vingt-huit sabotages, vingt-huit cas tombés.** Les quatre gardes, le rognage des blancs, la marque vide, la portion, le compte à moitié saisi, l'impression du compte, l'ouverture sans compte, le bac à sable par défaut ; puis chaque nom de champ du corps, chaque unité, la teneur inconnue envoyée à zéro, le compte absent, les quatre issues, la bascule, le chemin et l'en-tête d'identification.
+
+**Neuf tours d'affilée ont rapporté « rien n'a tourné », et la cause était le harnais — encore.** Il supprimait `domain/build/libs/domain.jar` avant chaque tour, en croyant appliquer le remède de [10](10-qualite-et-livraison.md#gradle). Ce remède est **curatif** : il s'applique à un jar *vide*. L'appliquer préventivement fait disparaître un jar sain sans que Gradle s'en aperçoive — la tâche `jar` se croit à jour, et tout module qui dépend du domaine cesse de compiler. Il a fallu vider `.gradle` pour en sortir. Le compte de cas exécutés a évité une quatrième conclusion fausse.
+
+**Conséquences.** `:integration:openfoodfacts` gagne une seconde interface Retrofit — l'écriture n'est pas l'API v2, c'est un script d'édition hérité qui attend un formulaire — montée sur **le même client**, donc avec l'en-tête que [D26](#d26--le-user-agent-douvre-food-facts-est-figé---validée) rend obligatoire. `:data:settings` ouvre son propre fichier de préférences : effacer ses réglages d'IA ne doit pas déconnecter le compte de contribution.
+
+**Ce que le vert ne prouve pas.** **Aucun envoi n'a jamais abouti.** Les quinze cas passent devant un serveur local qui répond ce qu'on lui a dit de répondre ; ce que le vrai service accepte, refuse, ou accepte en ignorant un champ mal nommé, reste à voir — et c'est précisément pour ça que le bac à sable existe. Le premier envoi réel est un travail de vérification à part entière, pas une formalité.
+
+**Ce qui reste à faire.** L'écran : le bouton sur une fiche personnelle, le récapitulatif qui montre les champs exacts avant de partir, et les deux réglages. Le critère de fin de la tranche 6 — « une fiche saisie à la main **peut** être reversée, et rien ne part sans un geste explicite » — n'est donc pas encore atteint : cette livraison en construit la moitié basse, celle qui s'éprouve sans écran.
+
 ---
 
 ## Décisions prises par défaut, à confirmer
