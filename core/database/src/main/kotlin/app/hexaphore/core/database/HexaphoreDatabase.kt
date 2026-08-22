@@ -5,6 +5,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
+import app.hexaphore.core.database.dao.BackupReadDao
+import app.hexaphore.core.database.dao.BackupWriteDao
 import app.hexaphore.core.database.dao.CalendarDao
 import app.hexaphore.core.database.dao.DiaryDao
 import app.hexaphore.core.database.dao.FavoriteDishDao
@@ -62,6 +64,11 @@ abstract class HexaphoreDatabase : RoomDatabase() {
     abstract fun profileDao(): ProfileDao
 
     abstract fun goalDao(): GoalDao
+
+    /** Toutes les tables d'un coup, pour la sauvegarde et la restauration. */
+    abstract fun backupReadDao(): BackupReadDao
+
+    abstract fun backupWriteDao(): BackupWriteDao
 
     companion object {
         const val VERSION = 6

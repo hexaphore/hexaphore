@@ -66,6 +66,7 @@ dependencies {
     implementation(projects.integration.openfoodfacts)
     implementation(projects.integration.ai)
     implementation(projects.data.settings)
+    implementation(projects.data.backup)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

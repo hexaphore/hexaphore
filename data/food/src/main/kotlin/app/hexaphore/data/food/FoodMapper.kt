@@ -23,7 +23,7 @@ import java.time.Instant
  * **Les huit valeurs traversent telles quelles.** Un `?: 0.0` sur l'une d'elles
  * serait la dernière occasion de perdre la distinction entre inconnu et zéro.
  */
-internal fun FoodEntity.toDomain(
+fun FoodEntity.toDomain(
     servings: List<FoodServing> = emptyList(),
     category: FoodCategory? = null,
     shortName: String? = null,
@@ -73,7 +73,7 @@ private fun String.toFoodSource(): FoodSource = FoodSource.entries.firstOrNull {
  */
 internal fun String?.toFoodCategory(): FoodCategory? = FoodCategory.entries.firstOrNull { it.name == this }
 
-internal fun Food.toEntity(now: Long) = FoodEntity(
+fun Food.toEntity(now: Long) = FoodEntity(
     id = id.value,
     source = source.name,
     sourceRef = sourceRef,

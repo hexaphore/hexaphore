@@ -134,3 +134,12 @@ include(":feature:capture")
 // part ailleurs, et c'est lui qui recevra la carte d'ajustement -- laquelle parle
 // d'objectifs sans que les reglages aient a la connaitre.
 include(":feature:weight")
+
+// Tranche 8. La sauvegarde.
+//
+// Un module a lui parce qu'il touche toutes les tables a la fois : les cinq autres
+// :data adaptent chacun un port a un domaine de donnees, celui-ci lit et remplace
+// l'ensemble en une transaction. Il emprunte leurs mappeurs plutot que d'en ecrire un
+// second jeu -- deux traductions de la meme chose finissent par diverger, et la
+// divergence corromprait de vraies donnees.
+include(":data:backup")

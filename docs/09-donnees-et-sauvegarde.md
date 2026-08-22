@@ -23,7 +23,6 @@ Un JSON unique, compressé en gzip. Lisible, inspectable, réparable à la main 
   "formatVersion": 1,
   "appVersion": "1.0.0",
   "exportedAt": "2026-08-02T14:32:11Z",
-  "deviceId": "a3f2...",
   "attribution": {
     "openFoodFacts": "Contient des données d'Open Food Facts, sous licence ODbL 1.0",
     "ciqual": "Table CIQUAL 2025 — ANSES, Licence Ouverte Etalab 2.0"
@@ -35,15 +34,23 @@ Un JSON unique, compressé en gzip. Lisible, inspectable, réparable à la main 
   "entries":   [ ],
   "foods":     [ ],
   "favorites": [ ],
-  "preferences": { }
+  "adjustment": { }
 }
 ```
 
+~~`deviceId`~~ et ~~`preferences`~~ ne sont pas écrits ([D96](11-decisions.md#d96--la-sauvegarde-emprunte-les-mappeurs-et-le-format-ne-porte-que-ce-que-la-base-tient---validée)). Rien ne lit le premier, et un fichier que l'utilisateur peut envoyer par courriel n'a pas besoin de porter de quoi relier deux exports au même téléphone. Le second n'a pas encore de contenu : les préférences d'affichage naîtront avec la section « Apparence », et un champ facultatif s'ajoute sans changer `formatVersion`.
+
+`adjustment` porte l'état de l'adaptation hebdomadaire. C'est une décision de l'utilisateur et non un réglage d'appareil : qui vient de répondre « ne plus proposer » ne doit pas revoir la carte parce qu'il a changé de téléphone.
+
 ### Ce qui est inclus, et pourquoi
 
-`foods` ne contient **pas** tout le catalogue : seulement les aliments personnels, et les fiches Open Food Facts référencées par au moins une entrée du journal. Les aliments CIQUAL sont réimportables depuis les assets, donc seul leur code est conservé.
+~~`foods` ne contient pas tout le catalogue : seulement les aliments personnels, et les fiches Open Food Facts référencées. Les aliments CIQUAL sont réimportables depuis les assets, donc seul leur code est conservé.~~
 
-Sans ce filtrage, une restauration hors-ligne afficherait un journal d'entrées anonymes. Avec lui, la sauvegarde reste sous 400 Ko pour une année complète.
+**`foods` contient tout le catalogue local** ([D96](11-decisions.md#d96--la-sauvegarde-emprunte-les-mappeurs-et-le-format-ne-porte-que-ce-que-la-base-tient---validée)), fiches de l'ANSES comprises. Une fiche de l'ANSES n'est copiée localement qu'à son **premier usage** et reçoit alors un identifiant propre à l'installation : l'exclure romprait le lien que chaque ligne de journal tient vers elle.
+
+Le filtrage que ce paragraphe visait est déjà obtenu autrement — le catalogue local ne contient que ce qui a servi. Sans lui, une restauration hors-ligne afficherait un journal d'entrées anonymes.
+
+Ce que `foods` ne porte pas : les **portions nommées**, les **teneurs complétées**, le rayon et le titre court. Ce sont des propriétés de la référence, relues par le code de la fiche, et la table locale ne les stocke pas.
 
 ### Ce qui est exclu
 
