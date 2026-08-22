@@ -2532,6 +2532,55 @@ Les six : la journée vide devenue une journée à zéro, les plats d'un jour no
 
 Le reste de la tranche 7 attend : le journal de poids, la moyenne mobile, et `SuggestGoalAdjustment`.
 
+## D93 — Le calendrier vient d'une bibliothèque, et la semaine est calendaire · ✓ validée
+
+**Contexte.** Trois défauts rapportés à l'usage sur le calendrier livré en [D92](#d92--une-journée-sans-saisie-na-pas-de-ligne-et-cest-structurel---validée), et une exigence de performance : *« l'application ne doit jamais freeze, les chargements se font en arrière-plan »*.
+
+### La septième pastille était écrasée, et c'était arithmétique
+
+Sept pastilles de 44 dp plus leurs marges font 336 dp ; un écran courant en offre 320 moins les marges d'écran. Le diamètre se calcule désormais sur la largeur disponible, borné entre 28 et 48 dp — assez grand pour que le chiffre reste lisible, assez petit pour qu'une tablette ne montre pas sept médaillons.
+
+**Ce défaut n'était couvert par rien**, et la campagne l'a montré : remplacer le calcul par une constante ne faisait tomber aucun cas. Il en a trois maintenant, dont celui qui vérifie que sept pastilles et leurs marges tiennent dans 320 dp.
+
+### Une semaine calendaire, pas sept jours glissants
+
+Le bandeau plaçait aujourd'hui toujours à droite. On n'y lisait pas « lundi, mardi… » mais « il y a six jours, il y a cinq jours… », et retrouver hier demandait de compter. Une semaine se lit d'un coup d'œil, et **sa géométrie ne bouge pas d'un jour à l'autre**.
+
+Les jours à venir de la semaine en cours restent visibles, en retrait, et ne s'ouvrent pas : [02](02-parcours-et-ecrans.md) interdit la saisie dans le futur, et un écran Journée d'un jour à venir ne pourrait rien proposer d'utile tout en laissant croire le contraire. La semaine garde ainsi ses sept cases.
+
+### Une bibliothèque, et **sans monter Kotlin**
+
+`kizitonwose/Calendar`, licence MIT, dans `:feature:home` et nulle part ailleurs. `WeekCalendar` et `VerticalCalendar` sont bâtis sur `LazyRow` et `LazyColumn` : seules les cellules visibles existent. Elle apporte surtout ce qu'on croit simple et qu'on corrige trois fois — pagination des mois, premier jour de semaine selon la locale, débordements de mois. Les cellules restent les nôtres, donc `MacroSegmentRing` ne change pas d'une ligne.
+
+**Le palier retenu est 2.6.2, et la montée de Kotlin a été écartée par les faits.** Charly avait accepté de monter Kotlin pour prendre la dernière version ; deux relevés ont rendu la montée inutile puis indésirable :
+
+- **2.6.2 offre déjà les deux calendriers** et se compile sous Kotlin 2.0.21. La dernière version n'apporte rien dont cet écran ait besoin.
+- **detekt 1.23.8 ne lit pas les métadonnées de Kotlin 2.3** (issue detekt#8865). Il faudrait detekt 2.0-alpha, donc réécrire les trois règles maison contre une API instable — pour un gain nul. [D15](#d15--chaîne-de-construction-alignée-sur-loutillage-installé---par-défaut) tient toujours.
+
+La question n'a pas été reposée parce que le fait la tranchait : Charly voulait monter Kotlin **afin d'utiliser cette bibliothèque**, et elle s'utilise sans.
+
+### Le mois vit dans l'accueil, et une poignée porte le geste
+
+Le même calendrier qui change de hauteur, et non deux écrans à tenir d'accord — l'écran mensuel séparé de D92 disparaît. Replié : la semaine. Déplié : les mois, qui défilent.
+
+**La poignée plutôt que le calendrier lui-même.** Déplié, le mois défile verticalement, et un geste vertical sur lui appartient à son défilement. Poser le geste d'ouverture au même endroit aurait fait se disputer les deux, et le perdant aurait changé selon la vitesse du doigt.
+
+### La lecture suit ce qu'on regarde
+
+Charger douze mois d'un coup lirait des milliers de lignes pour en montrer trente. Le mois visible remonte au modèle par `snapshotFlow`, qui relit le journal sur ce mois et ses deux voisins ; `flatMapLatest` abandonne la lecture précédente, donc un défilement rapide ne laisse pas dix lectures en vol.
+
+### Une lecture d'environnement cachée n'est pas éprouvable
+
+Le premier jour de la semaine venait d'un `Locale.getDefault()` enfoui dans un getter. **La campagne l'a montré** : sur une machine française, remplacer la règle par « lundi » écrit en dur ne faisait rien tomber. Il est désormais porté par l'état, fourni par le modèle — et deux cas l'éprouvent, l'un en semaine commençant lundi, l'autre dimanche.
+
+**Campagne de défaite : six sabotages, six cas tombés — après avoir rendu deux règles éprouvables.** Les sept jours glissants, le lundi en dur, la semaine amputée, aujourd'hui compté comme futur, hier compté comme futur, et le diamètre figé.
+
+**Conséquences.** La première dépendance d'interface du projet, et elle n'entre que dans un module. `CalendarMonthScreen` et sa route disparaissent ; `CalendarStrip` est remplacé par `CalendarPane`.
+
+**Ce que le vert ne prouve pas.** **Rien de ce qui se voit ni de ce qui se touche.** Le geste de la poignée, la transition semaine↔mois, la fluidité du défilement et le rendu des pastilles à leur nouvelle taille ne s'éprouvent qu'en tenant le téléphone. Les tests disent que sept pastilles **tiennent** en 320 dp ; ils ne disent pas qu'elles sont belles.
+
+Et la promesse « jamais de freeze » n'est pas mesurée : elle repose sur des `Lazy*` et sur une lecture bornée au mois visible, ce qui est la bonne construction — mais aucun profilage n'a été fait.
+
 ---
 
 ## Décisions prises par défaut, à confirmer
