@@ -33,6 +33,7 @@ data class HomeRoutes(
     val onSetUpGoal: () -> Unit,
     val onOpenSettings: () -> Unit,
     val onOpenFavorites: () -> Unit,
+    val onOpenWeight: () -> Unit,
 )
 
 /**

@@ -240,7 +240,9 @@ Le reste de la tranche : la contribution à Open Food Facts ([D70](11-decisions.
 - Aucune suggestion d'ajustement n'est appliquée sans accord explicite.
 - Les conditions de déclenchement — adhérence, persistance, nombre de pesées — sont testées.
 
-> **En cours.** Le bandeau, le mois et l'écran Journée ([D92](11-decisions.md#d92--une-journée-sans-saisie-na-pas-de-ligne-et-cest-structurel---validée), refondus en [D93](11-decisions.md#d93--le-calendrier-vient-dune-bibliothèque-et-la-semaine-est-calendaire---validée) : semaine calendaire, mois déplié dans l'accueil, pastilles dimensionnées à l'écran) : le premier critère est tenu **structurellement** — une journée sans saisie n'a pas de ligne dans le calendrier, donc rien à dessiner. Le journal de poids, la moyenne mobile et `SuggestGoalAdjustment` restent à faire.
+> **En cours.** Le bandeau, le mois et l'écran Journée ([D92](11-decisions.md#d92--une-journée-sans-saisie-na-pas-de-ligne-et-cest-structurel---validée), refondus en [D93](11-decisions.md#d93--le-calendrier-vient-dune-bibliothèque-et-la-semaine-est-calendaire---validée) : semaine calendaire, mois déplié dans l'accueil, pastilles dimensionnées à l'écran) : le premier critère est tenu **structurellement** — une journée sans saisie n'a pas de ligne dans le calendrier, donc rien à dessiner.
+>
+> Puis le **journal de poids** et sa courbe ([D94](11-decisions.md#d94--le-journal-de-poids-se-lit-en-trois-traits-et-la-tendance-se-tait-sous-trois-pesées---validée)) : trois tracés dessinés à la main, une échelle séparée du dessin pour être éprouvable, et le plancher de trois pesées de [03](03-nutrition-calculs.md#signal) étendu au lissage affiché. La pente réelle et la pente visée existent et sont testées ; il reste `SuggestGoalAdjustment`, ses trois conditions de déclenchement et sa carte à trois issues.
 
 ---
 
