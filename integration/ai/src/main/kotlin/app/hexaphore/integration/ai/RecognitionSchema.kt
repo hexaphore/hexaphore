@@ -52,11 +52,21 @@ internal fun recognitionSchema(strict: Boolean): JsonObject = Json.parseToJsonEl
 /**
  * La forme d'une estimation groupée — l'étape 4 de [docs/04][sources].
  *
- * **Aucun champ n'est requis à part le libellé**, et c'est délibéré : un modèle qui
- * ne connaît pas les fibres d'un plat doit pouvoir se taire sur cette valeur plutôt
- * que d'en inventer une pour satisfaire un schéma. Le reste du projet lit déjà une
- * valeur absente comme *inconnue* et non comme zéro ; exiger les six ici aurait
- * fabriqué des zéros que personne n'a mesurés.
+ * **Les six valeurs sont obligatoires, et chacune peut valoir `null`.**
+ *
+ * ~~Aucun champ n'était requis à part le libellé~~, pour qu'un modèle qui ne connaît
+ * pas les fibres d'un plat puisse se taire dessus plutôt que d'en inventer une. Le
+ * raisonnement était bon, l'effet ne l'était pas : le décodage contraint de Gemini lit
+ * « pas dans `required` » comme « facultatif », et se tait **par défaut**. Un mangoustan
+ * revenait sans glucides, sans lipides et sans fibres — une ligne inutilisable, arrivée
+ * par le seul chemin qui avait le droit de produire des chiffres.
+ *
+ * Exiger la clé tout en autorisant `null` dit exactement ce qu'on voulait dire : le
+ * modèle **doit** se prononcer sur chacune des six, et « je ne sais pas » reste
+ * exprimable. Le silence par omission, lui, ne l'est plus.
+ *
+ * Se taire sur un aliment **entier** reste possible, et c'est le prompt qui le porte :
+ * un libellé dont le modèle ne sait rien s'omet de la réponse.
  *
  * [sources]: docs/04-sources-de-donnees.md
  */
@@ -71,14 +81,14 @@ internal fun estimationSchema(strict: Boolean): JsonObject = Json.parseToJsonEle
             "type": "object",
             "properties": {
               "label": { "type": "string" },
-              "kcal": { "type": "number" },
-              "protein": { "type": "number" },
-              "carbs": { "type": "number" },
-              "sugars": { "type": "number" },
-              "fat": { "type": "number" },
-              "fiber": { "type": "number" }
+              "kcal": ${unknowable(strict)},
+              "protein": ${unknowable(strict)},
+              "carbs": ${unknowable(strict)},
+              "sugars": ${unknowable(strict)},
+              "fat": ${unknowable(strict)},
+              "fiber": ${unknowable(strict)}
             },
-            "required": ["label"]${closure(strict)}
+            "required": ["label", "kcal", "protein", "carbs", "sugars", "fat", "fiber"]${closure(strict)}
           }
         }
       },
@@ -86,5 +96,17 @@ internal fun estimationSchema(strict: Boolean): JsonObject = Json.parseToJsonEle
     }
     """.trimIndent(),
 ) as JsonObject
+
+/**
+ * Un nombre qui a le droit de valoir « inconnu », **dans deux dialectes**.
+ *
+ * Anthropic lit du JSON Schema, où l'union de types est la façon canonique de le dire.
+ * Gemini lit un sous-ensemble d'OpenAPI 3.0, qui ne connaît pas l'union et exige
+ * `nullable`. C'est la seconde différence entre les deux — la première étant
+ * `additionalProperties` — et [strict] les porte toutes les deux plutôt que d'ouvrir
+ * un second paramètre qui dirait la même chose.
+ */
+private fun unknowable(strict: Boolean) =
+    if (strict) """{ "type": ["number", "null"] }""" else """{ "type": "number", "nullable": true }"""
 
 private fun closure(strict: Boolean) = if (strict) ",\n\"additionalProperties\": false" else ""
