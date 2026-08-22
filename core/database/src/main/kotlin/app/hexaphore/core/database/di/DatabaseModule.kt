@@ -3,6 +3,7 @@ package app.hexaphore.core.database.di
 import android.content.Context
 import app.hexaphore.core.database.HexaphoreDatabase
 import app.hexaphore.core.database.ciqual.CiqualDatabase
+import app.hexaphore.core.database.dao.CalendarDao
 import app.hexaphore.core.database.dao.DiaryDao
 import app.hexaphore.core.database.dao.FavoriteDishDao
 import app.hexaphore.core.database.dao.FoodCitationsDao
@@ -36,6 +37,9 @@ object DatabaseModule {
 
     @Provides
     fun diaryDao(database: HexaphoreDatabase): DiaryDao = database.diaryDao()
+
+    @Provides
+    fun calendarDao(database: HexaphoreDatabase): CalendarDao = database.calendarDao()
 
     @Provides
     fun foodDao(database: HexaphoreDatabase): FoodDao = database.foodDao()

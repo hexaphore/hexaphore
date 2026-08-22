@@ -9,6 +9,7 @@ import app.hexaphore.domain.time.Clock
 import app.hexaphore.domain.usecase.CreateDraft
 import app.hexaphore.domain.usecase.DeleteDish
 import app.hexaphore.domain.usecase.DeleteEntry
+import app.hexaphore.domain.usecase.GetCalendar
 import app.hexaphore.domain.usecase.GetDaySummary
 import app.hexaphore.domain.usecase.GetDishDraft
 import app.hexaphore.domain.usecase.LogDish
@@ -44,6 +45,15 @@ object DomainModule {
     @Provides
     fun getDaySummary(diary: DiaryRepository, goals: Goals, clock: Clock): GetDaySummary =
         GetDaySummary(diary, goals, clock)
+
+    /**
+     * Le calendrier, qui lit une plage la ou [GetDaySummary] lit un jour.
+     *
+     * Pas d'horloge ici : les bornes viennent de l'appelant, qui sait quel mois il
+     * affiche. Lui en donner une l'inviterait a decider tout seul de la plage.
+     */
+    @Provides
+    fun getCalendar(diary: DiaryRepository, goals: Goals): GetCalendar = GetCalendar(diary, goals)
 
     @Provides
     fun getDishDraft(diary: DiaryRepository, ids: IdGenerator): GetDishDraft = GetDishDraft(diary, ids)

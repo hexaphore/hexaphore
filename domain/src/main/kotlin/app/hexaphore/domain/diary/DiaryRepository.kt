@@ -34,6 +34,18 @@ interface DiaryRepository {
      */
     fun observeDay(date: LocalDate): Flow<List<Dish>>
 
+    /**
+     * Les plats d'une plage de jours, bornes incluses.
+     *
+     * **Les plats entiers, pas des totaux.** Agreger en base traiterait les valeurs
+     * inconnues comme absentes, ce qui est juste arithmetiquement mais perd la trace
+     * de ce qui manquait ([D29][decisions]) -- et c'est le domaine qui totalise, en
+     * retenant quels totaux sont minores. Quelques centaines de lignes pour un mois.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    fun observeRange(from: LocalDate, to: LocalDate): Flow<List<Dish>>
+
     /** Un plat et ses lignes, ou `null` s'il n'existe plus. */
     suspend fun dish(id: DishId): Dish?
 

@@ -67,6 +67,24 @@ class InMemoryDiaryRepository(initial: List<Dish> = emptyList()) :
         }
     }
 
+    /**
+     * La meme lecture, sur une plage.
+     *
+     * Le faux **filtre comme le vrai**, bornes incluses des deux cotes : le contrat
+     * porte sur cette convention, et un faux plus indulgent la laisserait diverger
+     * sans que rien ne tombe ([D53][decisions]).
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    override fun observeRange(from: LocalDate, to: LocalDate): Flow<List<Dish>> {
+        failure?.let { cause -> return flow { throw cause } }
+        return state.asStateFlow().map { dishes ->
+            dishes
+                .filter { !it.date.isBefore(from) && !it.date.isAfter(to) }
+                .sortedWith(compareBy({ it.date }, { it.loggedAt }))
+        }
+    }
+
     override suspend fun dish(id: DishId): Dish? {
         failure?.let { throw it }
         return state.value.firstOrNull { it.id == id }

@@ -77,7 +77,8 @@ private fun HexaphoreNavHost(startDestination: Any, modifier: Modifier = Modifie
 
     NavHost(navController = navController, startDestination = startDestination, modifier = modifier) {
         homeScreen(
-            HomeRoutes(
+            navController = navController,
+            routes = HomeRoutes(
                 // Un seul bouton, et il ouvre la recherche : la saisie manuelle y est
                 // une branche, puisqu'un aliment tape a la main devient une fiche.
                 onAddDish = { navController.navigateToSearch() },

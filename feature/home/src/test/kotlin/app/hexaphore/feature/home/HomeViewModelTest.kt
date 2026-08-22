@@ -1,5 +1,6 @@
 package app.hexaphore.feature.home
 
+import androidx.lifecycle.SavedStateHandle
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryAiCredentials
 import app.hexaphore.core.testing.InMemoryDiaryRepository
@@ -244,17 +245,22 @@ class HomeViewModelTest {
     }
 
     private fun viewModel(diary: InMemoryDiaryRepository, clock: FixedClock) = HomeViewModel(
+        // Sans date : l'accueil lit aujourd'hui, et c'est le `null` que la journee
+        // relue remplace par la sienne.
+        savedStateHandle = SavedStateHandle(),
         getDaySummary = GetDaySummary(diary, InMemoryGoals(listOf(InMemoryGoals.maintenance(jour))), clock),
         dispatchers = TestDispatchers(dispatcher),
         credentials = cles,
-        deleteEntry = DeleteEntry(diary),
-        deleteDish = DeleteDish(diary),
-        restoreDish = RestoreDish(diary),
-        toggleFavorite = ToggleDishFavorite(
-            drafts = GetDishDraft(diary, SequentialIdGenerator("ligne")),
-            update = UpdateDish(diary, SequentialIdGenerator("ligne")),
-            save = SaveFavoriteDish(favoris, SequentialIdGenerator("fav")),
-            remove = RemoveFavoriteDish(favoris),
+        gestures = DishGestures(
+            deleteEntry = DeleteEntry(diary),
+            deleteDish = DeleteDish(diary),
+            restoreDish = RestoreDish(diary),
+            toggleFavorite = ToggleDishFavorite(
+                drafts = GetDishDraft(diary, SequentialIdGenerator("ligne")),
+                update = UpdateDish(diary, SequentialIdGenerator("ligne")),
+                save = SaveFavoriteDish(favoris, SequentialIdGenerator("fav")),
+                remove = RemoveFavoriteDish(favoris),
+            ),
         ),
     )
 

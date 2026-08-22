@@ -61,6 +61,16 @@ interface GoalDao {
     )
     fun observeGoalOn(date: String): Flow<GoalEntity?>
 
+    /**
+     * Toutes les versions, la plus recente d'abord.
+     *
+     * Pour qu'un calendrier de trente jours choisisse en memoire plutot que de poser
+     * trente fois la meme question. La liste est courte : un objectif se revise, il
+     * ne se cree pas tous les jours.
+     */
+    @Query("SELECT * FROM goal ORDER BY started_at DESC")
+    fun observeAllGoals(): Flow<List<GoalEntity>>
+
     @Query("SELECT * FROM goal WHERE ended_at IS NULL LIMIT 1")
     fun observeCurrent(): Flow<GoalEntity?>
 

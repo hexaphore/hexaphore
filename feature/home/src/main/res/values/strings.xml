@@ -124,4 +124,13 @@
     <string name="macro_initial_fat">L</string>
     <string name="macro_initial_fiber">F</string>
 
+    <!-- Le bandeau calendrier et la vue mensuelle. Une journée sans saisie est
+         annoncée comme telle : pour un lecteur d'écran, un anneau absent ne se
+         distingue pas d'un anneau vide, alors que la différence est tout le sujet. -->
+    <string name="calendar_day_a11y">Le %1$d, journée notée</string>
+    <string name="calendar_day_empty_a11y">Le %1$d, aucune saisie</string>
+    <string name="calendar_close">Fermer</string>
+    <string name="calendar_previous">Mois précédent</string>
+    <string name="calendar_next">Mois suivant</string>
+
 </resources>
