@@ -2735,6 +2735,40 @@ Le contrat de la cible interne a montré que `lastModified()` a une granularité
 
 Et le format n'a jamais rencontré de vraies données : le contrat travaille sur un décor de sept lignes, pas sur un an de journal. La taille du fichier, le temps de la capture et celui de la restauration sont des inconnues.
 
+## D97 — Un nom d'aliment se replie sur deux lignes, et ne contient jamais de retour à la ligne · ✓ validée
+
+**Contexte.** Rapporté à l'usage : *« le titre des aliments est parfois trop long, et impossible de scroller pour voir le début — on voit la fin du titre, et la seule manière de voir le début est de supprimer la fin. »*
+
+### Le curseur était à la fin, et le champ ne montrait qu'une ligne
+
+Deux causes qui se cumulent, et la description les nomme exactement.
+
+`DraftTextField` pose le curseur à la fin du texte initial — c'est ce qu'on veut quand on vient corriger une valeur. Mais le champ était aussi `singleLine`, ce qui le fait **défiler horizontalement** au lieu de replier : à l'ouverture, il se cale sur le curseur, donc sur la queue du libellé. « Fromage blanc nature, 3% de matière grasse » s'ouvrait sur « de matière grasse ».
+
+Le champ montre désormais **deux lignes** quand il en faut deux. Le début redevient visible sans rien effacer.
+
+**Deux et pas trois** : deux suffisent à la quasi-totalité des libellés de l'ANSES, et une troisième repousserait les six valeurs hors de l'écran sur un téléphone étroit — on lirait le titre en entier au prix de ce qu'on est venu vérifier.
+
+### `maxLines` est un troisième réglage, distinct des deux autres
+
+`minLines` décidait déjà de la hauteur au repos **et** de ce que fait la touche entrée. Y ajouter le repli aurait fait qu'un champ de nom à deux lignes hérite du comportement d'une description de repas, où entrée saute une ligne. Trois questions, trois réglages.
+
+### Un champ d'une ligne refuse le retour à la ligne, même quand il en montre deux
+
+Replié, le champ n'est plus `singleLine` pour Compose : son clavier propose donc une touche entrée. Un nom d'aliment coupé en deux par un saut de ligne se retrouverait tel quel dans le journal, puis dans une sauvegarde, puis dans une recherche qui ne le trouve plus.
+
+Le champ **refuse** la frappe plutôt que de l'accepter puis de la nettoyer — c'est la règle de `isNumberField`, et pour la même raison : nettoyer obligerait à réécrire le texte affiché, donc à repositionner le curseur, exactement le défaut que [D45](#d45--un-champ-de-saisie-tient-son-texte-lui-même---validée) évite.
+
+### La cause de fond n'est pas là
+
+Les libellés de l'ANSES sont longs parce que **le passage de titres courts n'a pas encore tourné** : la base embarquée en compte **6 sur 3 484**. `./gradlew generateShortNames` ([D88](#d88--le-titre-court-se-fabrique-hors-de-lapplication-et-il-ne-touche-jamais-au-libellé---validée)) est ce qui les raccourcira ; le repli sur deux lignes rend seulement lisible ce qui reste long après.
+
+**Campagne de défaite : un sabotage, un cas tombé** — et deux règles qui ne s'éprouvent pas.
+
+**Ce que le vert ne prouve pas.** **Le repli lui-même.** `singleLine`, `maxLines` et la hauteur du champ sont du rendu Compose : sabotés, aucun cas ne tombe, parce qu'aucun test de ce projet ne dessine. Seule la règle du retour à la ligne s'affirme, et c'est elle qui est éprouvée. Le reste se vérifie en tenant le téléphone.
+
+Rien ne dit non plus qu'un libellé de trois lignes se lise mieux qu'avant : il montrera ses lignes 2 et 3, le curseur étant toujours à la fin.
+
 ---
 
 ## Décisions prises par défaut, à confirmer

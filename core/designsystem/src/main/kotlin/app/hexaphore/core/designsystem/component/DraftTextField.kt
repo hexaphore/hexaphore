@@ -82,6 +82,20 @@ fun DraftTextField(
      */
     minLines: Int = 1,
     /**
+     * Le nombre de lignes **au-delà duquel le texte ne se déplie plus**.
+     *
+     * Un champ d'une ligne fait défiler son texte horizontalement, et le curseur part
+     * à la fin : d'un libellé de l'ANSES on ne voyait donc que la queue, et le seul
+     * moyen d'en lire le début était d'effacer la fin. Au-delà de un, le texte revient
+     * à la ligne et le début reste visible.
+     *
+     * **Distinct de [minLines]**, qui décide de la hauteur au repos et de ce que fait
+     * la touche entrée. Un champ de nom veut une seule ligne quand le nom est court,
+     * deux quand il est long, et jamais de retour à la ligne dans sa valeur — les
+     * trois se règlent séparément.
+     */
+    maxLines: Int = 1,
+    /**
      * `true` quand ce champ est **celui qui manque**.
      *
      * Il se colore, et son libellé avec. Un formulaire de vingt-quatre champs dont un
@@ -110,15 +124,21 @@ fun DraftTextField(
     OutlinedTextField(
         value = value,
         onValueChange = { candidate ->
-            if (accept(candidate.text)) {
+            // Le champ **refuse** la frappe plutot que de l'accepter puis de la
+            // nettoyer : nettoyer obligerait a reecrire le texte affiche, donc a
+            // repositionner le curseur -- exactement ce que ce composant evite.
+            if (accept(candidate.text) && (minLines > 1 || candidate.text.isSingleLine())) {
                 value = candidate
                 onValueChange(candidate.text)
             }
         },
         label = { Text(text = label, color = if (isError) MaterialTheme.colorScheme.error else labelColor) },
         isError = isError,
-        singleLine = minLines == 1,
+        // `singleLine` fait defiler au lieu de replier : il ne vaut que pour un champ
+        // qui ne montre qu'une ligne, jamais pour un champ qui en tolere deux.
+        singleLine = minLines == 1 && maxLines == 1,
         minLines = minLines,
+        maxLines = maxOf(minLines, maxLines),
         // Decimal et non Number : le separateur decimal doit etre atteignable, et
         // la virgule est ce que produit un clavier en francais.
         keyboardOptions = KeyboardOptions(
@@ -194,5 +214,18 @@ fun String.isNumberField(): Boolean =
  * [decisions]: docs/11-decisions.md
  */
 fun String.isWholeNumberField(): Boolean = all { it.isDigit() }
+
+/**
+ * Ce qu'un champ d'une seule ligne laisse entrer : tout, sauf un retour à la ligne.
+ *
+ * La règle vaut **même quand le champ en montre deux**. Un champ qui se replie n'est
+ * plus `singleLine` pour Compose, donc son clavier propose une touche entrée — et un
+ * nom d'aliment coupé en deux par un saut de ligne se retrouverait tel quel dans le
+ * journal, puis dans une sauvegarde, puis dans une recherche qui ne le trouve plus.
+ *
+ * Un refus plutôt qu'un nettoyage, comme pour [isNumberField] et pour la même raison :
+ * réécrire le texte affiché obligerait à repositionner le curseur.
+ */
+fun String.isSingleLine(): Boolean = none { it == '\n' }
 
 private const val DECIMAL_SEPARATORS = ",."

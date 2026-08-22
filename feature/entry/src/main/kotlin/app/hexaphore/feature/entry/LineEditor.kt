@@ -136,6 +136,11 @@ private fun NameRow(line: EntryFormLine, actions: EntryActions, flagged: Boolean
             onValueChange = { actions.onLineEdit(line.id, LineEdit.Name(it)) },
             label = stringResource(R.string.entry_field_name),
             modifier = Modifier.weight(1f),
+            // Deux lignes : un libelle de l'ANSES depasse largement la largeur d'un
+            // champ, et sur une seule ligne le curseur partait a la fin -- on ne
+            // voyait que la queue du titre, et l'effacer etait le seul moyen d'en
+            // lire le debut.
+            maxLines = NAME_LINES,
             isError = flagged,
         )
         IconButton(onClick = { actions.onRemoveLine(line.id) }) {
@@ -341,6 +346,15 @@ private val Macro.fieldRes: Int
     }
 
 /** La confiance s'affiche en pourcentage : « 0,9 » ne se lit pas. */
+/**
+ * Deux lignes pour un nom d'aliment, et pas trois.
+ *
+ * Deux suffisent à la quasi-totalité des libellés de l'ANSES, et une troisième
+ * repousserait les six valeurs hors de l'écran sur un téléphone étroit — on lirait le
+ * titre en entier au prix de ce qu'on est venu vérifier.
+ */
+internal const val NAME_LINES = 2
+
 private const val PERCENT = 100
 
 /** Ce qui separe les marques d une ligne proposee. */
