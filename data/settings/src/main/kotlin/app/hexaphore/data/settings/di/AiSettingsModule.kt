@@ -6,14 +6,12 @@ import app.hexaphore.data.settings.KeystoreCipher
 import app.hexaphore.data.settings.SecretCipher
 import app.hexaphore.data.settings.StoredAiCredentials
 import app.hexaphore.data.settings.StoredAiUsage
-import app.hexaphore.data.settings.StoredContributionSettings
 import app.hexaphore.data.settings.StoredPhotoConsent
 import app.hexaphore.domain.ai.AiCredentials
 import app.hexaphore.domain.ai.AiSettings
 import app.hexaphore.domain.ai.AiUsageLog
 import app.hexaphore.domain.ai.PhotoConsent
 import app.hexaphore.domain.concurrency.DispatcherProvider
-import app.hexaphore.domain.food.ContributionSettings
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,7 +21,7 @@ import javax.inject.Named
 import javax.inject.Singleton
 
 /**
- * Ce que ce module lie : quatre ports du domaine, et rien qui sorte d'ici.
+ * Ce que ce module lie : les quatre ports de l'IA, et rien qui sorte d'ici.
  *
  * Le chiffrement et le fichier de préférences restent **internes** : exposer l'un ou
  * l'autre ferait de ce module le rangement à secrets de tout le projet, et le premier
@@ -81,30 +79,6 @@ internal object AiSettingsModule {
     @Singleton
     fun usage(@Named(AI_PREFERENCES) preferences: SharedPreferences, dispatchers: DispatcherProvider): AiUsageLog =
         StoredAiUsage(preferences, dispatchers)
-
-    /**
-     * Le compte Open Food Facts, dans **son propre fichier**.
-     *
-     * Pas celui des clés d'IA : ce sont deux services sans rapport, et effacer ses
-     * réglages d'IA ne doit pas déconnecter le compte de contribution. C'est le même
-     * raisonnement qu'en [D86][decisions], où le compteur de plats a quitté ce fichier
-     * pour la même raison.
-     *
-     * [decisions]: docs/11-decisions.md
-     */
-    @Provides
-    @Singleton
-    @Named(CONTRIBUTION_PREFERENCES)
-    fun contributionPreferences(@ApplicationContext context: Context): SharedPreferences =
-        context.getSharedPreferences(CONTRIBUTION_PREFERENCES_FILE, Context.MODE_PRIVATE)
-
-    @Provides
-    @Singleton
-    fun contribution(
-        @Named(CONTRIBUTION_PREFERENCES) preferences: SharedPreferences,
-        cipher: SecretCipher,
-        dispatchers: DispatcherProvider,
-    ): ContributionSettings = StoredContributionSettings(preferences, cipher, dispatchers)
 }
 
 /**
@@ -119,13 +93,3 @@ internal object AiSettingsModule {
 private const val AI_PREFERENCES_FILE = "ai_settings"
 
 private const val AI_PREFERENCES = "ai"
-
-/**
- * Le fichier du compte Open Food Facts.
- *
- * Distinct de celui des clés d'IA : les deux portent un secret, mais pas le secret du
- * même service, et on doit pouvoir oublier l'un sans perdre l'autre.
- */
-private const val CONTRIBUTION_PREFERENCES_FILE = "contribution_settings"
-
-private const val CONTRIBUTION_PREFERENCES = "contribution"

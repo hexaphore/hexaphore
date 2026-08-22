@@ -240,9 +240,15 @@ Le reste de la tranche : la contribution à Open Food Facts ([D70](11-decisions.
 - Aucune suggestion d'ajustement n'est appliquée sans accord explicite.
 - Les conditions de déclenchement — adhérence, persistance, nombre de pesées — sont testées.
 
-> **En cours.** Le bandeau, le mois et l'écran Journée ([D92](11-decisions.md#d92--une-journée-sans-saisie-na-pas-de-ligne-et-cest-structurel---validée), refondus en [D93](11-decisions.md#d93--le-calendrier-vient-dune-bibliothèque-et-la-semaine-est-calendaire---validée) : semaine calendaire, mois déplié dans l'accueil, pastilles dimensionnées à l'écran) : le premier critère est tenu **structurellement** — une journée sans saisie n'a pas de ligne dans le calendrier, donc rien à dessiner.
+> **Livrée.** Le calendrier, l'écran Journée, le journal de poids et l'adaptation hebdomadaire. Les trois critères sont tenus ; rien de ce qui se voit ni de ce qui se touche n'a été éprouvé ailleurs que dans un compilateur.
 >
-> Puis le **journal de poids** et sa courbe ([D94](11-decisions.md#d94--le-journal-de-poids-se-lit-en-trois-traits-et-la-tendance-se-tait-sous-trois-pesées---validée)) : trois tracés dessinés à la main, une échelle séparée du dessin pour être éprouvable, et le plancher de trois pesées de [03](03-nutrition-calculs.md#signal) étendu au lissage affiché. La pente réelle et la pente visée existent et sont testées ; il reste `SuggestGoalAdjustment`, ses trois conditions de déclenchement et sa carte à trois issues.
+> Le bandeau, le mois et l'écran Journée ([D92](11-decisions.md#d92--une-journée-sans-saisie-na-pas-de-ligne-et-cest-structurel---validée), refondus en [D93](11-decisions.md#d93--le-calendrier-vient-dune-bibliothèque-et-la-semaine-est-calendaire---validée) : semaine calendaire, mois déplié dans l'accueil, pastilles dimensionnées à l'écran). Le premier critère est tenu **structurellement** — une journée sans saisie n'a pas de ligne dans le calendrier, donc rien à dessiner.
+>
+> Puis le **journal de poids** et sa courbe ([D94](11-decisions.md#d94--le-journal-de-poids-se-lit-en-trois-traits-et-la-tendance-se-tait-sous-trois-pesées---validée)) : trois tracés dessinés à la main, une échelle séparée du dessin pour être éprouvable, et le plancher de trois pesées de [03](03-nutrition-calculs.md#signal) étendu au lissage affiché.
+>
+> Enfin l'**adaptation hebdomadaire** ([D95](11-decisions.md#d95--lajustement-se-propose-ne-sapplique-jamais-et-se-tait-presque-toujours---validée)). Le deuxième critère tient à une propriété : *accepter* est le seul chemin qui écrit un objectif, et les trois issues vivent dans un seul cas d'usage pour que cela ait un endroit où se tester. Le troisième est couvert par vingt-neuf cas — adhérence, persistance, nombre de pesées, silence après une réponse, et les garde-fous que la correction repasse avant d'être annoncée.
+>
+> Ce que le vert ne prouve pas : **que la carte se voie un jour**. Toutes ses conditions réunies demandent trois semaines de pesées régulières et dix jours notés sur quatorze ; le premier vrai déclenchement dira si le seuil de 0,15 kg/semaine parle trop, ou trop peu.
 
 ---
 

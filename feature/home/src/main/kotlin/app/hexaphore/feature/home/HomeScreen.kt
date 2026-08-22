@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.hexaphore.core.designsystem.component.AdjustmentCard
 import app.hexaphore.core.designsystem.component.BarcodeGlyph
 import app.hexaphore.core.designsystem.component.CameraGlyph
 import app.hexaphore.core.designsystem.component.MacroBar
@@ -52,8 +53,10 @@ import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.core.designsystem.theme.Timing
 import app.hexaphore.domain.diary.DaySummary
 import app.hexaphore.domain.diary.Dish
+import app.hexaphore.domain.goal.AdjustmentSuggestion
 import app.hexaphore.domain.goal.DailyGoal
 import app.hexaphore.domain.nutrition.Macro
+import app.hexaphore.domain.usecase.AdjustmentResponse
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -68,6 +71,7 @@ fun HomeRoute(routes: HomeRoutes, onOpenDay: (java.time.LocalDate) -> Unit = {})
     val pendingUndo by viewModel.pendingUndo.collectAsStateWithLifecycle()
     val nameTaken by viewModel.favoriteNameTaken.collectAsStateWithLifecycle()
     val aiConfigured by viewModel.aiConfigured.collectAsStateWithLifecycle()
+    val suggestion by viewModel.suggestion.collectAsStateWithLifecycle()
 
     HomeScreen(
         state = state,
@@ -75,6 +79,8 @@ fun HomeRoute(routes: HomeRoutes, onOpenDay: (java.time.LocalDate) -> Unit = {})
         aiConfigured = aiConfigured,
         favoriteNameTaken = nameTaken,
         onDismissFavoriteError = viewModel::onDismissFavoriteError,
+        suggestion = suggestion,
+        onAdjustment = viewModel::onAdjustment,
         calendar = {
             CalendarPane(
                 state = calendar,
@@ -123,6 +129,17 @@ fun HomeScreen(
     favoriteNameTaken: Boolean = false,
     onDismissFavoriteError: () -> Unit = {},
     /**
+     * La correction que l'adaptation propose, ou `null` — ce qui est le cas normal.
+     *
+     * **En tête**, sous le calendrier et avant les compteurs ([docs/03][calculs]) :
+     * c'est un changement de cap, et il se lit avant les chiffres qu'il change. Aucune
+     * notification ne l'accompagne ; la carte suffit.
+     *
+     * [calculs]: docs/03-nutrition-calculs.md
+     */
+    suggestion: AdjustmentSuggestion? = null,
+    onAdjustment: (AdjustmentResponse) -> Unit = {},
+    /**
      * Le bandeau des sept derniers jours, ou rien.
      *
      * Un emplacement et non un composant : l'accueil n'a pas a connaitre le calendrier
@@ -165,6 +182,15 @@ fun HomeScreen(
         ) {
             DayHeader(actions)
             calendar()
+
+            suggestion?.let {
+                AdjustmentCard(
+                    suggestion = it,
+                    onAccept = { onAdjustment(AdjustmentResponse.ACCEPT) },
+                    onIgnore = { onAdjustment(AdjustmentResponse.IGNORE) },
+                    onStop = { onAdjustment(AdjustmentResponse.STOP) },
+                )
+            }
 
             when (state) {
                 HomeUiState.Loading -> Unit

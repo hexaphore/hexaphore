@@ -8,8 +8,12 @@ import app.hexaphore.domain.ai.activeConfiguration
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.EntryId
+import app.hexaphore.domain.goal.AdjustmentSuggestion
+import app.hexaphore.domain.usecase.AdjustmentResponse
 import app.hexaphore.domain.usecase.FavoriteOutcome
 import app.hexaphore.domain.usecase.GetDaySummary
+import app.hexaphore.domain.usecase.RespondToAdjustment
+import app.hexaphore.domain.usecase.SuggestGoalAdjustment
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,6 +50,8 @@ class HomeViewModel @Inject constructor(
     getDaySummary: GetDaySummary,
     dispatchers: DispatcherProvider,
     credentials: AiCredentials,
+    suggestGoalAdjustment: SuggestGoalAdjustment,
+    private val respondToAdjustment: RespondToAdjustment,
     private val gestures: DishGestures,
 ) : ViewModel() {
     /**
@@ -99,6 +105,30 @@ class HomeViewModel @Inject constructor(
             initialValue = false,
         )
 
+    /**
+     * La correction que l'adaptation hebdomadaire propose, s'il y en a une.
+     *
+     * **Hors de [uiState]**, comme [aiConfigured] et pour la même raison : le journal
+     * peut être illisible pendant que la suggestion tient parfaitement, et l'inverse
+     * autant. `null` est le cas normal — toutes les conditions doivent être réunies
+     * pour qu'une carte paraisse ([docs/03][calculs]).
+     *
+     * Elle n'est montrée que par l'accueil. L'écran Journée partage ce modèle, mais
+     * une carte qui parle de trois semaines n'a rien à faire au-dessus d'un jour
+     * passé qu'on est venu relire.
+     *
+     * [calculs]: docs/03-nutrition-calculs.md
+     */
+    val suggestion: StateFlow<AdjustmentSuggestion?> = suggestGoalAdjustment()
+        // Une lecture qui echoue ne fabrique pas de conseil : le silence est deja
+        // le cas normal, et c'est le bon repli.
+        .catch { emit(null) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MILLIS),
+            initialValue = null,
+        )
+
     val uiState: StateFlow<HomeUiState> =
         attempts
             .flatMapLatest {
@@ -138,6 +168,19 @@ class HomeViewModel @Inject constructor(
     private val nameTaken = MutableStateFlow(false)
 
     val pendingUndo: StateFlow<Dish?> = undoable.asStateFlow()
+
+    /**
+     * Répond à la suggestion affichée.
+     *
+     * La suggestion vient de l'état et non de l'écran : entre l'affichage et l'appui,
+     * une pesée a pu changer la correction, et écrire celle que l'écran tenait
+     * écrirait un chiffre périmé. `null` si elle a disparu entre-temps — il n'y a
+     * alors rien à accepter.
+     */
+    fun onAdjustment(response: AdjustmentResponse) {
+        val shown = suggestion.value ?: return
+        viewModelScope.launch { respondToAdjustment(response, shown) }
+    }
 
     /** Relit le journal après un échec. */
     fun retry() {

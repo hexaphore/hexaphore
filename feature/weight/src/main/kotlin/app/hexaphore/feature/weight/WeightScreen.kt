@@ -29,7 +29,10 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.hexaphore.core.designsystem.component.AdjustmentCard
 import app.hexaphore.core.designsystem.theme.Spacing
+import app.hexaphore.domain.goal.AdjustmentSuggestion
+import app.hexaphore.domain.usecase.AdjustmentResponse
 import app.hexaphore.domain.usecase.TrendPoint
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -39,12 +42,15 @@ import java.time.format.FormatStyle
 internal fun WeightRoute(onClose: () -> Unit) {
     val viewModel: WeightViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val suggestion by viewModel.suggestion.collectAsStateWithLifecycle()
 
     WeightScreen(
         state = state,
         today = viewModel.today(),
         onRecord = viewModel::onRecord,
         onClose = onClose,
+        suggestion = suggestion,
+        onAdjustment = viewModel::onAdjustment,
     )
 }
 
@@ -64,6 +70,16 @@ internal fun WeightScreen(
     onRecord: (LocalDate, Double) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * La correction que l'adaptation propose, ou `null` — le cas normal.
+     *
+     * **En tête, avant la courbe** ([docs/02][parcours]) : c'est ce qu'on doit voir en
+     * arrivant, et non après avoir fait défiler trente pesées.
+     *
+     * [parcours]: docs/02-parcours-et-ecrans.md
+     */
+    suggestion: AdjustmentSuggestion? = null,
+    onAdjustment: (AdjustmentResponse) -> Unit = {},
 ) {
     var recording by remember { mutableStateOf(false) }
 
@@ -88,6 +104,15 @@ internal fun WeightScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
             WeightTitle(onClose)
+
+            suggestion?.let {
+                AdjustmentCard(
+                    suggestion = it,
+                    onAccept = { onAdjustment(AdjustmentResponse.ACCEPT) },
+                    onIgnore = { onAdjustment(AdjustmentResponse.IGNORE) },
+                    onStop = { onAdjustment(AdjustmentResponse.STOP) },
+                )
+            }
 
             when (state) {
                 WeightUiState.Loading -> Unit
