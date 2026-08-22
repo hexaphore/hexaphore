@@ -240,6 +240,8 @@ Le reste de la tranche : la contribution à Open Food Facts ([D70](11-decisions.
 - Aucune suggestion d'ajustement n'est appliquée sans accord explicite.
 - Les conditions de déclenchement — adhérence, persistance, nombre de pesées — sont testées.
 
+> **En cours.** Le bandeau, la vue mensuelle et l'écran Journée ([D92](11-decisions.md#d92--une-journée-sans-saisie-na-pas-de-ligne-et-cest-structurel---validée)) : le premier critère est tenu **structurellement** — une journée sans saisie n'a pas de ligne dans le calendrier, donc rien à dessiner. Le journal de poids, la moyenne mobile et `SuggestGoalAdjustment` restent à faire.
+
 ---
 
 ## Tranche 8 — « Mes données sont à l'abri »

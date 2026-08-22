@@ -59,8 +59,10 @@ import kotlin.math.roundToInt
 
 /** L'accueil, branché sur le graphe d'injection. */
 @Composable
-fun HomeRoute(routes: HomeRoutes) {
+fun HomeRoute(routes: HomeRoutes, onOpenDay: (java.time.LocalDate) -> Unit = {}, onOpenMonth: () -> Unit = {}) {
     val viewModel: HomeViewModel = hiltViewModel()
+    val calendarViewModel: CalendarViewModel = hiltViewModel()
+    val calendar by calendarViewModel.uiState.collectAsStateWithLifecycle()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val pendingUndo by viewModel.pendingUndo.collectAsStateWithLifecycle()
     val nameTaken by viewModel.favoriteNameTaken.collectAsStateWithLifecycle()
@@ -72,6 +74,7 @@ fun HomeRoute(routes: HomeRoutes) {
         aiConfigured = aiConfigured,
         favoriteNameTaken = nameTaken,
         onDismissFavoriteError = viewModel::onDismissFavoriteError,
+        calendar = { CalendarStrip(state = calendar, onOpenDay = onOpenDay, onOpenMonth = onOpenMonth) },
         actions = remember(viewModel, routes) {
             HomeActions(
                 onAddDish = routes.onAddDish,
@@ -111,6 +114,13 @@ fun HomeScreen(
     aiConfigured: Boolean = false,
     favoriteNameTaken: Boolean = false,
     onDismissFavoriteError: () -> Unit = {},
+    /**
+     * Le bandeau des sept derniers jours, ou rien.
+     *
+     * Un emplacement et non un composant : l'accueil n'a pas a connaitre le calendrier
+     * ni son `ViewModel`, et les apercus se composent sans lui.
+     */
+    calendar: @Composable () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val deleted = stringResource(R.string.home_entry_deleted)
@@ -146,6 +156,7 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.xl),
         ) {
             DayHeader(actions.onOpenSettings)
+            calendar()
 
             when (state) {
                 HomeUiState.Loading -> Unit
@@ -320,7 +331,7 @@ private fun AiUnavailableDialog(onConfigure: () -> Unit, onDismiss: () -> Unit) 
  * [decisions]: docs/11-decisions.md
  */
 @Composable
-private fun DayContent(
+internal fun DayContent(
     summary: DaySummary,
     actions: HomeActions,
     favoriteNameTaken: Boolean,

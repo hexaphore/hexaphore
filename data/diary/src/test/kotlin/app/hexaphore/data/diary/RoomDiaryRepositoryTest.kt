@@ -42,6 +42,7 @@ class RoomDiaryRepositoryTest : DiaryContract() {
         return OpenJournal(
             diary = RoomDiaryRepository(
                 dao = base.diaryDao(),
+                calendar = base.calendarDao(),
                 favorites = base.favoriteDishDao(),
                 clock = FixedClock(MAINTENANT),
             ),

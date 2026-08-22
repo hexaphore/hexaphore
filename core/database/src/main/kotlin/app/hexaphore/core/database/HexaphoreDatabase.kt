@@ -5,6 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
+import app.hexaphore.core.database.dao.CalendarDao
 import app.hexaphore.core.database.dao.DiaryDao
 import app.hexaphore.core.database.dao.FavoriteDishDao
 import app.hexaphore.core.database.dao.FoodCitationsDao
@@ -47,6 +48,8 @@ import app.hexaphore.core.database.entity.WeightEntryEntity
 )
 abstract class HexaphoreDatabase : RoomDatabase() {
     abstract fun diaryDao(): DiaryDao
+
+    abstract fun calendarDao(): CalendarDao
 
     abstract fun foodDao(): FoodDao
 

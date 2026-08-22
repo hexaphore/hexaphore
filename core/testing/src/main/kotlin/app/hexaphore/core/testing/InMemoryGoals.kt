@@ -41,6 +41,12 @@ class InMemoryGoals(initial: List<Goal> = emptyList(), var failure: Boolean = fa
         history.firstOrNull { it.active }
     }
 
+    /** Toutes les versions, la plus recente d'abord -- l'ordre que le vrai rend. */
+    override fun observeAll(): Flow<List<Goal>> = goals.map { history ->
+        failIfBroken()
+        history.sortedByDescending { it.startedAt }
+    }
+
     override suspend fun replace(goal: Goal) {
         failIfBroken()
         goals.value = goals.value.map { if (it.active) it.copy(endedAt = goal.startedAt) else it } + goal

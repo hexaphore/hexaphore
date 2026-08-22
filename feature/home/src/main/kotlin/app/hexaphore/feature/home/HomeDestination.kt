@@ -1,6 +1,7 @@
 package app.hexaphore.feature.home
 
 import androidx.compose.runtime.Immutable
+import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import app.hexaphore.domain.diary.DishId
@@ -34,9 +35,42 @@ data class HomeRoutes(
     val onOpenFavorites: () -> Unit,
 )
 
-/** Déclare l'accueil dans un graphe. */
-fun NavGraphBuilder.homeScreen(routes: HomeRoutes) {
+/**
+ * Une journee passee, relue.
+ *
+ * La date voyage en texte ISO plutot qu'en `LocalDate` : une route est serialisee
+ * dans l'etat de navigation, et `AAAA-MM-JJ` s'y relit sans convertisseur -- son
+ * ordre lexicographique est d'ailleurs son ordre chronologique, ce dont la requete
+ * de plage se sert deja.
+ */
+@Serializable
+data class DayDestination(val date: String) {
+    companion object {
+        /** Le nom de l'argument, partage par la route et le `SavedStateHandle`. */
+        const val DATE = "date"
+    }
+}
+
+/** Le mois entier. Aucun argument : le mois affiche est un etat, pas une adresse. */
+@Serializable
+data object CalendarMonthDestination
+
+/** Declare l'accueil, la journee et le mois dans un graphe. */
+fun NavGraphBuilder.homeScreen(routes: HomeRoutes, navController: NavController) {
     composable<HomeDestination> {
-        HomeRoute(routes)
+        HomeRoute(
+            routes = routes,
+            onOpenDay = { date -> navController.navigate(DayDestination(date.toString())) },
+            onOpenMonth = { navController.navigate(CalendarMonthDestination) },
+        )
+    }
+    composable<DayDestination> {
+        DayRoute(routes = routes, onClose = { navController.popBackStack() })
+    }
+    composable<CalendarMonthDestination> {
+        CalendarMonthRoute(
+            onOpenDay = { date -> navController.navigate(DayDestination(date.toString())) },
+            onClose = { navController.popBackStack() },
+        )
     }
 }

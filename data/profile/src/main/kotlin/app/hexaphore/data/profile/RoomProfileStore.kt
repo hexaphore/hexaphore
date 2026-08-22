@@ -69,6 +69,9 @@ class RoomProfileStore @Inject constructor(
 
     override fun observeCurrent(): Flow<Goal?> = goalDao.observeCurrent().map { it?.toDomain() }.flowOn(dispatchers.io)
 
+    override fun observeAll(): Flow<List<Goal>> =
+        goalDao.observeAllGoals().map { goals -> goals.map { it.toDomain() } }.flowOn(dispatchers.io)
+
     override suspend fun replace(goal: Goal) = withContext(dispatchers.io) {
         goalDao.replace(goal.toEntity(clock.now().toEpochMilli()))
     }

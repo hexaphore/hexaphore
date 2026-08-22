@@ -2482,6 +2482,56 @@ L'état des réglages dit **s'il y a** un compte, pas lequel. Plus strict que po
 
 Le dialogue lui-même ne s'éprouve qu'en tenant le téléphone — et il arrive à un moment délicat, juste après un enregistrement qu'on croyait terminé.
 
+## D92 — Une journée sans saisie n'a pas de ligne, et c'est structurel · ✓ validée
+
+**Contexte.** Première livraison de la tranche 7. Le bandeau des sept derniers jours, la vue mensuelle, et l'écran Journée — de quoi relire un jour passé, ce que l'application ne permettait pas du tout.
+
+### Le critère de fin, tenu par une absence
+
+[12](12-plan-de-developpement.md#tranche-7---je-consulte-mon-historique-) demande qu'une journée sans saisie soit **visuellement neutre et jamais comptée comme une journée à zéro**. La façon de le tenir n'est pas de le vérifier à chaque affichage : c'est de ne produire aucune ligne. `GetCalendar` ne rend que les jours qui portent au moins un plat, et l'absence **est** la neutralité.
+
+Une carte de trente jours dont vingt à zéro obligerait chaque écran à refaire la distinction, et le premier qui l'oublierait afficherait vingt jours de jeûne parfait. C'est la même règle que `null` face à zéro sur une teneur, portée à l'échelle d'une journée — et un `?: MacroTotals.Empty` posé par distraction la défait entièrement.
+
+**Un jour à zéro kilocalorie garde sa ligne.** Quelqu'un a noté un café noir : le confondre avec une journée vide effacerait une saisie réelle.
+
+### Aucun `SUM` en SQL, à l'échelle d'un mois
+
+La règle de [D29](#d29--un-total-incomplet-se-signale-au-lieu-de-se-taire---validée) vaut telle quelle sur une plage : agréger en base traiterait les valeurs inconnues comme absentes, ce qui est juste arithmétiquement mais perd la trace de ce qui manquait. Les plats remontent entiers — quelques centaines de lignes pour un mois — et le domaine totalise jour par jour, en retenant quels totaux sont minorés.
+
+### Chaque jour porte l'objectif qui valait ce jour-là
+
+Sans quoi changer d'objectif repeindrait tout le mois écoulé en dépassement. C'est la raison d'être des objectifs versionnés ([D04](#d04--objectifs-versionnés-plutôt-que-mis-à-jour-en-place---validée)), et le calendrier est le premier écran qui en montre plusieurs à la fois.
+
+Le port des objectifs gagne donc `observeAll()` : trente appels à `observeGoalOn` auraient fait trente flux et trente requêtes pour choisir parmi quelques versions. La liste est courte par nature — un objectif se révise, il ne se crée pas tous les jours.
+
+### Un anneau segmenté, parce qu'un hexagone ne survit pas à 44 dp
+
+[02](02-parcours-et-ecrans.md#bandeau-calendrier-fixe-en-haut) le demandait depuis la conception. `MacroSegmentRing` entre au design system : six arcs dans l'ordre angulaire de l'hexagone, la position servant de second canal en cas de daltonisme.
+
+**Il ne se compose pas pour une journée absente.** Lui passer six zéros dessinerait un anneau vide identique à celui d'un jour de jeûne — la règle se tient donc aussi dans le composant, en ne l'appelant pas.
+
+### Un seul modèle pour l'accueil et la journée relue
+
+`HomeViewModel` lit une date facultative plutôt qu'un second modèle jumeau. C'est le même récapitulatif à une date près, et un `DayViewModel` aurait dupliqué la suppression, la restauration et l'étoile — pour les laisser diverger au premier correctif appliqué d'un seul côté. `DayContent` est partagé pour la même raison.
+
+`null` et non `clock.today()` : la date par défaut est évaluée à chaque lecture, donc un écran resté ouvert pendant la nuit ne continue pas d'afficher la veille.
+
+### Deux seuils ont mordu, deux découpages
+
+`DiaryDao` passait à onze fonctions : la lecture de plage part dans `CalendarDao`. Ce n'est pas pour tenir un compte — le premier sert la journée courante et change quand l'écran de saisie change, le second sert la relecture d'un historique. Deux raisons de changer, deux objets, comme `FoodMarksDao` face à `FoodDao` ([D71](#d71--le-compte-des-citations-quitte-le-catalogue-parce-quun-faux-ne-peut-pas-linventer---validée)).
+
+`HomeViewModel` passait à neuf paramètres : les quatre gestes sur un plat écrit deviennent `DishGestures`. Ce qu'ils ont en commun n'est pas d'être quatre, c'est de porter sur un plat déjà noté — un cinquième geste viendra là, une lecture non. Même mouvement que `DraftFavorites` en [D85](#d85--deux-défauts-que-seul-lusage-réel-pouvait-montrer-et-un-écran-qui-cesse-de-faire-chercher---validée).
+
+**Campagne de défaite : sept sabotages, six cas tombés, et un survivant qui n'en est pas un.**
+
+Les six : la journée vide devenue une journée à zéro, les plats d'un jour non totalisés ensemble, l'ordre chronologique, l'objectif courant appliqué partout, et les deux bornes du faux — qui doit filtrer exactement comme le vrai, sans quoi le contrat diverge en silence ([D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée)).
+
+**Le survivant mérite d'être écrit.** Réécrire la convention de borne dans `activeOn` — fin incluse au lieu d'exclue — ne fait rien tomber, et ce n'est pas un trou : la liste est triée par date de début décroissante, donc le premier objectif qui couvre est de toute façon le plus récent. La convention est éprouvée là où elle vit, sur `Goal.coversOn`, dans `GoalCoverageTest`. C'est le cas que [10](10-qualite-et-livraison.md#gradle) nomme — *la couverture ne vient pas toujours d'un test* — et le commentaire du cas concerné le dit désormais, plutôt que de prétendre vérifier ce qu'il ne vérifie pas.
+
+**Ce que le vert ne prouve pas.** Rien de ce qui s'affiche. Le bandeau, l'anneau segmenté à 44 dp puis à 28 dp, la grille du mois et la lisibilité d'une case vide ne s'éprouvent qu'en tenant le téléphone — et l'anneau segmenté est un composant neuf, dont personne n'a encore vu le rendu.
+
+Le reste de la tranche 7 attend : le journal de poids, la moyenne mobile, et `SuggestGoalAdjustment`.
+
 ---
 
 ## Décisions prises par défaut, à confirmer

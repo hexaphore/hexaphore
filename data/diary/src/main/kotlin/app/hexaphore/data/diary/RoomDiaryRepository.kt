@@ -1,5 +1,6 @@
 package app.hexaphore.data.diary
 
+import app.hexaphore.core.database.dao.CalendarDao
 import app.hexaphore.core.database.dao.DiaryDao
 import app.hexaphore.core.database.dao.FavoriteDishDao
 import app.hexaphore.domain.diary.DiaryRepository
@@ -35,11 +36,15 @@ import javax.inject.Inject
  */
 class RoomDiaryRepository @Inject constructor(
     private val dao: DiaryDao,
+    private val calendar: CalendarDao,
     private val favorites: FavoriteDishDao,
     private val clock: Clock,
 ) : DiaryRepository {
     override fun observeDay(date: LocalDate): Flow<List<Dish>> =
         dao.observeDay(date.toString()).map { dishes -> dishes.map { it.toDomain() } }
+
+    override fun observeRange(from: LocalDate, to: LocalDate): Flow<List<Dish>> =
+        calendar.observeRange(from.toString(), to.toString()).map { dishes -> dishes.map { it.toDomain() } }
 
     override suspend fun dish(id: DishId): Dish? = dao.dish(id.value)?.toDomain()
 

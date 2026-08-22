@@ -76,3 +76,27 @@ data class HomeActions(
      */
     val onOpenSettings: () -> Unit,
 )
+
+/**
+ * Les actions d'un ecran de journee, accueil ou jour passe.
+ *
+ * **Une seule construction pour les deux**, parce que ce sont les memes gestes sur le
+ * meme contenu : supprimer une ligne, annuler, mettre en favori. Les recopier aurait
+ * laisse les deux ecrans diverger au premier geste ajoute d'un seul cote.
+ */
+internal fun HomeRoutes.toActions(viewModel: HomeViewModel) = HomeActions(
+    onAddDish = onAddDish,
+    onScan = onScan,
+    onDescribe = onDescribe,
+    onPhotograph = onPhotograph,
+    onEditDish = onEditDish,
+    onDeleteDish = viewModel::onDeleteDish,
+    onDeleteEntry = viewModel::onDeleteEntry,
+    onUndo = viewModel::onUndo,
+    onUndoExpired = viewModel::onUndoExpired,
+    onRetry = viewModel::retry,
+    onSetUpGoal = onSetUpGoal,
+    onOpenSettings = onOpenSettings,
+    onToggleFavorite = viewModel::onToggleFavorite,
+    onOpenFavorites = onOpenFavorites,
+)

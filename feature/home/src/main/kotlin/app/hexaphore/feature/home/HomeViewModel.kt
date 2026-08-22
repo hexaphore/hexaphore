@@ -1,5 +1,6 @@
 package app.hexaphore.feature.home
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.hexaphore.domain.ai.AiCredentials
@@ -7,12 +8,8 @@ import app.hexaphore.domain.ai.activeConfiguration
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.EntryId
-import app.hexaphore.domain.usecase.DeleteDish
-import app.hexaphore.domain.usecase.DeleteEntry
 import app.hexaphore.domain.usecase.FavoriteOutcome
 import app.hexaphore.domain.usecase.GetDaySummary
-import app.hexaphore.domain.usecase.RestoreDish
-import app.hexaphore.domain.usecase.ToggleDishFavorite
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +23,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
 
 /**
@@ -44,13 +42,11 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     getDaySummary: GetDaySummary,
     dispatchers: DispatcherProvider,
     credentials: AiCredentials,
-    private val deleteEntry: DeleteEntry,
-    private val deleteDish: DeleteDish,
-    private val restoreDish: RestoreDish,
-    private val toggleFavorite: ToggleDishFavorite,
+    private val gestures: DishGestures,
 ) : ViewModel() {
     /**
      * Le déclencheur de relecture.
@@ -60,6 +56,23 @@ class HomeViewModel @Inject constructor(
      * fabrique un, et `flatMapLatest` abandonne le précédent.
      */
     private val attempts = MutableStateFlow(0)
+
+    /**
+     * La journee lue, ou `null` pour aujourd'hui.
+     *
+     * **Le meme modele sert l'accueil et l'ecran Journee**, parce que c'est le meme
+     * recapitulatif a une date pres ([docs/02][parcours]). Un second `ViewModel`
+     * aurait duplique la suppression, la restauration et l'etoile -- et les aurait
+     * laisses diverger au premier correctif applique d'un seul cote.
+     *
+     * `null` et non `clock.today()` : la date par defaut est evaluee a chaque
+     * lecture par `GetDaySummary`, donc un ecran reste ouvert pendant la nuit ne
+     * continue pas d'afficher la veille.
+     *
+     * [parcours]: docs/02-parcours-et-ecrans.md
+     */
+    private val date: LocalDate? =
+        savedStateHandle.get<String>(DayDestination.DATE)?.let(LocalDate::parse)
 
     /**
      * Y a-t-il une clé, oui ou non.
@@ -89,7 +102,9 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> =
         attempts
             .flatMapLatest {
-                getDaySummary()
+                // Les parentheses ne sont pas decoratives : sans elles, le `.map`
+                // ne s'appliquerait qu'a la seconde branche.
+                (if (date == null) getDaySummary() else getDaySummary(date))
                     .map<_, HomeUiState> { HomeUiState.Content(it) }
                     // `catch` **dans** le flatMapLatest, et c'est ce qui rend le
                     // bouton Reessayer utile. Un flux qui a rattrape une exception
@@ -139,7 +154,7 @@ class HomeViewModel @Inject constructor(
      */
     fun onDeleteDish(dish: Dish) {
         viewModelScope.launch {
-            runCatching { deleteDish(dish.id) }
+            runCatching { gestures.deleteDish(dish.id) }
                 // Pas d'annulation a proposer sur un echec : rien n'a ete supprime.
                 .onSuccess { undoable.value = dish }
         }
@@ -147,7 +162,7 @@ class HomeViewModel @Inject constructor(
 
     fun onDeleteEntry(dish: Dish, entryId: EntryId) {
         viewModelScope.launch {
-            runCatching { deleteEntry(dish, entryId) }
+            runCatching { gestures.deleteEntry(dish, entryId) }
                 // Pas d'annulation a proposer sur un echec : rien n'a ete supprime.
                 .onSuccess { undoable.value = dish }
         }
@@ -163,7 +178,7 @@ class HomeViewModel @Inject constructor(
     fun onToggleFavorite(dish: Dish, name: String?) {
         nameTaken.value = false
         viewModelScope.launch {
-            val outcome = runCatching { toggleFavorite(dish, name) }.getOrNull()
+            val outcome = runCatching { gestures.toggleFavorite(dish, name) }.getOrNull()
             nameTaken.value = outcome is FavoriteOutcome.NameTaken
         }
     }
@@ -178,7 +193,7 @@ class HomeViewModel @Inject constructor(
     fun onUndo() {
         val dish = undoable.value ?: return
         undoable.value = null
-        viewModelScope.launch { runCatching { restoreDish(dish) } }
+        viewModelScope.launch { runCatching { gestures.restoreDish(dish) } }
     }
 
     /** La fenêtre d'annulation est passée. Le plat cesse d'être rattrapable. */
