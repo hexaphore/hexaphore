@@ -2,10 +2,13 @@ package app.hexaphore.feature.home
 
 import androidx.lifecycle.SavedStateHandle
 import app.hexaphore.core.testing.FixedClock
+import app.hexaphore.core.testing.InMemoryAdjustmentSettings
 import app.hexaphore.core.testing.InMemoryAiCredentials
 import app.hexaphore.core.testing.InMemoryDiaryRepository
 import app.hexaphore.core.testing.InMemoryFavoriteDishes
 import app.hexaphore.core.testing.InMemoryGoals
+import app.hexaphore.core.testing.InMemoryProfiles
+import app.hexaphore.core.testing.InMemoryWeightLog
 import app.hexaphore.core.testing.SampleDiary
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.domain.ai.AiProvider
@@ -19,8 +22,10 @@ import app.hexaphore.domain.usecase.DeleteEntry
 import app.hexaphore.domain.usecase.GetDaySummary
 import app.hexaphore.domain.usecase.GetDishDraft
 import app.hexaphore.domain.usecase.RemoveFavoriteDish
+import app.hexaphore.domain.usecase.RespondToAdjustment
 import app.hexaphore.domain.usecase.RestoreDish
 import app.hexaphore.domain.usecase.SaveFavoriteDish
+import app.hexaphore.domain.usecase.SuggestGoalAdjustment
 import app.hexaphore.domain.usecase.ToggleDishFavorite
 import app.hexaphore.domain.usecase.UpdateDish
 import kotlinx.coroutines.CoroutineDispatcher
@@ -251,6 +256,22 @@ class HomeViewModelTest {
         getDaySummary = GetDaySummary(diary, InMemoryGoals(listOf(InMemoryGoals.maintenance(jour))), clock),
         dispatchers = TestDispatchers(dispatcher),
         credentials = cles,
+        // L'adaptation hebdomadaire se tait ici : rien n'est pese, donc il n'y a ni
+        // pente ni cap annonce. Elle a ses propres cas dans :domain.
+        suggestGoalAdjustment = SuggestGoalAdjustment(
+            weights = InMemoryWeightLog(),
+            diary = diary,
+            goals = InMemoryGoals(),
+            profiles = InMemoryProfiles(),
+            settings = InMemoryAdjustmentSettings(),
+            clock = clock,
+        ),
+        respondToAdjustment = RespondToAdjustment(
+            goals = InMemoryGoals(),
+            settings = InMemoryAdjustmentSettings(),
+            ids = SequentialIdGenerator("objectif"),
+            clock = clock,
+        ),
         gestures = DishGestures(
             deleteEntry = DeleteEntry(diary),
             deleteDish = DeleteDish(diary),

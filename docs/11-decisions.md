@@ -2629,6 +2629,54 @@ Le nom dit « historique » et non « tout » : `Goals.observeAll` existe déjà
 
 La boîte de saisie non plus : le clavier décimal, la virgule qu'il produit, le sélecteur de date borné à aujourd'hui, et le bouton qui s'active — rien de tout cela n'a tourné ailleurs que dans un compilateur. Et le journal n'a jamais été lu depuis une vraie base contenant des mois de pesées.
 
+## D95 — L'ajustement se propose, ne s'applique jamais, et se tait presque toujours · ✓ validée
+
+**Contexte.** Le dernier morceau de la tranche 7. [03](03-nutrition-calculs.md#adaptation-hebdomadaire) décrit le mécanisme « qui fait qu'un objectif reste juste au bout de trois mois » ; [12](12-plan-de-developpement.md) en fait deux critères de fin : *aucune suggestion n'est appliquée sans accord explicite*, et *les conditions de déclenchement — adhérence, persistance, nombre de pesées — sont testées*.
+
+### Le silence est le cas normal, et c'est la propriété qui structure le code
+
+Cinq conditions doivent être réunies pour qu'une carte paraisse. Le cas d'usage rend `null` presque toujours, et chaque `null` a sa raison — désactivé, réponse récente, journal troué, pas de cap annoncé, écart non persistant, correction absorbée. Écrire cela comme une suite de gardes plutôt que comme un calcul avec des exceptions rend chaque condition **retirable une par une**, ce qui est exactement ce que la campagne de défaite demande.
+
+### La pente visée ne se recalcule pas, et le seuil se juge deux fois
+
+L'écart est `pente visée − pente réelle` ([D94](#d94--le-journal-de-poids-se-lit-en-trois-traits-et-la-tendance-se-tait-sous-trois-pesées---validée) tient la première, la moyenne mobile la seconde), et il doit dépasser 0,15 kg/semaine **deux semaines de suite**.
+
+**Et dans le même sens** — ce que [03](03-nutrition-calculs.md#conditions-de-déclenchement) ne dit pas explicitement, mais qui est la seule lecture cohérente de « persistant ». Une semaine trop lente suivie d'une semaine trop rapide est une **oscillation**, pas une dérive ; la corriger l'amplifierait, ce qui est précisément ce que la borne de ±150 kcal existe pour éviter. Le cas est écrit et le sabotage tombe dessus.
+
+### Ce que la carte annonce est ce qui sera écrit
+
+La correction repasse par **tous** les garde-fous et par la répartition des macros **avant** d'être affichée, et la suggestion transporte l'objectif complet. C'est la règle de [ReviseGoal](#d60--un-objectif-est-calculé-ou-saisi-et-on-consulte-avant-de-corriger---validée), et elle compte doublement ici : la carte dit « réduire de 150 kcal », et accepter doit donner exactement cela.
+
+Ce n'est pas théorique. Le premier décor de test posait un objectif de 2 200 kcal pour un profil qui en dépense 2 885 : la correction de 150 franchissait la borne des 25 % d'écart, et la valeur écrite aurait été 36 kcal en dessous de l'annonce. Deux cas gardent maintenant cette frontière — l'un où le garde-fou rabote, l'autre où il absorbe tout et la suggestion disparaît.
+
+### Trois issues, un seul cas d'usage
+
+`RespondToAdjustment` porte *Accepter*, *Ignorer* et *Ne plus proposer* ensemble, et c'est ce qui rend l'invariant visible : **accepter est le seul chemin qui écrit un objectif**. Trois classes auraient rangé cette propriété nulle part, et le critère de fin de tranche n'aurait eu aucun endroit où se tester.
+
+Accepter ouvre une version, il n'en modifie aucune ([D04](#d04--objectifs-versionnés-plutôt-que-mis-à-jour-en-place---validée)) ; le cap — stratégie, poids visé, échéance — ne bouge pas, seuls les six chiffres changent, et `GoalOrigin.ADJUSTMENT` dit d'où ils viennent. L'objectif s'écrit **avant** le réglage : dans l'autre ordre, une écriture qui échoue laisserait l'adaptation muette pour deux semaines sans avoir rien corrigé.
+
+**Accepter et ignorer imposent le même silence de deux semaines, pour deux raisons différentes.** Après un ajustement accepté, il faut ce délai pour que la moyenne mobile reflète le nouvel objectif — corriger avant reviendrait à corriger une correction qu'on n'a pas encore mesurée. Après un refus, reproposer le lendemain transformerait la carte en insistance. Les deux dates sont **rangées séparément** malgré le délai commun : un refus n'est pas un ajustement, et les fondre ferait dire à l'historique qu'un objectif a été corrigé un jour où l'utilisateur avait refusé.
+
+### La carte vit dans le design system, parce que deux écrans la portent
+
+Le journal de poids et l'accueil, comme [03](03-nutrition-calculs.md#restitution) le demande. Un `:feature` ne dépend jamais d'un autre ; la recopier aurait donné deux cartes qui divergent au premier mot changé. Elle rejoint `MacroBar` et `SourceBadge`, qui connaissent déjà le vocabulaire du domaine.
+
+**Le rythme y est écrit signé** — « −0,2 kg par semaine » — plutôt que raconté. La phrase de [02](02-parcours-et-ecrans.md#journal-de-poids), « vous perdez 0,3 kg par semaine, pour 0,5 visé », se lit mieux mais devient fausse dès que les deux rythmes n'ont pas le même sens : quelqu'un qui vise une prise et qui perd du poids lirait exactement l'inverse de sa situation. Le sens de la **correction**, lui, reste dit par un verbe — *réduire* ou *augmenter* — parce que c'est la phrase sur laquelle on appuie.
+
+### Un fichier de réglages par sujet rangé
+
+`AiSettingsModule` a franchi le seuil de fonctions en accueillant l'adaptation. Il s'est scindé en trois — IA, contribution, ajustement — et le découpage suit ce que les choses sont : chacun de ces sujets avait déjà **son propre fichier de préférences**, pour la raison écrite en [D86](#d86--la-liste-des-favoris-devient-lendroit-où-on-les-gère-et-le-numéro-ne-recule-pas---validée). Le module le dit maintenant aussi.
+
+**Campagne de défaite : vingt-trois sabotages, vingt-trois cas tombés** — après avoir rendu une règle éprouvable.
+
+La borne de la fenêtre d'adhérence survivait à sa propre suppression : le cas d'usage lit déjà le journal borné à quatorze jours, donc rien de trop vieux ne pouvait lui parvenir, et la borne de la règle ne servait qu'à se répéter. Une règle qu'aucun appelant ne peut mettre en défaut n'est pas éprouvée par lui — les trois règles pures ont désormais leurs propres cas, en plus de ceux du cas d'usage.
+
+**Conséquences.** Le domaine gagne un port (`AdjustmentSettings`) et deux cas d'usage. `HomeViewModel` et `WeightViewModel` exposent chacun la suggestion, hors de leur état d'écran : le journal peut être illisible pendant que la suggestion tient. La carte n'est montrée que par l'accueil et par le journal de poids — l'écran Journée partage le modèle de l'accueil, mais une carte qui parle de trois semaines n'a rien à faire au-dessus d'un jour passé qu'on est venu relire.
+
+**Ce que le vert ne prouve pas.** **Que la carte se voit un jour.** Toutes les conditions réunies demandent trois semaines de pesées régulières et dix jours notés sur quatorze : aucun test ne remplace le fait de vivre la situation, et le premier vrai déclenchement dira si le seuil de 0,15 kg/semaine est bien placé ou s'il parle trop, ou trop peu.
+
+Rien de ce qui se touche non plus : les trois boutons, la disparition de la carte au moment de la réponse, et le fait qu'elle ne réapparaisse pas au prochain lancement n'ont tourné que dans des `StateFlow` de test. Et la chaîne complète — répondre, écrire l'objectif, voir les six compteurs de l'accueil changer — n'a jamais été parcourue sur un appareil.
+
 ---
 
 ## Décisions prises par défaut, à confirmer

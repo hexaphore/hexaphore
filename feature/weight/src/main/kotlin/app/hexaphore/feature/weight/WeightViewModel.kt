@@ -2,10 +2,14 @@ package app.hexaphore.feature.weight
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.hexaphore.domain.goal.AdjustmentSuggestion
 import app.hexaphore.domain.profile.WeightEntry
 import app.hexaphore.domain.time.Clock
+import app.hexaphore.domain.usecase.AdjustmentResponse
 import app.hexaphore.domain.usecase.GetWeightTrend
 import app.hexaphore.domain.usecase.RecordWeight
+import app.hexaphore.domain.usecase.RespondToAdjustment
+import app.hexaphore.domain.usecase.SuggestGoalAdjustment
 import app.hexaphore.domain.usecase.WeightTrend
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,7 +29,9 @@ import javax.inject.Inject
 @HiltViewModel
 internal class WeightViewModel @Inject constructor(
     getWeightTrend: GetWeightTrend,
+    suggestGoalAdjustment: SuggestGoalAdjustment,
     private val recordWeight: RecordWeight,
+    private val respondToAdjustment: RespondToAdjustment,
     private val clock: Clock,
 ) : ViewModel() {
     val uiState: StateFlow<WeightUiState> = getWeightTrend()
@@ -38,6 +44,33 @@ internal class WeightViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MILLIS),
             initialValue = WeightUiState.Loading,
         )
+
+    /**
+     * La correction que l'adaptation propose, ou `null` — ce qui est le cas normal.
+     *
+     * **Hors de [uiState]** : la courbe peut être illisible pendant que la suggestion
+     * tient, et l'inverse autant. Les fondre ferait deux échecs indépendants dans une
+     * même hiérarchie.
+     */
+    val suggestion: StateFlow<AdjustmentSuggestion?> = suggestGoalAdjustment()
+        .catch { emit(null) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MILLIS),
+            initialValue = null,
+        )
+
+    /**
+     * Répond à la suggestion affichée.
+     *
+     * Elle vient de l'état et non de l'écran : entre l'affichage et l'appui, une pesée
+     * a pu changer la correction, et écrire celle que l'écran tenait écrirait un
+     * chiffre périmé.
+     */
+    fun onAdjustment(response: AdjustmentResponse) {
+        val shown = suggestion.value ?: return
+        viewModelScope.launch { respondToAdjustment(response, shown) }
+    }
 
     /** Le jour proposé par défaut dans la boîte de saisie. */
     fun today(): LocalDate = clock.today()

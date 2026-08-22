@@ -200,13 +200,18 @@ class CalculateDailyGoal(
 }
 
 class SuggestGoalAdjustment(
-    private val weights: WeightRepository,
+    private val weights: WeightLog,
     private val diary: DiaryRepository,
+    private val goals: Goals,
+    private val profiles: Profiles,
+    private val settings: AdjustmentSettings,
     private val clock: Clock,
 ) {
-    suspend operator fun invoke(): AdjustmentSuggestion? = ...
+    operator fun invoke(): Flow<AdjustmentSuggestion?> = ...
 }
 ```
+
+~~`SuggestGoalAdjustment` lisait trois dépôts et rendait une valeur.~~ **Un flux et cinq sources** ([D95](11-decisions.md#d95--lajustement-se-propose-ne-sapplique-jamais-et-se-tait-presque-toujours---validée)) : la carte paraît et disparaît sur deux écrans à la fois, donc une lecture unique aurait obligé chacun à relire ; la correction repasse par les garde-fous, qui demandent la dépense — donc le profil et l'objectif ; et un refus doit se rappeler, ce que rien d'autre ne porte.
 
 Le `Clock` injecté n'est pas un excès de zèle : sans lui, la moitié de la logique de cette application — jours, semaines, tendances — serait intestable ou testée avec des `Thread.sleep`.
 

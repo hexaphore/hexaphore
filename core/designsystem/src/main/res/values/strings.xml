@@ -61,4 +61,22 @@
     <string name="ds_ai_error_unreadable">Le fournisseur a répondu quelque chose d\'inattendu.</string>
     <string name="ds_ai_error_server">Le service est indisponible. Réessayez plus tard.</string>
 
+    <!-- La carte d'ajustement hebdomadaire. Trois issues, et rien n'est jamais
+         appliqué sans accord explicite (docs/02). -->
+    <string name="ds_adjustment_title">Ajuster votre objectif ?</string>
+    <!-- Le rythme est écrit signé plutôt que raconté : « vous perdez 0,2 kg par
+         semaine, pour 0,5 visé » devient faux dès que les deux rythmes n'ont pas le
+         même sens, et se lit alors à l'envers. -->
+    <string name="ds_adjustment_body">Sur les trois dernières semaines : %1$s. L\'objectif visait %2$s.</string>
+    <string name="ds_adjustment_pace_loss">−%1$.1f kg par semaine</string>
+    <string name="ds_adjustment_pace_gain">+%1$.1f kg par semaine</string>
+    <string name="ds_adjustment_pace_steady">poids stable</string>
+    <!-- Le sens de la correction est dit par un verbe, jamais par le signe d'un
+         nombre : c'est la phrase sur laquelle on appuie « Accepter ». -->
+    <string name="ds_adjustment_reduce">Réduire l\'objectif de %1$d kcal ?</string>
+    <string name="ds_adjustment_raise">Augmenter l\'objectif de %1$d kcal ?</string>
+    <string name="ds_adjustment_accept">Accepter</string>
+    <string name="ds_adjustment_ignore">Ignorer</string>
+    <string name="ds_adjustment_stop">Ne plus proposer</string>
+
 </resources>

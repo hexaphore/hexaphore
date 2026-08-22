@@ -1,5 +1,7 @@
 package app.hexaphore.di
 
+import app.hexaphore.domain.diary.DiaryRepository
+import app.hexaphore.domain.goal.AdjustmentSettings
 import app.hexaphore.domain.goal.Goals
 import app.hexaphore.domain.identity.IdGenerator
 import app.hexaphore.domain.profile.Profiles
@@ -8,7 +10,9 @@ import app.hexaphore.domain.time.Clock
 import app.hexaphore.domain.usecase.CalculateDailyGoal
 import app.hexaphore.domain.usecase.GetWeightTrend
 import app.hexaphore.domain.usecase.RecordWeight
+import app.hexaphore.domain.usecase.RespondToAdjustment
 import app.hexaphore.domain.usecase.ReviseGoal
+import app.hexaphore.domain.usecase.SuggestGoalAdjustment
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,6 +37,32 @@ object GoalUseCaseModule {
 
     @Provides
     fun recordWeight(weights: WeightLog, clock: Clock): RecordWeight = RecordWeight(weights, clock)
+
+    /**
+     * L'adaptation hebdomadaire.
+     *
+     * Cinq sources, et chacune répond à une des conditions : les pesées donnent la
+     * pente, le journal l'adhérence, l'objectif le cap annoncé, le profil la dépense
+     * dont les garde-fous ont besoin, et les réglages le silence après une réponse.
+     */
+    @Suppress("LongParameterList")
+    @Provides
+    fun suggestGoalAdjustment(
+        weights: WeightLog,
+        diary: DiaryRepository,
+        goals: Goals,
+        profiles: Profiles,
+        settings: AdjustmentSettings,
+        clock: Clock,
+    ): SuggestGoalAdjustment = SuggestGoalAdjustment(weights, diary, goals, profiles, settings, clock)
+
+    @Provides
+    fun respondToAdjustment(
+        goals: Goals,
+        settings: AdjustmentSettings,
+        ids: IdGenerator,
+        clock: Clock,
+    ): RespondToAdjustment = RespondToAdjustment(goals, settings, ids, clock)
 
     @Provides
     fun reviseGoal(profiles: Profiles, weights: WeightLog, goals: Goals, clock: Clock, ids: IdGenerator): ReviseGoal =
