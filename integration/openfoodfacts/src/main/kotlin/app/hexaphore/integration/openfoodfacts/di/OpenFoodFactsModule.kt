@@ -1,20 +1,26 @@
 package app.hexaphore.integration.openfoodfacts.di
 
 import app.hexaphore.domain.concurrency.DispatcherProvider
+import app.hexaphore.domain.food.ContributionSettings
+import app.hexaphore.domain.food.FoodContributionTarget
 import app.hexaphore.domain.food.ProductSearch
 import app.hexaphore.domain.food.ProductSource
 import app.hexaphore.domain.identity.IdGenerator
 import app.hexaphore.domain.time.Clock
 import app.hexaphore.integration.openfoodfacts.ClientIdentity
+import app.hexaphore.integration.openfoodfacts.ContributionApi
 import app.hexaphore.integration.openfoodfacts.OPEN_FOOD_FACTS_BASE_URL
 import app.hexaphore.integration.openfoodfacts.OpenFoodFactsApi
+import app.hexaphore.integration.openfoodfacts.OpenFoodFactsContributor
 import app.hexaphore.integration.openfoodfacts.OpenFoodFactsProducts
+import app.hexaphore.integration.openfoodfacts.contributionApi
 import app.hexaphore.integration.openfoodfacts.openFoodFactsApi
 import app.hexaphore.integration.openfoodfacts.openFoodFactsClient
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.flow.first
 import okhttp3.OkHttpClient
 import javax.inject.Singleton
 
@@ -61,4 +67,39 @@ internal object OpenFoodFactsModule {
 
     @Provides
     fun productSearch(products: OpenFoodFactsProducts): ProductSearch = products
+
+    /**
+     * L'écriture, montée sur **le même client** que la lecture.
+     *
+     * L'intercepteur d'identification y est donc, et c'est le point : Open Food Facts
+     * bloque les clients anonymes, et une écriture qui l'oublierait échouerait sous
+     * les traits d'une panne réseau ([D26][decisions]).
+     *
+     * L'URL de base passée ici est formelle — l'appel porte la sienne, parce qu'un
+     * réglage peut le faire viser le bac à sable sans rien reconstruire.
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    @Provides
+    @Singleton
+    fun contributionApi(client: OkHttpClient): ContributionApi = contributionApi(OPEN_FOOD_FACTS_BASE_URL, client)
+
+    /**
+     * La cible de contribution, qui lit le réglage à chaque envoi.
+     *
+     * **À chaque envoi et non une fois pour toutes** : basculer sur le bac à sable
+     * doit prendre effet sans redémarrer, sinon la vérification qu'il sert à faire
+     * demanderait justement ce qu'on veut éviter.
+     */
+    @Provides
+    @Singleton
+    fun contributionTarget(
+        api: ContributionApi,
+        settings: ContributionSettings,
+        dispatchers: DispatcherProvider,
+    ): FoodContributionTarget = OpenFoodFactsContributor(
+        api = api,
+        dispatchers = dispatchers,
+        sandbox = { settings.observe().first().sandbox },
+    )
 }

@@ -35,6 +35,27 @@ internal fun openFoodFactsApi(baseUrl: String, client: OkHttpClient): OpenFoodFa
     .build()
     .create(OpenFoodFactsApi::class.java)
 
+/**
+ * La même pile, pour l'écriture.
+ *
+ * **Une seconde fabrique et non un second client** : le client OkHttp est partagé, donc
+ * l'intercepteur d'identification l'est aussi — Open Food Facts bloque les clients
+ * anonymes, et une écriture qui l'oublierait échouerait sous les traits d'une panne
+ * réseau ([D26][decisions]).
+ *
+ * La `baseUrl` est ici purement formelle : l'appel porte son URL complète, parce qu'un
+ * réglage peut le faire viser le bac à sable sans reconstruire quoi que ce soit.
+ * Retrofit en exige une quand même.
+ *
+ * [decisions]: docs/11-decisions.md
+ */
+internal fun contributionApi(baseUrl: String, client: OkHttpClient): ContributionApi = Retrofit.Builder()
+    .baseUrl(baseUrl)
+    .client(client)
+    .addConverterFactory(LENIENT_JSON.asConverterFactory(JSON_MEDIA_TYPE.toMediaType()))
+    .build()
+    .create(ContributionApi::class.java)
+
 private const val CONNECT_TIMEOUT_SECONDS = 5L
 private const val READ_TIMEOUT_SECONDS = 5L
 private const val JSON_MEDIA_TYPE = "application/json"

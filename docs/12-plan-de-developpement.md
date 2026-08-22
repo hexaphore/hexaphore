@@ -189,7 +189,7 @@ Enfin la suggestion « Chercher dans Open Food Facts », dernière dette de [D50
 - Ajouter un septième fournisseur ne demande qu'une classe et une entrée d'énumération.
 - Un test prouve que le fichier temporaire est supprimé, y compris quand l'appel échoue.
 - Aucune clé n'apparaît dans les journaux, en debug comme en release.
-- Une fiche saisie à la main **peut** être reversée à Open Food Facts, et rien ne part sans un geste explicite.
+- Une fiche saisie à la main **peut** être reversée à Open Food Facts, et rien ne part sans un geste explicite. *La moitié basse est livrée — le port, le client, le compte chiffré, le bac à sable ([D90](11-decisions.md#d90--la-contribution-part-sous-le-compte-de-lutilisateur-et-jamais-sans-lui---validée)). L'écran, son bouton et son récapitulatif restent à faire.*
 
 **Piège** : un `when` sur le fournisseur ailleurs que dans la fabrique. C'est le signal que l'abstraction a fui.
 
