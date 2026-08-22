@@ -119,6 +119,24 @@
     <string name="settings_profile_subtitle">Vos mesures, votre objectif et vos six compteurs.</string>
     <string name="settings_ai_title">Intelligence artificielle</string>
     <string name="settings_ai_subtitle">Vos clés, vos modèles, et de quoi les éprouver.</string>
+    <string name="settings_contribution_title">Open Food Facts</string>
+    <string name="settings_contribution_subtitle">Le compte sous lequel reverser vos fiches.</string>
+
+    <!-- Le compte de contribution. C'est celui de l'utilisateur, jamais un compte de
+         l'application : le mot de passe de ce dernier vivrait dans un APK publié. -->
+    <string name="contribution_title">Open Food Facts</string>
+    <string name="contribution_close">Fermer</string>
+    <string name="contribution_account_title">Votre compte</string>
+    <string name="contribution_account_body">Sans compte, aucune contribution n\'est proposée. L\'identifiant est votre nom d\'utilisateur sur openfoodfacts.org, pas votre adresse électronique.</string>
+    <string name="contribution_user_id">Identifiant</string>
+    <string name="contribution_password">Mot de passe</string>
+    <string name="contribution_save">Enregistrer</string>
+    <string name="contribution_forget">Oublier ce compte</string>
+
+    <!-- Le bac à sable : la même API sur des données jetables. Il sert à vérifier
+         qu'un envoi aboutit sans laisser de fiche fautive dans une base publique. -->
+    <string name="contribution_sandbox_title">Serveur de test</string>
+    <string name="contribution_sandbox_body">Envoie vers l\'instance d\'essai plutôt que vers la vraie base. Rien de ce qui part n\'y est public.</string>
 
     <!-- L'écran des fournisseurs. -->
     <string name="ai_title">Intelligence artificielle</string>

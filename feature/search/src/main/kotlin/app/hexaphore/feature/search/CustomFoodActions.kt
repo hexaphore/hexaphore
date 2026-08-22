@@ -21,5 +21,9 @@ internal data class CustomFoodActions(
     val onMacroChange: (Macro, String) -> Unit,
     val onSave: () -> Unit,
     val onRetry: () -> Unit,
+    /** Accepte la proposition de reverser la fiche a Open Food Facts. */
+    val onContribute: () -> Unit,
+    /** Refuse, ou ferme apres coup : la fiche reste enregistree dans les deux cas. */
+    val onDeclineContribution: () -> Unit,
     val onClose: () -> Unit,
 )

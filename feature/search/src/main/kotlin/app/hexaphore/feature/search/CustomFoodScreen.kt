@@ -62,6 +62,8 @@ internal fun CustomFoodRoute(
                 onMacroChange = viewModel::onMacroChange,
                 onSave = viewModel::onSave,
                 onRetry = viewModel::onRetry,
+                onContribute = viewModel::onContribute,
+                onDeclineContribution = viewModel::onDeclineContribution,
                 onClose = onClose,
             )
         },
@@ -85,6 +87,9 @@ internal fun CustomFoodScreen(state: CustomFoodUiState, actions: CustomFoodActio
             is CustomFoodUiState.Saved -> Unit
             is CustomFoodUiState.Error -> WriteFailed(actions)
             is CustomFoodUiState.Editing -> Form(state, actions)
+            // Le formulaire reste dessous : le dialogue se pose par-dessus une fiche
+            // deja ecrite, et le refuser ne defait rien.
+            is CustomFoodUiState.Offering -> ContributionDialog(state, actions)
         }
     }
 }

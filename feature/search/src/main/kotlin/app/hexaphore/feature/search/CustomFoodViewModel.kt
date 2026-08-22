@@ -4,11 +4,15 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.hexaphore.domain.food.Barcode
+import app.hexaphore.domain.food.ContributionOutcome
 import app.hexaphore.domain.food.CustomFoodDraft
+import app.hexaphore.domain.food.FoodContribution
 import app.hexaphore.domain.food.FoodId
 import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.nutrition.NutrientValues
+import app.hexaphore.domain.usecase.OfferContribution
 import app.hexaphore.domain.usecase.SaveCustomFood
+import app.hexaphore.domain.usecase.SendContribution
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -34,6 +38,8 @@ import javax.inject.Inject
 internal class CustomFoodViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val saveCustomFood: SaveCustomFood,
+    private val offerContribution: OfferContribution,
+    private val sendContribution: SendContribution,
 ) : ViewModel() {
     /**
      * Le code-barres est relu **une fois** et ne devient jamais un champ : il n'a pas
@@ -51,13 +57,24 @@ internal class CustomFoodViewModel @Inject constructor(
     )
     private val status = MutableStateFlow(Status.EDITING)
 
+    /**
+     * La proposition, quand il y en a une.
+     *
+     * Un flux a part plutot qu'un statut de plus : elle se superpose a
+     * l'enregistrement reussi, et l'ecran doit pouvoir la refuser sans defaire ce qui
+     * est ecrit. Un `Status.OFFERING` aurait fait de la contribution une etape de
+     * l'ecriture, alors qu'elle en est la suite facultative.
+     */
+    private val offer = MutableStateFlow<CustomFoodUiState.Offering?>(null)
+
     val uiState: StateFlow<CustomFoodUiState> =
-        combine(form, status) { form, status ->
-            when (status) {
-                Status.EDITING -> CustomFoodUiState.Editing(form, saving = false)
-                Status.SAVING -> CustomFoodUiState.Editing(form, saving = true)
-                Status.FAILED -> CustomFoodUiState.Error(form)
-                Status.SAVED -> CustomFoodUiState.Saved(checkNotNull(saved))
+        combine(form, status, offer) { form, status, offer ->
+            when {
+                offer != null -> offer
+                status == Status.EDITING -> CustomFoodUiState.Editing(form, saving = false)
+                status == Status.SAVING -> CustomFoodUiState.Editing(form, saving = true)
+                status == Status.FAILED -> CustomFoodUiState.Error(form)
+                else -> CustomFoodUiState.Saved(checkNotNull(saved))
             }
         }.stateIn(
             scope = viewModelScope,
@@ -89,7 +106,38 @@ internal class CustomFoodViewModel @Inject constructor(
             val written = runCatching { saveCustomFood(draft) }
             saved = written.getOrNull()
             status.value = if (written.isSuccess) Status.SAVED else Status.FAILED
+            // La proposition est cherchee **apres** l'ecriture, jamais avant : une
+            // fiche qui n'a pas ete enregistree n'a rien a offrir, et l'echec de la
+            // question ne doit pas faire echouer l'enregistrement.
+            saved?.let { id ->
+                runCatching { offerContribution(id) }.getOrNull()?.let { contribution ->
+                    offer.value = CustomFoodUiState.Offering(id, contribution)
+                }
+            }
         }
+    }
+
+    /**
+     * L'envoi, une fois la proposition acceptee.
+     *
+     * L'ecran reste ouvert pendant et apres : ce qui part est public et definitif, et
+     * se refermer sur un ecran de recherche ne dirait pas si c'est parti.
+     */
+    fun onContribute() {
+        val pending = offer.value ?: return
+        if (pending.sending) return
+
+        offer.value = pending.copy(sending = true)
+        viewModelScope.launch {
+            val issue = runCatching { sendContribution(pending.contribution) }
+                .getOrDefault(ContributionOutcome.Unreachable)
+            offer.value = offer.value?.copy(sending = false, outcome = issue)
+        }
+    }
+
+    /** Refuser, ou fermer apres coup : la fiche reste enregistree dans les deux cas. */
+    fun onDeclineContribution() {
+        offer.value = null
     }
 
     private enum class Status { EDITING, SAVING, SAVED, FAILED }
@@ -132,6 +180,24 @@ internal sealed interface CustomFoodUiState {
 
     /** Enregistré : l'écran se referme sur la fiche, qui devient une ligne de saisie. */
     data class Saved(val id: FoodId) : CustomFoodUiState
+
+    /**
+     * Enregistré, **et il y a quelque chose à offrir**.
+     *
+     * L'écran ne se referme pas encore : il montre ce qui partirait, et attend. C'est
+     * le seul moment où la question a un sens — la fiche vient d'être créée pour un
+     * produit que le scan n'a pas trouvé, donc pour un produit qui manque à Open Food
+     * Facts ([D91][decisions]).
+     *
+     * [decisions]: docs/11-decisions.md
+     */
+    data class Offering(
+        val id: FoodId,
+        val contribution: FoodContribution,
+        val sending: Boolean = false,
+        /** Ce que le service a répondu, quand il a répondu. */
+        val outcome: ContributionOutcome? = null,
+    ) : CustomFoodUiState
 }
 
 /**
