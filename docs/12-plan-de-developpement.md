@@ -363,6 +363,20 @@ entre au catalogue, et doit donc porter sa provenance **valeur par valeur**.
 > complétions y sont écrites à la main ; les **553 autres** attendent la tâche —
 > 555 teneurs manquent au total, réparties sur 313 fiches.
 
+### Un nom trop long qu'on ne pouvait pas relire
+
+Quatrième demande, et la plus courte à dire : *« le titre des aliments est parfois trop
+long, et impossible de scroller pour voir le début — on voit la fin du titre, et la
+seule manière de voir le début est de supprimer la fin. »*
+
+> **Livrée** ([D97](11-decisions.md#d97--un-nom-daliment-se-replie-sur-deux-lignes-et-ne-contient-jamais-de-retour-à-la-ligne---validée)).
+> Le champ de nom se replie sur **deux lignes** au lieu de défiler horizontalement, sur
+> l'écran de validation comme sur celui d'un aliment personnel. Le curseur restait posé
+> à la fin du texte et le champ se calait dessus : le début n'était jamais montré.
+>
+> La cause de fond, elle, reste la même : les libellés sont longs parce que la passe de
+> titres courts n'a pas encore tourné. Le repli rend lisible ce qui restera long après.
+
 **Ce qui a été arbitré :**
 
 - **Quand.** Hors de l'application, comme le titre court : une tâche qu'on lance à la

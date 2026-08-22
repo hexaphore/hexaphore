@@ -23,4 +23,16 @@ class DraftTextFieldTest {
         assertFalse("12a".isNumberField())
         assertFalse("-5".isNumberField(), "une quantite negative n'a pas de sens dans un journal")
     }
+
+    @Test
+    fun `un champ d une ligne refuse un retour a la ligne`() {
+        // La regle vaut meme quand le champ en montre deux : replie, il n'est plus
+        // `singleLine` pour Compose, donc son clavier propose une touche entree -- et
+        // un nom d'aliment coupe en deux se retrouverait tel quel dans le journal,
+        // puis dans une sauvegarde, puis dans une recherche qui ne le trouve plus.
+        assertTrue("Riz blanc, cuit".isSingleLine())
+        assertTrue("".isSingleLine())
+        assertFalse("Riz blanc,\ncuit".isSingleLine())
+        assertFalse("\n".isSingleLine())
+    }
 }

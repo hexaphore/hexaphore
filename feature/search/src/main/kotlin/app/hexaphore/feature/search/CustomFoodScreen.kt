@@ -139,6 +139,9 @@ private fun ColumnScope.IdentityFields(form: CustomFoodForm, actions: CustomFood
         onValueChange = actions.onNameChange,
         label = stringResource(R.string.custom_field_name),
         modifier = Modifier.fillMaxWidth(),
+        // Deux lignes, comme sur l'ecran de validation : un nom recopie d'un
+        // emballage depasse souvent la largeur d'un champ.
+        maxLines = NAME_LINES,
     )
     DraftTextField(
         initial = form.brand,
@@ -274,3 +277,6 @@ private val Macro.fieldRes: Int
         Macro.FAT -> R.string.custom_field_fat
         Macro.FIBER -> R.string.custom_field_fiber
     }
+
+/** Deux lignes pour un nom d'aliment : voir `NAME_LINES` de l'écran de validation. */
+private const val NAME_LINES = 2
