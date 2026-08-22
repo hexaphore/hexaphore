@@ -12,8 +12,8 @@ import kotlinx.coroutines.flow.map
  * Première implémentation du port, comme [InMemoryGoals] et [InMemoryProfiles].
  *
  * **Il tient un vrai journal, et non la dernière pesée écrite.** La version d'origine
- * gardait une seule entrée, ce qui lui faisait tenir trois propriétés du port par
- * accident : la limite ne bornait rien, le tri n'existait pas, et [observeLatest]
+ * gardait une seule entrée, ce qui lui faisait tenir deux propriétés du port par
+ * accident : le tri n'existait pas, et [observeLatest]
  * rendait la dernière **écrite** là où Room rend celle du jour le plus **récent** —
  * donc rattraper une pesée oubliée la veille aurait fait recalculer l'objectif sur un
  * poids périmé. Aucun test ne le disait, parce que le seul appelant n'écrivait jamais
@@ -31,7 +31,8 @@ class InMemoryWeightLog(initial: List<WeightEntry> = emptyList()) : WeightLog {
     /** La pesée du jour le plus récent. */
     val latest: WeightEntry? get() = state.value.firstOrNull()
 
-    override fun observeRecent(limit: Int): Flow<List<WeightEntry>> = state.map { it.take(limit) }
+    /** Croissant, comme Room : c'est l'ordre de la courbe. */
+    override fun observeHistory(): Flow<List<WeightEntry>> = state.map { it.reversed() }
 
     override fun observeLatest(): Flow<WeightEntry?> = state.map { it.firstOrNull() }
 

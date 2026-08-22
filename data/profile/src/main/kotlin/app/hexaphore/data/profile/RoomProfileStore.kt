@@ -46,8 +46,8 @@ class RoomProfileStore @Inject constructor(
         profiles.upsert(profile.toEntity(clock.now().toEpochMilli()))
     }
 
-    override fun observeRecent(limit: Int): Flow<List<WeightEntry>> =
-        profiles.observeRecentWeights(limit).map { rows -> rows.map { it.toDomain() } }.flowOn(dispatchers.io)
+    override fun observeHistory(): Flow<List<WeightEntry>> =
+        profiles.observeAllWeights().map { rows -> rows.map { it.toDomain() } }.flowOn(dispatchers.io)
 
     override fun observeLatest(): Flow<WeightEntry?> =
         profiles.observeLatestWeight().map { it?.toDomain() }.flowOn(dispatchers.io)

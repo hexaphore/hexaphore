@@ -126,3 +126,11 @@ include(":integration:ai")
 // meme contrat de reconnaissance, donc le meme ecran d'attente, les memes erreurs et
 // la meme sortie : les separer en deux modules ferait deux fois le meme etat.
 include(":feature:capture")
+
+// Tranche 7. Le journal de poids, sa courbe, et l'adaptation hebdomadaire.
+//
+// Un module a lui plutot qu'une section de :feature:settings : le journal se consulte
+// depuis l'accueil et non depuis les reglages, il porte un trace qui n'existe nulle
+// part ailleurs, et c'est lui qui recevra la carte d'ajustement -- laquelle parle
+// d'objectifs sans que les reglages aient a la connaitre.
+include(":feature:weight")

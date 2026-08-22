@@ -36,6 +36,8 @@ import app.hexaphore.feature.search.navigateToSearchForDraft
 import app.hexaphore.feature.search.searchScreens
 import app.hexaphore.feature.settings.navigateToSettings
 import app.hexaphore.feature.settings.settingsScreens
+import app.hexaphore.feature.weight.navigateToWeight
+import app.hexaphore.feature.weight.weightScreen
 
 /**
  * Le graphe de navigation.
@@ -93,6 +95,7 @@ private fun HexaphoreNavHost(startDestination: Any, modifier: Modifier = Modifie
                 // exactement l echeance que D59 avait ecrite.
                 onOpenSettings = { navController.navigateToSettings() },
                 onOpenFavorites = { navController.navigateToFavorites() },
+                onOpenWeight = { navController.navigateToWeight() },
             ),
         )
         onboardingScreen(
@@ -109,6 +112,7 @@ private fun HexaphoreNavHost(startDestination: Any, modifier: Modifier = Modifie
             },
         )
         settingsScreens(navController)
+        weightScreen(onClose = { navController.popBackStack() })
         captureScreens(navController)
     }
 }

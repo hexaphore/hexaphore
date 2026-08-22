@@ -75,6 +75,14 @@ data class HomeActions(
      * [decisions]: docs/11-decisions.md
      */
     val onOpenSettings: () -> Unit,
+    /**
+     * Vers le journal de poids.
+     *
+     * Depuis la barre de l'accueil et non depuis les reglages : c'est un ecran qu'on
+     * consulte, pas un ecran ou l'on regle quelque chose, et il porte la carte
+     * d'ajustement -- qu'on ne va pas chercher a deux gestes de profondeur.
+     */
+    val onOpenWeight: () -> Unit,
 )
 
 /**
@@ -99,4 +107,5 @@ internal fun HomeRoutes.toActions(viewModel: HomeViewModel) = HomeActions(
     onOpenSettings = onOpenSettings,
     onToggleFavorite = viewModel::onToggleFavorite,
     onOpenFavorites = onOpenFavorites,
+    onOpenWeight = onOpenWeight,
 )

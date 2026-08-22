@@ -47,6 +47,7 @@ import app.hexaphore.core.designsystem.component.MacroBar
 import app.hexaphore.core.designsystem.component.MacroHexagon
 import app.hexaphore.core.designsystem.component.MacroQuarter
 import app.hexaphore.core.designsystem.component.MacroUnit
+import app.hexaphore.core.designsystem.component.TrendGlyph
 import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.core.designsystem.theme.Timing
 import app.hexaphore.domain.diary.DaySummary
@@ -97,6 +98,7 @@ fun HomeRoute(routes: HomeRoutes, onOpenDay: (java.time.LocalDate) -> Unit = {})
                 onOpenSettings = routes.onOpenSettings,
                 onToggleFavorite = viewModel::onToggleFavorite,
                 onOpenFavorites = routes.onOpenFavorites,
+                onOpenWeight = routes.onOpenWeight,
             )
         },
     )
@@ -161,7 +163,7 @@ fun HomeScreen(
                 .padding(horizontal = Spacing.screenMargin),
             verticalArrangement = Arrangement.spacedBy(Spacing.xl),
         ) {
-            DayHeader(actions.onOpenSettings)
+            DayHeader(actions)
             calendar()
 
             when (state) {
@@ -179,9 +181,9 @@ fun HomeScreen(
     }
 }
 
-/** Le titre du jour, et la porte vers le profil. */
+/** Le titre du jour, et les deux portes de la barre : le poids et le profil. */
 @Composable
-private fun DayHeader(onOpenSettings: () -> Unit) {
+private fun DayHeader(actions: HomeActions) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -192,14 +194,19 @@ private fun DayHeader(onOpenSettings: () -> Unit) {
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        // Une icone seule, sans libelle : c'est la porte la moins frequentee de
-        // l'ecran, et le titre du jour doit rester ce qu'on lit en premier.
-        IconButton(onClick = onOpenSettings) {
-            Icon(
-                imageVector = Icons.Filled.Person,
-                contentDescription = stringResource(R.string.home_open_profile),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        // Des icones seules, sans libelle : ce sont les portes les moins frequentees
+        // de l'ecran, et le titre du jour doit rester ce qu'on lit en premier.
+        Row {
+            IconButton(onClick = actions.onOpenWeight) {
+                TrendGlyph(contentDescription = stringResource(R.string.home_open_weight))
+            }
+            IconButton(onClick = actions.onOpenSettings) {
+                Icon(
+                    imageVector = Icons.Filled.Person,
+                    contentDescription = stringResource(R.string.home_open_profile),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

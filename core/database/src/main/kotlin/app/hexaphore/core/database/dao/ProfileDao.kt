@@ -27,8 +27,9 @@ interface ProfileDao {
     @Query("SELECT * FROM weight_entry ORDER BY date DESC LIMIT 1")
     fun observeLatestWeight(): Flow<WeightEntryEntity?>
 
-    @Query("SELECT * FROM weight_entry ORDER BY date DESC LIMIT :limit")
-    fun observeRecentWeights(limit: Int): Flow<List<WeightEntryEntity>>
+    /** Croissant : c'est l'ordre de la courbe, qui se lit de gauche a droite. */
+    @Query("SELECT * FROM weight_entry ORDER BY date ASC")
+    fun observeAllWeights(): Flow<List<WeightEntryEntity>>
 
     /** `REPLACE` par l'index unique sur `date` : la dernière pesée du jour remplace. */
     @Upsert

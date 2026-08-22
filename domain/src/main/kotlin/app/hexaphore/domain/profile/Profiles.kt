@@ -32,8 +32,25 @@ data class WeightEntry(val date: LocalDate, val weightKg: Double)
  * [calculs]: docs/03-nutrition-calculs.md
  */
 interface WeightLog {
-    /** Les pesées les plus récentes d'abord. */
-    fun observeRecent(limit: Int): Flow<List<WeightEntry>>
+    /**
+     * Toutes les pesées, **la plus ancienne d'abord**.
+     *
+     * Pas de plage, et c'est délibéré. Le calendrier borne ses lectures parce que le
+     * journal alimentaire compte des dizaines de lignes par jour ; ici il y en a **au
+     * plus une**, et dix ans de pesées quotidiennes tiennent en trois mille couples
+     * date-poids. Une lecture bornée coûterait une méthode de port, un débordement de
+     * six jours à gauche pour que la moyenne mobile du premier jour existe, et le
+     * chargement séparé du poids de départ de l'objectif — pour n'économiser rien de
+     * mesurable.
+     *
+     * L'ordre croissant est celui de la courbe, qui se lit de gauche à droite.
+     *
+     * Le nom dit **l'historique** et non « tout » : [Goals.observeAll][goals] existe
+     * déjà, et l'adaptateur Room porte les deux ports.
+     *
+     * [goals]: app.hexaphore.domain.goal.Goals.observeAll
+     */
+    fun observeHistory(): Flow<List<WeightEntry>>
 
     /** La dernière pesée connue, celle qui sert au calcul de l'objectif. */
     fun observeLatest(): Flow<WeightEntry?>

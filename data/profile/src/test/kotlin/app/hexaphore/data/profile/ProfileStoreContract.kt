@@ -88,11 +88,11 @@ abstract class ProfileStoreContract {
     // --- Le journal de poids ----------------------------------------------------
 
     @Test
-    fun `sans pesee, il n y a ni derniere ni recente`() = runBlocking {
+    fun `sans pesee, il n y a ni derniere ni journal`() = runBlocking {
         val magasin = store()
 
         assertNull(magasin.observeLatest().first())
-        assertEquals(emptyList<WeightEntry>(), magasin.observeRecent(JOURNAL).first())
+        assertEquals(emptyList<WeightEntry>(), magasin.observeHistory().first())
     }
 
     @Test
@@ -105,7 +105,7 @@ abstract class ProfileStoreContract {
         magasin.record(WeightEntry(LUNDI, POIDS_INITIAL))
         magasin.record(WeightEntry(LUNDI, POIDS_CORRIGE))
 
-        assertEquals(listOf(WeightEntry(LUNDI, POIDS_CORRIGE)), magasin.observeRecent(JOURNAL).first())
+        assertEquals(listOf(WeightEntry(LUNDI, POIDS_CORRIGE)), magasin.observeHistory().first())
     }
 
     @Test
@@ -121,29 +121,32 @@ abstract class ProfileStoreContract {
     }
 
     @Test
-    fun `les pesees sortent les plus recentes d abord`() = runBlocking {
+    fun `les pesees sortent de la plus ancienne a la plus recente`() = runBlocking {
         val magasin = store()
 
         magasin.record(WeightEntry(LUNDI, POIDS_INITIAL))
         magasin.record(WeightEntry(MERCREDI, POIDS_CORRIGE))
         magasin.record(WeightEntry(MARDI, POIDS_INTERMEDIAIRE))
 
+        // L'ordre de la courbe, et non celui d'une liste de recents : le journal de
+        // poids se lit de gauche a droite, du passe vers aujourd'hui.
         assertEquals(
-            listOf(MERCREDI, MARDI, LUNDI),
-            magasin.observeRecent(JOURNAL).first().map { it.date },
+            listOf(LUNDI, MARDI, MERCREDI),
+            magasin.observeHistory().first().map { it.date },
         )
     }
 
     @Test
-    fun `la limite borne le journal, et garde les plus recentes`() = runBlocking {
-        // Une limite ignoree ne se verrait jamais sur trois pesees ; elle se verrait
-        // le jour ou la moyenne mobile en demande sept et en recoit deux cents.
+    fun `le journal ne cache aucune pesee`() = runBlocking {
+        // Le port ne borne plus : la moyenne mobile a besoin de la fenetre entiere, et
+        // une limite oubliee la lui aurait amputee par la gauche -- silencieusement,
+        // en rendant une moyenne calculee sur moins de jours qu'annonce.
         val magasin = store()
         magasin.record(WeightEntry(LUNDI, POIDS_INITIAL))
         magasin.record(WeightEntry(MARDI, POIDS_INTERMEDIAIRE))
         magasin.record(WeightEntry(MERCREDI, POIDS_CORRIGE))
 
-        assertEquals(listOf(MERCREDI, MARDI), magasin.observeRecent(DEUX).first().map { it.date })
+        assertEquals(listOf(LUNDI, MARDI, MERCREDI), magasin.observeHistory().first().map { it.date })
     }
 
     @Test
@@ -258,9 +261,6 @@ abstract class ProfileStoreContract {
         const val POIDS_INITIAL = 88.0
         const val POIDS_INTERMEDIAIRE = 87.4
         const val POIDS_CORRIGE = 87.2
-
-        const val JOURNAL = 20
-        const val DEUX = 2
 
         const val TAILLE_CM = 182.0
         const val TAILLE_CORRIGEE_CM = 183.0

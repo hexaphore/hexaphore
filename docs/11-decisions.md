@@ -2137,7 +2137,7 @@ remplaçait bien la ligne — les pastilles disparaissaient, preuve que le modè
 changé — mais le nom et la quantité restaient ceux d'avant.
 
 **Un champ de saisie ne relit son texte initial qu'à la première composition**
-([D45](#d45--un-champ-de-saisie-tient-son-texte-et-la-cle-de-composition-le-fait-revivre---validée)),
+([D45](#d45--un-champ-de-saisie-tient-son-texte-lui-même---validée)),
 et les seuls champs qui portaient une clé de composition étaient ceux des valeurs. Ils
 la portaient pour une autre raison : faire revivre les six macros quand la quantité les
 recalcule — et surtout **pas** le champ de quantité lui-même, qu'on est en train de
@@ -2186,7 +2186,7 @@ Le nom, lui, ne se redemande pas : on modifie un favori depuis sa liste, où il 
 
 ### Les plats qui citaient le favori le perdent
 
-**Pas de répercussion en chaîne** : leurs lignes ne bougent pas d'un gramme, et c'est la règle du journal depuis [D05](#d05--le-journal-fige-ses-valeurs---validée) — un registre d'événements ne se réécrit pas.
+**Pas de répercussion en chaîne** : leurs lignes ne bougent pas d'un gramme, et c'est la règle du journal depuis [D05](#d05--les-entrées-de-journal-figent-leurs-valeurs---validée) — un registre d'événements ne se réécrit pas.
 
 Ce qui tombe est la **provenance**. « Rejoué depuis les Flocons du matin » n'est plus vérifiable quand les Flocons du matin ont changé de contenu : un lien qui ment vaut moins qu'un lien absent. Le port du journal gagne donc `unlinkFavorite`, servi par un `UPDATE` d'une colonne — la requête vit dans le DAO **des favoris** bien qu'elle écrive dans `dish`, parce que ce qu'elle répond est une question sur le favori.
 
@@ -2428,7 +2428,7 @@ Les deux instances sont désormais **injectées**. Une URL en dur dans une class
 
 **Neuf tours d'affilée ont rapporté « rien n'a tourné », et la cause était le harnais — encore.** Il supprimait `domain/build/libs/domain.jar` avant chaque tour, en croyant appliquer le remède de [10](10-qualite-et-livraison.md#gradle). Ce remède est **curatif** : il s'applique à un jar *vide*. L'appliquer préventivement fait disparaître un jar sain sans que Gradle s'en aperçoive — la tâche `jar` se croit à jour, et tout module qui dépend du domaine cesse de compiler. Il a fallu vider `.gradle` pour en sortir. Le compte de cas exécutés a évité une quatrième conclusion fausse.
 
-**Conséquences.** `:integration:openfoodfacts` gagne une seconde interface Retrofit — l'écriture n'est pas l'API v2, c'est un script d'édition hérité qui attend un formulaire — montée sur **le même client**, donc avec l'en-tête que [D26](#d26--le-user-agent-douvre-food-facts-est-figé---validée) rend obligatoire. `:data:settings` ouvre son propre fichier de préférences : effacer ses réglages d'IA ne doit pas déconnecter le compte de contribution.
+**Conséquences.** `:integration:openfoodfacts` gagne une seconde interface Retrofit — l'écriture n'est pas l'API v2, c'est un script d'édition hérité qui attend un formulaire — montée sur **le même client**, donc avec l'en-tête que [D26](#d26--le-user-agent-dopen-food-facts-est-figé---validée) rend obligatoire. `:data:settings` ouvre son propre fichier de préférences : effacer ses réglages d'IA ne doit pas déconnecter le compte de contribution.
 
 **Ce que le vert ne prouve pas.** **Aucun envoi n'a jamais abouti.** Les quinze cas passent devant un serveur local qui répond ce qu'on lui a dit de répondre ; ce que le vrai service accepte, refuse, ou accepte en ignorant un champ mal nommé, reste à voir — et c'est précisément pour ça que le bac à sable existe. Le premier envoi réel est un travail de vérification à part entière, pas une formalité.
 
@@ -2580,6 +2580,54 @@ Le premier jour de la semaine venait d'un `Locale.getDefault()` enfoui dans un g
 **Ce que le vert ne prouve pas.** **Rien de ce qui se voit ni de ce qui se touche.** Le geste de la poignée, la transition semaine↔mois, la fluidité du défilement et le rendu des pastilles à leur nouvelle taille ne s'éprouvent qu'en tenant le téléphone. Les tests disent que sept pastilles **tiennent** en 320 dp ; ils ne disent pas qu'elles sont belles.
 
 Et la promesse « jamais de freeze » n'est pas mesurée : elle repose sur des `Lazy*` et sur une lecture bornée au mois visible, ce qui est la bonne construction — mais aucun profilage n'a été fait.
+
+## D94 — Le journal de poids se lit en trois traits, et la tendance se tait sous trois pesées · ✓ validée
+
+**Contexte.** La tranche 7 continue : [02](02-parcours-et-ecrans.md#journal-de-poids) demande « liste des pesées et courbe. Deux tracés : les points bruts, discrets, et la **moyenne mobile sur 7 jours**, en évidence », plus la trajectoire visée en pointillés. [03](03-nutrition-calculs.md#adaptation-hebdomadaire) fournit le lissage et la pente, dont l'adaptation hebdomadaire se servira ensuite.
+
+### Le plancher de trois pesées gouverne aussi la courbe
+
+[03](03-nutrition-calculs.md#signal) posait ce plancher pour la **pente** : « il faut au moins 3 pesées dans chaque fenêtre […] un silence vaut mieux qu'un conseil fondé sur une seule pesée. » Il s'applique désormais aussi au tracé lissé, et c'est le même argument : **une moyenne sur sept jours calculée à partir d'une seule pesée *est* cette pesée**. La tracer en évidence, à côté des points bruts qu'elle est censée lisser, affirmerait un lissage qui n'a pas eu lieu.
+
+Conséquence assumée : quelqu'un qui se pèse une fois par semaine ne verra jamais le tracé lissé. C'est juste — on ne lisse pas des données hebdomadaires avec une fenêtre de sept jours — et l'écran le **dit**, plutôt que de laisser chercher pourquoi le trait manque.
+
+Les trous ne se relient pas non plus. Joindre deux moyennes séparées par trois semaines de silence dessinerait une progression que personne n'a mesurée.
+
+### La pente visée est celle qui a été annoncée, et elle ne bouge pas
+
+`(poids cible − poids connu au début de l'objectif) ÷ semaines entre son début et son échéance`. Le poids de départ est **la dernière pesée connue à la date de début de l'objectif**, et non celui d'aujourd'hui : la trajectoire part d'où l'on était quand on a fixé le cap, donc elle reste immobile pendant qu'on avance dessus — ce qui est tout l'intérêt d'un repère.
+
+L'autre lecture possible — ce qu'il reste à perdre divisé par ce qu'il reste de temps — a été écartée : elle durcit la cible à chaque jour manqué, donc grossit la correction proposée, qui fait rater davantage. C'est la boucle que la borne de ±150 kcal de [03](03-nutrition-calculs.md#correction-proposée) sert à contenir ; autant ne pas l'alimenter.
+
+### La courbe est dessinée à la main, contrairement au calendrier
+
+[D93](#d93--le-calendrier-vient-dune-bibliothèque-et-la-semaine-est-calendaire---validée) a pris une bibliothèque ; ici non, et l'asymétrie est raisonnée. Le calendrier apportait de la **pagination paresseuse** sur un nombre de mois non borné, plus une demi-douzaine de règles calendaires qu'on corrige trois fois. La courbe, elle, est trois polylignes sur une série d'au plus une valeur par jour : pas de zoom, pas de sélection, pas de second type de graphique. Une bibliothèque de graphiques apporterait des axes et des animations dont rien ici n'a besoin, et demanderait en échange de plier son thème au nôtre.
+
+Les trois tracés ne se disputent pas la lecture : points bruts discrets, moyenne mobile en évidence, trajectoire en **pointillés** — un repère et non une mesure, dit par une forme et non par une couleur ([D25](#d25--lestimation-ia-se-signale-par-une-forme-pas-par-une-couleur---validée)).
+
+### L'échelle est séparée du dessin, parce qu'un `Canvas` ne se vérifie qu'à l'œil
+
+`ChartScale` ne dessine rien : elle dit où tombe une date, où tombe un poids. C'est là que vivent les fautes qui font une courbe **fausse** plutôt que laide — deux mesures au même poids placées à deux hauteurs, une trajectoire lue avec une autre règle que les points, trois cents grammes d'écart étalés sur toute la hauteur. Treize cas l'éprouvent ; le dessin, lui, ne s'éprouve qu'en tenant le téléphone.
+
+Deux bornes s'y écrivent. L'axe vertical couvre **au moins deux kilos** : sinon trois cents grammes d'écart rempliraient la hauteur, et une variation d'hydratation se lirait comme un effondrement — exactement ce que la moyenne mobile sert à ne pas montrer. Et l'axe horizontal **s'arrête aux mesures** plutôt qu'à l'échéance : deux semaines de pesées devant six mois d'horizon seraient tassées sur un douzième de la largeur. La trajectoire est une droite ; la dessiner sur la fenêtre des mesures dit la même chose, là où on regarde.
+
+### Le port rend le journal entier, et c'est l'inverse du calendrier
+
+`WeightLog.observeHistory()` remplace `observeRecent(limit)`, que rien n'appelait. Le calendrier borne ses lectures parce que le journal alimentaire compte des dizaines de lignes par jour ; ici il y en a **au plus une**, et dix ans de pesées quotidiennes tiennent en trois mille couples date-poids. Une lecture bornée coûterait un débordement de six jours à gauche pour que la moyenne mobile du premier jour existe, et le chargement séparé du poids de départ de l'objectif — pour n'économiser rien de mesurable.
+
+Le nom dit « historique » et non « tout » : `Goals.observeAll` existe déjà, et `RoomProfileStore` porte les deux ports.
+
+### Un module, et un quatrième glyphe
+
+`:feature:weight` plutôt qu'une section des réglages : le journal se consulte depuis l'accueil, il porte un tracé qui n'existe nulle part ailleurs, et c'est lui qui recevra la carte d'ajustement. Une icône dans la barre de l'accueil l'ouvre — `material-icons-core` n'a pas de graphique, comme il n'avait ni code-barres ni `StarBorder` ([D62](#d62--un-favori-est-un-modèle-vivant-et-létoile-est-son-seul-interrupteur---validée)), donc `TrendGlyph` est dessiné : quatrième glyphe tracé après l'étoile creuse, le code-barres et l'appareil photo.
+
+**Campagne de défaite : seize sabotages, seize cas tombés.** La fenêtre à huit jours, la fenêtre qui déborde sur l'avenir, le plancher ramené à une pesée, la pente comparée à la veille, le rythme annoncé compté par jour, la trajectoire partant du dernier poids connu, l'échéance antérieure au début, la pesée de demain acceptée, le poids nul accepté, le journal rendu à l'envers, la hauteur ignorant sa borne basse, les dates lues de droite à gauche, les mesures collées aux bords, l'amplitude minimale annulée, la trajectoire exclue de l'échelle, et l'échelle acceptant une pesée unique.
+
+**Conséquences.** `observeRecent` disparaît du port et de ses deux implémentations. `HomeRoutes` et `HomeActions` gagnent une sortie. `SuggestGoalAdjustment` se branchera sur `weeklySlopeOn` et sur `WeightAim.weeklySlope`, qui existent déjà et sont éprouvés.
+
+**Ce que le vert ne prouve pas.** **Le dessin.** Aucun test ne dit que la courbe est lisible, que les points bruts sont assez discrets, ni que le pointillé se distingue du trait plein sur un écran de téléphone en plein soleil. Les tests disent où tombent les valeurs ; ils ne disent pas ce qu'on voit.
+
+La boîte de saisie non plus : le clavier décimal, la virgule qu'il produit, le sélecteur de date borné à aujourd'hui, et le bouton qui s'active — rien de tout cela n'a tourné ailleurs que dans un compilateur. Et le journal n'a jamais été lu depuis une vraie base contenant des mois de pesées.
 
 ---
 

@@ -175,6 +175,10 @@ Le poids brut est inexploitable : ±2 kg d'un jour à l'autre selon l'hydratatio
 
 Il faut au moins **3 pesées** dans chaque fenêtre pour que la pente soit calculée. Sinon, pas de suggestion — un silence vaut mieux qu'un conseil fondé sur une seule pesée.
 
+**Ce plancher gouverne aussi la courbe** ([D94](11-decisions.md#d94--le-journal-de-poids-se-lit-en-trois-traits-et-la-tendance-se-tait-sous-trois-pesées---validée)), et c'est le même argument : une moyenne sur sept jours calculée à partir d'une seule pesée *est* cette pesée. La tracer en évidence, à côté des points bruts qu'elle est censée lisser, affirmerait un lissage qui n'a pas eu lieu. Sous trois pesées, le tracé lissé a un trou — et l'écran dit pourquoi.
+
+La **pente visée**, à laquelle on compare, est celle que l'objectif a annoncée : `(poids cible − poids connu au début de l'objectif) ÷ semaines entre son début et son échéance`. Elle ne se recalcule pas depuis aujourd'hui. Le faire durcirait la cible à chaque jour manqué, donc grossirait la correction proposée, qui ferait rater davantage — la boucle exacte que la borne de ±150 kcal sert à contenir.
+
 ### Conditions de déclenchement
 
 Toutes doivent être réunies :
