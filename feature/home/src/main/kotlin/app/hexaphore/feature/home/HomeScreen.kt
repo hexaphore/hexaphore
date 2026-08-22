@@ -59,7 +59,7 @@ import kotlin.math.roundToInt
 
 /** L'accueil, branché sur le graphe d'injection. */
 @Composable
-fun HomeRoute(routes: HomeRoutes, onOpenDay: (java.time.LocalDate) -> Unit = {}, onOpenMonth: () -> Unit = {}) {
+fun HomeRoute(routes: HomeRoutes, onOpenDay: (java.time.LocalDate) -> Unit = {}) {
     val viewModel: HomeViewModel = hiltViewModel()
     val calendarViewModel: CalendarViewModel = hiltViewModel()
     val calendar by calendarViewModel.uiState.collectAsStateWithLifecycle()
@@ -74,7 +74,13 @@ fun HomeRoute(routes: HomeRoutes, onOpenDay: (java.time.LocalDate) -> Unit = {},
         aiConfigured = aiConfigured,
         favoriteNameTaken = nameTaken,
         onDismissFavoriteError = viewModel::onDismissFavoriteError,
-        calendar = { CalendarStrip(state = calendar, onOpenDay = onOpenDay, onOpenMonth = onOpenMonth) },
+        calendar = {
+            CalendarPane(
+                state = calendar,
+                onOpenDay = onOpenDay,
+                onVisibleMonth = calendarViewModel::onVisibleMonth,
+            )
+        },
         actions = remember(viewModel, routes) {
             HomeActions(
                 onAddDish = routes.onAddDish,

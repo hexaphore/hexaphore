@@ -59,6 +59,18 @@ camerax = "1.4.2"
 # qui doit marcher hors ligne.
 mlkitBarcode = "17.3.0"
 
+# Calendrier Compose, licence MIT. WeekCalendar et VerticalCalendar sont batis sur
+# LazyRow et LazyColumn : la pagination des mois, le premier jour de semaine selon la
+# locale et les debordements de mois viennent avec, et ce sont precisement les regles
+# qu'on croit simples et qu'on corrige trois fois.
+#
+# **2.6.2 et non la derniere.** Les paliers 2.9 et au-dela sont compiles avec Kotlin
+# 2.2 puis 2.3, que le compilateur de ce projet ne sait pas lire -- et monter Kotlin a
+# 2.3 casserait detekt 1.23.8, qui ne lit pas ses metadonnees. Ce palier-ci offre deja
+# les deux calendriers dont l'ecran a besoin : la montee n'apporterait rien ici et
+# couterait la reecriture des trois regles maison contre une API alpha. Voir D93.
+kizitonwoseCalendar = "2.6.2"
+
 # --- Qualite ------------------------------------------------------------------
 detekt = "1.23.8"
 ktlintPlugin = "12.1.2"
@@ -158,6 +170,7 @@ robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectr
 androidx-test-core = { module = "androidx.test:core", version.ref = "androidxTest" }
 
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqliteJdbc" }
+calendar-compose = { module = "com.kizitonwose.calendar:compose", version.ref = "kizitonwoseCalendar" }
 anthropic-java = { module = "com.anthropic:anthropic-java", version.ref = "anthropicJava" }
 
 [plugins]

@@ -51,26 +51,15 @@ data class DayDestination(val date: String) {
     }
 }
 
-/** Le mois entier. Aucun argument : le mois affiche est un etat, pas une adresse. */
-@Serializable
-data object CalendarMonthDestination
-
-/** Declare l'accueil, la journee et le mois dans un graphe. */
+/** Declare l'accueil et la journee relue dans un graphe. Le mois vit dans l'accueil. */
 fun NavGraphBuilder.homeScreen(routes: HomeRoutes, navController: NavController) {
     composable<HomeDestination> {
         HomeRoute(
             routes = routes,
             onOpenDay = { date -> navController.navigate(DayDestination(date.toString())) },
-            onOpenMonth = { navController.navigate(CalendarMonthDestination) },
         )
     }
     composable<DayDestination> {
         DayRoute(routes = routes, onClose = { navController.popBackStack() })
-    }
-    composable<CalendarMonthDestination> {
-        CalendarMonthRoute(
-            onOpenDay = { date -> navController.navigate(DayDestination(date.toString())) },
-            onClose = { navController.popBackStack() },
-        )
     }
 }
