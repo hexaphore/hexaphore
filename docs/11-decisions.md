@@ -2769,6 +2769,46 @@ Les libellés de l'ANSES sont longs parce que **le passage de titres courts n'a 
 
 Rien ne dit non plus qu'un libellé de trois lignes se lise mieux qu'avant : il montrera ses lignes 2 et 3, le curseur étant toujours à la fin.
 
+## D98 — Le modèle doit se prononcer sur les six valeurs, et « inconnu » s'écrit · ✓ validée
+
+**Contexte.** Rapporté à l'usage, avec Gemini : *« quand l'IA propose un aliment — ici un mangoustan — “proposé par l'IA, confiance 95 %, quantité estimée, valeurs estimées par IA”, je n'ai ni fibre, ni glucide, ni lipide. »*
+
+### Ce n'était pas la reconnaissance, c'était l'estimation
+
+Deux appels, deux règles opposées, et il fallait savoir lequel avait parlé.
+
+La **reconnaissance** ne produit aucun chiffre, et c'est écrit dans son prompt : *« Ces chiffres viennent de bases traçables, pas de toi. »* Elle rend un nom, une quantité, une unité. C'est toute la raison d'être de la résolution.
+
+L'**estimation** est le seul chemin autorisé à produire des valeurs, et il ne sert qu'aux libellés que le catalogue n'a pas rejoints — un mangoustan n'est pas dans la table de l'ANSES. La mention « valeurs estimées par IA » dit précisément que ce chemin-là a répondu. Le défaut était donc chez lui.
+
+### La permission de se taire est devenue un silence par défaut
+
+Le schéma d'estimation ne rendait obligatoire que le libellé. C'était délibéré, et le raisonnement tenait : *« un modèle qui ne connaît pas les fibres d'un plat doit pouvoir se taire sur cette valeur plutôt que d'en inventer une pour satisfaire un schéma. »*
+
+**L'effet, lui, ne tenait pas.** Le décodage contraint de Gemini lit « pas dans `required` » comme « facultatif », et se tait par défaut. Un mangoustan — dont n'importe quel modèle connaît la composition — revenait sans glucides, sans lipides et sans fibres. La ligne était inutilisable, arrivée par le seul chemin qui avait le droit de la remplir.
+
+**Exiger la clé tout en autorisant `null` dit exactement ce qu'on voulait dire.** Le modèle doit se prononcer sur chacune des six ; « je ne sais pas » reste exprimable ; le silence par omission ne l'est plus. C'est la règle la plus ancienne du projet — `null` veut dire inconnu, jamais zéro — enfin imposée au fournisseur au lieu d'être seulement espérée de lui.
+
+Se taire sur un aliment **entier** reste possible, et c'est le prompt qui le porte : un libellé dont le modèle ne sait rien s'omet de la réponse. Un aliment est tout ou rien ; une valeur est une réponse ou un `null`.
+
+### Deux dialectes pour dire la même chose
+
+Anthropic lit du JSON Schema, où l'union de types est canonique : `"type": ["number", "null"]`. Gemini lit un sous-ensemble d'OpenAPI 3.0 qui ne connaît pas l'union et exige `"nullable": true`. Envoyer la forme de l'un à l'autre fait refuser la requête — ou pire, ignorer la contrainte en silence.
+
+C'est la **seconde** différence entre les deux dialectes, après `additionalProperties`. Le paramètre `strict` les porte toutes les deux plutôt que d'ouvrir un second drapeau qui dirait la même chose.
+
+### Une version par prompt
+
+`PROMPT_VERSION` était unique pour les deux textes. Corriger l'estimation aurait renuméroté l'extraction, qui n'a pas bougé — et un enregistrement d'usage aurait annoncé un changement là où il n'y en avait pas. Deux textes, deux questions, deux compteurs : `extract_fr_v1` et `estimate_fr_v2`.
+
+**Campagne de défaite : huit sabotages, huit cas tombés.** Le libellé seul exigé, les fibres redevenues facultatives, plus aucune valeur nullable, chaque dialecte recevant la forme de l'autre, `additionalProperties` envoyé à Gemini, le libellé rendu nullable, et une valeur inconnue retombant sur zéro.
+
+**Conséquences.** Un schéma ne se vérifie pas à la lecture : il part sur le réseau et c'est le fournisseur qui l'applique. Les cinq cas de `EstimationSchemaTest` affirment donc sa **forme**, dans les deux dialectes — c'est ce qui reste testable, et c'est ce qui tombe si quelqu'un rétablit l'ancienne permission.
+
+**Ce que le vert ne prouve pas.** **Que Gemini obéisse.** Aucun test n'appelle un fournisseur : le schéma est affirmé, son effet est supposé. La preuve est un mangoustan qui revient avec ses six valeurs, et elle demande une vraie clé.
+
+Rien ne dit non plus que les valeurs estimées soient **justes** — elles ne l'ont jamais été et ne le seront jamais : ce sont des estimations, marquées comme telles par un contour en pointillés ([D25](#d25--lestimation-ia-se-signale-par-une-forme-pas-par-une-couleur---validée)). Ce que cette correction achète est qu'elles existent.
+
 ---
 
 ## Décisions prises par défaut, à confirmer

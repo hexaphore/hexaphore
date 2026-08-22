@@ -39,16 +39,33 @@ internal class AssetSystemPrompt(private val context: Context, private val asset
 }
 
 /**
- * La version du prompt, qui est son nom de fichier.
+ * La version d'un prompt, qui est son nom de fichier.
  *
  * Elle est destinée au compteur de coût, qui enregistrera avec chaque analyse ce qui
  * a servi à la produire. Elle est déclarée maintenant parce qu'un identifiant qu'on
  * n'a pas noté ne se retrouve pas : les analyses d'ici là seraient sans version.
+ *
+ * **Une version par prompt, et non une pour les deux.** Ce sont deux textes qui
+ * répondent à deux questions et qui bougent séparément : corriger l'estimation a
+ * renuméroté l'extraction quand ils partageaient un compteur, ce qui aurait fait croire
+ * à un changement là où il n'y en avait pas.
  */
-const val PROMPT_VERSION: String = "fr_v1"
+const val EXTRACT_PROMPT_VERSION: String = "fr_v1"
+
+/**
+ * L'estimation en est à sa deuxième version.
+ *
+ * La première laissait le modèle taire une valeur en omettant sa clé ; le décodage
+ * contraint de Gemini s'en servait par défaut, et une ligne revenait sans glucides,
+ * sans lipides et sans fibres. La deuxième exige les six clés et fait de `null` la
+ * seule façon de dire « je ne sais pas » ([D98][decisions]).
+ *
+ * [decisions]: docs/11-decisions.md
+ */
+const val ESTIMATE_PROMPT_VERSION: String = "fr_v2"
 
 /** Le prompt d'extraction : identifier des aliments et estimer des quantités. */
-internal const val EXTRACT_PROMPT_ASSET = "prompts/extract_$PROMPT_VERSION.txt"
+internal const val EXTRACT_PROMPT_ASSET = "prompts/extract_$EXTRACT_PROMPT_VERSION.txt"
 
 /**
  * Le prompt d'estimation — l'étape 4 de [docs/04][sources].
@@ -59,4 +76,4 @@ internal const val EXTRACT_PROMPT_ASSET = "prompts/extract_$PROMPT_VERSION.txt"
  *
  * [sources]: docs/04-sources-de-donnees.md
  */
-internal const val ESTIMATE_PROMPT_ASSET = "prompts/estimate_$PROMPT_VERSION.txt"
+internal const val ESTIMATE_PROMPT_ASSET = "prompts/estimate_$ESTIMATE_PROMPT_VERSION.txt"

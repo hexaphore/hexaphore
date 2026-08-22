@@ -31,6 +31,21 @@ class EstimationParserTest {
     }
 
     @Test
+    fun `une valeur nulle traverse comme inconnue`() {
+        // Le prompt demande desormais les six cles et fait de `null` la seule facon de
+        // dire « je ne sais pas ». Un `null` qui se coercerait en zero ferait entrer
+        // une affirmation que personne n'a faite.
+        val brut = """
+            {"foods":[{"label":"kombucha","kcal":13,"protein":0,"carbs":3,"sugars":3,"fat":0,"fiber":null}]}
+        """.trimIndent()
+
+        val food = (parseEstimation(brut) as EstimationOutcome.Estimated).foods.single()
+
+        assertNull(food.per100g.fiber, "inconnu n'est pas zero")
+        assertEquals(0.0, food.per100g.fat, "zero, lui, est une mesure")
+    }
+
+    @Test
     fun `une liste vide est une reponse et non un echec`() {
         // Le prompt demande d'omettre ce qu'on ne sait pas. Un modele qui ne connait
         // aucun des libelles a raison de se taire, et les lignes restent a completer a
