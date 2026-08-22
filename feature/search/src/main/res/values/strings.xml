@@ -81,6 +81,31 @@
     <string name="custom_per_100g">Valeurs pour 100 g</string>
     <!-- Chaque champ porte son unité : sans elle, « Protéines 12 » se lit aussi bien
          comme des grammes que comme un pourcentage. -->
+    <!-- La proposition de reverser la fiche à Open Food Facts, posée au moment où
+         elle vient d'être créée pour un produit que le scan n'a pas trouvé. C'est le
+         seul moment où la question a un sens : le travail vient d'être fait. -->
+    <string name="contribute_title">Contribuer à Open Food Facts</string>
+    <string name="contribute_body">Ce produit manque à la base. Voici ce qui serait envoyé :</string>
+    <string name="contribute_field_barcode">Code-barres</string>
+    <string name="contribute_field_name">Nom</string>
+    <string name="contribute_field_brand">Marque</string>
+    <!-- Public et définitif : le dire avant, pas après. Une contribution ne se
+         reprend pas depuis l'application. -->
+    <string name="contribute_warning">L\'envoi est public et définitif. Il se corrige ensuite sur openfoodfacts.org.</string>
+    <string name="contribute_confirm">Envoyer</string>
+    <string name="contribute_sending">Envoi…</string>
+    <string name="contribute_decline">Pas maintenant</string>
+
+    <string name="contribute_sent">Envoyé. Merci — le prochain qui scannera ce produit le trouvera.</string>
+    <!-- Réessayer n'y changerait rien : c'est le compte qu'il faut corriger. -->
+    <string name="contribute_rejected">Compte refusé. Vérifiez votre identifiant et votre mot de passe dans les réglages.</string>
+    <string name="contribute_unreachable">Open Food Facts n\'a pas répondu. La fiche est enregistrée ici.</string>
+    <!-- Le service garde la parole : sa phrase est reprise telle quelle, en anglais
+         s'il le veut. La traduire demanderait de savoir à l'avance ce qu'il refuse. -->
+    <string name="contribute_refused">Open Food Facts a refusé la fiche : %1$s</string>
+    <string name="contribute_retry">Réessayer</string>
+    <string name="contribute_close">Fermer</string>
+
     <string name="custom_field_calories">Calories (kcal)</string>
     <string name="custom_field_protein">Protéines (g)</string>
     <string name="custom_field_carbs">Glucides (g)</string>

@@ -25,10 +25,14 @@ data object ProfileDestination
 @Serializable
 data object AiSettingsDestination
 
+/** Le compte Open Food Facts, et l'instance visée. Aucun argument. */
+@Serializable
+data object ContributionSettingsDestination
+
 fun NavController.navigateToSettings() = navigate(SettingsDestination)
 
 /**
- * Déclare les trois écrans de réglages dans un graphe.
+ * Déclare les quatre écrans de réglages dans un graphe.
  *
  * Ensemble parce qu'ils partagent une sortie et une seule : **le retour rend l'écran
  * précédent**. Le module ne sait pas lequel c'est, ce qui lui évite de dépendre de
@@ -39,6 +43,7 @@ fun NavGraphBuilder.settingsScreens(navController: NavController) {
         SettingsHubScreen(
             onOpenProfile = { navController.navigate(ProfileDestination) },
             onOpenAi = { navController.navigate(AiSettingsDestination) },
+            onOpenContribution = { navController.navigate(ContributionSettingsDestination) },
             onClose = { navController.popBackStack() },
         )
     }
@@ -47,5 +52,8 @@ fun NavGraphBuilder.settingsScreens(navController: NavController) {
     }
     composable<AiSettingsDestination> {
         AiSettingsRoute(onClose = { navController.popBackStack() })
+    }
+    composable<ContributionSettingsDestination> {
+        ContributionSettingsRoute(onClose = { navController.popBackStack() })
     }
 }

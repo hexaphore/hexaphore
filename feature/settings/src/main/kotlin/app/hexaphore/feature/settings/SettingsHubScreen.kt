@@ -38,7 +38,12 @@ import app.hexaphore.core.designsystem.theme.Spacing
  * [decisions]: docs/11-decisions.md
  */
 @Composable
-internal fun SettingsHubScreen(onOpenProfile: () -> Unit, onOpenAi: () -> Unit, onClose: () -> Unit) {
+internal fun SettingsHubScreen(
+    onOpenProfile: () -> Unit,
+    onOpenAi: () -> Unit,
+    onOpenContribution: () -> Unit,
+    onClose: () -> Unit,
+) {
     Scaffold(
         topBar = {
             Row(
@@ -68,6 +73,11 @@ internal fun SettingsHubScreen(onOpenProfile: () -> Unit, onOpenAi: () -> Unit, 
                 titleRes = R.string.settings_ai_title,
                 subtitleRes = R.string.settings_ai_subtitle,
                 onClick = onOpenAi,
+            )
+            SectionCard(
+                titleRes = R.string.settings_contribution_title,
+                subtitleRes = R.string.settings_contribution_subtitle,
+                onClick = onOpenContribution,
             )
         }
     }

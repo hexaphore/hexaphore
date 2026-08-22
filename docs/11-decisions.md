@@ -2434,6 +2434,54 @@ Les deux instances sont désormais **injectées**. Une URL en dur dans une class
 
 **Ce qui reste à faire.** L'écran : le bouton sur une fiche personnelle, le récapitulatif qui montre les champs exacts avant de partir, et les deux réglages. Le critère de fin de la tranche 6 — « une fiche saisie à la main **peut** être reversée, et rien ne part sans un geste explicite » — n'est donc pas encore atteint : cette livraison en construit la moitié basse, celle qui s'éprouve sans écran.
 
+## D91 — La contribution se propose au moment où la fiche vient d'être écrite · ✓ validée
+
+**Contexte.** La moitié haute de [D90](#d90--la-contribution-part-sous-le-compte-de-lutilisateur-et-jamais-sans-lui---validée), et **la tranche 6 se ferme avec elle**. Le port, le client et le compte existaient ; il manquait le geste.
+
+### Le moment est le sujet, et il n'était dans aucune de mes propositions
+
+J'avais proposé trois emplacements — un bouton dans la liste, un appui long, un écran de fiche — et **les trois étaient de mauvaises réponses à une bonne question mal posée**. Charly a tranché autrement : la proposition arrive **à l'enregistrement d'une fiche créée pour un produit que le scan n'a pas trouvé**.
+
+C'est meilleur pour une raison qu'aucun des trois emplacements ne pouvait offrir : à cet instant, on sait *pourquoi* la fiche existe. Elle a été saisie parce qu'Open Food Facts ne connaissait pas ce code-barres, c'est-à-dire exactement le cas que [D70](#d70--contribuer-à-open-food-facts-entre-en-tranche-6-parce-que-la-couverture-nest-pas-la-même-partout---validée) décrit. Un bouton dans une liste aurait posé la question à froid, sur une fiche dont on ne se souvient plus de l'origine ; ici la question suit le travail qui la justifie.
+
+Et cela **supprime du travail** : pas de troisième icône sur une ligne déjà chargée, pas d'écran de fiche à concevoir pour ce seul bouton.
+
+### Trois raisons de ne rien proposer, et aucune n'est une erreur
+
+La fiche n'est pas contribuable, aucun compte n'est configuré, ou la fiche n'a pas pu être relue. Dans les trois cas l'écran se referme comme avant, **sans rien dire** : un message qui expliquerait pourquoi on ne propose pas encombrerait le moment où l'on vient de finir une saisie.
+
+**La fiche est relue plutôt que reconstruite depuis le formulaire.** Ce qui part est ce qui a été enregistré, pas ce qu'on croyait avoir saisi — et c'est aussi ce qui garantit la provenance `CUSTOM`, condition que seule l'écriture connaît.
+
+### Deux cas d'usage et non un
+
+`OfferContribution` regarde s'il y a quelque chose à offrir ; `SendContribution` agit sur le monde extérieur. Les fondre ferait passer une écriture sortante pour une lecture — et c'est la distinction que tout ce chemin sert à tenir.
+
+**Le compte est relu au moment d'envoyer**, pas porté depuis la proposition : entre les deux, il a pu être effacé dans les réglages, et un envoi avec un compte périmé se ferait refuser sans qu'on sache pourquoi.
+
+### Le récapitulatif, à chaque fois
+
+Il montre les champs exacts — code-barres, nom, marque, les teneurs renseignées — et dit que l'envoi est public et définitif. À chaque fois, parce que ce n'est pas la même fiche à chaque fois : un accord donné une seule fois pour toutes porterait sur des données qu'on n'avait pas encore saisies.
+
+**Les teneurs inconnues n'y figurent pas**, parce qu'elles ne partent pas. Les afficher vides laisserait croire qu'on envoie des blancs là où l'on n'envoie rien — et sur une base publique, un blanc effacerait ce que quelqu'un d'autre y aurait mis.
+
+Quatre issues, quatre phrases, et **une seule invite à réessayer** : un service injoignable. Un compte refusé ne se rejoue pas — il se corrige. Le refus du service garde sa propre phrase, fût-elle en anglais.
+
+### La proposition ne défait jamais l'écriture
+
+Un `Status.OFFERING` de plus aurait fait de la contribution une étape de l'enregistrement. C'est un flux à part, superposé à un enregistrement déjà réussi : le refuser referme le dialogue et la fiche reste écrite. La recherche de la proposition est elle-même enveloppée — si elle échoue, l'enregistrement tient quand même.
+
+### Le mot de passe ne revient jamais à l'écran
+
+L'état des réglages dit **s'il y a** un compte, pas lequel. Plus strict que pour les clés d'IA, où le champ se révèle à la demande ([D77](#d77--la-clé-va-dans-le-keystore-en-direct-et-le-bouton-tester-est-une-vraie-analyse---validée)) : ici rien ne le demande, puisqu'on ne relit pas un mot de passe — on le remplace. L'identifiant, lui, s'affiche : c'est la seule façon de savoir sous quel nom on contribue.
+
+**Campagne de défaite : cinq sabotages, cinq cas tombés.** La proposition sans compte, la fiche non contribuable proposée, la fiche absente devenue une contribution vide, le compte non relu à l'envoi, le compte à moitié saisi accepté.
+
+**Conséquences.** `:feature:settings` gagne un quatrième écran, et le hub une quatrième carte. `CustomFoodUiState` gagne un état, et le `when` fermé de l'écran a refusé de compiler tant qu'il n'était pas traité — c'est exactement ce que ce type achète.
+
+**Ce que le vert ne prouve pas.** **Toujours aucun envoi réel.** Rien n'a changé depuis [D90](#d90--la-contribution-part-sous-le-compte-de-lutilisateur-et-jamais-sans-lui---validée) sur ce point : le chemin est complet et éprouvé jusqu'à la frontière du réseau, et ce que le vrai service en fait reste à voir. Le bac à sable est là pour ça.
+
+Le dialogue lui-même ne s'éprouve qu'en tenant le téléphone — et il arrive à un moment délicat, juste après un enregistrement qu'on croyait terminé.
+
 ---
 
 ## Décisions prises par défaut, à confirmer

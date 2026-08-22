@@ -1,11 +1,16 @@
 package app.hexaphore.di
 
 import app.hexaphore.domain.food.BarcodeLookup
+import app.hexaphore.domain.food.ContributionSettings
+import app.hexaphore.domain.food.FoodContributionTarget
+import app.hexaphore.domain.food.FoodLookup
 import app.hexaphore.domain.food.FoodStore
 import app.hexaphore.domain.food.ProductSource
 import app.hexaphore.domain.identity.IdGenerator
 import app.hexaphore.domain.usecase.LookupBarcode
+import app.hexaphore.domain.usecase.OfferContribution
 import app.hexaphore.domain.usecase.SaveCustomFood
+import app.hexaphore.domain.usecase.SendContribution
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -34,4 +39,18 @@ object FoodUseCaseModule {
     @Provides
     fun lookupBarcode(catalogue: BarcodeLookup, products: ProductSource, store: FoodStore): LookupBarcode =
         LookupBarcode(catalogue, products, store)
+
+    /**
+     * Les deux moments de la contribution, fournis separement.
+     *
+     * L'un regarde s'il y a quelque chose a offrir, l'autre agit sur le monde
+     * exterieur. Les fondre ferait passer une ecriture sortante pour une lecture.
+     */
+    @Provides
+    fun offerContribution(foods: FoodLookup, settings: ContributionSettings): OfferContribution =
+        OfferContribution(foods, settings)
+
+    @Provides
+    fun sendContribution(target: FoodContributionTarget, settings: ContributionSettings): SendContribution =
+        SendContribution(target, settings)
 }
