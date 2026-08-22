@@ -2677,6 +2677,64 @@ La borne de la fenêtre d'adhérence survivait à sa propre suppression : le cas
 
 Rien de ce qui se touche non plus : les trois boutons, la disparition de la carte au moment de la réponse, et le fait qu'elle ne réapparaisse pas au prochain lancement n'ont tourné que dans des `StateFlow` de test. Et la chaîne complète — répondre, écrire l'objectif, voir les six compteurs de l'accueil changer — n'a jamais été parcourue sur un appareil.
 
+## D96 — La sauvegarde emprunte les mappeurs, et le format ne porte que ce que la base tient · ✓ validée
+
+**Contexte.** Tranche 8. [09](09-donnees-et-sauvegarde.md#format-de-sauvegarde) décrit un JSON compressé, versionné, avec sa chaîne de migrations ; [12](12-plan-de-developpement.md) pose trois critères de fin, et l'**ordre volontaire** : le fichier local avant Drive.
+
+### Drive attend un projet Google Cloud, le reste n'attend rien
+
+Un identifiant OAuth, une empreinte SHA-1 enregistrée, un compte réel pour éprouver l'envoi : rien de tout cela ne se fabrique depuis le dépôt. Cette livraison est donc **tout ce qui ne dépend pas d'OAuth** — le format, ses migrations, les trois ports, le magasin Room, la cible interne, et les cas d'usage. Le troisième critère de fin (« Drive et le fichier local sont deux implémentations du même port, interchangeables ») reste ouvert, mais le port existe et une implémentation l'éprouve.
+
+C'est l'ordre que [12](12-plan-de-developpement.md) appelle déjà volontaire, et la raison qu'elle en donne tient : *« il valide tout le format sans dépendre d'OAuth, et c'est lui qui garantit la réversibilité du projet »*.
+
+### Un second jeu de mappeurs aurait corrompu de vraies données
+
+`RoomSnapshotStore` touche huit tables. Écrire sa propre traduction entre Room et le domaine aurait donné **deux traductions de la même chose**, et leur divergence n'aurait pas produit un affichage bizarre : la sauvegarde aurait écrit des lignes que l'application relit de travers.
+
+Les mappeurs de `:data:diary`, `:data:food` et `:data:profile` passent donc de `internal` à publics, et `:data:backup` dépend des trois. Un `:data` qui dépend d'autres `:data` est une première ; elle se paie une fois, contre une classe de fautes silencieuses.
+
+**Et le contrat l'éprouve** : il écrit par les **vrais** dépôts, capture, efface, restaure, puis relit par les vrais dépôts. Si l'emprunt cessait un jour d'en être un, ce cas tomberait.
+
+### Le format ne porte pas ce que la table ne stocke pas
+
+Le premier passage du contrat a échoué sur une fiche Open Food Facts : ses portions nommées et ses teneurs complétées revenaient vides. La table `food` **n'a pas ces colonnes** — ce sont des propriétés de la référence, relues dans la base de l'ANSES par le code de la fiche, exactement comme le rayon et le titre court ([D54](#d54--un-bandeau-de-rayons-et-deux-familles-qui-ne-se-combinent-pas-pareil---validée)).
+
+Les écrire dans le fichier aurait mis des listes toujours vides, ou pire, figé la correspondance du jour de l'export. Elles ont quitté le format.
+
+*(Cela met au jour un défaut préexistant : les portions nommées d'un produit scanné ne survivent pas à son premier usage. Hors sujet ici, mais signalé.)*
+
+### Ce que le fichier ne porte pas non plus
+
+**Aucune clé d'API** — contrainte ferme, et deux cas la tiennent. Le premier écrit une clé **là où elle vit vraiment**, dans le fichier de préférences de l'IA, puis cherche la chaîne dans les octets produits. Le second est le plus utile des deux : il énumère les **sections de premier niveau** du fichier et tombe dès qu'une apparaît ou disparaît. Le vrai risque n'est pas qu'une clé s'y trouve aujourd'hui, c'est qu'une section s'y ajoute demain sans que personne y pense.
+
+**Pas d'identifiant d'appareil**, que [09](09-donnees-et-sauvegarde.md#format-de-sauvegarde) prévoyait : rien ne le lit, et un fichier que l'utilisateur peut envoyer par courriel n'a pas besoin de porter de quoi relier deux exports au même téléphone.
+
+**Tout le catalogue local, en revanche**, y compris les fiches de l'ANSES. [09](09-donnees-et-sauvegarde.md) voulait n'en garder que le code ; mais une fiche de l'ANSES n'est copiée localement qu'à son premier usage et reçoit alors un identifiant propre à l'installation. L'exclure romprait le lien que chaque ligne de journal tient vers elle. Le filtrage qu'elle visait — rester sous 400 Ko — est déjà obtenu autrement : le catalogue local ne contient que ce qui a servi.
+
+**L'état de l'adaptation hebdomadaire, si.** C'est une décision de l'utilisateur, pas un réglage d'appareil : qui vient de répondre « ne plus proposer » ne doit pas revoir la carte parce qu'il a changé de téléphone.
+
+### Des DTO, et une chaîne de migrations vide
+
+Un `@Serializable` posé sur `Dish` ou `Food` aurait lié le format aux noms de champs du code : renommer une propriété aurait rendu illisible toute sauvegarde antérieure, sans que rien ne le signale. Les DTO coûtent un mappeur ; ils achètent que le format soit une décision et non une conséquence.
+
+La chaîne de migrations est **vide et existe quand même**. La première migration s'écrit toujours dans l'urgence d'un changement, et l'endroit où la mettre doit déjà exister — sans quoi elle finit dans un `if` du lecteur, puis un second, et on ne sait plus dans quel ordre ils s'appliquent.
+
+Le JSON est **indenté** malgré le gzip : « réparable à la main » veut dire qu'on peut ouvrir le fichier décompressé dans un éditeur, et une seule ligne de deux cent mille caractères ne se répare pas. La compression efface le coût.
+
+### Vider est un balayage, pas huit méthodes
+
+Room aurait demandé un `@Query("DELETE FROM …")` par table — huit déclarations qui disent la même chose, et un DAO de plus sur une base qui en compte déjà dix. `eraseUserData()` tient en une liste, et cette liste **est** la question qu'on se pose en la relisant : qu'est-ce qui appartient à l'utilisateur ? Les deux tables en `CASCADE` n'y figurent pas, et leur absence dit que la cascade existe.
+
+### Une date de fichier n'est pas une date
+
+Le contrat de la cible interne a montré que `lastModified()` a une granularité que deux écritures rapprochées franchissent parfois ensemble : la rotation triait alors dans l'ordre du système de fichiers, c'est-à-dire qu'elle pouvait **supprimer la sauvegarde la plus récente en croyant retirer la plus vieille**. L'instant se lit désormais dans le nom, que l'application a écrit et qui survit à une copie.
+
+**Conséquences.** Un module (`:data:backup`), un port de plus dans `:core:database` scindé en deux DAO, trois cas d'usage, et vingt-huit cas. `EraseEverything` est le seul endroit du projet qui touche tous les secrets à la fois.
+
+**Ce que le vert ne prouve pas.** **Rien de ce qui se fait.** Aucun écran n'appelle encore quoi que ce soit : ni export, ni import, ni bouton d'effacement. Le Storage Access Framework, la boîte de confirmation, la saisie du mot `SUPPRIMER` — tout cela vient dans la livraison suivante, et c'est le même ordre que la tranche 5, où le client a précédé l'écran.
+
+Et le format n'a jamais rencontré de vraies données : le contrat travaille sur un décor de sept lignes, pas sur un an de journal. La taille du fichier, le temps de la capture et celui de la restauration sont des inconnues.
+
 ---
 
 ## Décisions prises par défaut, à confirmer

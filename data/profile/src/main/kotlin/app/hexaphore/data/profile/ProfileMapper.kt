@@ -26,7 +26,7 @@ import java.time.LocalDate
  * la moyenne des deux formules — exactement ce que « je préfère ne pas répondre »
  * demande déjà.
  */
-internal fun ProfileEntity.toDomain() = UserProfile(
+fun ProfileEntity.toDomain() = UserProfile(
     birthDate = LocalDate.parse(birthDate),
     sex = sex.toSex(),
     heightCm = heightCm,
@@ -34,7 +34,7 @@ internal fun ProfileEntity.toDomain() = UserProfile(
     unitSystem = UnitSystem.entries.firstOrNull { it.name == unitSystem } ?: UnitSystem.METRIC,
 )
 
-internal fun UserProfile.toEntity(now: Long) = ProfileEntity(
+fun UserProfile.toEntity(now: Long) = ProfileEntity(
     birthDate = birthDate.toString(),
     sex = sex.name,
     heightCm = heightCm,
@@ -49,12 +49,12 @@ private fun String.toSex(): Sex = Sex.entries.firstOrNull { it.name == this } ?:
 private fun String.toActivityLevel(): ActivityLevel =
     ActivityLevel.entries.firstOrNull { it.name == this } ?: ActivityLevel.SEDENTARY
 
-internal fun WeightEntryEntity.toDomain() = WeightEntry(date = LocalDate.parse(date), weightKg = weightKg)
+fun WeightEntryEntity.toDomain() = WeightEntry(date = LocalDate.parse(date), weightKg = weightKg)
 
-internal fun WeightEntry.toEntity(id: String, now: Long) =
+fun WeightEntry.toEntity(id: String, now: Long) =
     WeightEntryEntity(id = id, date = date.toString(), weightKg = weightKg, createdAt = now)
 
-internal fun GoalEntity.toDomain() = Goal(
+fun GoalEntity.toDomain() = Goal(
     id = GoalId(id),
     startedAt = LocalDate.parse(startedAt),
     endedAt = endedAt?.let(LocalDate::parse),
@@ -72,7 +72,7 @@ internal fun GoalEntity.toDomain() = Goal(
     ),
 )
 
-internal fun Goal.toEntity(now: Long) = GoalEntity(
+fun Goal.toEntity(now: Long) = GoalEntity(
     id = id.value,
     startedAt = startedAt.toString(),
     endedAt = endedAt?.toString(),

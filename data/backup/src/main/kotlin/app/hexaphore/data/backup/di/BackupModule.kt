@@ -1,0 +1,57 @@
+package app.hexaphore.data.backup.di
+
+import android.content.Context
+import app.hexaphore.data.backup.InternalBackupTarget
+import app.hexaphore.data.backup.JsonSnapshotCodec
+import app.hexaphore.data.backup.RoomSnapshotStore
+import app.hexaphore.domain.backup.BackupTarget
+import app.hexaphore.domain.backup.SnapshotCodec
+import app.hexaphore.domain.backup.SnapshotStore
+import app.hexaphore.domain.concurrency.DispatcherProvider
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Qualifier
+import javax.inject.Singleton
+
+/**
+ * La cible où l'on écrit juste avant d'écraser.
+ *
+ * Un qualificatif et non un type distinct : c'est le **même** port, utilisé pour autre
+ * chose. Le jour où Drive arrive, il se lie sans qualificatif et rien de ceci ne bouge.
+ */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class SafetyCopy
+
+/**
+ * Ce que ce module lie : les trois ports de la sauvegarde.
+ *
+ * @see docs/09-donnees-et-sauvegarde.md
+ */
+@Module
+@InstallIn(SingletonComponent::class)
+internal object BackupModule {
+    @Provides
+    fun store(store: RoomSnapshotStore): SnapshotStore = store
+
+    @Provides
+    fun codec(codec: JsonSnapshotCodec): SnapshotCodec = codec
+
+    /**
+     * La copie de sécurité, dans le stockage interne.
+     *
+     * Elle n'a de sens que là : c'est le fichier qu'on veut retrouver **sur cet
+     * appareil-ci** juste après avoir restauré le mauvais, et rien ne justifie de le
+     * faire voyager.
+     */
+    @Provides
+    @Singleton
+    @SafetyCopy
+    fun safetyCopy(@ApplicationContext context: Context, dispatchers: DispatcherProvider): BackupTarget =
+        InternalBackupTarget(context = context, dispatchers = dispatchers, name = SAFETY_DIRECTORY)
+}
+
+private const val SAFETY_DIRECTORY = "backups"

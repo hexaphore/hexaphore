@@ -24,7 +24,7 @@ import java.time.LocalDate
  *
  * @see docs/06-architecture.md
  */
-internal fun DishWithEntries.toDomain(): Dish {
+fun DishWithEntries.toDomain(): Dish {
     val id = DishId(dish.id)
     return Dish(
         id = id,
@@ -75,7 +75,7 @@ private fun String.toEntrySource(): EntrySource =
  * par celle qui existe déjà, le cas échéant : c'est lui qui sait si le plat est
  * nouveau, et la correspondance n'a aucune raison de poser la question.
  */
-internal fun Dish.toEntity(now: Long) = DishEntity(
+fun Dish.toEntity(now: Long) = DishEntity(
     id = id.value,
     date = date.toString(),
     source = source.name,
@@ -85,7 +85,7 @@ internal fun Dish.toEntity(now: Long) = DishEntity(
     updatedAt = now,
 )
 
-internal fun FoodEntry.toEntity(now: Long) = FoodEntryEntity(
+fun FoodEntry.toEntity(now: Long) = FoodEntryEntity(
     id = id.value,
     dishId = dishId.value,
     foodId = foodId?.value,

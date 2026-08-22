@@ -268,6 +268,10 @@ Le reste de la tranche : la contribution à Open Food Facts ([D70](11-decisions.
 
 **Ordre volontaire** : le fichier local avant Drive. Il valide tout le format sans dépendre d'OAuth, et c'est lui qui garantit la réversibilité du projet.
 
+> **En cours.** Le **format** et sa plomberie ([D96](11-decisions.md#d96--la-sauvegarde-emprunte-les-mappeurs-et-le-format-ne-porte-que-ce-que-la-base-tient---validée)) : le JSON compressé, sa chaîne de migrations, les trois ports, le magasin Room transactionnel, la cible interne et les trois cas d'usage. Le deuxième critère est tenu par deux cas — l'un cherche une vraie clé dans les octets produits, l'autre énumère les sections du fichier et tombe dès qu'une s'y ajoute. Le premier l'est aussi, sur la vraie base et par les vrais dépôts.
+>
+> Restent les **écrans** — export et import par le Storage Access Framework, bouton d'effacement — puis le **chiffrement optionnel**, puis **Drive**. Ce dernier attend un projet Google Cloud, un identifiant OAuth et une empreinte SHA-1 enregistrée : rien de cela ne se fabrique depuis le dépôt, et c'est Charly qui l'ouvre. Le troisième critère de fin reste donc ouvert, mais le port existe et une implémentation l'éprouve.
+
 ---
 
 ## Demandes issues de l'usage réel

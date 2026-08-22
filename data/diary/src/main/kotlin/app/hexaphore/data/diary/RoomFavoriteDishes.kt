@@ -67,7 +67,7 @@ class RoomFavoriteDishes @Inject constructor(
  * se réordonner d'un rejeu à l'autre. Rien ne planterait, et le plat n'aurait
  * simplement plus la même tête qu'on lui connaissait.
  */
-private fun FavoriteWithComponents.toDomain() = FavoriteDish(
+fun FavoriteWithComponents.toDomain() = FavoriteDish(
     id = FavoriteDishId(favorite.id),
     name = favorite.name,
     useCount = favorite.useCount,
@@ -94,7 +94,7 @@ private fun FavoriteComponentEntity.toDomain() = FavoriteComponent(
     ),
 )
 
-private fun FavoriteDish.toEntity(now: Long) = FavoriteDishEntity(
+fun FavoriteDish.toEntity(now: Long) = FavoriteDishEntity(
     id = id.value,
     name = name,
     nameSearch = SearchText.normalise(name),
@@ -108,7 +108,7 @@ private fun FavoriteDish.toEntity(now: Long) = FavoriteDishEntity(
  * C'est ce qui permet à un favori de n'avoir aucun identifiant de composant : un
  * composant n'existe pas hors de son plat et n'est jamais désigné seul.
  */
-private fun FavoriteDish.toComponents(): List<FavoriteComponentEntity> = components.mapIndexed { index, component ->
+fun FavoriteDish.toComponents(): List<FavoriteComponentEntity> = components.mapIndexed { index, component ->
     FavoriteComponentEntity(
         favoriteId = id.value,
         position = index,
