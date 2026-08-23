@@ -360,8 +360,14 @@ entre au catalogue, et doit donc porter sa provenance **valeur par valeur**.
 >
 > **La passe ne tourne pas dans l'application** : `./gradlew generateCompletions
 > -PanthropicApiKey=...`, puis relecture à la main et `importCiqual`. Deux
-> complétions y sont écrites à la main ; les **553 autres** attendent la tâche —
-> 555 teneurs manquent au total, réparties sur 313 fiches.
+> complétions y étaient écrites à la main ; ~~les 553 autres attendent la tâche~~
+> **elles sont écrites** ([D99](11-decisions.md#d99--les-trous-de-ciqual-sont-comblés-et-lénergie-ne-sy-devine-jamais---validée)).
+> `ciqual.db` ne porte plus aucune valeur inconnue : 143 énergies, 223 sucres,
+> 70 glucides, 70 fibres, 29 protéines et 20 lipides, toutes dans les colonnes `_est`.
+>
+> **Aucune des 143 énergies n'a été devinée.** Le règlement UE 1169/2011 la donne dès
+> que les quatre teneurs qui la déterminent sont connues : 57 l'étaient déjà, les
+> 86 autres le sont devenues une fois leurs macros complétées.
 
 ### Un nom trop long qu'on ne pouvait pas relire
 

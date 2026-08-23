@@ -2809,6 +2809,53 @@ C'est la **seconde** différence entre les deux dialectes, après `additionalPro
 
 Rien ne dit non plus que les valeurs estimées soient **justes** — elles ne l'ont jamais été et ne le seront jamais : ce sont des estimations, marquées comme telles par un contour en pointillés ([D25](#d25--lestimation-ia-se-signale-par-une-forme-pas-par-une-couleur---validée)). Ce que cette correction achète est qu'elles existent.
 
+## D99 — Les trous de CIQUAL sont comblés, et l'énergie ne s'y devine jamais · ✓ validée
+
+**Contexte.** [D89](#d89--une-valeur-complétée-ne-se-range-pas-où-une-valeur-mesurée-se-range---validée) a bâti la chaîne de complétion et l'a laissée vide : 553 valeurs attendaient que la passe tourne. Charly a demandé qu'elle tourne.
+
+### Elle a tourné ici, sans clé et sans réseau
+
+`generateCompletions` appelle un fournisseur avec la clé de l'utilisateur. Je n'en ai pas, et la contrainte du projet interdit d'en écrire une où que ce soit. **Le modèle qui a produit ces valeurs est celui qui écrit ce texte** — le résultat est le même artefact : un CSV versionné, relu, corrigeable à la main, et repris tel quel par `importCiqual`.
+
+Ce que cela change : la tâche reste là, elle sert toujours pour la prochaine édition de l'ANSES, et rien de son contrat n'a bougé. Ce que cela ne change pas : ces valeurs sont **des estimations**, elles vivent dans les colonnes `_est`, et l'écran les marque une par une.
+
+### L'énergie se calcule, elle ne s'estime pas
+
+Sur les 555 trous, **143 sont énergétiques** — et une valeur énergétique n'a aucune raison d'être devinée quand les quatre teneurs qui la déterminent sont connues. Le règlement UE 1169/2011 la donne : `4×protéines + 4×glucides + 9×lipides + 2×fibres`, la formule que l'application applique déjà ([D87](#d87--les-calories-se-proposent-et-une-valeur-minorée-se-dit-au-lieu-de-se-taire---validée)).
+
+L'ordre du travail suit donc de là : **estimer les cinq autres d'abord, dériver l'énergie ensuite**. Aucune des 143 n'a été devinée — 57 étaient calculables depuis les valeurs publiées, les 86 restantes le sont devenues une fois leurs macros complétées. Une énergie estimée à côté de macros estimées aurait été deux fois inventée, et incohérente avec elles.
+
+### Ce que les estimations suivent
+
+Quatre règles, dans cet ordre :
+
+- **La chair animale ne contient pas de sucres.** Viande, poisson, abats : le glycogène résiduel n'en est pas un au sens du règlement, et les glucides déclarés en charcuterie sont le dextrose de la saumure. C'est la moitié des 223 sucres manquants, et ce ne sont pas des devinettes.
+- **Les amidons purs non plus** — fécule, farine, riz.
+- **Un fruit, à l'inverse, est presque entièrement du sucre** : ses glucides et ses sucres se suivent à quelques dixièmes près.
+- **Une herbe séchée n'est pas un fruit séché** : ses glucides sont surtout des fibres et de l'amidon, et ses sucres restent une petite fraction.
+
+Le reste — 86 fiches d'Outre-mer, les algues, les champignons — a été estimé fiche par fiche.
+
+### Deux vérifications avant d'écrire
+
+Le script d'assemblage refuse d'écrire s'il trouve : une teneur que l'ANSES publie déjà, un trou non comblé, des sucres supérieurs aux glucides, ou une valeur hors des bornes. Les trois premières sont exactement ce que `CompletionsCsv` refuse à l'import ; les avoir en amont évite de découvrir la faute après avoir régénéré une base d'un mégaoctet.
+
+**Le premier passage a mordu deux fois** : deux anchois dont les sucres estimés dépassaient de deux centièmes les glucides publiés.
+
+### Ce qui est déjà dans le fichier ne bouge jamais
+
+Le premier assemblage a **écrasé une ligne écrite à la main** — les 39 kcal des câpres, recalculées à 38. C'est précisément le contrat que la chaîne promet : *une correction survit à la génération suivante, qui ne redemande que les trous absents de ce fichier*. Le script relit désormais le fichier et ne réécrit aucune paire qu'il y trouve.
+
+### La révision de la base de référence était une règle incomplète
+
+`CiqualDatabase.REVISION` déclenche la recopie sur un appareil déjà installé. Sa consigne disait de l'incrémenter quand le **schéma** change, ou quand un rayon est réarbitré. Elle ne disait rien des deux CSV — qui ne touchent pas au schéma mais au contenu, **avec exactement la même conséquence** : un appareil déjà installé aurait gardé une copie sans les valeurs complétées, et rien ne l'aurait dit. L'oubli est d'autant plus facile que la base se régénère ici sans erreur.
+
+**Conséquences.** `ciqual.db` ne porte plus **aucune** valeur inconnue : 143 énergies, 223 sucres, 70 glucides, 70 fibres, 29 protéines et 20 lipides sont désormais lisibles, toutes dans les colonnes `_est`. Les 3 484 fiches de la table sont enregistrables sans saisie manuelle. La révision passe à 5.
+
+**Ce que le vert ne prouve pas.** **Que ces chiffres soient justes.** Ce sont des estimations, et une estimation plausible est indiscernable d'une estimation fausse tant qu'on ne la confronte pas à une mesure. Ce qui est vérifié est leur **cohérence** — sucres sous glucides, énergie conforme au règlement, bornes respectées, aucune mesure écrasée — et leur **existence**, qui est ce qui manquait.
+
+Les plus incertaines sont les 86 fiches relevées à la Martinique : jus de moubin, massissi, kamanioc, ti nain. Elles sont peu documentées ailleurs, et ce sont celles qu'il faudra corriger en premier si un chiffre paraît faux.
+
 ---
 
 ## Décisions prises par défaut, à confirmer

@@ -218,10 +218,15 @@ class CiqualDatabase(private val context: Context) {
          * jamais ici, où l'installation est toujours fraîche. C'est exactement le
          * genre de défaut que ce projet paie deux fois, et il se règle par un entier.
          *
-         * À incrémenter dès que `CiqualDatabaseWriter.SCHEMA` change, ou que
-         * `CiqualCategories` réarbitre un rayon.
+         * À incrémenter dès que `CiqualDatabaseWriter.SCHEMA` change, dès que
+         * `CiqualCategories` réarbitre un rayon, **et dès que `short-names.csv` ou
+         * `completions.csv` change**. Ces deux fichiers ne touchent pas au schéma mais
+         * au contenu, et la conséquence est la même : un appareil déjà installé
+         * garderait une copie sans les titres courts ni les valeurs complétées, et rien
+         * ne le dirait. L'oubli est d'autant plus facile que la base se régénère ici
+         * sans erreur.
          */
-        const val REVISION = 4
+        const val REVISION = 5
         const val FILE_PREFIX = "ciqual-"
         const val FILE_NAME = "$FILE_PREFIX$EDITION-r$REVISION.db"
 
