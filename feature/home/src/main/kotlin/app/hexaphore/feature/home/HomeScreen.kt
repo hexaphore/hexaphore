@@ -224,7 +224,7 @@ fun HomeScreen(
                 .padding(horizontal = Spacing.screenMargin),
             verticalArrangement = Arrangement.spacedBy(Spacing.xl),
         ) {
-            DayHeader(actions, day)
+            DayHeader(actions, day, onBackToToday)
             calendar(calendarExpanded) { calendarExpanded = it }
 
             suggestion?.let {

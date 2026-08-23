@@ -386,18 +386,18 @@ class EntryViewModelTest {
         openDraft = OpenDraft(
             dishes = GetDishDraft(diary, ids),
             favorites = GetFavoriteDraft(favoris, catalogue, clock, ids),
-            create = CreateDraft(clock, ids, InMemorySelectedDay()),
+            create = CreateDraft(clock, ids, InMemorySelectedDay(clock.today())),
             foods = catalogue,
             pending = pending,
             resolve = ResolveRecognition(
                 ResolveFoodLabel(catalogue),
-                CreateDraft(clock, ids, InMemorySelectedDay()),
+                CreateDraft(clock, ids, InMemorySelectedDay(clock.today())),
                 // Aucun repli : ces cas ne parlent pas de l'etape 4, et un estimateur
                 // qui repondrait remplirait des lignes qu'ils veulent vides.
                 estimate = { EstimationOutcome.Estimated(emptyList()) },
             ),
         ),
-        addFoodLine = AddFoodLine(catalogue, CreateDraft(clock, ids, InMemorySelectedDay())),
+        addFoodLine = AddFoodLine(catalogue, CreateDraft(clock, ids, InMemorySelectedDay(clock.today()))),
         getDaySummary = GetDaySummary(diary, goals, clock),
         saveDraft = SaveDraft(LogDish(diary, catalogue, favoris, clock, ids), UpdateDish(diary, ids)),
         favorites = DraftFavorites(

@@ -3,6 +3,11 @@
 
     <string name="home_title">Aujourd\'hui</string>
 
+    <!-- Le chemin visible du retour à aujourd'hui. Le bouton retour du système y mène
+         aussi, mais un geste sans représentation visible est introuvable pour qui
+         l'ignore — la même règle que le balayage qui supprime une ligne. -->
+    <string name="home_back_to_today">Aujourd\'hui</string>
+
     <!-- Le chiffre affiché est le restant, pas le consommé : c'est l'information
          dont on a besoin au moment de décider quoi manger. -->
     <string name="home_remaining_label">restantes</string>
