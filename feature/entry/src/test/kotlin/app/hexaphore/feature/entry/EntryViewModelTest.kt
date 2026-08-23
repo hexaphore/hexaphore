@@ -6,6 +6,7 @@ import app.hexaphore.core.testing.InMemoryDiaryRepository
 import app.hexaphore.core.testing.InMemoryFavoriteDishes
 import app.hexaphore.core.testing.InMemoryFoodCatalog
 import app.hexaphore.core.testing.InMemoryGoals
+import app.hexaphore.core.testing.InMemorySelectedDay
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.domain.ai.EstimatedUnit
 import app.hexaphore.domain.ai.EstimationOutcome
@@ -385,18 +386,18 @@ class EntryViewModelTest {
         openDraft = OpenDraft(
             dishes = GetDishDraft(diary, ids),
             favorites = GetFavoriteDraft(favoris, catalogue, clock, ids),
-            create = CreateDraft(clock, ids),
+            create = CreateDraft(clock, ids, InMemorySelectedDay()),
             foods = catalogue,
             pending = pending,
             resolve = ResolveRecognition(
                 ResolveFoodLabel(catalogue),
-                CreateDraft(clock, ids),
+                CreateDraft(clock, ids, InMemorySelectedDay()),
                 // Aucun repli : ces cas ne parlent pas de l'etape 4, et un estimateur
                 // qui repondrait remplirait des lignes qu'ils veulent vides.
                 estimate = { EstimationOutcome.Estimated(emptyList()) },
             ),
         ),
-        addFoodLine = AddFoodLine(catalogue, CreateDraft(clock, ids)),
+        addFoodLine = AddFoodLine(catalogue, CreateDraft(clock, ids, InMemorySelectedDay())),
         getDaySummary = GetDaySummary(diary, goals, clock),
         saveDraft = SaveDraft(LogDish(diary, catalogue, favoris, clock, ids), UpdateDish(diary, ids)),
         favorites = DraftFavorites(
@@ -405,6 +406,7 @@ class EntryViewModelTest {
             nextFavoriteNumber = NextFavoriteNumber(numerotation, favoris),
             updateFavoriteDish = UpdateFavoriteDish(favoris, diary),
         ),
+        clock = clock,
     )
 
     private val favoris = InMemoryFavoriteDishes()

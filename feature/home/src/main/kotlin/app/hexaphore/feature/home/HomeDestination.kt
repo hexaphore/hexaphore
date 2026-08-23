@@ -1,7 +1,6 @@
 package app.hexaphore.feature.home
 
 import androidx.compose.runtime.Immutable
-import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import app.hexaphore.domain.diary.DishId
@@ -37,30 +36,13 @@ data class HomeRoutes(
 )
 
 /**
- * Une journee passee, relue.
+ * Declare l'accueil dans un graphe.
  *
- * La date voyage en texte ISO plutot qu'en `LocalDate` : une route est serialisee
- * dans l'etat de navigation, et `AAAA-MM-JJ` s'y relit sans convertisseur -- son
- * ordre lexicographique est d'ailleurs son ordre chronologique, ce dont la requete
- * de plage se sert deja.
+ * **Une seule destination**, depuis que l'ecran Journee a disparu : l'accueil porte
+ * une date, et se promener dans l'historique ne navigue plus. C'est ce qui permet au
+ * calendrier de rester a l'ecran pendant qu'on remonte le temps -- un second ecran
+ * l'aurait laisse derriere lui.
  */
-@Serializable
-data class DayDestination(val date: String) {
-    companion object {
-        /** Le nom de l'argument, partage par la route et le `SavedStateHandle`. */
-        const val DATE = "date"
-    }
-}
-
-/** Declare l'accueil et la journee relue dans un graphe. Le mois vit dans l'accueil. */
-fun NavGraphBuilder.homeScreen(routes: HomeRoutes, navController: NavController) {
-    composable<HomeDestination> {
-        HomeRoute(
-            routes = routes,
-            onOpenDay = { date -> navController.navigate(DayDestination(date.toString())) },
-        )
-    }
-    composable<DayDestination> {
-        DayRoute(routes = routes, onClose = { navController.popBackStack() })
-    }
+fun NavGraphBuilder.homeScreen(routes: HomeRoutes) {
+    composable<HomeDestination> { HomeRoute(routes = routes) }
 }

@@ -1,9 +1,11 @@
 package app.hexaphore.core.common.di
 
 import app.hexaphore.core.common.concurrency.DefaultDispatcherProvider
+import app.hexaphore.core.common.diary.CurrentSelectedDay
 import app.hexaphore.core.common.identity.UuidGenerator
 import app.hexaphore.core.common.time.SystemClock
 import app.hexaphore.domain.concurrency.DispatcherProvider
+import app.hexaphore.domain.diary.SelectedDay
 import app.hexaphore.domain.identity.IdGenerator
 import app.hexaphore.domain.time.Clock
 import dagger.Binds
@@ -26,6 +28,15 @@ abstract class CommonModule {
     @Binds
     @Singleton
     abstract fun clock(implementation: SystemClock): Clock
+
+    /**
+     * Le jour regardé, en mémoire et sans stockage.
+     *
+     * Il n'appartient à aucun domaine de données : c'est un état d'application,
+     * au même titre que l'horloge.
+     */
+    @Binds
+    abstract fun selectedDay(implementation: CurrentSelectedDay): SelectedDay
 
     @Binds
     @Singleton

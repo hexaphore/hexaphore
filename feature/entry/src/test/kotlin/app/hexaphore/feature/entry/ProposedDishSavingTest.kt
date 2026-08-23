@@ -4,6 +4,7 @@ import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryDiaryRepository
 import app.hexaphore.core.testing.InMemoryFavoriteDishes
 import app.hexaphore.core.testing.InMemoryFoodCatalog
+import app.hexaphore.core.testing.InMemorySelectedDay
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.domain.ai.EstimatedUnit
 import app.hexaphore.domain.ai.EstimationOutcome
@@ -110,7 +111,7 @@ class ProposedDishSavingTest {
 
     private suspend fun resolved(vararg items: RecognizedItem) = ResolveRecognition(
         resolve = ResolveFoodLabel(catalogue),
-        create = CreateDraft(clock, ids),
+        create = CreateDraft(clock, ids, InMemorySelectedDay()),
         estimate = { EstimationOutcome.Estimated(emptyList()) },
     )(Recognition(items.toList()), EntrySource.TEXT_AI)
 

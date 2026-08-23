@@ -157,8 +157,24 @@ data class DraftLine(
     val blank: Boolean
         get() = name.isBlank() && quantity == null && values.empty
 
-    /** Les unités proposées pour cette ligne : les deux universelles, puis ses portions. */
-    val units: List<QuantityUnit> get() = QuantityUnit.universal + servings
+    /**
+     * Les unités proposées : les deux universelles, les portions de la fiche, **et
+     * celle que la ligne porte déjà**.
+     *
+     * Ce dernier terme n'est pas une précaution, c'est une correction. Rouvrir un plat
+     * reconstruit son unité depuis ce qui a été écrit — « 1 bol » redevient une
+     * portion nommée — mais sans relire la fiche, donc sans ses portions. Le
+     * sélecteur ne proposait plus que les grammes et les millilitres, et ne pouvait
+     * pas montrer comme choisie une unité absente de sa propre liste : la quantité
+     * restait juste, l'écran mentait.
+     *
+     * La comparaison porte sur le **code** et non sur l'unité entière : une portion
+     * qui pèserait un gramme de plus que celle de la fiche apparaîtrait deux fois
+     * sous le même nom.
+     */
+    val units: List<QuantityUnit>
+        get() = (QuantityUnit.universal + servings)
+            .let { proposees -> if (proposees.any { it.code == unit.code }) proposees else proposees + unit }
 
     /**
      * La même ligne, pour une autre quantité.

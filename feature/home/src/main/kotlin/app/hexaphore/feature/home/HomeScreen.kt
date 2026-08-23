@@ -1,8 +1,8 @@
 package app.hexaphore.feature.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,12 +10,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -36,6 +34,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -48,7 +50,6 @@ import app.hexaphore.core.designsystem.component.MacroBar
 import app.hexaphore.core.designsystem.component.MacroHexagon
 import app.hexaphore.core.designsystem.component.MacroQuarter
 import app.hexaphore.core.designsystem.component.MacroUnit
-import app.hexaphore.core.designsystem.component.TrendGlyph
 import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.core.designsystem.theme.Timing
 import app.hexaphore.domain.diary.DaySummary
@@ -58,12 +59,13 @@ import app.hexaphore.domain.goal.DailyGoal
 import app.hexaphore.domain.nutrition.Macro
 import app.hexaphore.domain.usecase.AdjustmentResponse
 import kotlinx.coroutines.withTimeoutOrNull
+import java.time.LocalDate
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /** L'accueil, branché sur le graphe d'injection. */
 @Composable
-fun HomeRoute(routes: HomeRoutes, onOpenDay: (java.time.LocalDate) -> Unit = {}) {
+fun HomeRoute(routes: HomeRoutes) {
     val viewModel: HomeViewModel = hiltViewModel()
     val calendarViewModel: CalendarViewModel = hiltViewModel()
     val calendar by calendarViewModel.uiState.collectAsStateWithLifecycle()
@@ -72,6 +74,7 @@ fun HomeRoute(routes: HomeRoutes, onOpenDay: (java.time.LocalDate) -> Unit = {})
     val nameTaken by viewModel.favoriteNameTaken.collectAsStateWithLifecycle()
     val aiConfigured by viewModel.aiConfigured.collectAsStateWithLifecycle()
     val suggestion by viewModel.suggestion.collectAsStateWithLifecycle()
+    val day by viewModel.selectedDay.collectAsStateWithLifecycle()
 
     HomeScreen(
         state = state,
@@ -81,11 +84,18 @@ fun HomeRoute(routes: HomeRoutes, onOpenDay: (java.time.LocalDate) -> Unit = {})
         onDismissFavoriteError = viewModel::onDismissFavoriteError,
         suggestion = suggestion,
         onAdjustment = viewModel::onAdjustment,
-        calendar = {
+        day = day,
+        onBackToToday = { viewModel.onSelectDay(null) },
+        calendar = { expanded, onExpandedChange ->
             CalendarPane(
                 state = calendar,
-                onOpenDay = onOpenDay,
+                // Toucher une pastille ne navigue plus : elle change la date de
+                // l'ecran, et le calendrier reste ou il est.
+                onOpenDay = viewModel::onSelectDay,
                 onVisibleMonth = calendarViewModel::onVisibleMonth,
+                selected = day,
+                expanded = expanded,
+                onExpandedChange = onExpandedChange,
             )
         },
         actions = remember(viewModel, routes) {
@@ -140,13 +150,46 @@ fun HomeScreen(
     suggestion: AdjustmentSuggestion? = null,
     onAdjustment: (AdjustmentResponse) -> Unit = {},
     /**
-     * Le bandeau des sept derniers jours, ou rien.
+     * Le jour affiche, ou `null` pour aujourd'hui.
+     *
+     * L'ecran Journee a disparu : c'est cette date qui dit ce que montrent les six
+     * compteurs et la liste des plats, et c'est sur elle que le bouton d'ajout ecrit.
+     */
+    day: LocalDate? = null,
+    onBackToToday: () -> Unit = {},
+    /**
+     * L'en-tete escamotable, ou rien.
      *
      * Un emplacement et non un composant : l'accueil n'a pas a connaitre le calendrier
      * ni son `ViewModel`, et les apercus se composent sans lui.
+     *
+     * **Il recoit son etat de repli**, parce que c'est l'ecran qui l'a. Le defilement
+     * de la page arrive ici, et c'est lui qui doit replier ce qui est deploye : l'etat
+     * vit la ou le geste arrive, et non dans ce qu'il replie.
      */
-    calendar: @Composable () -> Unit = {},
+    calendar: @Composable (expanded: Boolean, onExpandedChange: (Boolean) -> Unit) -> Unit = { _, _ -> },
 ) {
+    var calendarExpanded by rememberSaveable { mutableStateOf(false) }
+
+    // Le retour du systeme ramene a aujourd'hui plutot que de quitter l'application :
+    // depuis que l'ecran Journee a disparu, se promener dans l'historique n'empile
+    // plus rien, et le geste n'aurait sinon aucune cible.
+    BackHandler(enabled = day != null) { onBackToToday() }
+
+    // Un doigt qui part vers le haut replie d'abord, puis la page suit. Le delta qui
+    // declenche le repli est consomme : sans cela la page se deplacerait pendant que
+    // la hauteur du calendrier s'anime, et le contenu ferait un bond.
+    val collapseOnScroll = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset = when {
+                !calendarExpanded || available.y >= 0f -> Offset.Zero
+                else -> {
+                    calendarExpanded = false
+                    available
+                }
+            }
+        }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val deleted = stringResource(R.string.home_entry_deleted)
     val undo = stringResource(R.string.home_entry_undo)
@@ -175,13 +218,14 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .nestedScroll(collapseOnScroll)
                 .verticalScroll(rememberScrollState())
                 .padding(padding)
                 .padding(horizontal = Spacing.screenMargin),
             verticalArrangement = Arrangement.spacedBy(Spacing.xl),
         ) {
-            DayHeader(actions)
-            calendar()
+            DayHeader(actions, day)
+            calendar(calendarExpanded) { calendarExpanded = it }
 
             suggestion?.let {
                 AdjustmentCard(
@@ -202,36 +246,6 @@ fun HomeScreen(
                 )
 
                 HomeUiState.Error -> UnreadableDay(actions.onRetry)
-            }
-        }
-    }
-}
-
-/** Le titre du jour, et les deux portes de la barre : le poids et le profil. */
-@Composable
-private fun DayHeader(actions: HomeActions) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.home_title),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        // Des icones seules, sans libelle : ce sont les portes les moins frequentees
-        // de l'ecran, et le titre du jour doit rester ce qu'on lit en premier.
-        Row {
-            IconButton(onClick = actions.onOpenWeight) {
-                TrendGlyph(contentDescription = stringResource(R.string.home_open_weight))
-            }
-            IconButton(onClick = actions.onOpenSettings) {
-                Icon(
-                    imageVector = Icons.Filled.Person,
-                    contentDescription = stringResource(R.string.home_open_profile),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
     }

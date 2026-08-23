@@ -29,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,7 +36,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.hexaphore.core.designsystem.component.NeonButton
 import app.hexaphore.core.designsystem.component.NeonButtonAvailability
 import app.hexaphore.core.designsystem.component.NeonButtonStyle
-import app.hexaphore.core.designsystem.component.SourceBadge
 import app.hexaphore.core.designsystem.theme.NeonTheme
 import app.hexaphore.core.designsystem.theme.Spacing
 import app.hexaphore.domain.diary.DraftImpact
@@ -208,73 +206,6 @@ private fun DraftEditor(state: EntryUiState.Content, actions: EntryActions) {
                 .align(Alignment.BottomCenter)
                 .padding(bottom = with(density) { actionsHeightPx.toDp() }),
         )
-    }
-}
-
-@Composable
-private fun DraftHeader(state: EntryUiState.Content, actions: EntryActions, dateFormatter: DateTimeFormatter) {
-    var naming by remember { mutableStateOf(false) }
-
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(
-                    when {
-                        state.editingFavorite -> R.string.entry_title_favorite
-                        state.form.dishId == null -> R.string.entry_title_new
-                        else -> R.string.entry_title_edit
-                    },
-                ),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            // L'etoile n'apparait que sur un brouillon complet : un favori sans
-            // ligne enregistrable ne rejouerait rien, et il n'y a rien a expliquer
-            // sur un plat qu'on est en train de remplir.
-            if (state.favoritable) {
-                FavoriteStar(
-                    favorite = state.favorite,
-                    onToggle = { if (state.favorite) actions.onUnfavorite() else naming = true },
-                )
-            }
-        }
-
-        val context = LocalContext.current
-        LaunchedEffect(naming) {
-            if (naming) actions.onNaming { number -> context.getString(R.string.entry_favorite_proposal, number) }
-        }
-
-        if (naming) {
-            FavoriteNameDialog(
-                proposal = stringResource(R.string.entry_favorite_proposal, state.favoriteNumber),
-                nameTaken = state.favoriteNameTaken,
-                onConfirm = actions.onFavorite,
-                onDismiss = {
-                    naming = false
-                    actions.onDismissFavoriteError()
-                },
-            )
-        }
-        // La boite se referme d'elle-meme des que le favori existe : c'est le seul
-        // signal fiable que l'ecriture a abouti.
-        LaunchedEffect(state.favorite) {
-            if (state.favorite) naming = false
-        }
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SourceBadge(source = state.form.source)
-            Text(
-                text = dateFormatter.format(state.form.date),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 

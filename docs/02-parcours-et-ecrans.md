@@ -11,8 +11,6 @@ Onboarding (première ouverture uniquement)
                 │             ├─> Sauvegarde
                 │             ├─> Apparence
                 │             └─> À propos
-                ├─> Journée (jour passé sélectionné dans le calendrier)
-                ├─> Calendrier étendu (vue mensuelle)
                 ├─> Journal de poids
                 └─> [FAB] ─┬─> Scan code-barres      ┐
                            ├─> Photo                 │ 4 modales
@@ -57,15 +55,19 @@ L'écran par défaut, celui qu'on ouvre dix fois par jour. Il tient en un défil
 
 ### Bandeau calendrier (fixe en haut)
 
-Sept pastilles de jour, défilement horizontal vers le passé (chargement paginé, pas de limite), le jour courant à droite et sélectionné par défaut.
+Sept pastilles : **une semaine calendaire**, du premier jour de la locale au dernier, et non sept jours glissants ([D93](11-decisions.md)). Le défilement horizontal va de semaine en semaine. Aujourd'hui est affiché par défaut ; le jour affiché porte son numéro en gras et en encre pleine.
 
-Chaque pastille porte le jour de la semaine, le numéro, et un **anneau segmenté** reprenant les six couleurs de macro, dans l'ordre angulaire commun à toute l'application ([08](08-design-system.md#daltonisme)). Le calendrier garde l'anneau : à 44 dp, les six quartiers d'un hexagone ne se distingueraient plus.
+Chaque pastille porte le jour de la semaine, le numéro, et un **anneau segmenté** reprenant les six couleurs de macro, dans l'ordre angulaire commun à toute l'application ([08](08-design-system.md#daltonisme)). Le calendrier garde l'anneau : à cette taille, les six quartiers d'un hexagone ne se distingueraient plus.
+
+La pastille **se calcule sur la largeur** : sept places égales, l'anneau tient dans la sienne. Un compte de marges tenu à deux endroits les avait rendues ovales — le parent refusait la largeur sans toucher à la hauteur ([D101](11-decisions.md#d101--laccueil-porte-une-date-et-lécran-journée-disparaît---validée)).
 
 Un segment se remplit à mesure que l'objectif du jour est atteint ; il passe en mode « dépassement » (trait plus épais, teinte saturée) au-delà. Les six segments s'allument de la même façon, limites comprises ([D47](11-decisions.md)).
 
 Le jour de départ d'un objectif porte un liseré : on voit où une nouvelle phase a commencé.
 
-Tap sur une pastille → écran **Journée**. Tap sur l'en-tête du mois → **Calendrier étendu**.
+~~Tap sur une pastille → écran **Journée**. Tap sur l'en-tête du mois → **Calendrier étendu**.~~
+
+**Tap sur une pastille : l'accueil change de date, sur place** ([D101](11-decisions.md#d101--laccueil-porte-une-date-et-lécran-journée-disparaît---validée)). Le calendrier ne bouge pas — c'est ce qui permet de se promener dans l'historique sans le perdre — et le bouton d'ajout écrit sur le jour affiché, pour rattraper un oubli. Une poignée déplie le mois ; un glissement vers le haut le replie et la page suit.
 
 ### Bloc « Reste aujourd'hui »
 
@@ -204,7 +206,7 @@ Chaque ligne présente :
 - **Quantité** : champ numérique + sélecteur d'unité (g, ml, et les portions nommées disponibles pour cet aliment : « 1 tranche », « 1 verre »). Les macros se recalculent en direct, à partir de la **référence pour 100 g** que la ligne porte — capturée à sa naissance, et reconstruite depuis les valeurs figées quand on rouvre un plat. Le recalcul ne relit donc jamais la fiche, qui a pu être corrigée ou supprimée depuis ([D51](11-decisions.md)).
 - **Confiance IA**, sur les lignes issues d'une analyse : une correspondance faible est visuellement signalée et propose jusqu'à 3 aliments alternatifs, sans obliger à choisir.
 - **Macros dépliables** : les six valeurs, chacune éditable, en **grammes entiers** — personne ne compte les demi-grammes, et l'arrondi a lieu à la saisie et non à l'affichage, pour que le chiffre lu soit celui qui est enregistré ([D52](11-decisions.md)). Une valeur modifiée à la main est marquée et ne sera plus jamais recalculée automatiquement pour cette ligne. Vider un champ compte comme une modification : c'est une affirmation, et la quantité n'a pas à la contredire.
-- **Date** : aujourd'hui par défaut, ou la date consultée si on vient d'un jour passé. Il n'y a **pas** de repas de destination à choisir : les lignes de cet écran forment un plat, et le plat se range tout seul à son heure.
+- **Date** : aujourd'hui par défaut, ou le jour affiché par l'accueil si on est parti d'un jour passé. Elle ne change pas de place — elle est à côté du badge de source depuis toujours — elle change de **ton** : discrète pour aujourd'hui, en corps de texte et en encre pleine pour un autre jour, où elle dit « Sera noté sur le mardi 18 août » ([D101](11-decisions.md#d101--laccueil-porte-une-date-et-lécran-journée-disparaît---validée)). Il n'y a **pas** de repas de destination à choisir : les lignes de cet écran forment un plat, et le plat se range tout seul à son heure.
 
 En bas du défilement : total de la saisie, et son impact sur les compteurs du jour (« il vous restera 780 kcal »), avec **Ajouter un aliment** — qui rouvre la même recherche que le bouton de l'accueil, et dont le choix revient au brouillon en cours. **Enregistrer** et **Annuler** n'y sont pas : ils flottent au-dessus de la liste, côte à côte et toujours à l'image, parce qu'en pied de défilement ils s'éloignaient à mesure que le plat grossissait ([D48](11-decisions.md)). Les autres actions — **Supprimer une ligne**, **Enregistrer comme plat favori** — restent auprès de ce sur quoi elles portent. L'étoile est **en haut à droite** de l'écran, et elle n'apparaît que sur un brouillon complet : un favori sans ligne enregistrable ne rejouerait rien. L'allumer demande un nom, **proposé** depuis les aliments du plat ; l'éteindre **supprime le favori**, et c'est le seul chemin pour l'ôter de la liste ([D62](11-decisions.md)).
 
@@ -216,21 +218,24 @@ Cet écran est aussi celui qu'on obtient en tapant sur une ligne déjà enregist
 
 ---
 
-## Écran Journée
+## ~~Écran Journée~~ · fondu dans l'accueil
 
-Ouvert depuis le calendrier. Structurellement identique à l'accueil, avec trois différences :
+**Il n'existe plus** ([D101](11-decisions.md#d101--laccueil-porte-une-date-et-lécran-journée-disparaît---validée)). L'accueil porte une date, et toucher une pastille la change sur place.
 
-- La date est affichée en titre, avec des flèches jour précédent / jour suivant, et le balayage horizontal fonctionne aussi.
-- Les objectifs comparés sont **ceux qui étaient actifs ce jour-là**, pas les objectifs actuels. Un objectif modifié aujourd'hui ne réécrit pas l'appréciation d'il y a deux mois.
-- Un encart de synthèse en tête : écart à chaque objectif, en valeur et en pourcentage.
+Deux demandes l'ont fait disparaître, et elles poussaient au même endroit : *le calendrier doit rester visible quand on se promène dans l'historique* — un second écran le laisse derrière lui — et *on doit pouvoir noter un plat sur un jour passé* — un écran de lecture seule ne le permet pas.
 
-L'ajout et l'édition y sont pleinement disponibles : on rattrape un oubli de la veille comme on saisit le repas du jour.
+Ce n'était pas une perte. Il était déjà « structurellement identique à l'accueil » et partageait son modèle pour ne pas diverger ; il ne restait de lui qu'un titre, une croix, et l'absence du bouton d'ajout — dont les deux dernières viennent d'être annulées par la demande.
 
----
+Ce qu'il promettait reste vrai, sur l'accueil : *« l'ajout et l'édition y sont pleinement disponibles : on rattrape un oubli de la veille comme on saisit le repas du jour. »* Le bouton retour du système ramène à aujourd'hui.
 
-## Calendrier étendu
 
-Grille mensuelle, une case par jour, chaque case portant l'anneau segmenté en réduction. Défilement vertical entre les mois. En bas, trois indicateurs sur la période affichée : jours journalisés, moyenne calorique, écart moyen à l'objectif.
+## Calendrier déplié
+
+**Ce n'est pas un écran**, c'est la même bande qui grandit ([D93](11-decisions.md)) — une poignée la déplie en grille mensuelle, une case par jour, chaque case portant l'anneau segmenté en réduction. Défilement vertical entre les mois.
+
+Déplié, il **retient la page** : un glissement vers le haut le replie, et le même doigt continue dans le contenu. Le premier delta est consommé par le repli, sans quoi la page se déplacerait pendant que la hauteur s'anime et que le contenu ferait un bond ([D101](11-decisions.md#d101--laccueil-porte-une-date-et-lécran-journée-disparaît---validée)).
+
+Toucher une case change le jour affiché **sur place**. Le calendrier reste donc à l'écran pendant qu'on se promène dans l'historique, et le bouton d'ajout écrit sur le jour qu'on regarde.
 
 Une journée sans aucune saisie est visuellement neutre — et non « à zéro ». Confondre « je n'ai rien noté » avec « je n'ai rien mangé » fausserait toutes les moyennes, ici comme dans l'algorithme d'adaptation ([03](03-nutrition-calculs.md#adaptation-hebdomadaire)).
 

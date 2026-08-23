@@ -2899,6 +2899,74 @@ Rien ne dit non plus que le raccourci **aide** : la longueur moyenne tombe d'un 
 
 ---
 
+## D101 — L'accueil porte une date, et l'écran Journée disparaît · ✓ validée
+
+**Contexte.** Cinq corrections rapportées à l'usage, dont deux qui n'en faisaient qu'une : *« le calendrier doit rester visible quand on se balade dans l'historique »* et *« l'utilisateur doit pouvoir toujours ajouter des plats sur les jours précédents en cas d'oubli »*.
+
+### Un seul écran, avec une date
+
+Les deux demandes poussaient au même endroit. Un second écran ne peut pas garder le calendrier à l'écran — il le laisse derrière lui — et un écran de lecture seule ne peut pas recevoir un plat oublié.
+
+L'écran Journée disparaît donc, et l'accueil porte une date. Toucher une pastille ne navigue plus : elle change la date **sur place**, le calendrier ne bouge pas, les six compteurs et la liste se rechargent, et le bouton d'ajout écrit sur le jour affiché.
+
+Ce n'était pas une perte : [D92](#d92--une-journée-sans-saisie-na-pas-de-ligne-et-cest-structurel---validée) avait déjà noté que l'écran Journée était *« structurellement identique à l'accueil »* et partageait son modèle pour ne pas diverger. Il ne restait de lui que trois différences — un titre, une croix, et l'absence du bouton d'ajout — dont les deux dernières viennent d'être annulées par la demande.
+
+### Le jour voyage par un port, pas par la navigation
+
+Le jour regardé doit atteindre l'**écran de validation**, qui n'est ouvert ni par l'accueil ni directement : entre les deux il y a la recherche, un scan, ou une modale d'IA. Le faire voyager demanderait de le déclarer sur quatre routes dont aucune ne s'en sert.
+
+C'est le choix déjà fait pour la proposition d'un modèle ([D80](#d80--la-proposition-passe-par-un-dépôt-et-lécran-de-validation-ne-change-pas-dun-mot---validée)) : elle attend dans un dépôt plutôt que de traverser le graphe.
+
+**`null` veut dire aujourd'hui, et ce n'est pas la même chose que la date du jour.** Une application laissée ouverte pendant la nuit doit basculer sur la journée neuve ; y ranger la date d'aujourd'hui la ferait afficher la veille jusqu'à ce que quelqu'un touche une pastille. La normalisation vit dans le port et non dans l'écran : c'est une propriété du jour regardé, pas du geste qui le change.
+
+**Rien ne le persiste.** Rouvrir l'application montre aujourd'hui — retrouver un jour d'octobre parce qu'on l'y avait laissé trois semaines plus tôt ferait noter un repas au mauvais endroit sans qu'aucun écran n'ait menti.
+
+### La même ligne, deux tons
+
+Écrire sur un jour passé ouvre un risque : croire qu'on écrit aujourd'hui. L'écran de validation **affichait déjà la date**, en petit gris à côté du badge de source — c'est-à-dire à l'endroit où on ne la lit pas.
+
+Elle ne change pas de place, elle change de ton : discrète pour aujourd'hui, en corps de texte et en encre pleine pour un autre jour, où elle dit *« Sera noté sur le mardi 18 août »*. Une seconde ligne aurait répété ce que la première disait déjà ; une boîte de confirmation aurait pénalisé le cas volontaire, qui est le seul qui existe vraiment.
+
+### Le repli suit le doigt
+
+Déplié, un glissement vers le haut replie le calendrier, **et le même doigt continue** dans la page. Le delta qui déclenche le repli est consommé : sans cela la page se déplacerait pendant que la hauteur s'anime, et le contenu ferait un bond.
+
+**L'état de repli vit dans l'écran, pas dans le calendrier.** C'est l'accueil qui reçoit le défilement, donc lui seul peut replier ce qui est déployé. Le panneau le reçoit en paramètre — l'accueil sait qu'il porte un en-tête escamotable, pas qu'il s'agit d'un calendrier.
+
+### Les pastilles étaient ovales, et deux comptes en étaient la cause
+
+Le calcul du diamètre réservait `4 dp × 8` de marges ; `DayCell` en dépensait **deux par cellule**, soit `4 dp × 14`. La largeur demandée dépassait la place, le parent la rognait, et la hauteur — que rien ne contraignait — restait entière.
+
+**Une pastille plus haute que large est le symptôme d'une largeur refusée, jamais d'un dessin ovale** : l'anneau a toujours été rond.
+
+La première correction fut de mettre les deux comptes d'accord, par une constante partagée. **La campagne de défaite a refusé cette réponse** : écarter la cellule de la constante ne faisait tomber aucun cas, parce qu'aucun cas ne peut voir ce qu'une composable dépense. Une règle qui tient sur la bonne volonté de deux endroits n'est pas une règle.
+
+Il n'y a donc plus qu'un compte. `cellFootprint` divise la largeur par sept — **une place, pas un diamètre** — et la cellule la prend telle quelle. `ringDiameter` retire les marges de cette place et borne le résultat, et c'est le seul endroit du code où une marge est soustraite. La cellule ne calcule plus rien : elle consomme.
+
+L'anneau reçoit en outre un rapport de forme, pour qu'une erreur de dimension se voie désormais comme un rétrécissement et non comme une déformation.
+
+**Le cas qui vérifiait cela encodait la même erreur que le code** — il comptait huit intervalles. Il passait donc pendant que les pastilles étaient écrasées à l'écran. Un cas qui reprend l'arithmétique de ce qu'il vérifie ne vérifie rien. Il affirme maintenant une **égalité** sur sept largeurs, de l'écran le plus étroit à la tablette : trop petit gaspille la place, trop grand la dépasse, et les deux tombent.
+
+### Une unité qui s'appliquait sans se voir
+
+« 1 bol » se choisissait à la saisie puis disparaissait du sélecteur en rouvrant le plat — alors que la quantité restait juste. Rouvrir reconstruit bien l'unité depuis ce qui a été écrit, mais **sans relire la fiche**, donc sans ses portions : le sélecteur ne proposait que les grammes et les millilitres, et ne pouvait pas montrer comme choisie une unité absente de sa propre liste.
+
+La règle manquante : **l'unité qu'une ligne porte fait toujours partie de celles qu'elle propose.** La comparaison porte sur le code et non sur l'unité entière — une portion qui aurait changé de poids depuis apparaîtrait deux fois sous le même nom.
+
+**Campagne de défaite : onze sabotages, dix cas tombés, un hors de portée.**
+
+Celui qui reste debout : écarter la cellule de la place qu'on lui donne — `.size(footprint)` devenu `.size(footprint * 2)`. Aucun test unitaire ne mesure une composable, et le projet n'a pas d'infrastructure de test Compose. Ce qui a été fait à la place est structurel : la cellule ne calcule plus rien, donc il n'y a plus deux nombres à faire diverger — seulement un nombre à recopier. Le risque restant n'est plus une erreur d'arithmétique, c'est une faute de frappe.
+
+**Conséquences.** `DayScreen` et `DayDestination` disparaissent ; le graphe n'a plus qu'une destination pour le journal. `SelectedDay` est un port de plus, implémenté dans `:core:common` à côté de l'horloge — c'est un état d'application, pas un domaine de données. `CreateDraft` prend une dépendance de plus. `HomeScreen` et `EntryScreen` se scindent chacun en deux fichiers, le titre d'un côté, le contenu de l'autre.
+
+**Ce que le vert ne prouve pas.** **Le geste.** Le repli au défilement, la continuité du doigt, la disparition du bond — rien de cela ne s'éprouve sans tenir le téléphone. Le `NestedScrollConnection` est écrit contre la documentation, et sa consommation du premier delta est un pari sur ce qui se sent bien.
+
+Rien ne dit non plus que les pastilles soient **jolies** à leur nouvelle taille : les cas affirment qu'elles tiennent, pas qu'elles se lisent. Et le retour du système qui ramène à aujourd'hui plutôt que de quitter l'application n'a tourné dans aucun test — `BackHandler` est une intégration Android.
+
+**Deux défauts de mise en page de suite ont échappé au vert** — le titre qui débordait ([D97](#d97--un-nom-daliment-se-replie-sur-deux-lignes-et-ne-contient-jamais-de-retour-à-la-ligne---validée)) et les pastilles ovales — et dans les deux cas la suite était verte pendant que l'écran était faux. Une infrastructure de test Compose mettrait ces règles à portée d'un cas ; elle n'entre pas dans cinq corrections, mais le constat est posé.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

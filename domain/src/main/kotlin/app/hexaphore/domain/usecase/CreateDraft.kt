@@ -4,9 +4,11 @@ import app.hexaphore.domain.diary.DraftLine
 import app.hexaphore.domain.diary.DraftLineId
 import app.hexaphore.domain.diary.EntryDraft
 import app.hexaphore.domain.diary.EntrySource
+import app.hexaphore.domain.diary.SelectedDay
 import app.hexaphore.domain.food.Food
 import app.hexaphore.domain.identity.IdGenerator
 import app.hexaphore.domain.time.Clock
+import java.time.LocalDate
 
 /**
  * Fabrique un brouillon vierge et ses lignes.
@@ -20,10 +22,22 @@ import app.hexaphore.domain.time.Clock
  * recherche, au scan et à l'IA de produire le même genre de brouillon sans que rien
  * ne change ici.
  */
-class CreateDraft(private val clock: Clock, private val ids: IdGenerator) {
-    /** Un brouillon d'une seule ligne vide, daté d'aujourd'hui. */
+class CreateDraft(private val clock: Clock, private val ids: IdGenerator, private val selected: SelectedDay) {
+    /**
+     * Le jour sur lequel un brouillon s'écrit : celui qu'on regarde, sinon aujourd'hui.
+     *
+     * **C'est ce qui permet de rattraper un repas oublié.** L'accueil porte une date,
+     * et le bouton d'ajout écrit sur elle — sans quoi un plat noté depuis un jour passé
+     * atterrirait aujourd'hui, en silence et au mauvais endroit.
+     *
+     * Un seul endroit décide encore, comme avant : la question a juste deux réponses
+     * possibles au lieu d'une.
+     */
+    private fun date(): LocalDate = selected.current() ?: clock.today()
+
+    /** Un brouillon d'une seule ligne vide, daté du jour regardé. */
     operator fun invoke(source: EntrySource): EntryDraft = EntryDraft(
-        date = clock.today(),
+        date = date(),
         source = source,
         lines = listOf(line()),
     )
@@ -37,7 +51,7 @@ class CreateDraft(private val clock: Clock, private val ids: IdGenerator) {
      * pastille.
      */
     operator fun invoke(source: EntrySource, food: Food): EntryDraft = EntryDraft(
-        date = clock.today(),
+        date = date(),
         source = source,
         lines = listOf(DraftLine.of(DraftLineId(ids.next()), food)),
     )
@@ -52,7 +66,7 @@ class CreateDraft(private val clock: Clock, private val ids: IdGenerator) {
      * réussite — mais le tenir ici coûte une expression et évite d'y compter.
      */
     operator fun invoke(source: EntrySource, lines: List<DraftLine>): EntryDraft = EntryDraft(
-        date = clock.today(),
+        date = date(),
         source = source,
         lines = lines.ifEmpty { listOf(line()) },
     )
