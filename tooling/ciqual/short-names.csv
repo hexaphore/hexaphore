@@ -15,19 +15,1308 @@
 # Un titre doit etre plus court que son libelle d'origine et tenir en
 # 40 caracteres, sans quoi l'import s'arrete en nommant la ligne.
 #
-# --- Les six lignes ci-dessous sont ecrites a la main -------------------------
+# --- Ce que cette table couvre, et ce qu'elle ne couvre pas -------------------
 #
-# Elles ne viennent d'aucun modele : elles servent d'exemple de ce qu'on
-# attend, et surtout elles rendent la chaine eprouvable de bout en bout tant
-# que la passe n'a pas tourne. Un test les lit dans la base livree.
+# Trois regles produisent le titre : le nom reste en tete et ne se coupe jamais ;
+# l'etat -- cru, cuit, seche -- est le qualificatif qui distingue le plus souvent
+# deux fiches voisines, et il se garde meme quand la place manque ; le reste tombe
+# de la droite vers la gauche.
 #
-# La generation ne les redemandera pas : elle ne demande que les codes absents
-# de ce fichier.
+# **Deux fiches voisines ne portent jamais le meme titre.** Quand la reduction
+# fait collision, chacune recupere le mot qui la distingue. Ce qui ne se
+# departage pas en quarante caracteres n'obtient aucun titre : la fiche garde son
+# libelle, ce qui est l'etat d'avant et non une regression.
+#
+# Les fiches dont le libelle tient deja en quarante caracteres n'y figurent pas
+# non plus : il n'y a rien a raccourcir.
 
 code_ciqual,titre_court
+10001,Calmar, cru
+10002,Calmar, à la romaine (beignet)
+10003,Coquille Saint-Jacques, crue
+10004,Coquille Saint-Jacques, cuite
+10005,Crabe, miettes et ou pattes décortiquées
+10025,Crabe, bouilli/cuit à l'eau
+10027,Clam, bouilli/cuit à l'eau
+10028,Moules, au naturel, appertisées
+10037,Calmar, bouilli/cuit à l'eau
+10042,Escargot en sauce au beurre persillé
+10048,Pecten d'Amérique, noix, crue
+10049,Pétoncle, noix, crue
+10061,Crevette blanche (rose), élevage, cuite
+10062,Crevette tropicale, élevage, cuite
+10064,Crevette tropicale, cuite
+1007,Apéritif à base de vin
+10080,Fruits de mer, cuits, surgelés
+10081,Moules à la sauce catalane (tomate)
+10082,Moules marinières (oignons et vin blanc)
+10083,Moules farcies, crues
+10084,Calmar
+10086,Crevettes, décortiquées, cuites
+10088,Ecrevisses, décortiquées, cuites
+10089,Crevettes grises, décortiquées, cuites
+10101,Crevette, élevage, cuite
+1022,Cocktail type punch, 16% alcool
+1023,Eau de vie de vin type armagnac
+1028,Spécialité végétale type fromage
+1030,Fines tranches végétales
+1031,Spécialité végétale type pâté
+1032,Haché à base de boeuf et soja
+1033,Nuggets (contenant du soja)
+1034,Saucisse de volaille type knack
+11017,Sel blanc alimentaire
+11046,Levure chimique
+11054,Mayonnaise (70% MG min.)
+11058,Sel blanc alimentaire, iodé, non fluoré
+11073,Ketchup allégé en sucres
+11080,Herbes aromatiques fraîches
+11086,Spiruline, séchée ou déshydratée
+11088,Poivre de Cayenne, poudre
+11096,Sel blanc alimentaire, iodé
+11107,Sauce tomate aux oignons
+11108,Sauce vinaigrette à l'huile d'olive
+11110,Sauce vinaigrette (50 à 75% d'huile)
+11112,Harissa (sauce au piment)
+11114,Sauce tomate à la viande
+11115,Sauce au poivre vert
+11120,Sauce bourguignonne
+11122,Sauce à l'échalote à la crème
+11132,Sauce au curry, chaude
+11140,Sauce au beurre blanc
+11143,Sauce béchamel au beurre
+11160,Sauce aux champignons
+11164,Sauce au vin rouge
+11169,Fond de veau pour sauces et cuisson
+11170,Sauce basquaise
+11171,Fond de volaille pour sauces et cuisson
+11177,Sauce tomate aux champignons
+11178,Sauce tomate aux olives
+11182,Sauce au poivre, chaude
+11189,Sauce au fromage pour risotto
+11191,Sauce au roquefort
+11192,Sauce aux champignons et à la crème
+11194,Sauce nuoc mâm
+11199,Sauce grand veneur
+11202,Sauce indienne type tandoori
+11207,Sauce tomate aux petits légumes
+11208,Sauce tomate au fromage
+11212,Sauce au poivre, froide
+11214,Préparation culinaire à base de soja
+11217,Sauce pour nems à base de nuoc-mam dilué
+11219,Sauce végétale type bolognaise
+11222,Ktipiti
+11245,Sauce pommes frites
+11247,Sauce au curry, froide
+11303,Fumet de poisson
+12001,Camembert
+12006,Camembert au lait cru
+12015,Fromage à pâte molle type carré
+12033,Fromage à pâte molle, triple crème
+12051,Mont d'or ou vacherin-Mont d'Or
+12053,Fromage pour tartiflette
+12059,Brocciu
+12066,Feta
+12068,Fromage frais, à tartiner, nature
+12070,Fromage frais, à tartiner
+12071,Brousse
+12073,Fromage frais, olives, figues et noix
+12099,Emmental de Savoie
+12100,Fromage à pâte pressée cuite
+12111,Fromage à effilocher
+12114,Gruyère
+12303,Fromage fondu en portion (triangle)
+12304,Fromage fondu en portion
+12307,Fromage blanc fondu en portion
+12325,Cancoillotte
+12342,Fromage frais, allégée en matière grasse
+12526,Bleu de Gex
+12735,Mimolette jeune
+12737,Mimolette demi-vieille
+12738,Mimolette vieille
+12742,Mimolette extra-vieille
+12755,Saint-Paulin
+12760,Tomme, allégée en matière grasse
+12768,Fromage type feta, égoutté
+12775,Mélange de fromages râpés
+12803,Fromage de chèvre lactique affiné
+12805,Fromage de chèvre frais, type palet
+12807,Sainte-Maure de Touraine
+12813,Fromage de chèvre bûche
+12833,Crottin de chèvre
+12839,Pouligny Saint-Pierre
+13009,Citron, sans pépins, cru
+13016,Fruit de la passion, avec pépins, cru
+13018,Grenade, avec pépins, crue
+13024,Clémentine, sans pépins, crue
+13025,Mangue, sans noyau, crue
+13026,Melon cantaloup, cru
+13034,Orange, sans pépins, crue
+13036,Pastèque, sans pépins, chair sans peau
+13040,Pomelo (dit Pamplemousse), cru
+13044,Raisin blanc, à gros grain, cru
+13051,Mélange apéritif de fruits exotiques
+13056,Anone, chair sans peau, crue
+13063,Figue de Barbarie, avec pépins, crue
+13067,Citron vert, sans pépins, cru
+13077,Ramboutan, sans noyau, crue
+13080,Tamarin, fruit mûr, avec pépins, cru
 13121,Pomme Granny Smith pelee
+13128,Chayote, crue
+13129,Compote, tout type de fruits
+13147,Olives vertes, fourrées ou farcies
+13148,Nectarine, jaune, sans noyau, crue
+13149,Nectarine, blanche, sans noyau, crue
+13151,Compote de pomme, allégée en sucres
+13152,Dessert de fruits, rayon ambiant
+13153,Purée de fruits, rayon ambiant
+13154,Spécialité de fruits, sucrée
+13165,Dessert infantile lacté au riz
+13166,Dessert infantile lacté
+13167,Céréales instantanées, dès 4/6 mois
+13168,Céréales instantanées, dès 6 mois
+13174,Spécialité de fruits, rayon ambiant
+13175,Pomme, rôtie/cuite au four
+13176,Pomme, bouillie/cuite à l'eau
+13177,Chayote, bouillie/cuite à l'eau
+13178,Canneberge, séchée, sucrée
+13179,Pomelo (dit Pamplemousse) jaune, cru
+13180,Pomelo (dit Pamplemousse) rose, cru
+13182,Boisson infantile céréales lactées
+13185,Compote
+13187,Purée de pommes, rayon ambiant
+13193,Pêche blanche, sans noyau, chair et peau
+13195,Pêche jaune, sans noyau, crue
+13199,Compote, allégée en sucres
+13200,Mangue José, crue, prélevée à La Réunion
+13201,Ananas Victoria, crue
+13202,Papaye Colombo, crue
+13206,Compote de rhubarbe
+13208,Spécialité de fruits divers, sucrée
+13211,Compote, autres fruits
+13212,Compote de pomme
+13396,Pomme, chair sans peau, crue
+13397,Poire, chair, crue
+13398,Pêche, chair sans peau, sans noyau, crue
+13399,Nectarine, sans noyau, crue
+13400,Abricot pays, sans noyau, au sirop
+13401,Abricot pays, sans noyau, cru
+13402,Ananas, chair sans peau, cru
+13403,Caïmite, cru
+13405,Chadèque, sans pépins, cru
+13406,Chips d'abricot pays
+13407,Goyave, chair sans peau, purée
+13408,Jus de carambole, jus filtré
+13409,Jus de carambole, jus non filtré
+13410,Jus de citron punch, pur jus
+13411,Jus de citron vert, pur jus
+13412,Jus de corossol
+13413,Jus de fruit de la passion, pur jus
+13414,Jus de grenade
+13415,Jus de lime, pur jus
+13416,Jus de mandarine commune
+13417,Jus de mandarine commune, pur jus filtré
+13418,Jus de mandarine macaque, pur jus filtré
+13419,Jus de moubin, pur jus
+13420,Jus de pamplemousse, pur jus
+13425,Mandarine commune, sans pépins, au sirop
+13426,Mango bassignac, sans noyau, cru
+13427,Mangue moussache, sans noyau, crue
+13428,Mangue julie, sans noyau, crue
+13429,Mangue verte, sans noyau, crue
+13430,Melon, chair sans peau, sans pépins, cru
+13431,Orange (variété locale), sans pépins
+13432,Orange amère, sans pépins, crue
+13434,Pomme cajou, chair et peau, crue
+13435,Pomme cannelle, sans pépins, crue
+13436,Pomme d'eau, sans noyau, crue
+13437,Pomme liane, avec pépins, crue
+13438,Prune de cythère, mûre, crue
+13439,Prune de cythère, crue
+13523,Datte du désert, sans noyau, crue
+13529,Dourian, sans noyau, cru
+13564,Nèfle du Japon, sans noyau, crue
+13614,Pamplemousse chinois, sans pépins, cru
+13623,Abricot, dénoyauté, sec, moelleux
+13704,Abricot au sirop
+13705,Macédoine, au sirop
+13706,Macédoine, au sirop, appertisé, égoutté
+13707,Macédoine, au sirop, appertisé
+13708,Macédoine, au sirop léger, égoutté
+13709,Macédoine, au sirop léger, non égoutté
+13712,Abricot au sirop léger, égoutté
+13713,Abricot au sirop léger, non égoutté
+13716,Ananas au jus d'ananas, égoutté
+13717,Ananas au jus d'ananas, non égoutté
+13718,Ananas au sirop léger, égoutté
+13719,Ananas au sirop léger, non égoutté
+13724,Litchi, sans noyau, au sirop léger
+13730,Pêche, sans noyau, égouttée
+13731,Pêche, sans noyau, non égouttée
+13734,Poire au sirop léger, égouttée
+13735,Poire au sirop léger, non égouttée
+13742,Melon miel, sans pépins, cru
+13997,Fruits rouges, crus
+13998,Coulis de fruits rouges
+14008,Gibier à poil, cuit
+15008,Noix du Brésil, sans sel ajouté
+15013,Crème de marron
+15055,Noix de cajou, grillée à sec
+15058,Cacahuète caramélisée
+15059,Mélange apéritif de graines grillées
+15063,Chanvre, graine décortiquée
+15065,Fruits à coques et cacahuète, salé
+15066,Fruits à coques et cacahuète
+15202,Beurre de cacahuète
+16040,Huile, Huile ou graisse de coco
+16050,Huile, vierge
+16060,Huile (coprah), raffinée
+16128,Huile pour friture
+16200,Huile, Huile ou graisse de palmiste
+16401,Huile de beurre
+16410,Beurre à 60-62% MG, doux
+16411,Beurre à 60-62% MG, demi-sel
+16412,Beurre, doux, Beurre ou assimilé allégé
+16601,Matière grasse tartinable, standard
+16602,Matière grasse tartinable, demi-sel
+16713,Matière grasse laitière à 15-25% MG
+17701,Huile combinée
+18004,Café, non instantané
+18009,Eau minérale, embouteillée
+18012,Boisson à l'eau minérale, sucrée
+18013,Tonic, avec édulcorants
+18014,Tonic, sucré, avec édulcorants
+18015,Boisson au thé, aromatisée, sucrée
+18022,Tisane infusée, sans sucres ajoutés
+18026,Boisson gazeuse aromatisée, sucrée
+18029,Boisson rafraîchissante sans alcool
+18035,Limonade, avec édulcorants
+18045,Eau minérale, embouteilée, plate
+18046,Eau minérale, embouteilée, gazeuse
+18059,Boisson concentrée à diluer
+18060,Cola, avec édulcorants
+18063,Cola
+18065,Boisson au thé, avec édulcorants
+18068,Cola, avec édulcorants, sans caféine
+18070,Café décaféiné, non instantané
+18071,Café expresso, non instantané
+18072,Café décaféiné, instantané
+18073,Café, instantané, sans sucres ajoutés
+18100,Cacao, poudre soluble
+18102,Poudre maltée, sucrée
+18104,Chocolat chaud, sucrée
+18106,Chocolat chaud, enrichie en vitamines
+18107,Boisson à l'amande, nature
+18110,Boisson à l'amande, sucrée
+18111,Boisson à l'amande
+18112,Boisson végétale
+18113,Boisson au soja
+18151,Café au lait, café crème ou cappuccino
+18153,Chicorée et café, sans sucres ajoutés
+18160,Café au lait, Café au lait ou cappuccino
+18161,Chicorée, instantanée
+18168,Poudre cacaotée, enrichie en vitamines
+18299,Citronnade, boisson plate au citron
+18315,Boisson plate au fruits et au légume
+18316,Kéfir d'eau et de fruits
+18324,Boisson énergisante
+18327,Limonade
+18328,Boisson préparée à partir de sirop, etc
+18341,Boisson gazeuse à la pomme
+18349,Boisson pour le sport, sucrée
+18353,Boisson énergisante, avec édulcorants
+18354,Boisson énergisante, sucrée
+18356,Tonic
+18899,Boisson à l'avoine, nature
+18900,Boisson au soja, nature
+18901,Boisson au soja, enrichie en calcium
+18904,Boisson au riz, nature
+18906,Boisson à la châtaigne, nature
+18907,Boisson à la noix de coco, nature
+19012,Lait de croissance infantile, liquide
+19013,Lait 1er âge
+19014,Lait 2e âge (préparation de suite)
+19015,Lait infantile pour prématurés
+19026,Lait concentré sans sucres ajoutés
+19033,Lait demi-écrémé
+19037,Lait demi-écrémé, enrichi en vitamine D
+19038,Lait à 1, 2% MG, UHT
+19039,Lait, UHT
+19114,Boisson lactée aromatisée à la vanille
+19120,Boisson lactée aromatisée, sucrée
+19127,Boisson lactée aromatisée à la fraise
+19402,Crème
+19403,Crème, fluide
+19404,Crème, épaisse ou semi-épaisse
+19410,Crème 30% MG, épaisse
+19430,Crème 12 à 25% MG, légère, semi-épaisse
+19431,Crème 12 à 25% MG, légère, épaisse
+19436,Crème 12 à 20% MG, légère, fluide
+19437,Fromage de chèvre pané à dorer
+19500,Lait fermenté à boire, aromatisé, 0% MG
+19501,Fromage blanc, nature ou aux fruits
+19538,Lait fermenté à boire, sucré, au L Casei
+19550,Yaourt à la grecque nature
+19552,Yaourt à la grecque sur lit de fruits
+19553,Yaourt au lait de brebis, aromatisé
+19554,Yaourt au lait de brebis, 3% MG environ
+19555,Yaourt au lait de brebis, sucré
+19557,Yaourt, sur lit de fruits, sucré
+19559,Yaourt, aromatisé, avec édulcorants
+19572,Fromage frais type petit suisse, sucré
+19574,Yaourt, aromatisé, enrichi en vitamine D
 19575,Yaourt aromatise sucre
+19577,Yaourt, aromatisé, à la crème, sucré
+19578,Yaourt, aromatisé, sucré
+19579,Yaourt, aux céréales
+19580,Yaourt, aux copeaux de chocolat, sucré
+19581,Yaourt, aux fruits, avec édulcorants
+19589,Yaourt, aux fruits, à la crème, sucré
+19591,Mozzarella au lait de bufflonne
+19594,Yaourt, nature, 0% MG
+19596,Yaourt, 0% MG, enrichi en vitamine D
+19598,Yaourt, nature, à la crème
+19599,Yaourt, nature, sucré
+19600,Yaourt, nature, Yaourt ou lait fermenté
+19624,Yaourt, nature ou aux fruits
+19628,Yaourt, aux fruits
+19643,Fromage blanc et crème fouettée, sucré
+19645,Fromage blanc, 0% MG
+19648,Fromage blanc, 2-3% MG
+19654,Fromage blanc, aux copeaux de chocolat
+19657,Fromage blanc, aux fruits, 2-3% MG
+19659,Fromage blanc, aux fruits, 6-7% MG
+19660,Fromage blanc, sur lit de fruits, sucré
+19663,Fromage frais type petit suisse, 0% MG
+19664,Fromage frais type petit suisse, nature
+19671,Yaourt, aromatisé ou aux fruits, 0% MG
+19672,Yaourt, non allégé en matière grasse
+19673,Crème dessert, allégée en matière grasse
+19675,Yaourt, avec édulcorants
+19678,Lait emprésuré aromatisé
+19679,Lait gélifié aromatisé, nappé caramel
+19680,Lait gélifié aromatisé
+19681,Liégeois
+19682,Yaourt, Yaourt ou lait fermenté
+19685,Panna cotta
+19686,Spécialité laitière, aromatisé, sucré
+19692,Dessert au soja, aux fruits, fermenté
+19693,Dessert au soja, nature, fermenté
+19694,Dessert au soja, enrichi en calcium
+19696,Dessert au soja, aux amandes, sucré
+19699,Tiramisu aux fruits
+19709,Fromage blanc, aromatisé, 0% MG
+19712,Fromage blanc, au lait de brebis
+19713,Fromage blanc, au lait de chèvre
+19715,Fromage blanc, aromatisé, 2-3% MG, sucré
+19718,Fromage blanc, aromatisé, 7-8% MG, sucré
+19723,Yaourt, nature, enrichi en vitamine D
+19726,Yaourt, sucré, enrichi en vitamine D
+19727,Yaourt au lait de chèvre, aux fruits
+19728,Yaourt au lait de chèvre, sucré
+19733,Yaourt, sur lit de fruits, à la crème
+19801,Lait fermenté à boire, nature, maigre
+19805,Lait fermenté à boire, au lait entier
+19852,Mousse à la crème de marrons
+19863,Tzatziki à base de yaourt
+19864,Tzatziki à base de fromage frais
+19882,Yaourt au lait de brebis, 6% MG environ
+19999,Poivron, vert, jaune ou rouge, cuit
+20004,Bette, côte (sans feuille), crue
+20005,Bette, côte (sans feuille), cuite
+20011,Champignon, tout type, appertisé
+20012,Salade, crue
+20029,Graine germée de haricot mungo
+20051,Macédoine de légumes, appertisée
+20056,Champignon de Paris, cru
+20074,Artichaut
+20079,Champignon de Paris, appertisé, égoutté
+20083,Epinard, cru, surgelé
+20093,Petits pois et carottes, appertisés
+2010,Nectar multifruit, base pomme
+20102,Champignon de Paris
+2011,Jus multifruit, base orange
+20125,Champignon de Paris, sauté/poêlé
+20137,Tomate, pelée, appertisée, au jus
+20138,Courge butternut (doubeurre), crue
+20141,Courge butternut, bouillie/cuite à l'eau
+2015,Jus de pamplemousse, à base de concentré
+20173,Pois mange-tout, cru
+20183,Graine germée de haricot mungo, crue
+20192,Tomate côtelée, crue
+20194,Haricots blancs à la sauce tomate
+20197,Salsifis noir, cru
+20211,Champignon, séché
+20212,Champignon, cuit
+20216,Pois mange-tout, bouilli/cuit à l'eau
+20228,Champignon de Paris, surgelé, cru
+2024,Jus de fruit de la passion, frais
+20240,Piperade basquaise
+20242,Tomate, bouillie/cuite à l'eau
+20243,Pois mange-tout, cuits
+20247,Petit pot légumes, avec féculent
+20248,Plat légumes, avec féculent
+20253,Soupe pour bébé légumes
+20260,Tomate, coulis
+20265,Julienne, surgelée, crue
+20267,Printanière, surgelée, crue
+20270,Épinard, cru
+20271,Macédoine de légumes, précuite, surgelée
+20272,Mesclun, mélange de jeunes pousses
+20274,Poêlée de légumes assaisonnés grillée
+20280,Chou romanesco, cru
+20282,Asperge, blanche ou violette, crue
+20289,Tomate, rôtie/cuite au four
+20290,Chou romanesco, cuit
+20291,Potimarron, cuit à l'étouffée
+20292,Courge butternut (doubeurre), cuite
+20296,Brèdes chou de Chine, cuites à la vapeur
+20297,Chayote, cuite à la vapeur
+20298,Carotte, purée cuisinée à la crème
+20300,Aubergine, rôtie/cuite au four
+20301,Bette, bouillie/cuite à l'eau
+20305,Carotte, croquante
+20306,Carotte, fondante
+20313,Courgette, rôtie/cuite au four
+20322,Oignon blanc
+20323,Oignon nouveau
+2033,Jus multifruit
+20331,Potimarron, bouilli/cuit à l'eau
+20335,Échalote
+20337,Saucisse végétale au tofu
+20338,Quenelle au tofu
+20339,Chou chinois pak choï, cuit
+2034,Jus de clémentine, pur jus
+20340,Chou chinois pak choï, cru
+20349,Asperge, bouillie/cuite à l'eau
+20350,Brocoli, bouilli/cuit à l'eau
+20354,Céleri branche, cuit
+20355,Chou rouge, cuit
+20357,Potimarron, chair sans peau, cuit
+20358,Tomate, chair et peau, cuite
+20359,Lentille, sèche
 20360,Lentilles cuites
+20385,Tomate sans précision, crue
+2040,Jus de cerise des Antilles, frais
+2050,Jus multifruit, base pomme
+20529,Haricot de Lima, cru
+2053,Jus de tomate, pur jus
+20531,Haricot mungo, bouilli/cuit à l'eau
+20540,Haricot flageolet, bouilli/cuit à l'eau
+20542,Fève, pelée, fraîche, surgelée
+20543,Fève, fraîche, surgelée
+2062,Nectar multifruit, base orange
+2064,Nectar, avec édulcorants
+2069,Jus multifruit, standard
+20700,Légume sec, cuit
+2071,Jus multifruit, multivitaminé
+2072,Jus de fruits, pur jus
+2075,Jus de légumes, pur jus
+2077,Jus de fruits, à base de concentré
+20800,Banane jaune, cuite à la vapeur
+20803,Chou dur, pulpe, cuit à la vapeur
+20804,Chayote, sans noyau, chair sans peau
+20806,Chayote, chaire sans peau, sans noyau
+20807,Chayote, cuite à la vapeur, surgelée
+20808,Concombre, avec pépins, cru
+20809,Concombre, chair et peau, cru
+20810,Cresson, feuille, cru
+20811,Dachine, pulpe, cuit à la vapeur
+20812,Farine de pulpe de patate douce
+20813,Fruit à pain, cuit à la vapeur
+20814,Giraumon, chair sans peau
+20815,Giraumon, cuit à la vapeur, surgelé
+20816,Giraumon (variété locale), râpé, cru
+20817,Giraumon, variété phoenix
+20818,Giraumon (variété phoenix), râpé, cru
+20819,Giraumon, surgelé, cuit à la vapeur
+20820,Gombo, entier, appertisé, non égoutté
+20821,Gombo, entier, cuit à la vapeur
+20822,Gombo, sans pédoncule, blanchi, surgelé
+20823,Igname cousse-couche, cuit à la vapeur
+20824,Igname jaune, pulpe, cuit à la vapeur
+20825,Igname saint martin, cuit à la vapeur
+20826,Topinambour, pulpe, cuit à la vapeur
+20827,Kamanioc, pulpe, cuit à la vapeur
+20828,Massissi, chair, cru
+20829,Papaye verte, chair sans peau, crue
+20830,Papaye verte, cuite à la vapeur
+20831,Patate douce, pulpe, blanchie, surgelée
+20832,Patate douce, pulpe, cuite à la vapeur
+20833,Pois d'Angole, entier, cuit à la vapeur
+20834,Ti nain, cuit à la vapeur
+20835,Tomate, entière, crue
+20922,Dessert végétal sans soja, aromatisé
+20923,Dessert végétal sans soja, aux fruits
+20927,Dessert végétal sans soja, nature
+20929,Dessert au soja
+20985,Laitue de mer, séchée ou déshydratée
+20986,Kombu royal, séché ou déshydraté
+20987,Nori, séchée ou déshydratée
+20988,Dulse, séchée ou déshydratée
+20989,Maërl, séché ou déshydraté
+20990,Kombu, séché ou déshydraté
+20991,Kombu breton, séché ou déshydraté
+20992,Haricot de mer, séchée ou déshydratée
+20993,Gracilaire, séchée ou déshydratée
+20994,Fucus vésiculeux, séché ou déshydraté
+20995,Ao-nori, séchée ou déshydratée
+20996,Lichen de mer, séché ou déshydraté
+20997,Chlorelle, séchée ou déshydratée
+20998,Ascophylle noueux, séché ou déshydraté
+20999,Wakamé atlantique, séché ou déshydraté
+21507,Agneau
+21520,Agneau, partie maigre grillée/poêlée
+21521,Agneau, côte ou côtelette, crue
+21522,Agneau, côte ou côtelette, cuite
+21523,Agneau, viande, cuite
+21524,Agneau, grillée/poêlée
+22506,Omelette au fromage
+22507,Omelette aux lardons
+22508,Omelette aux champignons
+22509,Omelette à la ciboulette
+22510,Tortilla espagnole aux oignons
+22511,Omelette, garnitures diverses : légumes
+23005,Gâteau Paris-Brest
+23006,Forêt noire, avec ou sans cerises
+23007,Gâteau mousse de fruits sur génoise
+23024,Macaron moelleux fourré à la confiture
+23032,Brownie au chocolat
+23033,Rocher coco
+23080,Quatre-quarts, artisanal
+23081,Quatre-quarts
+23103,Gâteau moelleux au citron
+23220,Pain d'épices fourré aux fruits
+23300,Baklava
+23301,Corne de gazelle
+23402,Pâte à pizza fine, crue
+23410,Pâte brisée, crue
+23412,Pâte brisée, matière grasse végétale
+23414,Pâte brisée, pur beurre, crue
+23415,Pâte brisée, pur beurre, surgelée, crue
+23416,Pâte brisée, pur beurre, cuite
+23420,Pâte feuilletée, crue
+23424,Pâte feuilletée, pur beurre, crue
+23425,Pâte feuilletée, pur beurre, surgelée
+23426,Pâte feuilletée, pur beurre, cuite
+23442,Pâte sablée, cuite
+23444,Pâte sablée, pur beurre, crue
+23446,Pâte sablée, pur beurre, surgelée, crue
+23448,Pâte sablée, pur beurre, cuite
+23455,Chou à la crème
+23474,Profiteroles
+23481,Tarte normande aux pommes, artisanale
+23497,Tarte au chocolat
+23498,Tarte, Tarte ou tartelette aux fruits
+23525,Flan pâtissier aux oeufs
+23534,Gâteau de semoule aux raisins et caramel
+23536,Gâteau de riz au caramel
+23586,Gâteau au chocolat type fondant
+23588,Gâteau
+23594,Gâteau moelleux nature type génoise
+2365,Nectar de fruit de la passion
+23799,Crêpe, nature
+23800,Crêpe, rayon température ambiante
+23801,Galette de sarrasin, souple préemballée
+23815,Crêpe fourrée au sucre
+23820,Crêpe fourrée à la confiture
+23827,Pancake (petite crêpe épaisse), sucrée
+23828,Pancake
+23830,Crêpe fourrée fraise
+23849,Gaufre fine fourrée au miel
+23850,Gaufre bruxelloise, artisanale
+23851,Gaufre moelleuse ou sucrée
+23852,Gaufre moelleuse, au chocolat
+23853,Gaufre croustillante ou sucrée
+23880,Beignet, sans fourrage
+23881,Beignet (fourrage type confiture)
+23885,Beignet
+23909,Cake aux fruits
+23925,Gâteau marbré au chocolat
+23935,Gâteau moelleux nature
+23937,Gâteau moelleux aux fruits
+23938,Gâteau moelleux aux fruits à coque
+23939,Gâteau moelleux fourré au chocolat
+23943,Gâteau moelleux aux pépites de chocolat
+23951,Muffin, aux fruits (myrtilles et autres)
+23952,Muffin, au chocolat
+24004,Biscuit sec aux fruits
+24006,Biscuit sec au soja
+24008,Biscuit sec fourré aux fruits
+24010,Biscuit sec végétale
+24013,Biscuit sec, avec édulcorant
+24017,Biscuit sec petit beurre au chocolat
+24031,Biscuit sec sans chocolat
+24037,Biscuit sec fourré à la pâte
+24048,Biscuit sec, sablé, autre que pur beurre
+24049,Biscuit sec, sablé, au beurre
+24050,Biscuit sec, sablé, au chocolat
+24051,Biscuit, nappé de chocolat
+24052,Biscuit sec, nappé au chocolat
+24054,Biscuit sec, sablé, aux fruits
+24056,Florentin
+24057,Biscuit sec, sablé
+24061,Biscuit meringué fourré
+24225,Goûter sec fourré parfum lait ou vanille
+24240,Goûter sec fourré parfum fruits
+24300,Gaufrette, sans fourrage
+24312,Gaufrette fourrée, aux fruits à coque
+24614,Biscuit sec croquant aux amandes
+24615,Biscuit sec fin, aux amandes
+24616,Biscuit sec fin, saveur citron ou orange
+24630,Madeleine, pur beurre
+24631,Madeleine au chocolat
+24632,Madeleine ordinaire
+24654,Biscuit sec, nappée de chocolat
+24657,Biscuit sec, type batonnet, stick
+24658,Biscuit sec feuilleté, nappé de chocolat
+24659,Biscuit sec feuilleté
+24660,Biscuit sec feuilleté, artisanal
+24664,Gâteau aux amandes type financier
+24674,Gâteau moelleux sans gluten
+24675,Gâteau moelleux sans gluten, au chocolat
+24676,Cookie au chocolat et aux fruits à coque
+24678,Biscuit, nappé aux fruits
+24679,Biscuit sec, nappé aux fruits
+24685,Cône, pour glace
+24686,Biscuit, fourré aux fruits
+24998,Poisson blanc en sauce
+2500,Smoothie
+25001,Blanquette de veau
+25009,Hachis parmentier à la viande
+25010,Petit salé
+25018,Ratatouille cuisinée
 25019,Ravioli au boeuf
+25035,Sauté d'agneau au curry
+25037,Gratin, préemballé, cru
+25038,Gratin, cuit
+25057,Poêlée de pommes de terre préfrites
+25058,Canard en sauce
+25063,Lapin à la moutarde
+25077,Saumon sauce à l'oseille
+25081,Lasagnes (bolognaise)
+25085,Pâtes à la bolognaise
+25086,Poisson blanc à la bordelaise
+25089,Cordon bleu de volaille
+25099,Cassoulet au canard, appertisé
+25101,Gratin de chou-fleur
+25122,Gratin de pâtes au jambon
+25127,Couscous royal (avec plusieurs viandes)
+25128,Poisson blanc à la provençale
+25135,Pâtes à la carbonara
+25137,Tartiflette
+25140,Poisson blanc à la florentine
+25141,Poisson blanc à la marinière
+25142,Poisson blanc à la sauce moutarde
+25143,Poisson blanc à la parisienne
+25145,Poisson blanc à l'estragon
+25146,Poisson blanc sauce oseille
+25149,Pâtes fraîches farcies, au fromage
+25150,Couscous de légumes
+25154,Gratin de poisson et purée
+25155,Pâtes fraîches farcies, tortellinis
+25157,Pâtes fraîches farcies, au boeuf, crues
+25158,Pâtes fraîches farcies, au boeuf, cuites
+25164,Osso buco de veau à la milanaise
+25172,Viande en sauce
+25173,Escalope panée, veau, cuite
+25174,Poulet au curry et au lait de coco
+25175,Meloukhia
+25183,Nouilles aux crevettes, sautées/poêlées
+25186,Boulettes au porc et au boeuf, crues
+25187,Risotto, aux légumes
+25188,Risotto, aux fruits de mer
+25189,Risotto, aux fromages
+25192,Ravioli aux légumes, à la sauce tomate
+25193,Pâtes fraîches farcies, aux légumes
+25194,Boulettes au boeuf et à l'agneau, crues
+25195,Parmentier de canard, à cuire
+25196,Riste d'aubergines
+25198,Pâtes en sauce aux fromages
+25199,Palet, préfrit, surgelé
+25200,Palette à la diable
+25201,Langue de boeuf sauce madère
+25205,Chop suey (porc ou poulet, légumes)
+25208,Palet, préfrit, surgelé, cuit
+25211,Boulettes au boeuf, à la sauce tomate
+25213,Paupiette de veau, rôtie/cuite au four
+25216,Pâtes fraîches farcies, ex : raviolis
+25217,Feuille de vigne farcie au riz, égouttée
+25220,Choucroute cuisinée aux lardons, cuite
+25221,Boulettes au boeuf et à l'agneau, cuites
+25222,Boulettes au porc et au boeuf, cuites
+25225,Nuggets (sans soja)
+25228,Pané soja et blé
+25229,Bâtonnet pané soja et blé
+25230,Pané soja, blé et fromage
+25231,Ravioli au tofu, à la sauce tomate
+25232,Saucisse végétale au blé
+25233,Galette de céréales au fromage
+25234,Galette de céréales aux légumes
+25242,Paëlla
+25243,Nouilles asiatiques instantanées, cuites
+25400,Croque-monsieur, jambon
+25401,Feuilleté, cuit
+25404,Pizza au fromage
+25410,Crêpe, jambon et fromage
+25411,Crêpe, surgelée
+25415,Double cheeseburger
+25416,Burger au poisson
+25428,Sandwich grec, pita, crudités
+25429,Sandwich grec, baguette, crudités
+25434,Sandwich panini, jambon cru mozzarella
+25435,Pizza jambon fromage
+25438,Samoussa, cuit
+25454,Tarte à la provençale
+25456,Sushi
+25457,Pizza à la viande, type bolognaise
+25460,Fajita au poulet
+25462,Pizza au chorizo
+25463,Pizza aux fruits de mer
+25468,Pizza au chèvre et lardons
+25472,Pizza aux légumes
+25475,Sandwich baguette, jambon, oeuf, beurre
+25477,Pizza champignons fromage
+25478,Pizza aux fromages
+25490,Sandwich baguette, thon maïs crudités
+25523,Toasts, garnitures diverses
+25524,Tomate à la provençale
+25537,Carpaccio de saumon avec marinade
+25538,Carpaccio de boeuf, avec marinade
+25546,Fromage pané au jambon
+25548,Pizza jambon fromage champignons
+25550,Flammenkueche
+25551,Beignet de viande, cuit
+25552,Crêpe, jambon et fromage et champignon
+25553,Tarte, Tarte ou tourte aux poireaux
+25557,Brick à l'oeuf, cuit
+25559,Brick à la pomme de terre, cuit
+25560,Tourte au riesling
+25562,Crêpe (oeuf, jambon, fromage)
+25564,Tarte aux noix de Saint-Jacques
+25565,Yakitori
+25568,Pastilla au poulet
+25570,Pizza aux lardons, oignons et fromage
+25571,Falafel, vente à emporter
+25573,Tarte, Tarte ou quiche salée
+25578,Feuilleté, Feuilleté ou friand salé
+25580,Bouchée à la reine, garnie
+25581,Crêpe, cuite
+25582,Nem, au poulet, cuit
+25583,Nem, au porc, cuit
+25584,Nem, aux crevettes et/ou au crabe, cuit
+25587,Parmentier de canard, cuit
+25589,Boulette végétale au soja et/ou blé
+25590,Falafel
+25591,Galette, soja et légumes
+25592,Galette (seitan) et légumes
+25593,Galette, Galette ou pavé au blé et soja
+25597,Galette, fromage et légumes
+25599,Sandwich pain de mie complet, jambon
+25600,Salade de céleri rémoulade
+25602,Salade composée avec viande, appertisée
+25605,Champignons à la grecque
+25606,Salade de pommes de terre
+25610,Salade de museau de boeuf, avec sauce
+25615,Salade de pâtes au fromage et légumes
+25616,Crudité, sans assaisonnement
+25619,Salade de pâtes aux légumes et poisson
+25623,Tarte au maroilles
+25626,Macédoine de légumes en salade
+25628,Salade César au poulet
+25634,Sandwich baguette, vente à emporter
+25642,Salade de céleri et carotte rémoulade
+25649,Crêpe, lardon
+25658,Sandwich pain viennois, poulet crudités
+25659,Sandwich pain polaire, poulet crudités
+25660,Sandwich pain polaire, saumon
+25661,Sandwich pain polaire, jambon fromage
+25662,Sandwich pain de mie complet, poulet
+25663,Sandwich baguette, poulet crudités
+25664,Salade de pomme de terre au thon
+25665,Salade de pomme de terre à la saucisse
+25674,Nem, cuit
+25900,Soupe aux lentilles à réchauffer
+25903,Soupe aux légumes variés à réchauffer
+25905,Soupe aux légumes variés
+25910,Soupe à l'oignon à réchauffer
+25912,Soupe aux champignons à réchauffer
+25913,Soupe à la carotte à réchauffer
+25914,Soupe à la tomate à réchauffer
+25915,Soupe chorba frik
+25916,Soupe minestrone à réchauffer
+25917,Soupe au pistou
+25919,Soupe de poissons et/ou crustacés
+25923,, avec pâtes, déshydratée reconstituée
+25924,Soupe marocaine
+25925,Soupe aux poireaux et pommes de terre
+25928,Soupe à la volaille et aux légumes
+25930,Bouillon de boeuf
+25932,Soupe aux asperges
+25934,Soupe aux céréales et aux légumes
+25935,Soupe à la tomate
+25936,Soupe aux champignons
+25942,Soupe à l'oignon
+25945,Soupe au potiron à réchauffer
+25947,Bouillon de volaille
+25948,Bouillon de légumes
+25949,Soupe à la tomate et aux vermicelles
+25950,Soupe à la volaille et aux vermicelles
+25953,Soupe au pistou à réchauffer
+25954,Soupe au potiron
+25955,Soupe asiatique, avec pâtes à réchauffer
+25956,Soupe minestrone
+25957,Soupe au cresson
+25958,Soupe au cresson à réchauffer
+25963,Soupe aux légumes verts à réchauffer
+25964,Soupe aux légumes verts
+25965,Soupe aux pois cassés à réchauffer
+25967,Soupe froide type gaspacho
+25968,Soupe aux asperges à réchauffer
+25973,Soupe aux légumes et aux vermicelles
+25975,Soupe au boeuf et aux vermicelles
+25976,Soupe asiatique
+25994,Maquereau, filet grillé, en sauce
+25996,Saumon, cuit
+25997,Cabillaud, cuit
+25999,Anchois, filets, roulés aux câpres
+26000,Anchois, filets, marinés à l'huile
+26001,Bar rayé, cru
+26002,Carrelet, pané, frit
+26003,Carrelet, cuit à la vapeur
+26004,Oeufs de lompe, semi-conserve
+26009,Flétan de l'Atlantique, cru
+26010,Hareng mariné
+26027,Pilchard, sauce tomate, appertisé
+26033,Roussette, cuite
+26035,Sardine, sauce tomate, appertisée
+26040,Sardine, à l'huile d'olive, appertisée
+26046,Surimi, bâtonnets
+26055,Carrelet, cru
+26063,Rascasse, crue
+26068,Thon listao, cru
+26074,Roussette, crue
+26077,Thon germon
+26080,Dorade royale, sauvage, crue
+26081,Lotte, grillée/poêlée
+26086,Maquereau, filet sauce tomate, appertisé
+26088,Dorade royale, élevage, crue
+26096,Maquereau, filet sauce moutarde
+26097,Maquereau, filet au vin blanc, appertisé
+26099,Dorade grise, ou griset, crue
+26101,Bonite, crue
+26102,Maquereau espagnol, cru
+26109,Dorade rose, crue
+26123,Maquereau, filet, au naturel
+26125,Cabillaud, cru
+26148,Rascasse, cuite à la vapeur
+26154,Flétan du Groënland, cru
+26175,Corégone lavaret, cru
+26177,Anchois, filets, salés, à l'huile
+26179,Thon germon, à l'huile d'olive
+26180,Thon à l'huile de tournesol, entier
+26181,Thon albacore, au naturel, appertisé
+26200,Sole tropicale, crue
+26205,Bar commun (Méditerranée), sauvage, cru
+26206,Bar commun (Méditerranée), élevage, cru
+26210,Sébaste du nord, ou dorade sébaste, crue
+26222,Dorade grise, rôtie/cuite au four
+26231,Sardine
+26240,Joëls pour friture, crus
+26242,Thon à la tomate, miettes, appertisées
+26243,Thon, à la catalane ou à l'escabèche
+26244,Rouget-barbet, filet avec peau, surgelé
+26245,Thon à l'huile de tournesol, miettes
+26247,Flétan du Groënland, cuit à la vapeur
+26249,Poisson blanc, cuit
+26257,Salade de carottes râpées, avec sauce
+26258,Salade de betterave, avec sauce
+26259,Salade de chou et carotte, avec sauce
+26261,Salade de lentilles et saucisse fumée
+26262,Salade grecque, avec sauce
+26263,Salade de riz au thon et légumes
+26267,Tarte épinard chèvre
+26273,Pizza type raclette
+26274,Pizza au speck
+26275,Oeufs de saumon du Pacifique
+26276,Salade de pâtes au surimi, avec sauce
+26277,Salade Alaska au surimi, ananas
+26278,Salade de pâtes au poulet, avec sauce
+26279,Salade de pâtes aux poulet, oeuf
+26280,Salade de pâtes au jambon cru
+26281,Salade de chou rouge, avec sauce
+26282,Salade de pâtes au poulet et crudités
+26692,Anchois, filets, marinés à l'orientale
+26693,Anchois, filets, salés, égouttés
+26694,Anchois, filets, égouttés
+26697,Sardine, à l'huile de tournesol
+26698,Sardine, à l'huile d'arachide
+26700,Anchois, filets, marinés, semi-conserve
+26999,Anguille, cuite
+27005,Perche, rôtie/cuite au four
+27007,Truite, cuite à la vapeur
+27008,Truite, élevage, crue
+27010,Perche, crue
+27014,Truite arc en ciel, rôtie/cuite au four
+27015,Truite arc en ciel, cuite à la vapeur
+27030,Bar commun, rôti/cuit au four
+27031,Dorade royale, rôtie/cuite au four
+28205,Porc, viande, cuite
+28472,Porc, hachage sans jarret, désossé, cru
+28473,Porc, jambon sans jarret, découenné, cru
+28474,Porc, jambonneau arrière, découenné, cru
+28477,Porc, palette, découennée, crue
+28479,Porc, poitrine cutter, crue
+28502,Poitrine de porc en salaison, fumée
+28507,Poitrine de porc en salaison, crue
+28700,Jambon de porc à cuire
+28804,Jambon cru fumé
+28858,Pancetta
+28906,Jambon cuit, découenné dégraissé
+28907,Jambon cuit, à teneur réduite en sel
+28911,Épaule de porc, choix, cuite
+28924,Épaule de porc, standard, cuite
+28925,Jambon cuit, de Paris
+28929,Dés, allumettes
+28963,Jambon de poulet
+28964,Jambon de dinde
+28965,Jambon de volaille, en tranche
+3000,Lait 1er âge, poudre soluble
+3002,Lait 2e âge, poudre soluble
+30125,Saucisse alsacienne fumée
+30181,Haché végétal à base de soja
+30302,Saucisson sec pur porc
+30316,Chorizo supérieur, type saucisse sèche
+30886,Gelée
+30887,Confiture, allégée en sucres
+30888,Marmelade (extra ou classique)
+30889,Marmelade, allégée en sucres
+30992,Confiture de rhubarbe
+30999,Confiture, Confiture ou marmelade
+31002,Barre à la noix de coco
+31005,Chocolat noir 50 % de cacao environ
+31006,Confiture, non allégée en sucres
+31012,Barre
+31018,Chocolat au lait aux fruits secs
+31020,Chocolat au lait sans sucres ajoutés
+31026,Chocolat blanc aux fruits secs, tablette
+31030,Chocolat noir sans sucres ajoutés
+31039,Marmelade d'orange (extra ou classique)
+31046,Caramel liquide
+31053,Confiture de prune, par ex. mirabelle
+31068,Confiture de myrtille
+31069,Chocolat noir aux fruits, tablette
+31070,Chocolat noir aux fruits secs, tablette
+31074,Chocolat noir 70 % de cacao environ
+31076,Edulcorant à base de sucre et aspartame
+31082,Préparation de fruits divers
+31083,Confiture
+31084,Chocolat au lait fourré au praliné
+31085,Chocolat noir 40% de cacao et plus
+31093,Guimauve, enrobé de chocolat
+31101,Barre céréalière "équilibre" aux fruits
+31102,Barre céréalière "équilibre" au chocolat
+31112,Bonbon gélifié à la réglisse
+31114,Barre céréalière aux amandes
+31120,Chocolat, tablette
+31121,Chewing-gum
+31122,Bonbon tendre
+31124,Bonbon dur type collier, sifflet
+32006,Riz soufflé nature
+32025,Pétales de céréales aux fruits à coque
+32030,Pétales de céréales, sucrées, nature
+32042,Pétales de céréales, nature
+32043,Pétales de céréales
+32112,Muesli croustillant au chocolat
+32131,Riz soufflé chocolaté
+32139,Muesli enrichi en vitamines et minéraux
+36005,Poulet
 36006,Cuisse de poulet rotie
+36030,Poulet, viande bouillie/cuite à l'eau
+36032,Poulet, poitrine
+36033,Poulet, aile
+36035,Poulet, rôtis/cuits au four
+36036,Escalope panée, poulet, cuite
+36038,Poulet, viande et peau crues label rouge
 36041,Filet de poulet grille bio
+36042,Volaille, viande cuite
+36051,Chapon
+36200,Canard
+36318,Escalope panée, dinde, cuite
+36503,Oie
+36603,Gibier à plumes, viande, cuit
+36900,Volaille, cuite
+37000,Base de pizza, pâte et sauce à la crème
+37001,Pâte à pizza, crue
+37002,Base de pizza, pâte et sauce à la tomate
+38105,Chips de maïs, aromatisé
+38106,Biscuit, soufflé, goût pomme de terre
+38107,Biscuit, mini bretzel ou sticks
+38109,Biscuit apéritif, mini-chou fourré
+38399,Biscuit
+38401,Biscuit, à base de blé, au fromage
+38402,Biscuit, à base de blé ou aromatisé
+38403,Biscuit, à base de blé, nature
+38404,Biscuit, soufflé, goût cacahuète
+38405,Biscuit, tuile, à base de pomme de terre
+38406,Cacahuète enrobée d'un biscuit salé
+38407,Biscuit, feuilleté, sans fromage
+38408,Biscuit apéritif, crêpe dentelle fourrée
+38410,Biscuit, feuilleté, au fromage
+38411,Biscuit, à base de blé, assortiment
+38413,Biscuit, gaufrette fourrée
+38415,Gressin, au sésame
+38416,Biscuit, mélange japonais
+38417,Chips de maïs, nature
+38419,Biscuit, soufflé, goût bacon
+38420,Biscuit, soufflé, nature
+38421,Biscuit, soufflé, goût fromage
+38422,Biscuit, soufflé
+38500,Croûton, à l'ail
+38501,Croûton, au fromage
+39200,Crème dessert au chocolat
+39206,Mousse au chocolat (base laitière)
+39210,Mousse au chocolat traditionnelle
+39211,Crème aux oeufs
+39212,Riz au lait vanille, cannelle ou nature
+39216,Clafoutis aux fruits
+39220,Liégeois aux fruits
+39229,Crème dessert à la vanille
+39234,Gâteau au chocolat, coeur fondant
+39235,Mousse liégeoise
+39246,Crème dessert au café
+39247,Crème dessert au caramel
+39248,Mousse au chocolat végétale
+39249,Mousse aux fruits, enrichie en calcium
+39250,Mousse aux fruits, sucrée
+39251,Riz au lait, au caramel
+39252,Riz au lait, rhum raisins
+39253,Mousse au chocolat, sur ganache
+39500,Glace à l'eau, tout parfum
+39502,Dessert glacé type mystère
+39503,Glace, bâtonnet enrobage chocolat
+39505,Crème dessert, appertisée
+39509,Glace, cône (taille standard)
+39511,Crème dessert, rayon frais ou appertisée
+39520,Glace, gourmande, en bac
+39521,Glace, gourmande, en pot
+39522,Glace, mini cône
+39523,Glace, pot individuel
+39527,Glace, bac ou pot
+39530,Citron givré (sorbet)
+39531,Glace, petit pot enfant
+39532,Coupe glacée type café
+39534,Coupe glacée parfum pêche Melba
+39535,Glace, bâtonnet enrobage fruits
+39710,Crème pâtissière instantanée
+4000,Tapioca, cru
+4002,Pomme de terre, rôtie/cuite au four
+4013,Pomme de terre noisette, surgelée
+4015,Pomme de terre poêlée
+4018,Purée de pomme de terre, sans sel ajouté
+4019,Purée de pomme de terre, non salée
+4020,Pomme de terre dauphine, surgelée
+4022,Flocons de pomme de terre, nature
+4023,Pomme de terre nouvelle, crue
+4025,Potatoes, surgelées, cuites
+4028,Pomme de terre de conservation
+4029,Pomme de terre nouvelle, sans peau
+4039,Rostis
+4040,Purée de pomme de terre, salée
+4041,Aligot
+4042,Pomme de terre duchesse, surgelée
+4044,Frites de pommes de terre, préfrites
+4048,Pomme de terre, cuite
+4049,Croquette de pomme de terre, surgelée
+4052,Potatoes, surgelées, à cuire
+4053,Pomme de terre grenaille, surgelée
+5005,Panaché préemballé, aromatisé ou non
+5011,Bière "de spécialités"
+5029,Bière sans alcool, sucrée
+5030,Bière sans alcool et sans sucres ajoutés
+51500,Meloukhia, en poudre
+51511,Frik (blé dur immature concassé), cuit
+5219,Alcool fort, cuisiné
+54035,Gari
+6100,Boeuf, entrecôte
+6141,Boeuf, joue
+6259,Boeuf, steak haché, cuit
+6271,Boeuf, paleron
+6564,Veau, viande, cuite
+6584,Viande blanche, cuite
+6585,Viande rouge, cuite
+6910,Cheval
+7007,Pain de tradition française
+7009,Pain blanc précuit, à finir de cuire
+7013,Pain sans gluten précuit
+7098,Pain aux céréales et/ou aux graines
+7106,Pain complet au seigle
+7107,Pain aux graines sans gluten
+7109,Pain de mie complet, sans croûte
+7110,Pain complet (à la farine T150)
+7111,Pain de mie complet
+7113,Pain de mie aux céréales et/ou graines
+7116,Pain de mie blanc sans gluten
+7117,Pain de mie blanc, sans sucres ajoutés
+7201,Pain de mie blanc, sans croûte
+7210,Pain de mie brioché
+7225,Pain brioché, artisanal
+7256,Muffin anglais complet
+7257,Muffin anglais, petit pain spécial
+7259,Pain pour burger (bun)
+7260,Pain blanc
+7261,Pain de campagne
+7262,Pain pour burger (bun) complet
+7355,Galette de riz soufflé
+7356,Galette de maïs soufflé
+7357,Galette de céréale soufflée, aux graines
+7359,Tartine croustillante au seigle
+7399,Toast, tranches
+7400,Pain grillé au froment, tranches
+7402,Pain grillé au blé complet, tranches
+7403,Pain grillé brioché, tranches
+7412,Tartine craquante, fourrée au chocolat
+7413,Tartine craquante, fourrée aux fruits
+7414,Tartine craquante extrudées
+7419,Petit pain grillé suédois au blé complet
+7425,Pain grillé aux céréales, tranches
+7431,Croûton, à tartiner
+76000,Eau minérale Abatilles, embouteillée
+76001,Eau minérale Aix-les-Bains, embouteillée
+76002,Eau minérale Aizac, embouteillée
+76004,Eau minérale Amanda, embouteillée, plate
+76006,Eau minérale Arcens, embouteillée
+76007,Eau minérale Ardesy, embouteillée
+76010,Eau minérale Celtic, embouteillée
+76011,Eau minérale Chambon, embouteillée
+76012,Eau minérale Chantemerle, embouteillée
+76013,Eau minérale Chateauneuf, embouteillée
+76014,Eau minérale Chateldon, embouteillée
+76015,Eau minérale Clos de l'Abbaye, plate
+76016,Eau minérale Contrex, embouteillée
+76017,Eau minérale Dax, embouteillée, plate
+76018,Eau minérale Didier, embouteillée
+76019,Eau minérale Didier, embouteillée, plate
+76020,Eau minérale Evian, embouteillée, plate
+76022,Eau minérale Hépar, embouteillée, plate
+76023,Eau minérale Hydroxydase, embouteillée
+76024,Eau minérale Vernière, embouteillée
+76025,Eau minérale Luchon, embouteillée, plate
+76027,Eau minérale Mont-Roucous, embouteillée
+76029,Eau minérale Orée du bois, embouteillée
+7603,Croissant
+76030,Eau minérale Orezza, embouteillée
+76031,Eau minérale Parot, embouteillée
+76032,Eau minérale Plancoet, embouteillée
+76033,Eau minérale Propiac, embouteillée
+76034,Eau minérale Puits St-Georges, gazeuse
+76035,Eau minérale Quézac, embouteillée
+76036,Eau minérale Reine des basaltes, gazeuse
+76037,Eau minérale Rozana, embouteillée
+76038,Eau minérale Sail-les-Bains, plate
+76039,Eau minérale Salvetat, embouteillée
+76043,Eau minérale St-Amand, embouteillée
+76044,Eau minérale St-Antonin, embouteillée
+76046,Eau minérale St-Diéry, embouteillée
+76047,Eau minérale Ste-Marguerite, gazeuse
+76049,Eau minérale St-Yorre, embouteillée
+76050,Eau minérale Thonon, embouteillée, plate
+76052,Eau minérale Vals-Vivaraise, gazeuse
+76053,Eau minérale Ventadour, embouteillée
+76054,Eau minérale Vernet, embouteillée
+76055,Eau minérale Vichy Célestins, gazeuse
+76056,Eau minérale Vittel, embouteillée, plate
+76057,Eau minérale Volvic, embouteillée, plate
+76058,Eau minérale Volvic active, embouteillée
+76059,Eau minérale Wattwiller, embouteillée
+76060,Eau minérale Perrier, embouteillée
+76061,Eau minérale Badoit, embouteillée
+76062,Eau minérale Avra, embouteillée, plate
+76063,Eau minérale Beckerich, embouteillée
+76065,Eau minérale Chaudfontaine, embouteillée
+76066,Eau minérale Christinen Brunnen, plate
+76067,Eau minérale Courmayeur, embouteillée
+76069,Eau minérale Levissima, embouteillée
+76070,Eau minérale Luso, embouteillée, plate
+76071,Eau minérale Néro, embouteillée, plate
+76072,Eau minérale Penacova, embouteillée
+76074,Eau minérale San Bernardo, embouteillée
+76075,Eau minérale San Pellegrino, gazeuse
+76076,Eau minérale Spa-Reine, embouteillée
+76078,Eau minérale Valvert, embouteillée
+76079,Eau minérale Appollinaris, embouteillée
+76081,Eau minérale Biovive, embouteillée
+76082,Eau minérale La Cairolle, embouteillée
+76083,Eau minérale Cilaos, embouteillée
+76085,Eau minérale La Française, embouteillée
+76086,Eau minérale Montcalm, embouteillée
+76087,Eau minérale Montclar, embouteillée
+76088,Eau minérale Nessel, embouteillée
+76089,Eau minérale Ogeu, embouteillée, gazeuse
+76090,Eau minérale Ogeu, embouteillée, plate
+76091,Eau minérale Prince Noir, embouteillée
+76092,Eau minérale St-Alban, embouteillée
+76093,Eau minérale St-Géron, embouteillée
+76094,Eau minérale St-Michel-de-Mourcairol
+76095,Eau minérale Treignac, embouteillée
+76096,Eau minérale Vals, embouteillée, gazeuse
+76097,Eau minérale Vauban, embouteillée, plate
+76101,Eau minérale Mont-Blanc, embouteillée
+76102,Eau minérale Eden, embouteillée, plate
+76103,Eau minérale Velleminfroy, embouteillée
+7616,Croissant ordinaire
+7712,Pain au lait aux pépites de chocolat
+7719,Panettone
+7720,Pain aux raisins, artisanal
+7738,Brioche fourrée aux fruits
+7739,Brioche fourrée crème pâtissière
+7744,Couronne des rois aux fruits confits
+7745,Brioche pur beurre nature
+7746,Brioche
+7813,Tortilla souple, à base de maïs
+7814,Cake salé
+7815,Tortilla souple, à base de blé
+8059,Rillettes de crabe
+8080,Rillettes de poisson
+8081,Rillettes de saumon
+8082,Rillettes de thon
+8083,Rillettes de maquereau
+8109,Confit de canard, viande, réchauffé
+8212,Pâté, à teneur réduite en sel
+8250,Pâté (forestier)
+8290,Tarama, au saumon fumé
+8291,Terrine de poisson
+8292,Terrine de fruits de mer
+8293,Tarama, aux oeufs de cabillaud
+8296,Terrine, premballée
+8312,Mousse de foie de porc supérieure
+8331,Foie gras, canard, bloc
+8406,Salade de museau de porc, avec sauce
+8407,Salade de cervelas, avec sauce
+8601,Tripes à la mode de Caen
+8612,Tripes à la tomate
+8705,Boudin, grillé/poêlé
+8912,Quenelle de volaille en sauce
+9081,Blé dur (grains entiers), précuit, cuit
+9082,Blé dur précuit, cuisiné
+9107,Riz blanc, précuit, cuit
+9121,Riz, mélange de variétés, cru
+9230,Pop-corn, à l'huile, salé
+9231,Pop-corn, sans huile, non salé
+9232,Pop-corn, au caramel
+9322,Orge perlée, bouilli/cuite à l'eau
+9341,Quinoa, bouilli/cuit à l'eau
+9436,Farine de blé tendre (pour pains)
+9440,Farine de blé tendre (pour pâtisserie)
+9510,Amidon de maïs
+9614,Polenta, précuite, à cuire
+9615,Polenta, cuite, sans sel ajouté
+96778,Pâte à pizza, cuite
+9681,Graine de couscous, à cuire
+9811,Pâtes sèches, standard, cuites
+9816,Pâtes fraîches, aux oeufs, cuites
+9822,Pâtes sèches, aux oeufs, cuites
+9863,Pâtes, au blé et aux oeufs, crues
+9871,Pâtes sèches, au blé complet, cuites
+9877,Pâtes sèches, semi-complètes, cuites
+9901,Vermicelle de riz, cuite
+9903,Vermicelle de soja, cuite
