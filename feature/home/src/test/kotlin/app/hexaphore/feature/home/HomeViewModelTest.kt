@@ -1,6 +1,5 @@
 package app.hexaphore.feature.home
 
-import androidx.lifecycle.SavedStateHandle
 import app.hexaphore.core.testing.FixedClock
 import app.hexaphore.core.testing.InMemoryAdjustmentSettings
 import app.hexaphore.core.testing.InMemoryAiCredentials
@@ -8,6 +7,7 @@ import app.hexaphore.core.testing.InMemoryDiaryRepository
 import app.hexaphore.core.testing.InMemoryFavoriteDishes
 import app.hexaphore.core.testing.InMemoryGoals
 import app.hexaphore.core.testing.InMemoryProfiles
+import app.hexaphore.core.testing.InMemorySelectedDay
 import app.hexaphore.core.testing.InMemoryWeightLog
 import app.hexaphore.core.testing.SampleDiary
 import app.hexaphore.core.testing.SequentialIdGenerator
@@ -250,9 +250,6 @@ class HomeViewModelTest {
     }
 
     private fun viewModel(diary: InMemoryDiaryRepository, clock: FixedClock) = HomeViewModel(
-        // Sans date : l'accueil lit aujourd'hui, et c'est le `null` que la journee
-        // relue remplace par la sienne.
-        savedStateHandle = SavedStateHandle(),
         getDaySummary = GetDaySummary(diary, InMemoryGoals(listOf(InMemoryGoals.maintenance(jour))), clock),
         dispatchers = TestDispatchers(dispatcher),
         credentials = cles,
@@ -283,6 +280,9 @@ class HomeViewModelTest {
                 remove = RemoveFavoriteDish(favoris),
             ),
         ),
+        // Sans jour choisi : l'accueil lit aujourd'hui, et c'est le `null` qu'une
+        // pastille du passe remplace par sa date.
+        selected = InMemorySelectedDay(),
     )
 
     private val favoris = InMemoryFavoriteDishes()

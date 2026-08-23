@@ -161,7 +161,7 @@ Index sur `(date, logged_at)` : c'est l'ordre d'affichage de l'accueil.
 
 **`source` n'est jamais réécrite.** Un plat reste éditable à la main indéfiniment ; son origine est un fait historique, pas un état. Corriger une quantité sur une proposition de l'IA ne doit pas la faire passer pour une saisie manuelle — ce serait perdre la seule trace de ce qui a été deviné ([D32](11-decisions.md)).
 
-Une journée sans saisie ne produit aucune ligne, ce qui permet de distinguer « rien mangé de noté » de « journée à zéro » ([02](02-parcours-et-ecrans.md#calendrier-étendu)).
+Une journée sans saisie ne produit aucune ligne, ce qui permet de distinguer « rien mangé de noté » de « journée à zéro » ([02](02-parcours-et-ecrans.md#calendrier-déplié)).
 
 ### `food_entry`
 

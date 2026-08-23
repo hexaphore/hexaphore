@@ -2,6 +2,7 @@ package app.hexaphore.di
 
 import app.hexaphore.domain.diary.DiaryRepository
 import app.hexaphore.domain.diary.FavoriteDishes
+import app.hexaphore.domain.diary.SelectedDay
 import app.hexaphore.domain.food.FoodUsage
 import app.hexaphore.domain.goal.Goals
 import app.hexaphore.domain.identity.IdGenerator
@@ -59,7 +60,8 @@ object DomainModule {
     fun getDishDraft(diary: DiaryRepository, ids: IdGenerator): GetDishDraft = GetDishDraft(diary, ids)
 
     @Provides
-    fun createDraft(clock: Clock, ids: IdGenerator): CreateDraft = CreateDraft(clock, ids)
+    fun createDraft(clock: Clock, ids: IdGenerator, selected: SelectedDay): CreateDraft =
+        CreateDraft(clock, ids, selected)
 
     @Provides
     fun logDish(

@@ -1,6 +1,7 @@
 package app.hexaphore.feature.entry
 
 import app.hexaphore.domain.diary.DraftImpact
+import java.time.LocalDate
 
 /**
  * L'état de l'écran de validation.
@@ -41,7 +42,25 @@ internal sealed interface EntryUiState {
          * saisie » alors qu'il réécrit un modèle ment sur ce que l'appui va faire.
          */
         val editingFavorite: Boolean = false,
+        /**
+         * Le jour d'aujourd'hui, pour savoir si le brouillon en vise un autre.
+         *
+         * Il vient du modèle et non d'un `LocalDate.now()` dans l'écran : c'est la
+         * règle du projet, et c'est aussi ce qui rend le cas éprouvable.
+         */
+        val today: LocalDate? = null,
     ) : EntryUiState {
+        /**
+         * Le jour que cette saisie va écrire, **quand ce n'est pas aujourd'hui**.
+         *
+         * `null` pour aujourd'hui : l'écran n'affiche alors aucune date, comme avant.
+         * Depuis qu'on peut rattraper un repas oublié, le brouillon peut viser un jour
+         * passé — et c'est ici, juste au-dessus du bouton d'enregistrement, qu'il faut
+         * le dire. L'accueil le montre déjà en titre, mais entre les deux il y a eu la
+         * recherche, un scan, ou une modale d'IA.
+         */
+        val otherDay: LocalDate? get() = form.date.takeIf { today != null && it != today }
+
         /** `true` quand ce plat est dans la liste des favoris. */
         val favorite: Boolean get() = form.favoriteId != null
 

@@ -1,6 +1,7 @@
 package app.hexaphore.domain.usecase
 
 import app.hexaphore.core.testing.FixedClock
+import app.hexaphore.core.testing.InMemorySelectedDay
 import app.hexaphore.core.testing.SequentialIdGenerator
 import app.hexaphore.domain.ai.AiError
 import app.hexaphore.domain.ai.EstimatedFood
@@ -131,7 +132,7 @@ class ResolveRecognitionTest {
 
     private suspend fun resolve(vararg items: RecognizedItem) = ResolveRecognition(
         resolve = ResolveFoodLabel(CATALOGUE),
-        create = CreateDraft(FixedClock.atNoon(JOUR), ids),
+        create = CreateDraft(FixedClock.atNoon(JOUR), ids, InMemorySelectedDay()),
         estimate = { labels ->
             demandes += labels
             estimation

@@ -1,7 +1,6 @@
 package app.hexaphore.feature.home
 
 import androidx.compose.ui.unit.dp
-import app.hexaphore.core.designsystem.theme.Spacing
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -81,27 +80,59 @@ class CalendarUiStateTest {
     // --- La taille des pastilles ------------------------------------------------
 
     @Test
-    fun `sept pastilles tiennent dans un ecran etroit`() {
-        // **Le defaut rapporte a l'usage** : sept pastilles de 44 dp plus leurs marges
-        // depassaient l'ecran, et la septieme se faisait ecraser.
-        val largeur = 320.dp
+    fun `sept cellules font exactement la largeur`() {
+        // **Le defaut rapporte a l'usage** : la largeur demandee depassait la place, le
+        // parent la rognait sans toucher a la hauteur, et les pastilles sortaient ovales.
+        //
+        // **Ce cas comptait faux, exactement comme le code.** Il reservait huit
+        // intervalles la ou `DayCell` en depensait deux par cellule, soit quatorze : il
+        // passait donc pendant que les pastilles etaient ecrasees a l'ecran. Un cas qui
+        // reprend l'arithmetique de ce qu'il verifie ne verifie rien.
+        //
+        // L'egalite, et non l'inegalite : trop petit gaspille la largeur, trop grand la
+        // depasse, et les deux se voient.
+        LARGEURS.forEach { largeur ->
+            assertEquals(largeur.value, (cellFootprint(largeur) * JOURS).value, EPSILON, "sur $largeur")
+        }
+    }
 
-        val total = cellDiameter(largeur) * 7 + Spacing.xs * 8
+    @Test
+    fun `l anneau tient dans la place de sa cellule`() {
+        // La regle qui remplace le compte partage : `DayCell` ne calcule plus rien, elle
+        // prend sa place et loge l'anneau dedans. Le desaccord des deux comptes est
+        // devenu impossible parce qu'il n'y a plus qu'un compte.
+        LARGEURS.forEach { largeur ->
+            val place = cellFootprint(largeur)
 
-        assertTrue(total <= largeur, "sept pastilles et leurs marges tiennent dans $largeur, or elles font $total")
+            assertTrue(ringDiameter(place) <= place, "sur $largeur, un anneau de ${ringDiameter(place)} dans $place")
+        }
+    }
+
+    @Test
+    fun `l anneau laisse ses deux marges`() {
+        val place = cellFootprint(360.dp)
+
+        assertEquals(place - CellPadding * 2, ringDiameter(place))
     }
 
     @Test
     fun `la pastille grandit avec la largeur, jusqu a une borne`() {
-        assertTrue(cellDiameter(360.dp) > cellDiameter(320.dp), "un ecran plus large donne des pastilles plus grandes")
-        assertEquals(MaxCellDiameter, cellDiameter(1200.dp), "une tablette ne montre pas sept medaillons")
+        assertTrue(
+            ringDiameter(cellFootprint(360.dp)) > ringDiameter(cellFootprint(320.dp)),
+            "un ecran plus large donne des pastilles plus grandes",
+        )
+        assertEquals(
+            MaxCellDiameter,
+            ringDiameter(cellFootprint(1200.dp)),
+            "une tablette ne montre pas sept medaillons",
+        )
     }
 
     @Test
     fun `la pastille ne descend jamais sous sa taille minimale`() {
-        // En deca, le chiffre du jour cesse d'etre lisible : mieux vaut deborder que
-        // montrer sept points illisibles.
-        assertEquals(MinCellDiameter, cellDiameter(120.dp))
+        // En deca, le chiffre du jour cesse d'etre lisible : mieux vaut une pastille qui
+        // touche ses voisines que sept points illisibles.
+        assertEquals(MinCellDiameter, ringDiameter(cellFootprint(240.dp)))
     }
 
     private fun semaine(first: DayOfWeek) = CalendarUiState(today = MERCREDI, firstDayOfWeek = first).week
@@ -109,5 +140,17 @@ class CalendarUiStateTest {
     private companion object {
         /** Un mercredi : au milieu de sa semaine, donc des jours avant et après. */
         val MERCREDI: LocalDate = LocalDate.of(2026, 8, 19)
+
+        /** Du plus étroit qui existe encore à la tablette, en passant par les téléphones courants. */
+        val LARGEURS = listOf(120.dp, 240.dp, 280.dp, 320.dp, 360.dp, 412.dp, 600.dp)
+
+        const val JOURS = 7
+
+        /**
+         * Un cheveu de tolérance : `Dp` porte un flottant, et `120 / 7 × 7` ne retombe
+         * pas forcément sur `120` au bit près. Ce que le cas garde, c'est qu'aucune
+         * marge oubliée ne s'ajoute — pas la précision de l'IEEE 754.
+         */
+        const val EPSILON = 0.01f
     }
 }

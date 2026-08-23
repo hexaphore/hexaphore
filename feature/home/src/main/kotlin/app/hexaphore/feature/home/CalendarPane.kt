@@ -21,10 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,20 +66,28 @@ internal fun CalendarPane(
     onOpenDay: (LocalDate) -> Unit,
     onVisibleMonth: (YearMonth) -> Unit,
     modifier: Modifier = Modifier,
+    /** Le jour affiché par l'écran, marqué d'un cerne. `null` : aujourd'hui. */
+    selected: LocalDate? = null,
+    /**
+     * Déplié ou non — **porté par l'écran et non par ce panneau**.
+     *
+     * C'est l'accueil qui reçoit le défilement de la page, donc lui seul peut replier
+     * le calendrier quand le doigt part vers le haut. L'état vit là où le geste arrive.
+     */
+    expanded: Boolean = false,
+    onExpandedChange: (Boolean) -> Unit = {},
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         WeekdayHeader()
 
         AnimatedVisibility(visible = !expanded, enter = expandVertically(), exit = shrinkVertically()) {
-            WeekStrip(state, onOpenDay)
+            WeekStrip(state, selected, onOpenDay)
         }
         AnimatedVisibility(visible = expanded, enter = expandVertically(), exit = shrinkVertically()) {
-            MonthPager(state, onOpenDay, onVisibleMonth)
+            MonthPager(state, selected, onOpenDay, onVisibleMonth)
         }
 
-        ExpandHandle(expanded = expanded, onToggle = { expanded = !expanded })
+        ExpandHandle(expanded = expanded, onToggle = { onExpandedChange(!expanded) })
     }
 }
 
@@ -95,7 +99,7 @@ internal fun CalendarPane(
  * fait pour remonter loin — c'est le rôle du mois déplié.
  */
 @Composable
-private fun WeekStrip(state: CalendarUiState, onOpenDay: (LocalDate) -> Unit) {
+private fun WeekStrip(state: CalendarUiState, selected: LocalDate?, onOpenDay: (LocalDate) -> Unit) {
     val firstDayOfWeek = WeekFields.of(Locale.getDefault()).firstDayOfWeek
     val weeks = rememberWeekCalendarState(
         startDate = state.today.minusWeeks(WEEKS_BACK),
@@ -105,10 +109,10 @@ private fun WeekStrip(state: CalendarUiState, onOpenDay: (LocalDate) -> Unit) {
     )
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val cell = cellDiameter(maxWidth)
+        val place = cellFootprint(maxWidth)
         WeekCalendar(
             state = weeks,
-            dayContent = { day -> DayCell(day.date, state, cell, onOpenDay) },
+            dayContent = { day -> DayCell(day.date, state, place, selected, onOpenDay) },
         )
     }
 }
@@ -121,7 +125,12 @@ private fun WeekStrip(state: CalendarUiState, onOpenDay: (LocalDate) -> Unit) {
  * n'émet qu'au changement réel, et `distinctUntilChanged` absorbe le reste.
  */
 @Composable
-private fun MonthPager(state: CalendarUiState, onOpenDay: (LocalDate) -> Unit, onVisibleMonth: (YearMonth) -> Unit) {
+private fun MonthPager(
+    state: CalendarUiState,
+    selected: LocalDate?,
+    onOpenDay: (LocalDate) -> Unit,
+    onVisibleMonth: (YearMonth) -> Unit,
+) {
     val current = YearMonth.from(state.today)
     val months = rememberCalendarState(
         startMonth = current.minusMonths(MONTHS_BACK),
@@ -138,7 +147,7 @@ private fun MonthPager(state: CalendarUiState, onOpenDay: (LocalDate) -> Unit, o
     }
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val cell = cellDiameter(maxWidth)
+        val place = cellFootprint(maxWidth)
         VerticalCalendar(
             state = months,
             modifier = Modifier.heightIn(max = MonthHeight),
@@ -150,24 +159,45 @@ private fun MonthPager(state: CalendarUiState, onOpenDay: (LocalDate) -> Unit, o
                     modifier = Modifier.padding(vertical = Spacing.sm),
                 )
             },
-            dayContent = { day -> DayCell(day.date, state, cell, onOpenDay) },
+            dayContent = { day -> DayCell(day.date, state, place, selected, onOpenDay) },
         )
     }
 }
 
 /**
- * Le diamètre d'une pastille, calculé sur la largeur disponible.
+ * La place qu'occupe une cellule : **sept d'entre elles font exactement la largeur**.
  *
- * **C'est le défaut qui se voyait à l'usage** : sept pastilles de 44 dp plus leurs
- * marges dépassaient l'écran, et la septième se faisait écraser. La largeur est
- * divisée par sept, l'espace entre deux cellules est retiré, et le résultat est borné
- * — assez grand pour que le chiffre reste lisible, assez petit pour qu'une grande
- * tablette ne montre pas sept médaillons.
+ * Une simple division, et c'est tout le propos. Le calcul précédent réservait les
+ * marges ici pendant que [DayCell] les dépensait de son côté — huit intervalles contre
+ * quatorze. La largeur demandée dépassait la place, le parent la rognait sans toucher à
+ * la hauteur, et les pastilles sortaient ovales. **Une pastille plus haute que large
+ * est le symptôme d'une largeur refusée, jamais d'un dessin ovale** : l'anneau, lui, a
+ * toujours été rond.
+ *
+ * La cellule prend cette place, l'anneau tient dedans ([ringDiameter]), et il n'y a
+ * plus deux comptes de marges à tenir d'accord — il n'y en a qu'un.
  */
-internal fun cellDiameter(available: Dp): Dp {
-    val perCell = (available - Spacing.xs * (DAYS_PER_WEEK + 1)) / DAYS_PER_WEEK
-    return perCell.coerceIn(MinCellDiameter, MaxCellDiameter)
-}
+internal fun cellFootprint(available: Dp): Dp = available / DAYS_PER_WEEK
+
+/**
+ * Le diamètre de l'anneau dans la place d'une cellule, ses marges retirées.
+ *
+ * Borné des deux côtés : assez grand pour que le chiffre du jour reste lisible, assez
+ * petit pour qu'une tablette ne montre pas sept médaillons. **Et jamais plus grand que
+ * sa place** — sur un écran très étroit la borne basse la dépasserait, et mieux vaut
+ * une pastille qui touche ses voisines qu'une pastille écrasée.
+ */
+internal fun ringDiameter(footprint: Dp): Dp =
+    (footprint - CellPadding * 2).coerceIn(MinCellDiameter, MaxCellDiameter).coerceAtMost(footprint)
+
+/**
+ * L'air autour d'une pastille, **de chaque côté**.
+ *
+ * Un seul endroit la dépense désormais : [ringDiameter] la retire de la place offerte.
+ * C'est le désaccord entre deux comptes de marges qui a produit les pastilles ovales,
+ * et la façon sûre de ne pas les laisser se contredire est qu'il n'y en ait qu'un.
+ */
+internal val CellPadding: Dp = Spacing.xs
 
 /** Ce qui sépare le geste d'ouverture du défilement du mois. */
 @Composable

@@ -10,6 +10,7 @@ import app.hexaphore.domain.diary.EntryDraft
 import app.hexaphore.domain.diary.FavoriteDishId
 import app.hexaphore.domain.diary.impactOf
 import app.hexaphore.domain.food.FoodId
+import app.hexaphore.domain.time.Clock
 import app.hexaphore.domain.usecase.AddFoodLine
 import app.hexaphore.domain.usecase.DraftOrigin
 import app.hexaphore.domain.usecase.FavoriteOutcome
@@ -52,6 +53,7 @@ internal class EntryViewModel @Inject constructor(
     private val getDaySummary: GetDaySummary,
     private val saveDraft: SaveDraft,
     private val favorites: DraftFavorites,
+    private val clock: Clock,
 ) : ViewModel() {
     private val dishId: DishId? = savedStateHandle.get<String>(EntryDestination.DISH_ID)?.let(::DishId)
     private val foodId: FoodId? = savedStateHandle.get<String>(EntryDestination.FOOD_ID)?.let(::FoodId)
@@ -116,6 +118,7 @@ internal class EntryViewModel @Inject constructor(
                     favoriteNameTaken = nameTaken,
                     favoriteNumber = favoriteNumber.value,
                     editingFavorite = editingFavorite,
+                    today = clock.today(),
                 )
             }
         }

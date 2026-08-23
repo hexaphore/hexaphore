@@ -5,6 +5,11 @@
          le code : cet écran est le point de convergence des quatre modes, et un
          texte qui dirait « saisie manuelle » serait la première chose à réécrire
          quand la recherche puis l'IA arriveront. -->
+    <!-- Le jour visé, affiché seulement quand ce n'est pas aujourd'hui. Depuis qu'on
+         peut rattraper un repas oublié, le brouillon peut viser un jour passé — et
+         c'est ici, juste avant l'écriture, qu'il faut le dire. -->
+    <string name="entry_other_day">Sera noté sur le %1$s</string>
+
     <string name="entry_title_new">Nouvelle saisie</string>
     <string name="entry_title_edit">Modifier le plat</string>
     <!-- Le meme ecran sert d'editeur au favori lui-meme. Il doit le dire : un titre

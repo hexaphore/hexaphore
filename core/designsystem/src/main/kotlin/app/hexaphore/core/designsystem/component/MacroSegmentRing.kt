@@ -2,6 +2,7 @@ package app.hexaphore.core.designsystem.component
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -55,6 +56,11 @@ fun MacroSegmentRing(
     Box(
         modifier = modifier
             .size(diameter)
+            // Un anneau est rond, ou ce n'est pas un anneau. Quand le parent
+            // refuse la largeur demandee, la hauteur suit au lieu de rester
+            // entiere -- sans quoi une erreur de calcul de marges se voit comme
+            // un ovale, et se cherche dans le dessin plutot que dans le calcul.
+            .aspectRatio(1f)
             .let { base ->
                 contentDescription
                     ?.let { text -> base.semantics { this.contentDescription = text } }

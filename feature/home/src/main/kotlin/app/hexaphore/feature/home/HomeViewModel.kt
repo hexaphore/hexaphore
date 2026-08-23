@@ -1,6 +1,5 @@
 package app.hexaphore.feature.home
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.hexaphore.domain.ai.AiCredentials
@@ -8,6 +7,7 @@ import app.hexaphore.domain.ai.activeConfiguration
 import app.hexaphore.domain.concurrency.DispatcherProvider
 import app.hexaphore.domain.diary.Dish
 import app.hexaphore.domain.diary.EntryId
+import app.hexaphore.domain.diary.SelectedDay
 import app.hexaphore.domain.goal.AdjustmentSuggestion
 import app.hexaphore.domain.usecase.AdjustmentResponse
 import app.hexaphore.domain.usecase.FavoriteOutcome
@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -46,13 +47,13 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
     getDaySummary: GetDaySummary,
     dispatchers: DispatcherProvider,
     credentials: AiCredentials,
     suggestGoalAdjustment: SuggestGoalAdjustment,
     private val respondToAdjustment: RespondToAdjustment,
     private val gestures: DishGestures,
+    private val selected: SelectedDay,
 ) : ViewModel() {
     /**
      * Le déclencheur de relecture.
@@ -64,21 +65,20 @@ class HomeViewModel @Inject constructor(
     private val attempts = MutableStateFlow(0)
 
     /**
-     * La journee lue, ou `null` pour aujourd'hui.
+     * La journee regardee, ou `null` pour aujourd'hui.
      *
-     * **Le meme modele sert l'accueil et l'ecran Journee**, parce que c'est le meme
-     * recapitulatif a une date pres ([docs/02][parcours]). Un second `ViewModel`
-     * aurait duplique la suppression, la restauration et l'etoile -- et les aurait
-     * laisses diverger au premier correctif applique d'un seul cote.
+     * **Elle vient d'un port et non plus d'un argument de route** : l'ecran Journee a
+     * disparu, et l'accueil porte lui-meme la date. Le calendrier reste donc a l'ecran
+     * pendant qu'on se promene dans l'historique, ce qu'un second ecran ne permettait
+     * pas -- il le laissait derriere lui.
      *
-     * `null` et non `clock.today()` : la date par defaut est evaluee a chaque
-     * lecture par `GetDaySummary`, donc un ecran reste ouvert pendant la nuit ne
-     * continue pas d'afficher la veille.
-     *
-     * [parcours]: docs/02-parcours-et-ecrans.md
+     * `null` et non `clock.today()` : la date par defaut est evaluee a chaque lecture
+     * par `GetDaySummary`, donc un ecran reste ouvert pendant la nuit ne continue pas
+     * d'afficher la veille.
      */
-    private val date: LocalDate? =
-        savedStateHandle.get<String>(DayDestination.DATE)?.let(LocalDate::parse)
+    private val day: StateFlow<LocalDate?> = selected
+        .observe()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, selected.current())
 
     /**
      * Y a-t-il une clé, oui ou non.
@@ -131,7 +131,8 @@ class HomeViewModel @Inject constructor(
 
     val uiState: StateFlow<HomeUiState> =
         attempts
-            .flatMapLatest {
+            .combine(day) { _, jour -> jour }
+            .flatMapLatest { date ->
                 // Les parentheses ne sont pas decoratives : sans elles, le `.map`
                 // ne s'appliquerait qu'a la seconde branche.
                 (if (date == null) getDaySummary() else getDaySummary(date))
@@ -180,6 +181,27 @@ class HomeViewModel @Inject constructor(
     fun onAdjustment(response: AdjustmentResponse) {
         val shown = suggestion.value ?: return
         viewModelScope.launch { respondToAdjustment(response, shown) }
+    }
+
+    /**
+     * Le jour affiché, tel que l'écran le montre. `null` : aujourd'hui.
+     *
+     * Exposé à part de [uiState] : il est connu **avant** que le journal ne soit lu, et
+     * le titre ne doit pas attendre une base pour s'écrire.
+     */
+    val selectedDay: StateFlow<LocalDate?> = day
+
+    /**
+     * Change le jour affiché. `null` revient à aujourd'hui.
+     *
+     * Le calendrier ne bouge pas : c'est le contenu en dessous qui se recharge. C'est
+     * toute la raison pour laquelle l'écran Journée a disparu.
+     *
+     * Toucher la pastille d'aujourd'hui range `null` — mais c'est le port qui le
+     * décide, pas cet écran : la règle est une propriété du jour regardé.
+     */
+    fun onSelectDay(date: LocalDate?) {
+        selected.select(date)
     }
 
     /** Relit le journal après un échec. */
