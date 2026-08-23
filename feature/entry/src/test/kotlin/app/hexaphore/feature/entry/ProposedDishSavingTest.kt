@@ -111,7 +111,7 @@ class ProposedDishSavingTest {
 
     private suspend fun resolved(vararg items: RecognizedItem) = ResolveRecognition(
         resolve = ResolveFoodLabel(catalogue),
-        create = CreateDraft(clock, ids, InMemorySelectedDay()),
+        create = CreateDraft(clock, ids, InMemorySelectedDay(FixedClock.atNoon(JOUR).today())),
         estimate = { EstimationOutcome.Estimated(emptyList()) },
     )(Recognition(items.toList()), EntrySource.TEXT_AI)
 

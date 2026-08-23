@@ -226,7 +226,7 @@ Deux demandes l'ont fait disparaître, et elles poussaient au même endroit : *l
 
 Ce n'était pas une perte. Il était déjà « structurellement identique à l'accueil » et partageait son modèle pour ne pas diverger ; il ne restait de lui qu'un titre, une croix, et l'absence du bouton d'ajout — dont les deux dernières viennent d'être annulées par la demande.
 
-Ce qu'il promettait reste vrai, sur l'accueil : *« l'ajout et l'édition y sont pleinement disponibles : on rattrape un oubli de la veille comme on saisit le repas du jour. »* Le bouton retour du système ramène à aujourd'hui.
+Ce qu'il promettait reste vrai, sur l'accueil : *« l'ajout et l'édition y sont pleinement disponibles : on rattrape un oubli de la veille comme on saisit le repas du jour. »* Le bouton retour du système ramène à aujourd'hui, et une puce **« ← Aujourd'hui »** sous le titre fait la même chose — un geste ne peut pas être le seul chemin ([D102](11-decisions.md#d102--le-retour-à-aujourdhui-a-une-porte-visible-et-le-jour-regardé-a-un-contrat---validée)).
 
 
 ## Calendrier déplié

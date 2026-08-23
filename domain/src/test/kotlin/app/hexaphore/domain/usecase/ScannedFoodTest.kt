@@ -100,12 +100,12 @@ class ScannedFoodTest {
         return OpenDraft(
             dishes = GetDishDraft(InMemoryDiaryRepository(), ids),
             favorites = GetFavoriteDraft(InMemoryFavoriteDishes(), catalogue, clock, ids),
-            create = CreateDraft(clock, ids, InMemorySelectedDay()),
+            create = CreateDraft(clock, ids, InMemorySelectedDay(clock.today())),
             foods = catalogue,
             pending = InMemoryPendingRecognition(),
             resolve = ResolveRecognition(
                 ResolveFoodLabel(catalogue),
-                CreateDraft(clock, ids, InMemorySelectedDay()),
+                CreateDraft(clock, ids, InMemorySelectedDay(clock.today())),
                 // Aucun repli : ces cas ne parlent pas de l'etape 4, et un estimateur
                 // qui repondrait remplirait des lignes qu'ils veulent vides.
                 estimate = { EstimationOutcome.Estimated(emptyList()) },

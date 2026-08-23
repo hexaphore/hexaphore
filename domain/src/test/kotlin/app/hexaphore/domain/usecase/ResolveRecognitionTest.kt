@@ -132,7 +132,7 @@ class ResolveRecognitionTest {
 
     private suspend fun resolve(vararg items: RecognizedItem) = ResolveRecognition(
         resolve = ResolveFoodLabel(CATALOGUE),
-        create = CreateDraft(FixedClock.atNoon(JOUR), ids, InMemorySelectedDay()),
+        create = CreateDraft(FixedClock.atNoon(JOUR), ids, InMemorySelectedDay(FixedClock.atNoon(JOUR).today())),
         estimate = { labels ->
             demandes += labels
             estimation

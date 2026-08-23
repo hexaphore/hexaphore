@@ -11,8 +11,17 @@ import java.time.LocalDate
  * Premiere implementation du port, comme [InMemoryGoals] et [InMemoryWeightLog]. Elle
  * est identique a celle de production, qui ne range rien non plus : le jour regarde
  * n'a pas de stockage, et un faux qui en aurait un serait plus indulgent que le vrai.
+ *
+ * **[today] n'a pas de valeur par defaut**, et c'est delibere : avec un `null`, un
+ * appelant qui ne s'en souciait pas rangeait la date d'aujourd'hui la ou le vrai range
+ * `null`. C'est exactement la forme de defaut que [D53][decisions] decrit -- un faux
+ * plus indulgent que le vrai -- et un parametre obligatoire la rend impossible.
+ *
+ * Les deux implementations sont eprouvees ensemble par `SelectedDayContract`.
+ *
+ * [decisions]: docs/11-decisions.md
  */
-class InMemorySelectedDay(initial: LocalDate? = null, private val today: LocalDate? = null) : SelectedDay {
+class InMemorySelectedDay(private val today: LocalDate, initial: LocalDate? = null) : SelectedDay {
     private val day = MutableStateFlow(initial)
 
     override fun observe(): Flow<LocalDate?> = day

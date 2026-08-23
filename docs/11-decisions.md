@@ -2967,6 +2967,39 @@ Rien ne dit non plus que les pastilles soient **jolies** à leur nouvelle taille
 
 ---
 
+## D102 — Le retour à aujourd'hui a une porte visible, et le jour regardé a un contrat · ✓ validée
+
+**Contexte.** [D101](#d101--laccueil-porte-une-date-et-lécran-journée-disparaît---validée) a donné une date à l'accueil, et n'a laissé qu'un chemin pour en revenir : le bouton retour du système.
+
+### Un geste ne peut pas être le seul chemin
+
+C'est une règle que le projet applique déjà, et qu'il a écrite pour le balayage qui supprime une ligne : *« un geste sans représentation visible est introuvable pour qui ne le connaît pas, hors d'atteinte au lecteur d'écran, et difficile pour une main qui tient mal le téléphone »*. Le bouton retour du système est exactement ce cas — et il est en plus détourné de son sens habituel, puisqu'il ne quitte pas l'écran.
+
+Une puce **« ← Aujourd'hui »** apparaît donc sous le titre, et seulement quand ce n'est pas aujourd'hui. Pas de bouton grisé pour le cas courant : il occuperait la place et poserait la question de ce qu'il fait là.
+
+**Sous le titre plutôt qu'à côté.** Le titre est déjà une date longue en `headlineMedium` — « vendredi 21 août 2026 » — et la ligne porte en outre les deux portes du poids et du profil. Une puce de plus s'y serait battue pour la largeur, ce qui est précisément le défaut qu'on vient de corriger deux fois.
+
+La pastille d'aujourd'hui reste un troisième chemin, mais elle sort du bandeau dès qu'on remonte de plus d'une semaine ; elle ne pouvait donc pas suffire.
+
+### Le jour regardé a maintenant un contrat, et le faux ne triche plus
+
+`SelectedDay` a deux implémentations depuis D101 — `CurrentSelectedDay`, qui normalise contre l'horloge, et `InMemorySelectedDay`, qui normalise contre une date qu'on lui donne — et **rien ne les éprouvait ensemble**.
+
+Pire : la date du jour du faux était **facultative**. Un appelant qui ne s'en souciait pas — il y en avait six — obtenait un faux qui rangeait la date d'aujourd'hui là où le vrai range `null`. C'est mot pour mot la configuration que [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée) décrit, celle qui avait déjà coûté quatre défauts livrés : un faux plus indulgent que le vrai, et des tests écrits contre le faux.
+
+Deux corrections, et la première rend la seconde difficile à contourner :
+
+- **le paramètre devient obligatoire.** Un faux qui ne peut pas être configuré sans dire quel jour il est ne peut pas être plus indulgent que le vrai ;
+- **`SelectedDayContract` est écrit une fois et exécuté deux fois**, sur le vrai et sur le faux, comme `ProfileStoreContract` et `DiaryContract` avant lui. Il éprouve notamment que les deux façons de lire — le flux qu'observe l'écran, et la lecture immédiate dont `CreateDraft` se sert — disent la même chose.
+
+**Campagne de défaite : cinq sabotages, cinq cas tombés.**
+
+**Conséquences.** `:core:common` reçoit une source de test, ce qu'il n'avait pas. Six constructions du faux disent désormais quel jour il est ; toutes le tiraient déjà d'une horloge à portée de main.
+
+**Ce que le vert ne prouve pas.** **Que la puce s'affiche.** Sa condition est la même que celle du `BackHandler`, trois lignes plus haut dans le même fichier, mais aucun test unitaire ne mesure une composable et le projet n'a pas d'infrastructure de test Compose — [D101](#d101--laccueil-porte-une-date-et-lécran-journée-disparaît---validée) posait déjà ce constat. Rien ne dit non plus qu'une puce soit le bon objet plutôt qu'un bouton texte, ni qu'elle se voie à cet endroit : cela se juge sur un téléphone.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

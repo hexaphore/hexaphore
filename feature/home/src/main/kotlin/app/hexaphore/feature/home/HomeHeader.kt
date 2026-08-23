@@ -1,10 +1,16 @@
 package app.hexaphore.feature.home
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -14,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import app.hexaphore.core.designsystem.component.TrendGlyph
+import app.hexaphore.core.designsystem.theme.Spacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -32,9 +39,50 @@ import java.time.format.FormatStyle
  *
  * **Le titre est la date quand ce n'est pas aujourd'hui.** C'est le seul endroit de
  * l'écran qui dise quel jour on regarde, et c'est ce que le bouton d'ajout va écrire.
+ *
+ * En dessous, et seulement alors, le chemin du retour ([TodayChip]).
  */
 @Composable
-internal fun DayHeader(actions: HomeActions, day: LocalDate?) {
+internal fun DayHeader(actions: HomeActions, day: LocalDate?, onBackToToday: () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        DayTitle(actions, day)
+        // Rien du tout quand on est aujourd'hui : un bouton grise qui ne fait rien
+        // occuperait la place et poserait la question de ce qu'il fait la.
+        AnimatedVisibility(visible = day != null) { TodayChip(onBackToToday) }
+    }
+}
+
+/**
+ * Le chemin visible du retour à aujourd'hui.
+ *
+ * Le bouton retour du système y ramène aussi, mais **un geste sans représentation
+ * visible est introuvable pour qui ne le connaît pas** — c'est la règle que
+ * [docs/02][parcours] applique déjà au balayage qui supprime une ligne. Il reste le
+ * raccourci de celui qui le connaît, jamais le seul chemin.
+ *
+ * La pastille d'aujourd'hui est un troisième chemin, mais elle sort du calendrier dès
+ * qu'on remonte de plus d'une semaine.
+ *
+ * [parcours]: docs/02-parcours-et-ecrans.md
+ */
+@Composable
+private fun TodayChip(onBackToToday: () -> Unit) {
+    AssistChip(
+        onClick = onBackToToday,
+        label = { Text(stringResource(R.string.home_back_to_today)) },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = null,
+                modifier = Modifier.size(AssistChipDefaults.IconSize),
+            )
+        },
+    )
+}
+
+/** La date et les deux icônes, sur une ligne. */
+@Composable
+private fun DayTitle(actions: HomeActions, day: LocalDate?) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,

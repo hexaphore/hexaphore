@@ -282,7 +282,7 @@ class HomeViewModelTest {
         ),
         // Sans jour choisi : l'accueil lit aujourd'hui, et c'est le `null` qu'une
         // pastille du passe remplace par sa date.
-        selected = InMemorySelectedDay(),
+        selected = InMemorySelectedDay(clock.today()),
     )
 
     private val favoris = InMemoryFavoriteDishes()
