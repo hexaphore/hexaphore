@@ -325,9 +325,13 @@ c'est sur lui que la recherche compare. Le titre court est un affichage.
 >
 > **La passe ne tourne pas dans l'application** : `./gradlew generateShortNames
 > -PanthropicApiKey=...` produit le fichier, qu'on relit et corrige à la main avant
-> de relancer `importCiqual`. Six titres y sont écrits à la main ; les 2 085 autres
-> attendent que la tâche soit lancée. Tant qu'elle ne l'est pas, chaque fiche
-> s'affiche sous son libellé, comme avant.
+> de relancer `importCiqual`.
+>
+> ~~Six titres y sont écrits à la main ; les 2 085 autres attendent que la tâche soit
+> lancée.~~ **1 289 titres sont écrits** ([D100](11-decisions.md#d100--un-titre-court-se-construit-et-deux-fiches-voisines-nen-partagent-jamais-un---validée)),
+> et la longueur moyenne de ce qui s'affiche tombe de 41,4 à 30,7 caractères. Les
+> 402 fiches longues restantes gardent leur libellé : une absence de titre est l'état
+> d'avant, pas une régression, et la chaîne ne redemande que les codes absents.
 >
 > Le coût a été mesuré avant d'arbitrer, et il ne dissuade rien : **0,20 à 0,40 $**
 > pour les 3 484 fiches. Ce qui coûte, ce sont les soixante-dix requêtes.

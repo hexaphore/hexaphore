@@ -2856,6 +2856,47 @@ Le premier assemblage a **écrasé une ligne écrite à la main** — les 39 kca
 
 Les plus incertaines sont les 86 fiches relevées à la Martinique : jus de moubin, massissi, kamanioc, ti nain. Elles sont peu documentées ailleurs, et ce sont celles qu'il faudra corriger en premier si un chiffre paraît faux.
 
+## D100 — Un titre court se construit, et deux fiches voisines n'en partagent jamais un · ✓ validée
+
+**Contexte.** [D88](#d88--le-titre-court-se-fabrique-hors-de-lapplication-et-il-ne-touche-jamais-au-libellé---validée) a bâti la chaîne et l'a laissée à six titres écrits à la main sur 3 484 fiches. C'est la cause de fond du défaut que [D97](#d97--un-nom-daliment-se-replie-sur-deux-lignes-et-ne-contient-jamais-de-retour-à-la-ligne---validée) n'a fait que rendre lisible : les libellés sont longs parce que la passe n'avait jamais tourné.
+
+**1 289 titres écrits.** La longueur moyenne de ce qui s'affiche tombe de **41,4 à 30,7 caractères**.
+
+### Trois règles, et ce qu'elles refusent de faire
+
+Le libellé de l'ANSES est un nom suivi de qualificatifs, du plus au moins distinctif — « Poulet, blanc, sans peau, cuit au four, sans matière grasse ajoutée ». La réduction suit cette structure :
+
+- **le nom reste en tête et ne se coupe jamais** ;
+- **l'état — cru, cuit, séché, surgelé — se garde même quand la place manque.** C'est le qualificatif qui distingue le plus souvent deux fiches voisines, et le laisser tomber par simple troncature à droite produisait « Coquille Saint-Jacques » deux fois, pour la crue et la cuite ;
+- **le reste tombe de la droite vers la gauche**, après que le bruit a été retiré — « préemballé », « fait maison », « aliment moyen », « prélevé à la Martinique » ne distinguent jamais rien.
+
+### Deux fiches voisines ne portent jamais le même titre
+
+C'est la propriété qui compte le plus, et elle ne se voit **qu'en comparant les titres entre eux** — jamais en relisant un titre seul. Une liste de résultats où « Abricot au sirop léger » apparaît deux fois est plus illisible qu'une liste de libellés longs : on a remplacé une phrase trop longue par une ambiguïté.
+
+Le premier jet en produisait **143 groupes, sur 372 fiches**. Chacune récupère désormais le mot qui la distingue — égoutté contre non égoutté, rôtie contre grillée — quitte à raccourcir la tête.
+
+**Et jamais avec du bruit.** La première désambiguïsation allait chercher n'importe quel segment différent, ce qui a donné « Feuilleté, aliment moyen ». Un mot qui ne distingue rien ne peut pas départager : il est écarté de la recherche.
+
+### Ce qui ne se départage pas n'obtient rien
+
+**796 fiches restent sans titre**, et c'est un choix plutôt qu'un manque :
+
+- **383 ont un libellé qui tient déjà en quarante caractères.** Le seuil de génération est à trente ; entre les deux, il n'y a rien à raccourcir.
+- **402 ont un libellé long que les règles n'ont pas su réduire** sans le rendre faux ou ambigu — « Spécialité fromagère fondue aromatisée en cubes pour l'apéritif », « Bouchée apéritive de fromage au lait de vache non affiné, fourrée ou enrobée ».
+
+Ces 402 gardent leur libellé, c'est-à-dire l'état d'avant : **une absence de titre n'est pas une régression**, et la chaîne ne redemande que les codes absents du fichier. Une passe suivante les reprendra.
+
+### Ce qui est déjà dans le fichier ne bouge jamais — la deuxième fois
+
+La même faute qu'avec les complétions, et corrigée de la même façon : le premier assemblage a effacé les six titres écrits à la main. Le script relit le fichier avant d'écrire.
+
+**Conséquences.** `short-names.csv` passe de 6 à 1 289 lignes ; la révision de la base de référence passe à 6.
+
+**Ce que le vert ne prouve pas.** **Qu'un titre soit bon.** Ce qui est vérifié est mécanique — quarante caractères, plus court que le libellé, aucun doublon, aucun artefact de ponctuation — et l'échantillon relu se lit bien. Mais « Fromage frais, allégée en matière grasse » garde l'accord féminin du libellé d'origine, et « Eau minérale Nessel, embouteillée » a perdu le mot « gazeuse » faute d'une fiche voisine pour l'exiger. Ce sont des titres corrects, pas des titres écrits.
+
+Rien ne dit non plus que le raccourci **aide** : la longueur moyenne tombe d'un quart, mais la lisibilité d'une liste de résultats se juge sur un téléphone, pas sur une moyenne.
+
 ---
 
 ## Décisions prises par défaut, à confirmer

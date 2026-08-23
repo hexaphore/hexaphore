@@ -226,7 +226,7 @@ class CiqualDatabase(private val context: Context) {
          * ne le dirait. L'oubli est d'autant plus facile que la base se régénère ici
          * sans erreur.
          */
-        const val REVISION = 5
+        const val REVISION = 6
         const val FILE_PREFIX = "ciqual-"
         const val FILE_NAME = "$FILE_PREFIX$EDITION-r$REVISION.db"
 
