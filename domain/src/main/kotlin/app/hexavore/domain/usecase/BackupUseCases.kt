@@ -1,0 +1,125 @@
+package app.hexavore.domain.usecase
+
+import app.hexavore.domain.backup.BACKUP_ROTATION
+import app.hexavore.domain.backup.BackupFile
+import app.hexavore.domain.backup.BackupTarget
+import app.hexavore.domain.backup.SnapshotCodec
+import app.hexavore.domain.backup.SnapshotRead
+import app.hexavore.domain.backup.SnapshotStore
+import app.hexavore.domain.backup.StoredPreferences
+import app.hexavore.domain.time.Clock
+
+/**
+ * Tout ce que l'utilisateur a écrit, en octets.
+ *
+ * **La seule capture-puis-encodage du projet.** [CreateBackup] s'en sert pour remplir
+ * une cible, l'export par fichier s'en sert pour remplir un document que l'utilisateur
+ * a choisi — et le Storage Access Framework n'est pas une cible, parce qu'on n'y liste
+ * rien et qu'on n'y fait rien tourner. Deux chemins, une seule règle.
+ *
+ * L'ordre n'est pas interchangeable : encoder ne relit rien, donc les octets rendus
+ * décrivent l'instant de la capture et pas un autre. C'est ce qui permet à l'écran
+ * d'écrire le fichier plus tard, quand l'utilisateur a fini de choisir un dossier,
+ * sans que le contenu ait bougé sous lui.
+ */
+class ExportBackup(private val store: SnapshotStore, private val codec: SnapshotCodec) {
+    suspend operator fun invoke(): ByteArray = codec.encode(store.capture())
+}
+
+/**
+ * Écrire un instantané dans une cible, et n'y garder que les plus récents.
+ *
+ * **La rotation vit ici et non dans la cible**, parce que ce n'est pas une propriété du
+ * rangement : c'est le nombre de retours en arrière qu'on veut se garder. La copie de
+ * sécurité d'avant restauration n'en veut qu'un, Drive en veut cinq, et les deux
+ * s'écrivent au même endroit.
+ */
+class CreateBackup(private val export: ExportBackup, private val clock: Clock) {
+    /**
+     * @param keep le nombre de fichiers conservés, le plus ancien partant d'abord.
+     * @return le fichier écrit, ou l'échec — une cible peut être pleine, absente ou
+     *   refusée, et l'appelant doit pouvoir le dire.
+     */
+    suspend operator fun invoke(target: BackupTarget, keep: Int = BACKUP_ROTATION): Result<BackupFile> = runCatching {
+        val written = target.write(export(), clock.now())
+        // La rotation apres l'ecriture, jamais avant : supprimer d'abord et echouer
+        // ensuite retirerait une copie saine sans en produire de neuve.
+        target.list().drop(keep).forEach { target.delete(it.id) }
+        written
+    }
+}
+
+/**
+ * Remplacer tout le contenu de l'application par celui d'un fichier.
+ *
+ * **Une copie de sécurité part d'abord**, dans la cible qu'on lui donne, et elle n'en
+ * garde qu'une ([docs/09][donnees]) : c'est ce qui permet de revenir en arrière quand
+ * quelqu'un restaure le mauvais fichier. Elle est écrite **après** la lecture du
+ * fichier entrant — sauvegarder pour un import qui va être refusé ferait perdre la
+ * copie de sécurité précédente sans rien restaurer.
+ *
+ * [donnees]: docs/09-donnees-et-sauvegarde.md
+ */
+class RestoreBackup(
+    private val store: SnapshotStore,
+    private val codec: SnapshotCodec,
+    private val createBackup: CreateBackup,
+    private val safety: BackupTarget,
+) {
+    suspend operator fun invoke(bytes: ByteArray): RestoreOutcome = when (val read = codec.decode(bytes)) {
+        is SnapshotRead.Readable -> replace(read)
+        is SnapshotRead.TooRecent -> RestoreOutcome.TooRecent(read.formatVersion)
+        SnapshotRead.Unreadable -> RestoreOutcome.Unreadable
+    }
+
+    private suspend fun replace(read: SnapshotRead.Readable): RestoreOutcome = runCatching {
+        createBackup(safety, keep = 1)
+        store.replace(read.snapshot)
+        RestoreOutcome.Restored(read.snapshot.entryCount)
+    }.getOrElse { RestoreOutcome.Failed }
+}
+
+/** Ce qu'une restauration a donné. */
+sealed interface RestoreOutcome {
+    data class Restored(val entryCount: Int) : RestoreOutcome
+
+    /** Le fichier vient d'une version plus récente. Rien n'a été touché. */
+    data class TooRecent(val formatVersion: Int) : RestoreOutcome
+
+    /** Ni du JSON, ni du gzip, ni la bonne forme. Rien n'a été touché. */
+    data object Unreadable : RestoreOutcome
+
+    /** L'écriture a échoué. La copie de sécurité, elle, est là. */
+    data object Failed : RestoreOutcome
+}
+
+/**
+ * Tout effacer : le journal, le profil, les objectifs, les clés, les comptes.
+ *
+ * **Les secrets partent avec le reste.** [docs/09][donnees] le veut ainsi : quelqu'un
+ * qui efface ses données ne doit pas retrouver sa clé d'API et son compte Open Food
+ * Facts au prochain lancement.
+ *
+ * **Deux dépendances et non cinq**, et c'est une correction. Ce cas d'usage oubliait
+ * jusqu'ici trois réglages — l'adaptation hebdomadaire, le consentement photo, le
+ * compteur d'appels — parce qu'il composait des oublis un à un, et qu'une liste écrite
+ * ici se tait quand on omet de l'allonger. Elle est désormais tenue par celui qui
+ * range ([StoredPreferences][app.hexavore.domain.backup.StoredPreferences]).
+ *
+ * **Le journal d'abord, les réglages ensuite.** Si le second geste échoue, il reste des
+ * préférences sans journal — l'état d'une installation neuve à qui l'on aurait déjà
+ * donné une clé, que l'application sait afficher. L'ordre inverse laisserait un journal
+ * sans profil, que rien n'est prêt à lire.
+ *
+ * Les sauvegardes ne sont pas effacées ici. Ce sont des fichiers que l'utilisateur a
+ * rangés ailleurs — dans son Drive, sur une clé — et les supprimer sans le lui demander
+ * détruirait la seule chose qui restait.
+ *
+ * [donnees]: docs/09-donnees-et-sauvegarde.md
+ */
+class EraseEverything(private val store: SnapshotStore, private val preferences: StoredPreferences) {
+    suspend operator fun invoke() {
+        store.erase()
+        preferences.erase()
+    }
+}

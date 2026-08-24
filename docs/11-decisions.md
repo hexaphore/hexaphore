@@ -146,7 +146,7 @@ Cette décision conditionne toutes les autres. Toute fonctionnalité qui exigera
 
 ---
 
-## D13 — Nom : Hexaphore · ✓ validée
+## D13 — Nom : Hexaphore · ⊘ remplacée par D105
 
 **Contexte.** Le premier nom envisagé, *Macronaut*, était déjà pris : domaine `macronaut.app` enregistré et identifiant `com.macronaut` publié sur le Play Store. Le second candidat a donc été vérifié avant d'être adopté.
 
@@ -322,7 +322,7 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 
 ---
 
-## D26 — Le `User-Agent` d'Open Food Facts est figé · ✓ validée
+## D26 — Le `User-Agent` d'Open Food Facts est figé · ⊘ en partie remplacée par D105
 
 **Contexte.** [04](04-sources-de-donnees.md) exigeait un `User-Agent` obligatoire tout en laissant un `<compte>` non résolu. Or Open Food Facts bloque les clients anonymes, et le symptôme ressemble à une panne réseau — le piège est signalé dans [12](12-plan-de-developpement.md) et resterait armé.
 
@@ -478,15 +478,15 @@ glucides = (kcal − 4 × protéines − 9 × lipides − 2 × fibres) / 4
 
 Ce n'est pas la répétition qui coûte, c'est ce qu'elle rend possible : une divergence entre deux copies ne se voit qu'en compilant celle qui a divergé. Un module resté en `compileSdk 34` compile parfaitement — jusqu'à ce qu'un autre utilise une API de 35.
 
-**Choix.** Six plugins dans `build-logic/convention` : `hexaphore.jvm.library`, `hexaphore.android.library`, `hexaphore.android.library.compose`, `hexaphore.android.application`, `hexaphore.android.hilt`, `hexaphore.android.feature`. `compileSdk` et `jvmTarget` n'apparaissent plus qu'une fois chacun, dans `Conventions.kt`. Les versions restent lues dans `gradle/libs.versions.toml` — aucun numéro n'est écrit dans `build-logic`.
+**Choix.** Six plugins dans `build-logic/convention` : `hexavore.jvm.library`, `hexavore.android.library`, `hexavore.android.library.compose`, `hexavore.android.application`, `hexavore.android.hilt`, `hexavore.android.feature`. `compileSdk` et `jvmTarget` n'apparaissent plus qu'une fois chacun, dans `Conventions.kt`. Les versions restent lues dans `gradle/libs.versions.toml` — aucun numéro n'est écrit dans `build-logic`.
 
-**Des classes, pas des scripts précompilés.** Un fichier `hexaphore.android.library.gradle.kts` se lit mieux, et c'est ce qui a été écrit d'abord. Il ne fonctionne pas ici : un script précompilé résout les identifiants de son propre bloc `plugins { }` sur **son** chemin de classes d'exécution, ce qui obligerait à embarquer AGP dans `build-logic` en `implementation`. On se retrouve alors avec deux AGP — celui du build racine et celui du build inclus — et Gradle échoue sur `com.android.build.gradle.BaseExtension` sans dire lequel des deux il cherchait. Une classe applique par identifiant, résolu sur le chemin du module cible : un seul AGP, et `compileOnly` suffit à compiler contre son API.
+**Des classes, pas des scripts précompilés.** Un fichier `hexavore.android.library.gradle.kts` se lit mieux, et c'est ce qui a été écrit d'abord. Il ne fonctionne pas ici : un script précompilé résout les identifiants de son propre bloc `plugins { }` sur **son** chemin de classes d'exécution, ce qui obligerait à embarquer AGP dans `build-logic` en `implementation`. On se retrouve alors avec deux AGP — celui du build racine et celui du build inclus — et Gradle échoue sur `com.android.build.gradle.BaseExtension` sans dire lequel des deux il cherchait. Une classe applique par identifiant, résolu sur le chemin du module cible : un seul AGP, et `compileOnly` suffit à compiler contre son API.
 
 **Ce que le build racine garde.** Les sept `alias(...) apply false` restent, et ils ne sont pas décoratifs : c'est eux qui posent AGP et Kotlin sur le chemin de classes du build racine — le seul que voient detekt et ktlint, appliqués par cross-configuration. Sans eux, ktlint cherche `BaseExtension` dans un chargeur de classes qui ne l'a pas.
 
-**Deux `includeBuild` pour un seul build inclus.** Celui de `pluginManagement` résout les identifiants `hexaphore.*`. Celui de la racine substitue le projet local à la coordonnée `app.hexaphore.buildlogic:detekt-rules`. Contrairement à ce qu'on pourrait croire, le premier ne fait pas le second : sans la seconde ligne, Gradle va chercher les règles detekt maison sur Maven Central.
+**Deux `includeBuild` pour un seul build inclus.** Celui de `pluginManagement` résout les identifiants `hexavore.*`. Celui de la racine substitue le projet local à la coordonnée `app.hexavore.buildlogic:detekt-rules`. Contrairement à ce qu'on pourrait croire, le premier ne fait pas le second : sans la seconde ligne, Gradle va chercher les règles detekt maison sur Maven Central.
 
-**L'analyse statique reste en cross-configuration.** Un plugin `hexaphore.quality` serait plus idiomatique — c'est même exactement ce que les plugins de convention sont censés remplacer. Il s'appliquerait module par module, donc **oublier de l'appliquer désactiverait detekt sur un module entier sans qu'aucun build n'échoue**. Le `subprojects { }` rend l'oubli impossible. La cohérence perd, la garantie gagne.
+**L'analyse statique reste en cross-configuration.** Un plugin `hexavore.quality` serait plus idiomatique — c'est même exactement ce que les plugins de convention sont censés remplacer. Il s'appliquerait module par module, donc **oublier de l'appliquer désactiverait detekt sur un module entier sans qu'aucun build n'échoue**. Le `subprojects { }` rend l'oubli impossible. La cohérence perd, la garantie gagne.
 
 **Conséquences.** `feature/home/build.gradle.kts` passe de 60 lignes à 7. Le prochain `:feature` en coûtera autant. En contrepartie, ce qu'un module reçoit ne se lit plus dans son propre fichier : il faut ouvrir la convention. C'est le prix, et il est payé une fois pour toutes les huit.
 
@@ -678,7 +678,7 @@ Le `flowOn(dispatchers.default)` disparaît aussi de cet écran. Ce qu'il produi
 
 **Choix.** La colonne indexée est un nom **déjà normalisé au build** — décomposition Unicode, marques diacritiques retirées, ligatures défaites, minuscules, ponctuation devenue coupure de mot. L'index est une table FTS4 sans contenu, tokenizer `simple`. La même fonction est appliquée à la saisie, et c'est la seule règle qui compte : un nom indexé sans elle, ou une saisie comparée sans elle, ne se rencontrent jamais.
 
-**Écarté.** *Embarquer SQLite* (requery, `androidx.sqlite` bundled) : garderait la lettre de la spécification, au prix de 4 à 5 Mo d'APK, d'une dépendance native, et d'une fabrique d'ouverture à rebrancher — ce qui toucherait aussi `hexaphore.db`. *Remonter `minSdk` à 29* : ne réglerait que la moitié du problème, celle qui n'était pas la plus grave.
+**Écarté.** *Embarquer SQLite* (requery, `androidx.sqlite` bundled) : garderait la lettre de la spécification, au prix de 4 à 5 Mo d'APK, d'une dépendance native, et d'une fabrique d'ouverture à rebrancher — ce qui toucherait aussi `hexavore.db`. *Remonter `minSdk` à 29* : ne réglerait que la moitié du problème, celle qui n'était pas la plus grave.
 
 **Ce que ça gagne, en plus de fonctionner.** La normalisation est faite une fois, au build, par la JVM, dont la couverture Unicode dépasse largement le latin-1 auquel `remove_diacritics 2` se limite. Elle se teste en JVM pure. Et `œ` — l'un des trois exemples de [D23](#d23--recherche-dès-le-2ᵉ-caractère-après-une-pause-de-frappe---validée) — est traité, ce qu'aucun réglage de tokenizer n'aurait fait : `NFD` sépare une lettre de son accent, mais `œ` n'est pas un `o` accenté.
 
@@ -1526,7 +1526,7 @@ Les cinq règles ont été défaites une à une. Chaque cas gardé tombe sous un
 
 Une défaite n'a même pas compilé : Room refuse une requête dont le paramètre nommé ne sert pas. La couverture ne vient pas toujours d'un test.
 
-**Conséquences.** `FoodStore` perd une fonction et redevient ce que son nom annonce — l'écriture du catalogue. `SearchViewModel` prend un port de plus et son test un **bouchon**, ce qui est la bonne division : le `ViewModel` doit prouver qu'il demande le compte et le transmet, le contrat prouve que ce compte suit le journal. `InMemoryFoodCatalog.usages` disparaît. `HexaphoreDatabase` gagne un septième DAO, sans changer de version : aucune table ne bouge, la requête déménage.
+**Conséquences.** `FoodStore` perd une fonction et redevient ce que son nom annonce — l'écriture du catalogue. `SearchViewModel` prend un port de plus et son test un **bouchon**, ce qui est la bonne division : le `ViewModel` doit prouver qu'il demande le compte et le transmet, le contrat prouve que ce compte suit le journal. `InMemoryFoodCatalog.usages` disparaît. `HexavoreDatabase` gagne un septième DAO, sans changer de version : aucune table ne bouge, la requête déménage.
 
 ---
 
@@ -1565,7 +1565,7 @@ Quatorze règles défaites, seize cas, et **tous tombent** sous au moins une dé
 - **Un cas ne mesurait pas ce qu'il annonçait.** « Un crochet dans un libellé ne referme pas le tableau » utilisait `pain [complet]` — un crochet **équilibré**, dont le compte revient au même qu'on regarde les chaînes ou non. Le test passait avec et sans la règle. Corrigé par un crochet solitaire, il tombe. C'est la même forme que les trois cas témoins de la tranche 5 : un test qui décrit la bonne intention avec la mauvaise donnée.
 - **Une défaite n'a rien fait tomber, et c'est un renseignement.** Faire aller un bloc non refermé jusqu'au bout du texte, au lieu de le déclarer perdu, ne change aucune issue observable : le reste ne se décode pas davantage. Ce choix n'est donc pas porteur, et aucun test ne doit prétendre le tenir.
 
-**Conséquences.** `:integration:ai` naît avec son parseur et rien d'autre — les six fournisseurs, le prompt en asset et l'intercepteur de redaction viennent ensuite. Le module est un `:integration` et non un `:data` pour la raison habituelle : on n'y décide ni le schéma ni la disponibilité. Le port vit dans `app.hexaphore.domain.ai`, un dixième paquet du domaine, parce que la reconnaissance n'est ni le journal ni le catalogue — elle produit du texte que le second devra résoudre.
+**Conséquences.** `:integration:ai` naît avec son parseur et rien d'autre — les six fournisseurs, le prompt en asset et l'intercepteur de redaction viennent ensuite. Le module est un `:integration` et non un `:data` pour la raison habituelle : on n'y décide ni le schéma ni la disponibilité. Le port vit dans `app.hexavore.domain.ai`, un dixième paquet du domaine, parce que la reconnaissance n'est ni le journal ni le catalogue — elle produit du texte que le second devra résoudre.
 
 ---
 
@@ -1599,7 +1599,7 @@ La densité est donc un **paramètre** de la conversion, nul partout aujourd'hui
 
 `ConvertedQuantity.guessed` tient la phrase de [04](04-sources-de-donnees.md#conversion-des-quantités) : *« toute conversion appuyée sur un défaut plutôt que sur une donnée réelle est signalée »*. Deux états suffisent, et chaque cas s'y range sans reste — une portion de fiche et une quantité d'emballage sont des données, un forfait n'en est pas une. Un forfait multiplié par une densité connue reste une supposition : c'est le 15 g qui est inventé, pas la densité.
 
-**Conséquences.** `app.hexaphore.domain.resolution` naît avec la conversion et rien d'autre ; la recherche de candidats et le repli IA suivront. Onze règles ont été défaites, quatorze cas, **tous tombent** — dont celui du bol, qui ne tient que parce que le forfait a cessé d'être une règle. Deux seuils de detekt ont forcé un découpage : le `when` des neuf unités passait la complexité cyclomatique tant que cinq branches portaient leur propre `?:`, et le type de retour a pris son fichier.
+**Conséquences.** `app.hexavore.domain.resolution` naît avec la conversion et rien d'autre ; la recherche de candidats et le repli IA suivront. Onze règles ont été défaites, quatorze cas, **tous tombent** — dont celui du bol, qui ne tient que parce que le forfait a cessé d'être une règle. Deux seuils de detekt ont forcé un découpage : le `when` des neuf unités passait la complexité cyclomatique tant que cinq branches portaient leur propre `?:`, et le type de retour a pris son fichier.
 
 **Trois arbitrages pour la suite de la tranche, tranchés et notés ici pour ne pas être rejoués** : les deux boutons IA restent **visibles et grisés** sans clé, comme [02](02-parcours-et-ecrans.md#modale--photo) et la décision par défaut n° 19 le demandent — `NeonButtonAvailability.UNAVAILABLE` n'existe que pour ce cas ; le modèle par défaut est **`claude-opus-5`** ; et les appels passent par **Retrofit**, comme Open Food Facts, pour que les six fournisseurs partagent une seule pile et un seul intercepteur de redaction.
 
@@ -1688,7 +1688,7 @@ Dix-neuf règles défaites, vingt et un cas, **tous tombent** — aucun à retir
 - **Un cas ne tombait que pour la mauvaise raison, et la première série de défaites ne pouvait pas le dire.** « La normalisation ne touche pas aux pluriels » tombait bien — mais sous *« les articles ne partent plus »*, c'est-à-dire sous la règle **voisine**. La défaite qui le tient vraiment est *« la normalisation dépluralise elle aussi »*, autrement dit la défaite du **choix central de cette livraison**, que la première série avait omise. C'est la même forme que le crochet équilibré de [D72](#d72--le-contrat-de-reconnaissance-et-un-parseur-qui-ne-croit-pas-le-modèle-sur-parole---validée), pour une cause différente : là, la donnée du test était mauvaise ; ici, c'est la liste des défaites qui l'était. **Un choix de conception qu'on ne pense pas à défaire est un choix dont on croit à tort les tests garants** — et c'est justement le choix qu'on est le moins enclin à défaire, puisqu'il paraît évident à celui qui vient de le prendre.
 - **Trois cas ne tombaient sous aucune des quinze premières défaites**, et les trois se tenaient par des défaites portant non sur le corps d'une règle mais sur ses **gardes** : la liste vide traitée à part, le plafond à trois, la branche du singulier. Défaire ce qu'une fonction fait est le réflexe ; défaire ce qu'elle refuse de faire ne l'est pas.
 
-**Conséquences.** `app.hexaphore.domain.resolution` gagne la normalisation et la décision à côté de la conversion de [D73](#d73--la-portion-de-la-fiche-lemporte-sur-le-forfait-et-la-densité-attend-son-auteur---validée) ; le domaine compte un dix-neuvième cas d'usage. Aucun port n'est né et aucun n'a bougé : résoudre est une lecture, et `FoodSearch` suffisait — c'est ce que son KDoc annonçait depuis [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée).
+**Conséquences.** `app.hexavore.domain.resolution` gagne la normalisation et la décision à côté de la conversion de [D73](#d73--la-portion-de-la-fiche-lemporte-sur-le-forfait-et-la-densité-attend-son-auteur---validée) ; le domaine compte un dix-neuvième cas d'usage. Aucun port n'est né et aucun n'a bougé : résoudre est une lecture, et `FoodSearch` suffisait — c'est ce que son KDoc annonçait depuis [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée).
 
 **Trois choses restent ouvertes et sont écrites ici plutôt que découvertes.** Une fiche de la table de l'ANSES rendue par la résolution porte un **identifiant provisoire**, comme n'importe quel résultat de recherche : c'est `FoodStore.place` qui la rend désignable par une entrée de journal, et l'écran de validation devra l'appeler ([D51](#d51--une-seule-porte-et-la-quantité-qui-recalcule---validée)). La conversion de [D73](#d73--la-portion-de-la-fiche-lemporte-sur-le-forfait-et-la-densité-attend-son-auteur---validée) **n'est toujours appelée par rien** : elle a maintenant de quoi recevoir une fiche, mais c'est la construction du brouillon qui la déclenchera, donc les écrans de saisie. Et le repli IA groupé — l'étape 4 — reste entier.
 
@@ -3103,6 +3103,69 @@ Et rien ne dit que le fichier produit se **relise dans trois ans**. La chaîne d
 
 ---
 
+## D105 — Le nom devient Hexavore, et le dépôt change d'adresse · ✓ validée
+
+**Contexte.** [D13](#d13--nom--hexaphore---remplacée-par-d105) avait retenu *Hexaphore* sur une vérification de disponibilité, pas sur une vérification de sens. À l'usage, le nom ne dit rien : `-phore` — « qui porte », comme dans *sémaphore* — est un suffixe savant que personne ne décode, et un suivi alimentaire qui ne parle pas de manger perd son seul mot gratuit.
+
+**Choix.** **Hexavore**. `-vore` dit manger sans qu'on l'explique, et *Hexa* garde exactement la justification de D13 : six compteurs, que l'hexagone des macros montre à l'écran depuis [D33](#d33--un-hexagone-en-tête-daccueil-et-un-seul-ordre-angulaire---validée). Le nom change de moitié, pas de raison d'être.
+
+**Le moment n'est pas indifférent.** L'`applicationId` n'est verrouillé qu'à la première publication, et rien n'est publié : `versionCode` valait 1. D14 avait chiffré ce renommage à une demi-journée tant que cette fenêtre restait ouverte. Elle l'était. Après la première mise en ligne, changer d'`applicationId` aurait créé une application entièrement nouvelle, sans ses installations ni ses mises à jour.
+
+**Vérifications effectuées.** Aucune application de ce nom sur le Play Store ni sur l'App Store. `app.hexavore` inutilisé. Aucun paquet npm ni PyPI. `hexavore.app` libre. Homonymes sans conflit de classe : une carte de jeu de cartes à collectionner, et le mot circule comme nom de créature au sens de « dévoreur ». `hexavore.com` et `hexavore.org` sont enregistrés depuis 2010 par un tiers, et ne servent aucune page.
+
+### L'organisation ne peut pas porter le nom, et ce n'est pas grave
+
+`github.com/hexavore` est pris par un compte personnel ouvert en 2014, toujours actif. Trois issues ont été écartées, chacune pour une raison qui lui est propre :
+
+- **réclamer un nom dormant** : GitHub ne le fait plus — *« We do not accept requests to release, transfer, or reclaim usernames on the basis that they appear inactive or unused »*. Et le compte n'est pas dormant ;
+- **acheter le nom** : explicitement interdit, sous peine de suspension des deux comptes ;
+- **la plainte pour marque**, seule exception que GitHub examine : elle demande une marque déposée et un risque de confusion. Un compte personnel antérieur de douze ans, dans un domaine sans rapport, n'en présente aucun.
+
+L'organisation est donc **`hexavore-app`**, avec « Hexavore » en **nom affiché** — GitHub distingue le `login`, qui est l'URL, du `name`, qui est ce que l'interface montre. Le dépôt s'appelle `hexavore`. Ce qui reste de l'ancien nom tient dans quatre caractères d'URL de clone, que seul l'auteur tape.
+
+**Le vieux nom d'organisation est redevenu libre.** Renommer libère l'ancien `login` : les liens vers les *dépôts* redirigent, ceux vers la *page de profil* rendent un 404, et une requête d'API sur l'ancien nom échoue. Rien d'externe n'en dépendait — le seul consommateur était l'en-tête ci-dessous.
+
+### Le `User-Agent` change d'adresse, et le piège était là
+
+[D26](#d26--le-user-agent-dopen-food-facts-est-figé---en-partie-remplacée-par-d105) figeait `Hexaphore/<version> (github.com/hexaphore/hexaphore)`. Il devient :
+
+```
+Hexavore/<version> (github.com/hexavore-app/hexavore)
+```
+
+**Une substitution mécanique aurait écrit `github.com/hexavore/hexavore`** — c'est-à-dire l'adresse du compte d'un tiers. Un signalement d'Open Food Facts serait alors arrivé chez quelqu'un qui n'a rien à voir avec l'application, et l'en-tête aurait perdu la seule chose qu'il sert à faire. C'est le seul endroit du renommage où `s/hexaphore/hexavore/` donnait un résultat qui compile, passe les tests, et désigne la mauvaise personne. Les deux cas qui figent la chaîne en dur l'ont rattrapé.
+
+Le reste de D26 tient : une organisation survit à un changement de propriétaire, la version vient du `versionName`.
+
+### Trois clés d'accès à des données locales
+
+Le nom ne servait pas qu'à nommer. Trois valeurs sont des **clés d'accès à ce qui est déjà écrit sur l'appareil**, et les renommer laisse les données derrière :
+
+- **`HexavoreDatabase.NAME`** passe de `hexaphore.db` à `hexavore.db`. Room ouvre alors un fichier neuf ; l'ancien reste sur le disque sans que personne le lise ;
+- **l'alias Keystore** de `SecretCipher` passe de `hexaphore.ai.secrets` à `hexavore.ai.secrets`. La clé de l'ancien alias existe toujours, mais plus rien ne la demande : **les clés d'API chiffrées deviennent illisibles**, et le format de sauvegarde ne les emporte pas — `Snapshot` ne porte que ce que la base tient ([D96](#d96--la-sauvegarde-emprunte-les-mappeurs-et-le-format-ne-porte-que-ce-que-la-base-tient---validée)). Elles se ressaisissent à la main ;
+- **le préfixe des sauvegardes** passe de `hexaphore-` à `hexavore-`. Ici rien ne casse, et c'est [D104](#d104--la-sauvegarde-locale-a-ses-écrans-et-deux-promesses-qui-nétaient-pas-tenues---validée) qui l'avait rendu vrai sans le savoir : `stampOf` retire le préfixe dans un `runCatching` et rend `null` s'il ne le trouve pas. Un ancien fichier reste donc listé et relisible — il retombe sur sa date de modification au lieu de l'instant écrit dans son nom.
+
+Aucune de ces trois pertes ne touche un utilisateur, puisqu'il n'y en a pas encore. C'est précisément ce que la fenêtre de publication rendait gratuit.
+
+**Les schémas Room ont suivi la classe.** Room range les schémas exportés sous le nom pleinement qualifié de la base : `schemas/app.hexaphore.core.database.HexaphoreDatabase/` devenait introuvable, et Room aurait régénéré la version 6 dans un répertoire neuf — perdant l'historique des cinq migrations, sans qu'aucun build n'échoue. Le répertoire a été déplacé avec la classe. Les JSON, eux, ne portent pas le nom : ils n'ont pas bougé d'un octet.
+
+### Le journal garde son histoire
+
+Ce fichier est une archive, et une archive qu'on réécrit ment. La règle appliquée est donc double :
+
+- **le nom comme nom reste** : D13 dit toujours que `github.com/hexaphore` était libre, et D14 qu'il fallait réserver l'organisation `hexaphore`. C'était vrai le jour où c'était écrit, et le contraire serait faux aujourd'hui ;
+- **le nom comme identifiant de code est mis à jour** : `HexavoreDatabase`, `app.hexavore.domain.resolution`, `hexavore.android.library`, `hexavore.db`. Sans cela un lecteur qui suit une décision jusqu'au code ne trouve plus rien.
+
+D13 et D26 sont marquées remplacées ; leur texte n'a pas été touché.
+
+**Reste à vérifier avant la 1.0.** Absence de marque déposée à l'INPI et à l'EUIPO en classes 9 et 42 — la vérification que D13 avait reportée n'est pas faite, elle change seulement de cible, et aucune recherche web ne la remplace. Et **réserver `hexavore.app`**, libre au moment du renommage : c'est le domaine qu'implique un `applicationId` en `app.`, et le seul des quatre fronts de D13 qui reste ouvert.
+
+**Conséquences.** 538 entrées touchées : 488 changent de chemin, 532 changent de contenu, et les six schémas Room déménagent sans qu'un octet bouge. Cinquante répertoires — les quarante-neuf paquets de sources, plus celui des schémas — et quatre fichiers changent de nom. Six identifiants de plugins de convention passent en `hexavore.*`, la coordonnée du build inclus en `app.hexavore.buildlogic:detekt-rules`, le jeu de règles detekt maison en `hexavore` — dans son `RuleSetProvider` et dans les trois `config/detekt/*.yml` à la fois, faute de quoi les règles se seraient désactivées en silence. Six chaînes visibles par l'utilisateur changent de nom, dont l'avertissement médical de l'onboarding.
+
+**Leçon retenue.** D13 concluait qu'un nom se vérifie sur quatre fronts avant la première ligne. Elle avait raison sur la méthode et tort sur la liste : il en manquait un cinquième, **le sens**. Un nom disponible partout et compris nulle part est un nom qu'on renomme — et cette fois, la disponibilité de l'espace de noms ne suffisait pas non plus, puisque le front GitHub s'est perdu sans que le nom soit perdu.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.
@@ -3131,5 +3194,5 @@ Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la sp
 | 27 | Langues | Français et anglais dès la 1.0 | [01](01-perimetre.md#plateforme) |
 | 28 | Widget et notifications | Hors v1, widget en tête de la 1.1 | [10](10-qualite-et-livraison.md#feuille-de-route) |
 | 29 | Android minimum | API 26 | [01](01-perimetre.md#plateforme) |
-| 30 | Nom | **Hexaphore** — tranché, voir D13 ci-dessus | — |
-| 31 | `applicationId` | `app.hexaphore` | [10](10-qualite-et-livraison.md#identité-de-lapplication) |
+| 30 | Nom | **Hexavore** — tranché, voir [D105](#d105--le-nom-devient-hexavore-et-le-dépôt-change-dadresse---validée) | — |
+| 31 | `applicationId` | `app.hexavore` | [10](10-qualite-et-livraison.md#identité-de-lapplication) |

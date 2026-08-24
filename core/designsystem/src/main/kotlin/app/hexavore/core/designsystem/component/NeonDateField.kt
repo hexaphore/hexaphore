@@ -1,0 +1,164 @@
+package app.hexavore.core.designsystem.component
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import app.hexavore.core.designsystem.R
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+
+/**
+ * Un champ de date qui se **choisit**, jamais qui se tape.
+ *
+ * Demander « AAAA-MM-JJ » au clavier fait porter à l'utilisateur un format que la
+ * machine sait très bien deviner elle-même : il tape, il se trompe d'un tiret, et le
+ * champ reste vide sans dire pourquoi. Une saisie qui n'accepte qu'une écriture n'est
+ * pas une saisie, c'est une devinette.
+ *
+ * **Le champ est en lecture seule et la boîte le recouvre.** `OutlinedTextField` ne
+ * relaie pas les clics quand il est `readOnly`, et le désactiver le grise — ce qui
+ * dirait « indisponible » alors qu'il est parfaitement utilisable. Une surface
+ * transparente par-dessus reçoit le tap, et la sémantique est écrite à la main pour
+ * que TalkBack annonce un bouton et non un champ de texte.
+ *
+ * La date s'affiche dans le **format local** — « 4 mars 1991 » — et non en ISO : ce
+ * qu'on relit doit se lire, l'ISO n'existe que pour le stockage.
+ *
+ * @param yearRange les années proposées. Une date de naissance ne se cherche pas en
+ *   feuilletant les mois : la grille des années est le seul chemin praticable, et la
+ *   borner évite d'en dérouler deux mille.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NeonDateField(
+    value: LocalDate?,
+    onValueChange: (LocalDate) -> Unit,
+    label: String,
+    yearRange: IntRange,
+    modifier: Modifier = Modifier,
+    latest: LocalDate? = null,
+) {
+    var picking by remember { mutableStateOf(false) }
+    val formatter = remember { DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG) }
+    val shown = value?.format(formatter).orEmpty()
+    val description = if (value == null) label else "$label : $shown"
+
+    Box(
+        modifier = modifier.clearAndSetSemantics {
+            contentDescription = description
+            role = Role.Button
+            onClick(label = null) {
+                picking = true
+                true
+            }
+        },
+    ) {
+        OutlinedTextField(
+            value = shown,
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            label = { Text(text = label, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+            trailingIcon = { Icon(imageVector = Icons.Filled.DateRange, contentDescription = null) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        // La surface qui recoit reellement le tap. Sans elle, il faut viser l'icone.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable { picking = true },
+        )
+    }
+
+    if (picking) {
+        DatePicker(
+            initial = value,
+            yearRange = yearRange,
+            latest = latest,
+            onDismiss = { picking = false },
+            onPicked = {
+                picking = false
+                onValueChange(it)
+            },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DatePicker(
+    initial: LocalDate?,
+    yearRange: IntRange,
+    latest: LocalDate?,
+    onDismiss: () -> Unit,
+    onPicked: (LocalDate) -> Unit,
+) {
+    val state = rememberDatePickerState(
+        initialSelectedDateMillis = initial?.toUtcMillis(),
+        yearRange = yearRange,
+        selectableDates = object : SelectableDates {
+            // Une date de naissance dans le futur n'existe pas, et une echeance
+            // passee non plus : la borne est portee par le selecteur plutot que par
+            // un message d'erreur apres coup.
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                latest == null || utcTimeMillis <= latest.toUtcMillis()
+
+            override fun isSelectableYear(year: Int): Boolean = year in yearRange
+        },
+    )
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = { state.selectedDateMillis?.let { onPicked(it.toLocalDate()) } },
+                enabled = state.selectedDateMillis != null,
+            ) {
+                Text(stringResource(R.string.ds_date_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.ds_date_cancel)) }
+        },
+    ) {
+        DatePicker(state = state)
+    }
+}
+
+/**
+ * Le sélecteur raisonne en millisecondes **UTC**, et il faut le prendre au mot.
+ *
+ * Convertir dans le fuseau local ferait basculer d'un jour toute personne à l'ouest de
+ * Greenwich : la date choisie le 4 mars reviendrait le 3. C'est un décalage qu'on ne
+ * voit qu'en voyageant, ou qu'en habitant du mauvais côté du méridien.
+ */
+private fun LocalDate.toUtcMillis(): Long = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+
+private fun Long.toLocalDate(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()

@@ -6,7 +6,7 @@ pluginManagement {
     // a faire dans le graphe de dependances de l'application. Voir D16 dans
     // docs/11-decisions.md.
     //
-    // Ici, c'est ce qui rend les plugins `hexaphore.*` resolubles par identifiant.
+    // Ici, c'est ce qui rend les plugins `hexavore.*` resolubles par identifiant.
     includeBuild("build-logic")
 
     repositories {
@@ -35,7 +35,7 @@ dependencyResolutionManagement {
 // Le meme build, declare une seconde fois hors de pluginManagement, et ce n'est pas
 // une redite : les deux declarations ne font pas la meme chose. Celle de
 // pluginManagement resout les identifiants de plugin ; celle-ci substitue le projet
-// local a la coordonnee `app.hexaphore.buildlogic:detekt-rules` que le build racine
+// local a la coordonnee `app.hexavore.buildlogic:detekt-rules` que le build racine
 // declare en detektPlugins. Sans elle, Gradle va chercher cette coordonnee sur Maven
 // Central, ou elle n'existe evidemment pas.
 includeBuild("build-logic")
@@ -44,7 +44,7 @@ includeBuild("build-logic")
 // une faute de frappe devient une erreur de compilation du script.
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
-rootProject.name = "hexaphore"
+rootProject.name = "hexavore"
 
 // Trois modules, et pas un de plus. Les treize autres de docs/06-architecture.md
 // naissent le jour ou ils ont un fichier a contenir. Voir docs/12-plan-de-developpement.md.

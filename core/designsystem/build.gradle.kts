@@ -1,9 +1,9 @@
 plugins {
-    id("hexaphore.android.library.compose")
+    id("hexavore.android.library.compose")
 }
 
 android {
-    namespace = "app.hexaphore.core.designsystem"
+    namespace = "app.hexavore.core.designsystem"
 }
 
 dependencies {

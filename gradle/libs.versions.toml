@@ -160,7 +160,7 @@ hilt-gradlePlugin = { module = "com.google.dagger:hilt-android-gradle-plugin", v
 detekt-api = { module = "io.gitlab.arturbosch.detekt:detekt-api", version.ref = "detekt" }
 detekt-test = { module = "io.gitlab.arturbosch.detekt:detekt-test", version.ref = "detekt" }
 detekt-test-utils = { module = "io.gitlab.arturbosch.detekt:detekt-test-utils", version.ref = "detekt" }
-hexaphore-detekt-rules = { module = "app.hexaphore.buildlogic:detekt-rules", version.ref = "buildLogic" }
+hexavore-detekt-rules = { module = "app.hexavore.buildlogic:detekt-rules", version.ref = "buildLogic" }
 
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junitPlatform" }

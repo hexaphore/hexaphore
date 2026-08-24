@@ -1,10 +1,10 @@
 plugins {
-    id("hexaphore.android.library")
-    id("hexaphore.android.hilt")
+    id("hexavore.android.library")
+    id("hexavore.android.hilt")
 }
 
 android {
-    namespace = "app.hexaphore.core.common"
+    namespace = "app.hexavore.core.common"
 }
 
 dependencies {

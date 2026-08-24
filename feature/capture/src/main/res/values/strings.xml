@@ -43,8 +43,8 @@
     <!-- Dit une fois, avant que la premiere photo parte. Il nomme le fournisseur :
          « votre photo part chez Mistral » se verifie, « chez votre fournisseur » non. -->
     <string name="photo_consent_title">Votre photo va partir</string>
-    <string name="photo_consent">Votre photo sera envoyée à %1$s avec votre clé API. Hexaphore ne conserve ni la photo ni le résultat sur un serveur — nous n\'en avons aucun. Les conditions d\'utilisation et de conservation sont celles de votre fournisseur.</string>
-    <string name="photo_consent_unnamed">Votre photo sera envoyée au fournisseur d\'IA que vous avez configuré, avec votre clé API. Hexaphore ne conserve ni la photo ni le résultat sur un serveur — nous n\'en avons aucun.</string>
+    <string name="photo_consent">Votre photo sera envoyée à %1$s avec votre clé API. Hexavore ne conserve ni la photo ni le résultat sur un serveur — nous n\'en avons aucun. Les conditions d\'utilisation et de conservation sont celles de votre fournisseur.</string>
+    <string name="photo_consent_unnamed">Votre photo sera envoyée au fournisseur d\'IA que vous avez configuré, avec votre clé API. Hexavore ne conserve ni la photo ni le résultat sur un serveur — nous n\'en avons aucun.</string>
     <string name="photo_consent_accept">J\'ai compris</string>
     <string name="photo_consent_decline">Annuler</string>
 

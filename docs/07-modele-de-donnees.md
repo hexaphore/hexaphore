@@ -1,6 +1,6 @@
 # 07 — Modèle de données
 
-Base Room `hexaphore.db`, plus une base annexe `ciqual.db` livrée en lecture seule dans les assets.
+Base Room `hexavore.db`, plus une base annexe `ciqual.db` livrée en lecture seule dans les assets.
 
 ## Vue d'ensemble
 

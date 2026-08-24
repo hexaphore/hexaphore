@@ -110,7 +110,7 @@ GET https://world.openfoodfacts.org/api/v2/product/{barcode}.json
 
 **Le code-barres demandé est mis sous forme canonique avant l'appel** — UPC-A complété en EAN-13 par un zéro, clé de contrôle vérifiée — et c'est ce code-là, et non celui que la réponse renvoie, qui est enregistré comme référence. Sans quoi le second scan d'un produit ne retrouverait pas la fiche mise en cache, et le défaut ne se verrait qu'en mode avion ([D63](11-decisions.md#d63--le-code-barres-est-une-clé-et-le-client-séprouve-devant-un-vrai-serveur---validée)).
 
-**En-tête `User-Agent` obligatoire** : `Hexaphore/<version> (github.com/hexaphore/hexaphore)`. Open Food Facts bloque les clients anonymes, et c'est légitime : l'en-tête est leur seul moyen de joindre l'auteur d'un client qui se comporte mal. Cet en-tête est posé par un intercepteur OkHttp, pas au cas par cas.
+**En-tête `User-Agent` obligatoire** : `Hexavore/<version> (github.com/hexavore-app/hexavore)`. Open Food Facts bloque les clients anonymes, et c'est légitime : l'en-tête est leur seul moyen de joindre l'auteur d'un client qui se comporte mal. Cet en-tête est posé par un intercepteur OkHttp, pas au cas par cas.
 
 L'adresse est figée sur l'organisation GitHub du projet, réservée pour cela ([D14](11-decisions.md#d14--domaine-et-publication-reportés-après-la-05---validée)) : elle survit à un changement de propriétaire, contrairement à un compte personnel. La version vient du `versionName`, pour qu'un rapport de la part d'Open Food Facts désigne un binaire précis.
 

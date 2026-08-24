@@ -140,7 +140,7 @@
 
     <!-- L'écran des fournisseurs. -->
     <string name="ai_title">Intelligence artificielle</string>
-    <string name="ai_intro">Vos clés restent sur cet appareil, chiffrées par son trousseau. Les appels partent vers votre fournisseur, sans intermédiaire : Hexaphore n\'a pas de serveur.</string>
+    <string name="ai_intro">Vos clés restent sur cet appareil, chiffrées par son trousseau. Les appels partent vers votre fournisseur, sans intermédiaire : Hexavore n\'a pas de serveur.</string>
 
     <!-- Le compteur d'usage. La date du releve accompagne le montant : docs/05 veut
          que la table de tarifs soit datee et signalee comme indicative, parce qu'une

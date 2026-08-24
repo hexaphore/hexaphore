@@ -25,7 +25,7 @@ plugins {
 }
 
 // L'analyse statique reste posee par cross-configuration, et c'est un choix.
-// Un plugin `hexaphore.quality` serait plus idiomatique, mais il s'appliquerait
+// Un plugin `hexavore.quality` serait plus idiomatique, mais il s'appliquerait
 // module par module : oublier de l'appeler desactiverait silencieusement detekt
 // sur un module entier, sans qu'aucun build n'echoue pour le signaler. Ici,
 // l'oubli est impossible. Voir D37 dans docs/11-decisions.md.
@@ -52,7 +52,7 @@ subprojects {
     }
 
     dependencies {
-        add("detektPlugins", rootProject.libs.hexaphore.detekt.rules)
+        add("detektPlugins", rootProject.libs.hexavore.detekt.rules)
     }
 
     tasks.withType<Detekt>().configureEach {

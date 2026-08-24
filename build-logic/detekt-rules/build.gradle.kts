@@ -5,7 +5,7 @@ plugins {
 
 // Coordonnee substituee par le build composite : c'est elle que le build principal
 // declare dans sa configuration detektPlugins.
-group = "app.hexaphore.buildlogic"
+group = "app.hexavore.buildlogic"
 version = libs.versions.buildLogic.get()
 
 kotlin {

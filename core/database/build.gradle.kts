@@ -1,10 +1,10 @@
 plugins {
-    id("hexaphore.android.library")
-    id("hexaphore.android.hilt")
+    id("hexavore.android.library")
+    id("hexavore.android.hilt")
 }
 
 android {
-    namespace = "app.hexaphore.core.database"
+    namespace = "app.hexavore.core.database"
 
     // Robolectric a besoin des ressources Android pour demarrer une base SQLite
     // sur la JVM. Sans cela, le test de migration exigerait un appareil.

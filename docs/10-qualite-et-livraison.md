@@ -151,7 +151,7 @@ rm -rf <module>/build/tmp/kotlin-classes <module>/build/kotlin
 
 **Ne pas utiliser `--rerun`.** Sur ce projet, il régénère `domain/build/libs/domain.jar` **vide** — 261 octets, le manifeste seul — et tout module qui en dépend échoue ensuite sur des `Unresolved reference 'domain'` qui n'ont aucun rapport apparent avec ce qu'on venait de changer. Le remède est de supprimer le jar. Pour forcer une ré-exécution de tests, `cleanTest` fait le même travail sans le risque.
 
-**`includeBuild("build-logic")` est déclaré deux fois dans `settings.gradle.kts`, et ce n'est pas une redite.** Celle de `pluginManagement` rend les identifiants `hexaphore.*` résolubles ; celle de la racine substitue le projet local à la coordonnée `app.hexaphore.buildlogic:detekt-rules` que le build racine déclare en `detektPlugins`. Retirer l'une casse l'autre.
+**`includeBuild("build-logic")` est déclaré deux fois dans `settings.gradle.kts`, et ce n'est pas une redite.** Celle de `pluginManagement` rend les identifiants `hexavore.*` résolubles ; celle de la racine substitue le projet local à la coordonnée `app.hexavore.buildlogic:detekt-rules` que le build racine déclare en `detektPlugins`. Retirer l'une casse l'autre.
 
 **Le cache de configuration est actif.** Une lambda écrite dans un `build.gradle.kts` qui capture l'objet du script n'est pas sérialisable : les chemins se résolvent à la configuration, pas à l'exécution.
 
@@ -210,7 +210,7 @@ Une migration qui « passe » n'est prouvée que par la base d'après. Il n'y a 
 **`adb shell` corrompt le binaire, `adb exec-out` non.** Sous Windows, `adb shell run-as … cat base.db > fichier` traduit les fins de ligne : le fichier arrive plus **gros** que l'original — 92 octets de trop sur 143 Ko dans le cas constaté — et SQLite répond `database disk image is malformed`. On cherche alors une migration cassée qui n'existe pas. La bonne forme :
 
 ```bash
-adb exec-out run-as app.hexaphore.debug cat databases/hexaphore.db > hexaphore.db
+adb exec-out run-as app.hexavore.debug cat databases/hexavore.db > hexavore.db
 ```
 
 **Rapatrier aussi le `-wal`**, sinon on lit un état antérieur au dernier lancement.
@@ -263,13 +263,13 @@ Trois identifiants à ne pas confondre.
 
 | | Exemple | Modifiable ? |
 |---|---|---|
-| **Nom affiché** | Hexaphore | oui, à tout moment |
-| **`applicationId`** | `app.hexaphore` | **non**, dès la première publication sur le Play Store |
-| **Paquets Kotlin** | `app.hexaphore.feature.home` | oui, simple remaniement |
+| **Nom affiché** | Hexavore | oui, à tout moment |
+| **`applicationId`** | `app.hexavore` | **non**, dès la première publication sur le Play Store |
+| **Paquets Kotlin** | `app.hexavore.feature.home` | oui, simple remaniement |
 
 L'`applicationId` est l'identité de l'application pour Android et pour le Play Store — c'est lui qu'on lit dans l'URL d'une fiche (`play.google.com/store/apps/details?id=…`). Le changer après publication crée **une application entièrement nouvelle** : nouvelle fiche, zéro installation, et les utilisateurs existants ne reçoivent plus aucune mise à jour. Aucune procédure de renommage n'existe.
 
-Valeur retenue : **`app.hexaphore`**, DNS inversé de `hexaphore.app`.
+Valeur retenue : **`app.hexavore`**, DNS inversé de `hexavore.app`.
 
 Deux précisions qui évitent des malentendus :
 

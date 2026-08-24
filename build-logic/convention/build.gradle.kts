@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
-group = "app.hexaphore.buildlogic"
+group = "app.hexavore.buildlogic"
 version = libs.versions.buildLogic.get()
 
 kotlin {
@@ -35,7 +35,7 @@ dependencies {
     compileOnly(libs.hilt.gradlePlugin)
 }
 
-// Des classes et non des scripts precompiles (`hexaphore.android.library.gradle.kts`).
+// Des classes et non des scripts precompiles (`hexavore.android.library.gradle.kts`).
 // Un script precompile resout les plugins de son propre bloc `plugins { }` sur son
 // chemin de classes d'execution, ce qui obligerait a embarquer AGP ici en
 // `implementation` -- c'est-a-dire a en avoir un second exemplaire. Une classe
@@ -44,28 +44,28 @@ dependencies {
 gradlePlugin {
     plugins {
         register("jvmLibrary") {
-            id = "hexaphore.jvm.library"
-            implementationClass = "app.hexaphore.gradle.JvmLibraryConventionPlugin"
+            id = "hexavore.jvm.library"
+            implementationClass = "app.hexavore.gradle.JvmLibraryConventionPlugin"
         }
         register("androidLibrary") {
-            id = "hexaphore.android.library"
-            implementationClass = "app.hexaphore.gradle.AndroidLibraryConventionPlugin"
+            id = "hexavore.android.library"
+            implementationClass = "app.hexavore.gradle.AndroidLibraryConventionPlugin"
         }
         register("androidLibraryCompose") {
-            id = "hexaphore.android.library.compose"
-            implementationClass = "app.hexaphore.gradle.AndroidLibraryComposeConventionPlugin"
+            id = "hexavore.android.library.compose"
+            implementationClass = "app.hexavore.gradle.AndroidLibraryComposeConventionPlugin"
         }
         register("androidApplication") {
-            id = "hexaphore.android.application"
-            implementationClass = "app.hexaphore.gradle.AndroidApplicationConventionPlugin"
+            id = "hexavore.android.application"
+            implementationClass = "app.hexavore.gradle.AndroidApplicationConventionPlugin"
         }
         register("androidHilt") {
-            id = "hexaphore.android.hilt"
-            implementationClass = "app.hexaphore.gradle.HiltConventionPlugin"
+            id = "hexavore.android.hilt"
+            implementationClass = "app.hexavore.gradle.HiltConventionPlugin"
         }
         register("androidFeature") {
-            id = "hexaphore.android.feature"
-            implementationClass = "app.hexaphore.gradle.AndroidFeatureConventionPlugin"
+            id = "hexavore.android.feature"
+            implementationClass = "app.hexavore.gradle.AndroidFeatureConventionPlugin"
         }
     }
 }

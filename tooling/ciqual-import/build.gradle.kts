@@ -3,7 +3,7 @@ import org.gradle.language.base.plugins.LifecycleBasePlugin
 plugins {
     // Kotlin/JVM pur : ce code tourne sur la machine de developpement, jamais sur
     // un telephone. Il n'entre dans aucun APK.
-    id("hexaphore.jvm.library")
+    id("hexavore.jvm.library")
 }
 
 dependencies {
@@ -48,7 +48,7 @@ tasks.register<JavaExec>("importCiqual") {
     description = "Convertit le XML de l'ANSES en core/database/src/main/assets/ciqual.db."
 
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("app.hexaphore.tooling.ciqual.CiqualImportKt")
+    mainClass.set("app.hexavore.tooling.ciqual.CiqualImportKt")
 
     inputs.files(sourceArchive, servingsTable, shortNamesTable, completionsTable, sourceChecksums)
     outputs.file(generatedDatabase)
@@ -83,7 +83,7 @@ tasks.register<JavaExec>("generateShortNames") {
     description = "Ecrit tooling/ciqual/short-names.csv. Demande -PanthropicApiKey=... et depense."
 
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("app.hexaphore.tooling.ciqual.GenerateShortNamesKt")
+    mainClass.set("app.hexavore.tooling.ciqual.GenerateShortNamesKt")
 
     args(
         sourceArchive.absolutePath,
@@ -106,7 +106,7 @@ tasks.register<JavaExec>("generateCompletions") {
     description = "Ecrit tooling/ciqual/completions.csv. Demande -PanthropicApiKey=... et depense."
 
     classpath = sourceSets["main"].runtimeClasspath
-    mainClass.set("app.hexaphore.tooling.ciqual.GenerateCompletionsKt")
+    mainClass.set("app.hexavore.tooling.ciqual.GenerateCompletionsKt")
 
     args(
         sourceArchive.absolutePath,

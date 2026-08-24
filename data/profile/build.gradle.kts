@@ -1,10 +1,10 @@
 plugins {
-    id("hexaphore.android.library")
-    id("hexaphore.android.hilt")
+    id("hexavore.android.library")
+    id("hexavore.android.hilt")
 }
 
 android {
-    namespace = "app.hexaphore.data.profile"
+    namespace = "app.hexavore.data.profile"
 
     // Robolectric a besoin des ressources Android pour ouvrir une base SQLite sur la
     // JVM. Sans cela, le contrat des trois ports exigerait un appareil.
