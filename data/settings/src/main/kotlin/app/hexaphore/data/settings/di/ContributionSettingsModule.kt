@@ -37,13 +37,22 @@ internal object ContributionSettingsModule {
     fun preferences(@ApplicationContext context: Context): SharedPreferences =
         context.getSharedPreferences(CONTRIBUTION_PREFERENCES_FILE, Context.MODE_PRIVATE)
 
+    /**
+     * L'instance concrete, exposee comme telle a cote de son interface.
+     *
+     * Le meme decoupage qu'en [AiSettingsModule] : `ErasureModule` a besoin du type
+     * reel, qui sait remettre son flux d'accord avec le disque.
+     */
     @Provides
     @Singleton
-    fun contribution(
+    fun stored(
         @Named(CONTRIBUTION_PREFERENCES) preferences: SharedPreferences,
         cipher: SecretCipher,
         dispatchers: DispatcherProvider,
-    ): ContributionSettings = StoredContributionSettings(preferences, cipher, dispatchers)
+    ): StoredContributionSettings = StoredContributionSettings(preferences, cipher, dispatchers)
+
+    @Provides
+    fun contribution(stored: StoredContributionSettings): ContributionSettings = stored
 }
 
 /**
@@ -56,4 +65,12 @@ internal object ContributionSettingsModule {
  */
 private const val CONTRIBUTION_PREFERENCES_FILE = "contribution_settings"
 
-private const val CONTRIBUTION_PREFERENCES = "contribution"
+/**
+ * Le qualifiant de ce fichier de préférences.
+ *
+ * `internal` et non `private` : `ErasureModule` les injecte tous les trois pour les
+ * vider d'un geste, et lui passer des noms plutôt que des instances l'aurait obligé à
+ * les réécrire — un fichier renommé ici et pas là ne survivrait à l'effacement qu'en
+ * silence.
+ */
+internal const val CONTRIBUTION_PREFERENCES = "contribution"

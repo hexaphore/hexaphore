@@ -68,6 +68,11 @@ Une sauvegarde d'une version **plus récente** que l'application est refusée av
 
 ## Google Drive
 
+> **Repoussé.** Drive attend que l'application entière fonctionne en local ([D104](11-decisions.md#d104--la-sauvegarde-locale-a-ses-écrans-et-deux-promesses-qui-nétaient-pas-tenues---validée)). Le port
+> `BackupTarget` l'accueillera sans changer : il a été écrit pour deux implémentations, et la première —
+> la copie de sécurité interne — s'en sert déjà.
+
+
 ### Emplacement
 
 Dossier `appDataFolder` — espace privé de l'application dans le Drive de l'utilisateur. Invisible dans l'interface Drive, inaccessible aux autres applications, décompté du quota de stockage de l'utilisateur.
@@ -125,7 +130,7 @@ Le chemin de la fusion reste ouvert : tous les enregistrements portent `id`, `cr
 
 Indispensable, et pas seulement pour les utilisateurs sans compte Google.
 
-- **Export** : `ACTION_CREATE_DOCUMENT` via le Storage Access Framework. L'utilisateur choisit l'emplacement — stockage local, Nextcloud, clé USB, peu importe. Aucune permission de stockage n'est requise.
+- **Export** : `ACTION_CREATE_DOCUMENT` via le Storage Access Framework. **Ce chemin n'est pas un `BackupTarget`** : on n'y liste rien et on n'y fait rien tourner, seulement un document par geste ([D104](11-decisions.md#d104--la-sauvegarde-locale-a-ses-écrans-et-deux-promesses-qui-nétaient-pas-tenues---validée)). L'utilisateur choisit l'emplacement — stockage local, Nextcloud, clé USB, peu importe. Aucune permission de stockage n'est requise.
 - **Import** : `ACTION_OPEN_DOCUMENT`, même format, mêmes migrations, même confirmation.
 
 C'est la garantie de réversibilité du projet : quelqu'un qui veut partir emporte ses données dans un fichier lisible. Un format ouvert et un export fonctionnel valent mieux que toutes les promesses de non-enfermement.

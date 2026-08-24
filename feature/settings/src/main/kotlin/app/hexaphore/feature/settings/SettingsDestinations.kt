@@ -29,10 +29,14 @@ data object AiSettingsDestination
 @Serializable
 data object ContributionSettingsDestination
 
+/** Exporter, restaurer, tout effacer. Aucun argument. */
+@Serializable
+data object BackupDestination
+
 fun NavController.navigateToSettings() = navigate(SettingsDestination)
 
 /**
- * Déclare les quatre écrans de réglages dans un graphe.
+ * Déclare les cinq écrans de réglages dans un graphe.
  *
  * Ensemble parce qu'ils partagent une sortie et une seule : **le retour rend l'écran
  * précédent**. Le module ne sait pas lequel c'est, ce qui lui évite de dépendre de
@@ -44,6 +48,7 @@ fun NavGraphBuilder.settingsScreens(navController: NavController) {
             onOpenProfile = { navController.navigate(ProfileDestination) },
             onOpenAi = { navController.navigate(AiSettingsDestination) },
             onOpenContribution = { navController.navigate(ContributionSettingsDestination) },
+            onOpenBackup = { navController.navigate(BackupDestination) },
             onClose = { navController.popBackStack() },
         )
     }
@@ -55,5 +60,8 @@ fun NavGraphBuilder.settingsScreens(navController: NavController) {
     }
     composable<ContributionSettingsDestination> {
         ContributionSettingsRoute(onClose = { navController.popBackStack() })
+    }
+    composable<BackupDestination> {
+        BackupRoute(onClose = { navController.popBackStack() })
     }
 }

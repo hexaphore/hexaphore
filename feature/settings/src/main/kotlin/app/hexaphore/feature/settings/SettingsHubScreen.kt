@@ -30,9 +30,9 @@ import app.hexaphore.core.designsystem.theme.Spacing
  * entrées qui n'ouvrent rien ne sont pas une avance. La deuxième section arrive, donc
  * lui aussi — c'est exactement l'échéance qui avait été écrite.
  *
- * Les trois sections restantes de [docs/02][parcours] — Sauvegarde, Apparence, À
- * propos — n'y figurent toujours pas, et pour la même raison : elles n'ouvriraient
- * rien.
+ * **Sauvegarde arrive avec son écran**, et pas avant : c'est la même règle qui l'avait
+ * tenue dehors. Les deux dernières de [docs/02][parcours] — Apparence, À propos — n'y
+ * figurent toujours pas, et pour la même raison : elles n'ouvriraient rien.
  *
  * [parcours]: docs/02-parcours-et-ecrans.md
  * [decisions]: docs/11-decisions.md
@@ -42,6 +42,7 @@ internal fun SettingsHubScreen(
     onOpenProfile: () -> Unit,
     onOpenAi: () -> Unit,
     onOpenContribution: () -> Unit,
+    onOpenBackup: () -> Unit,
     onClose: () -> Unit,
 ) {
     Scaffold(
@@ -78,6 +79,11 @@ internal fun SettingsHubScreen(
                 titleRes = R.string.settings_contribution_title,
                 subtitleRes = R.string.settings_contribution_subtitle,
                 onClick = onOpenContribution,
+            )
+            SectionCard(
+                titleRes = R.string.settings_backup_title,
+                subtitleRes = R.string.settings_backup_subtitle,
+                onClick = onOpenBackup,
             )
         }
     }

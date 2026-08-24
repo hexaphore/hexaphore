@@ -3040,6 +3040,69 @@ Rien ne dit non plus qu'un en-tête fixe soit agréable : sur un petit écran av
 
 ---
 
+## D104 — La sauvegarde locale a ses écrans, et deux promesses qui n'étaient pas tenues · ✓ validée
+
+**Contexte.** Le socle de la tranche 8 existait depuis [D96](#d96--la-sauvegarde-emprunte-les-mappeurs-et-le-format-ne-porte-que-ce-que-la-base-tient---validée) — format, mappeurs, rotation, copie de sécurité — sans qu'aucun écran ne l'atteigne. En l'y branchant, deux choses se sont révélées fausses.
+
+**Google Drive attend.** Charly l'a repoussé jusqu'à ce que l'application entière fonctionne en local, et cela ne coûte rien : le port `BackupTarget` reste inchangé, et l'export par fichier ne passe pas par lui.
+
+### L'export par fichier n'est pas une cible, et c'est pour cela qu'il manquait
+
+`CreateBackup` écrit dans un `BackupTarget` : un endroit où les sauvegardes s'empilent, se listent et tournent. Le Storage Access Framework n'est rien de tout cela — l'utilisateur désigne **un** document, il n'y a rien à lister et rien à faire tourner. Le port le disait déjà en toutes lettres.
+
+Il manquait donc l'étage en dessous : `ExportBackup`, qui rend des **octets** et ne connaît aucun rangement. `CreateBackup` s'en sert désormais pour remplir une cible, l'écran s'en sert pour remplir un document. Une capture-puis-encodage, deux chemins.
+
+**L'ordre est la règle qui casserait en silence.** Les octets sont produits *avant* que le sélecteur s'ouvre. L'ordre inverse écrirait dans le fichier l'état de l'application au moment où l'utilisateur a fini de parcourir ses dossiers, et non celui où il a demandé l'export — invisible en démonstration, réel si une saisie arrive entre les deux.
+
+### « Effacer toutes mes données » n'effaçait pas toutes les données
+
+Le cas d'usage composait les oublis un à un : la base, les clés d'API fournisseur par fournisseur, le compte Open Food Facts. Il en laissait **trois** derrière lui — l'état de l'adaptation hebdomadaire, le consentement photo, et le compteur d'appels.
+
+Le défaut n'était dans aucune des lignes. Il était dans la forme : **une liste écrite dans un cas d'usage se tait quand on oublie de l'allonger**, et c'est arrivé à chaque réglage ajouté depuis. Un effacement à moitié complet est pire qu'un effacement absent, parce que celui-là ne ment pas.
+
+La liste est donc tenue par celui qui range. `StoredPreferences` est un port à une méthode, implémenté dans `:data:settings` — le seul module qui connaisse ses trois fichiers, **y compris ce que personne n'a modélisé**.
+
+L'implémentation fait deux passes, et chacune répond à un problème distinct :
+
+- **les magasins qui portent un flux** oublient d'abord. `StoredAiCredentials` et `StoredAdjustmentSettings` tiennent un `MutableStateFlow` que seules leurs propres écritures mettent à jour ; vider le fichier sous eux les laisserait annoncer une clé qui n'existe plus, jusqu'au prochain lancement ;
+- **les fichiers ensuite**, et c'est la passe qui tient la promesse : elle emporte le réglage qu'on ajoutera l'an prochain sans penser à cette classe.
+
+`commit` et non `apply` : une écriture différée ferait repartir l'appelant en annonçant un effacement qui n'a pas encore eu lieu.
+
+### La restauration laissait tomber l'adaptation
+
+`Snapshot` capture l'état de l'adaptation hebdomadaire depuis toujours, et le fichier le porte. **`replace` ne le reposait nulle part** — il n'y avait pas de méthode pour cela, l'état ne se construisant jusqu'ici que par des *réponses* (`accepted`, `ignored`, `stop`). Quelqu'un qui restaurait retrouvait donc ses repas et ses objectifs sans son « ne plus proposer », et la carte revenait le lendemain sans que rien ne l'explique.
+
+`AdjustmentSettings.restore` pose l'état entier, et **remplace au lieu de fusionner** : rejouer une réponse n'est pas la même chose que reposer ce qu'elle avait produit.
+
+Le cas qui gardait cela s'arrêtait **un pas trop tôt** : il vérifiait que l'état voyage dans le fichier, jamais qu'on le repose en arrivant.
+
+### Un verrou qui demande de lire
+
+L'effacement est le seul geste du projet qu'aucune barre d'annulation ne rattrape, et une double confirmation par boutons s'apprend à traverser en deux frappes. Taper le mot `SUPPRIMER` est le seul verrou qui demande de **lire** ([docs/09](09-donnees-et-sauvegarde.md#suppression)).
+
+La comparaison ignore la casse et les espaces de bord, délibérément : quelqu'un qui écrit « supprimer » sur un clavier sans majuscules automatiques a lu la phrase. Lui refuser le geste ne protège plus rien — cela punit son clavier. C'est une **égalité** et non une inclusion, sans quoi une frappe au hasard finirait par ouvrir le bouton.
+
+### Ce que l'écran écrit, et comment
+
+Le `ViewModel` ne connaît ni `Uri` ni `ContentResolver` : l'écran lit et écrit le document, et ne fait passer que des octets. C'est ce qui rend les trois gestes éprouvables sans Android.
+
+Le document s'ouvre en **`wt`** et non `w`. Un document réutilisé peut être plus grand que ce qu'on y écrit, et le mode par défaut ne tronque pas : la queue de l'ancien fichier survivrait derrière le nouveau JSON compressé, produisant une sauvegarde illisible que rien n'aurait signalée avant le jour où l'on en a besoin.
+
+À l'ouverture, deux types MIME sont acceptés. Bien des fournisseurs de documents — les pièces jointes de courriel, certains nuages — annoncent `application/octet-stream` pour tout ; filtrer strictement rendrait la sauvegarde grisée et impossible à choisir, sans dire pourquoi.
+
+**Campagne de défaite : quinze sabotages, quinze cas tombés.**
+
+**Conséquences.** Le hub de réglages gagne sa quatrième section, celle que [D59](#d59--le-profil-se-corrige-et-le-verrou-survit-au-recalcul---en-partie-remplacée-par-d60) avait laissée dehors faute d'écran. `AdjustmentSettings` gagne une méthode. Deux modules d'injection exposent leur type concret à côté de leur port, comme le faisait déjà celui des clés d'IA — `ErasureModule` a besoin du magasin réel, qui sait remettre son flux d'accord avec le disque.
+
+**Ce que le vert ne prouve pas.** **Le sélecteur de documents.** Ni `CreateDocument`, ni `OpenDocument`, ni la lecture d'un `Uri` n'ont tourné : ce sont des activités du système, et les cas s'arrêtent aux octets. Un fournisseur qui refuse `wt`, une clé USB retirée en cours d'écriture, un fichier de 40 Mo sur un téléphone à court de mémoire — rien de cela n'est éprouvé.
+
+Les **dialogues** non plus : que celui de restauration s'ouvre avant le sélecteur, que le bouton d'effacement reste fermé tant que le mot n'est pas écrit, que la barre de compte rendu apparaisse. Le mot lui-même se teste, son champ non.
+
+Et rien ne dit que le fichier produit se **relise dans trois ans**. La chaîne de migrations existe, elle n'a jamais eu de version à migrer.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

@@ -3,6 +3,7 @@ package app.hexaphore.data.settings
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import app.hexaphore.core.testing.TestDispatchers
+import app.hexaphore.domain.goal.AdjustmentSetup
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -36,6 +37,34 @@ class StoredAdjustmentSettingsTest {
         assertTrue("l'adaptation est ce qui fait qu'un objectif reste juste", setup.enabled)
         assertNull(setup.lastAcceptedOn)
         assertNull(setup.lastIgnoredOn)
+    }
+
+    @Test
+    fun `un etat repose se relit entier`() = runTest {
+        // La restauration d'une sauvegarde passe par la : les trois cles ensemble, et
+        // non trois reponses rejouees. Rejouer « accepte » n'est pas la meme chose que
+        // reposer ce que « accepte » avait produit.
+        settings.restore(AdjustmentSetup(enabled = false, lastAcceptedOn = LUNDI, lastIgnoredOn = MARDI))
+
+        val setup = settings.observe().first()
+        assertFalse(setup.enabled)
+        assertEquals(LUNDI, setup.lastAcceptedOn)
+        assertEquals(MARDI, setup.lastIgnoredOn)
+    }
+
+    @Test
+    fun `un etat repose efface ce qui etait la`() = runTest {
+        // **Reposer remplace, il ne fusionne pas.** Un « ne plus proposer » d'avant la
+        // restauration survivrait a un fichier qui ne le portait pas, et l'utilisateur
+        // se retrouverait avec l'etat d'un autre appareil melange au sien.
+        settings.stop()
+        settings.accepted(LUNDI)
+
+        settings.restore(AdjustmentSetup())
+
+        val setup = settings.observe().first()
+        assertTrue(setup.enabled)
+        assertNull(setup.lastAcceptedOn)
     }
 
     @Test

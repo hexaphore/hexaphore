@@ -33,14 +33,32 @@ internal object AdjustmentSettingsModule {
     fun preferences(@ApplicationContext context: Context): SharedPreferences =
         context.getSharedPreferences(ADJUSTMENT_PREFERENCES_FILE, Context.MODE_PRIVATE)
 
+    /**
+     * L'instance concrete, exposee comme telle a cote de son interface.
+     *
+     * Le meme decoupage qu'en [AiSettingsModule], et pour la meme raison :
+     * `ErasureModule` a besoin du type reel, qui sait remettre son flux d'accord avec
+     * le disque. Le reste de l'application ne voit que le port.
+     */
     @Provides
     @Singleton
-    fun adjustment(
+    fun stored(
         @Named(ADJUSTMENT_PREFERENCES) preferences: SharedPreferences,
         dispatchers: DispatcherProvider,
-    ): AdjustmentSettings = StoredAdjustmentSettings(preferences, dispatchers)
+    ): StoredAdjustmentSettings = StoredAdjustmentSettings(preferences, dispatchers)
+
+    @Provides
+    fun adjustment(stored: StoredAdjustmentSettings): AdjustmentSettings = stored
 }
 
 private const val ADJUSTMENT_PREFERENCES_FILE = "adjustment_settings"
 
-private const val ADJUSTMENT_PREFERENCES = "adjustment"
+/**
+ * Le qualifiant de ce fichier de préférences.
+ *
+ * `internal` et non `private` : `ErasureModule` les injecte tous les trois pour les
+ * vider d'un geste, et lui passer des noms plutôt que des instances l'aurait obligé à
+ * les réécrire — un fichier renommé ici et pas là ne survivrait à l'effacement qu'en
+ * silence.
+ */
+internal const val ADJUSTMENT_PREFERENCES = "adjustment"

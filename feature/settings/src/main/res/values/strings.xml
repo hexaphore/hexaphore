@@ -177,4 +177,40 @@
     <!-- Un code HTTP ne remonte jamais à l'écran : chaque issue a son message, et la
          plupart ont une action. -->
 
+
+    <!-- ===== Sauvegarde ============================================================
+         La garantie de reversibilite du projet : un format ouvert, un export qui
+         fonctionne, et un effacement qui tient sa promesse (docs/09). -->
+    <string name="settings_backup_title">Sauvegarde</string>
+    <string name="settings_backup_subtitle">Exporter vos données, les restaurer, ou tout effacer</string>
+
+    <string name="backup_title">Sauvegarde</string>
+    <string name="backup_close">Fermer</string>
+    <string name="backup_cancel">Annuler</string>
+
+    <string name="backup_export_title">Exporter mes données</string>
+    <string name="backup_export_body">Un fichier qui contient tout : le journal, les objectifs, les pesées, le catalogue et les plats favoris. Vous choisissez où l\'écrire. Ni clé d\'API ni mot de passe n\'y figurent.</string>
+    <string name="backup_export_action">Choisir un emplacement</string>
+    <string name="backup_exported">Exporté — %1$d Ko</string>
+    <string name="backup_export_failed">Le fichier n\'a pas pu être écrit</string>
+
+    <string name="backup_import_title">Restaurer une sauvegarde</string>
+    <string name="backup_import_body">Remplace tout ce qui est sur cet appareil par le contenu du fichier. Une copie de ce qui existe est conservée juste avant.</string>
+    <string name="backup_import_action">Choisir un fichier</string>
+    <string name="backup_restore_confirm_title">Remplacer toutes vos données ?</string>
+    <string name="backup_restore_confirm_body">Le contenu du fichier remplacera entièrement ce qui est sur cet appareil — les deux ne seront pas fusionnés. Une copie de l\'état actuel est enregistrée juste avant, sur l\'appareil, pour que vous puissiez revenir en arrière si vous vous êtes trompé de fichier.</string>
+    <string name="backup_restore_confirm_accept">Choisir un fichier</string>
+    <string name="backup_restored">Restauré — %1$d aliments notés</string>
+    <string name="backup_too_recent">Ce fichier vient d\'une version plus récente (format %1$d). Rien n\'a été modifié : mettez l\'application à jour.</string>
+    <string name="backup_unreadable">Fichier illisible. Rien n\'a été modifié.</string>
+    <string name="backup_restore_failed">La restauration a échoué. Une copie de vos données d\'avant est sur l\'appareil.</string>
+
+    <string name="backup_erase_title">Effacer toutes mes données</string>
+    <string name="backup_erase_body">Supprime le journal, le profil, les objectifs, les pesées, les clés d\'API et les comptes. Les fichiers déjà exportés ne sont pas touchés.</string>
+    <string name="backup_erase_action">Tout effacer</string>
+    <string name="backup_erase_confirm_title">Tout effacer, sans retour possible ?</string>
+    <string name="backup_erase_confirm_body">Cette action ne peut pas être annulée. Pour confirmer, écrivez %1$s ci-dessous.</string>
+    <string name="backup_erase_confirm_accept">Tout effacer</string>
+    <string name="backup_erase_word">SUPPRIMER</string>
+    <string name="backup_erased">Toutes vos données ont été effacées</string>
 </resources>
