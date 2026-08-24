@@ -36,4 +36,15 @@ class InMemoryAdjustmentSettings(initial: AdjustmentSetup = AdjustmentSetup()) :
     override suspend fun stop() {
         state.value = state.value.copy(enabled = false)
     }
+
+    /**
+     * Pose l'etat entier, et **remplace** au lieu de fusionner.
+     *
+     * Un `copy` partiel serait plus indulgent que le vrai, qui reecrit les trois
+     * cles : un « ne plus proposer » d'avant la restauration survivrait a un fichier
+     * qui ne le portait pas, et le test n'y verrait rien.
+     */
+    override suspend fun restore(setup: AdjustmentSetup) {
+        state.value = setup
+    }
 }

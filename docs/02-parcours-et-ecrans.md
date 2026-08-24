@@ -257,7 +257,7 @@ Si l'algorithme a une suggestion d'ajustement en attente, une carte apparaît en
 
 ## Réglages
 
-Écran simple à sections. L'accueil y mène, et les sections mènent aux écrans. **Il existe depuis que sa deuxième section existe** — c'est l'échéance que [D59](11-decisions.md) avait fixée, et [D77](11-decisions.md#d77--la-clé-va-dans-le-keystore-en-direct-et-le-bouton-tester-est-une-vraie-analyse---validée) l'honore. Il en porte deux : **Profil et objectifs**, et **Intelligence artificielle**. Les trois autres n'y figurent pas, pour la raison inchangée : elles n'ouvriraient rien.
+Écran simple à sections. L'accueil y mène, et les sections mènent aux écrans. **Il existe depuis que sa deuxième section existe** — c'est l'échéance que [D59](11-decisions.md) avait fixée, et [D77](11-decisions.md#d77--la-clé-va-dans-le-keystore-en-direct-et-le-bouton-tester-est-une-vraie-analyse---validée) l'honore. Il en porte quatre : **Profil et objectifs**, **Intelligence artificielle**, **Contribution**, et **Sauvegarde**. Les deux dernières — Apparence, À propos — n'y figurent pas, pour la raison inchangée : elles n'ouvriraient rien.
 
 **Profil et objectifs** — toutes les données de l'onboarding. **On les consulte d'abord** : l'écran ouvre en lecture, et un crayon ouvre la modification ([D60](11-decisions.md)). Un écran de réglages entièrement saisissable invite à corriger ce qu'on venait relire.
 
@@ -273,7 +273,13 @@ Corriger ses objectifs **ouvre une nouvelle version**, il n'en modifie aucune ([
 
 L'URL de base est modifiable pour **tous** les fournisseurs et non pour le seul générique : c'est ce qui rend un relais branchable devant n'importe lequel, pour zéro ligne de plus.
 
-**Sauvegarde** — connexion Google Drive, dernière sauvegarde, bascule automatique, « Sauvegarder maintenant », « Restaurer », « Exporter dans un fichier », « Importer un fichier ».
+**Sauvegarde** — trois gestes, tous locaux ([D104](11-decisions.md#d104--la-sauvegarde-locale-a-ses-écrans-et-deux-promesses-qui-nétaient-pas-tenues---validée)).
+
+- **Exporter mes données** ouvre le sélecteur de documents du système : l'utilisateur choisit où écrire, sans qu'aucune permission de stockage soit demandée. Les octets sont produits **avant** que le sélecteur s'ouvre, pour que le fichier décrive l'instant de la demande et non celui du choix.
+- **Restaurer une sauvegarde** prévient d'abord — le remplacement est complet, jamais une fusion — puis ouvre le sélecteur. Une copie de l'état actuel part dans le stockage interne juste avant l'écrasement, et un fichier illisible ou trop récent ne touche à rien.
+- **Effacer toutes mes données** demande d'écrire le mot `SUPPRIMER`. C'est le seul geste du projet qu'aucune barre d'annulation ne rattrape ; une double confirmation par boutons s'apprend à traverser en deux frappes, taper un mot demande de lire. Il emporte le journal **et** les réglages — clés d'API, comptes, adaptation, consentement photo. Les fichiers déjà exportés ne sont pas touchés.
+
+~~connexion Google Drive, dernière sauvegarde, bascule automatique, « Sauvegarder maintenant »~~ — **Drive attend que le reste fonctionne en local**, et le port qui l'accueillera est déjà là.
 
 **Apparence** — thème (sombre / clair / système), langue, unités (métrique / impérial), animations réduites.
 

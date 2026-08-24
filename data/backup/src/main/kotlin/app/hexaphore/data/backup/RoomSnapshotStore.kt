@@ -90,6 +90,17 @@ class RoomSnapshotStore @Inject constructor(
             writes.insertFavorites(snapshot.favorites.map { it.toEntity(now) })
             writes.insertComponents(snapshot.favorites.flatMap { it.toComponents() })
         }
+
+        // **Hors de la transaction, et il n'y a pas de choix** : l'adaptation est
+        // rangee dans des preferences et non dans la base. L'instantane la capture
+        // depuis toujours -- elle voyage donc dans le fichier -- mais la restauration
+        // la laissait tomber, faute de savoir ou la remettre. Quelqu'un qui restaurait
+        // retrouvait ses repas sans son « ne plus proposer », et la carte revenait le
+        // lendemain sans que rien ne l'explique.
+        //
+        // Apres la base et non avant : une transaction qui echoue ne doit pas laisser
+        // l'adaptation d'un autre appareil sur un journal qui n'a pas bouge.
+        adjustment.restore(snapshot.adjustment)
     }
 
     override suspend fun erase() = withContext(dispatchers.io) {

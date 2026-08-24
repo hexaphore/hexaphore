@@ -47,6 +47,23 @@ internal class StoredAdjustmentSettings(
         preferences.edit { putBoolean(ENABLED, false) }
     }
 
+    override suspend fun restore(setup: AdjustmentSetup) = write {
+        preferences.edit {
+            putBoolean(ENABLED, setup.enabled)
+            // Une date absente s'ecrit comme une absence et non comme une chaine vide :
+            // `readAdjustment` la relira comme `null`, et une chaine vide y aurait
+            // leve au premier `LocalDate.parse`.
+            putString(LAST_ACCEPTED, setup.lastAcceptedOn?.toString())
+            putString(LAST_IGNORED, setup.lastIgnoredOn?.toString())
+        }
+    }
+
+    /**
+     * Repart de zéro : l'adaptation redevient ce qu'elle est sur une installation
+     * neuve, c'est-à-dire active et sans souvenir.
+     */
+    internal suspend fun forget() = restore(AdjustmentSetup())
+
     /** Écrit hors du fil principal, puis **relit** : l'affichage montre le disque. */
     private suspend fun write(block: () -> Unit) = withContext(dispatchers.io) {
         block()

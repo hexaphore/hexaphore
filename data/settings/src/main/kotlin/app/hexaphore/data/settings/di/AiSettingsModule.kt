@@ -92,4 +92,12 @@ internal object AiSettingsModule {
  */
 private const val AI_PREFERENCES_FILE = "ai_settings"
 
-private const val AI_PREFERENCES = "ai"
+/**
+ * Le qualifiant de ce fichier de préférences.
+ *
+ * `internal` et non `private` : `ErasureModule` les injecte tous les trois pour les
+ * vider d'un geste, et lui passer des noms plutôt que des instances l'aurait obligé à
+ * les réécrire — un fichier renommé ici et pas là ne survivrait à l'effacement qu'en
+ * silence.
+ */
+internal const val AI_PREFERENCES = "ai"

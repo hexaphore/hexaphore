@@ -1,15 +1,30 @@
 package app.hexaphore.domain.usecase
 
-import app.hexaphore.domain.ai.AiCredentials
-import app.hexaphore.domain.ai.AiProvider
 import app.hexaphore.domain.backup.BACKUP_ROTATION
 import app.hexaphore.domain.backup.BackupFile
 import app.hexaphore.domain.backup.BackupTarget
 import app.hexaphore.domain.backup.SnapshotCodec
 import app.hexaphore.domain.backup.SnapshotRead
 import app.hexaphore.domain.backup.SnapshotStore
-import app.hexaphore.domain.food.ContributionSettings
+import app.hexaphore.domain.backup.StoredPreferences
 import app.hexaphore.domain.time.Clock
+
+/**
+ * Tout ce que l'utilisateur a écrit, en octets.
+ *
+ * **La seule capture-puis-encodage du projet.** [CreateBackup] s'en sert pour remplir
+ * une cible, l'export par fichier s'en sert pour remplir un document que l'utilisateur
+ * a choisi — et le Storage Access Framework n'est pas une cible, parce qu'on n'y liste
+ * rien et qu'on n'y fait rien tourner. Deux chemins, une seule règle.
+ *
+ * L'ordre n'est pas interchangeable : encoder ne relit rien, donc les octets rendus
+ * décrivent l'instant de la capture et pas un autre. C'est ce qui permet à l'écran
+ * d'écrire le fichier plus tard, quand l'utilisateur a fini de choisir un dossier,
+ * sans que le contenu ait bougé sous lui.
+ */
+class ExportBackup(private val store: SnapshotStore, private val codec: SnapshotCodec) {
+    suspend operator fun invoke(): ByteArray = codec.encode(store.capture())
+}
 
 /**
  * Écrire un instantané dans une cible, et n'y garder que les plus récents.
@@ -19,14 +34,14 @@ import app.hexaphore.domain.time.Clock
  * sécurité d'avant restauration n'en veut qu'un, Drive en veut cinq, et les deux
  * s'écrivent au même endroit.
  */
-class CreateBackup(private val store: SnapshotStore, private val codec: SnapshotCodec, private val clock: Clock) {
+class CreateBackup(private val export: ExportBackup, private val clock: Clock) {
     /**
      * @param keep le nombre de fichiers conservés, le plus ancien partant d'abord.
      * @return le fichier écrit, ou l'échec — une cible peut être pleine, absente ou
      *   refusée, et l'appelant doit pouvoir le dire.
      */
     suspend operator fun invoke(target: BackupTarget, keep: Int = BACKUP_ROTATION): Result<BackupFile> = runCatching {
-        val written = target.write(codec.encode(store.capture()), clock.now())
+        val written = target.write(export(), clock.now())
         // La rotation apres l'ecriture, jamais avant : supprimer d'abord et echouer
         // ensuite retirerait une copie saine sans en produire de neuve.
         target.list().drop(keep).forEach { target.delete(it.id) }
@@ -81,9 +96,20 @@ sealed interface RestoreOutcome {
 /**
  * Tout effacer : le journal, le profil, les objectifs, les clés, les comptes.
  *
- * **Les secrets partent avec le reste**, et c'est le seul endroit du projet qui les
- * touche tous. [docs/09][donnees] le veut ainsi : quelqu'un qui efface ses données ne
- * doit pas retrouver sa clé d'API et son compte Open Food Facts au prochain lancement.
+ * **Les secrets partent avec le reste.** [docs/09][donnees] le veut ainsi : quelqu'un
+ * qui efface ses données ne doit pas retrouver sa clé d'API et son compte Open Food
+ * Facts au prochain lancement.
+ *
+ * **Deux dépendances et non cinq**, et c'est une correction. Ce cas d'usage oubliait
+ * jusqu'ici trois réglages — l'adaptation hebdomadaire, le consentement photo, le
+ * compteur d'appels — parce qu'il composait des oublis un à un, et qu'une liste écrite
+ * ici se tait quand on omet de l'allonger. Elle est désormais tenue par celui qui
+ * range ([StoredPreferences][app.hexaphore.domain.backup.StoredPreferences]).
+ *
+ * **Le journal d'abord, les réglages ensuite.** Si le second geste échoue, il reste des
+ * préférences sans journal — l'état d'une installation neuve à qui l'on aurait déjà
+ * donné une clé, que l'application sait afficher. L'ordre inverse laisserait un journal
+ * sans profil, que rien n'est prêt à lire.
  *
  * Les sauvegardes ne sont pas effacées ici. Ce sont des fichiers que l'utilisateur a
  * rangés ailleurs — dans son Drive, sur une clé — et les supprimer sans le lui demander
@@ -91,14 +117,9 @@ sealed interface RestoreOutcome {
  *
  * [donnees]: docs/09-donnees-et-sauvegarde.md
  */
-class EraseEverything(
-    private val store: SnapshotStore,
-    private val credentials: AiCredentials,
-    private val contribution: ContributionSettings,
-) {
+class EraseEverything(private val store: SnapshotStore, private val preferences: StoredPreferences) {
     suspend operator fun invoke() {
         store.erase()
-        AiProvider.entries.forEach { credentials.forget(it) }
-        contribution.forget()
+        preferences.erase()
     }
 }

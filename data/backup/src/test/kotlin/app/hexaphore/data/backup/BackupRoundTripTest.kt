@@ -145,6 +145,24 @@ class BackupRoundTripTest {
     }
 
     @Test
+    fun `restaurer repose l etat de l adaptation`() = runBlocking {
+        // **Le cas precedent s'arretait un pas trop tot.** Il verifiait que l'etat
+        // voyage dans le fichier, jamais qu'on le repose en arrivant -- et `replace`
+        // le laissait tomber. Quelqu'un qui restaurait retrouvait ses repas sans son
+        // « ne plus proposer », et la carte revenait le lendemain sans explication.
+        remplir()
+        val fichier = codec.encode(store.capture())
+        // L'appareil d'arrivee n'a jamais rien repondu : c'est ce que la restauration
+        // doit ecraser.
+        adaptation.restore(AdjustmentSetup())
+
+        store.replace((codec.decode(fichier) as SnapshotRead.Readable).snapshot)
+
+        assertFalse("« ne plus proposer » doit survivre au changement d'appareil", adaptation.setup.enabled)
+        assertEquals(LUNDI, adaptation.setup.lastIgnoredOn)
+    }
+
+    @Test
     fun `effacer ne laisse rien`() = runBlocking {
         remplir()
 

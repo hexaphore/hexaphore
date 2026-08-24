@@ -1,22 +1,14 @@
 package app.hexaphore.domain.usecase
 
 import app.hexaphore.core.testing.FixedClock
-import app.hexaphore.core.testing.InMemoryAiCredentials
 import app.hexaphore.core.testing.InMemoryBackupTarget
-import app.hexaphore.domain.ai.AiProvider
-import app.hexaphore.domain.ai.ApiKey
-import app.hexaphore.domain.ai.ProviderCredentials
 import app.hexaphore.domain.backup.BACKUP_ROTATION
 import app.hexaphore.domain.backup.Snapshot
 import app.hexaphore.domain.backup.SnapshotCodec
 import app.hexaphore.domain.backup.SnapshotRead
 import app.hexaphore.domain.backup.SnapshotStore
-import app.hexaphore.domain.food.ContributionSettings
-import app.hexaphore.domain.food.ContributionSetup
-import app.hexaphore.domain.food.OffAccount
+import app.hexaphore.domain.backup.StoredPreferences
 import app.hexaphore.domain.profile.WeightEntry
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -134,20 +126,17 @@ class BackupUseCasesTest {
     // --- Effacer ---------------------------------------------------------------------
 
     @Test
-    fun `effacer emporte le contenu et les secrets`() = runTest {
-        val cles = InMemoryAiCredentials()
-        val contribution = FakeContributionSettings()
-        cles.save(
-            AiProvider.ANTHROPIC,
-            ProviderCredentials(ApiKey("sk-ant-de-test"), model = "claude-opus-5", baseUrl = "https://exemple/"),
-        )
+    fun `effacer emporte le contenu et les reglages`() = runTest {
+        // **Les deux rangements, et le cas le dit.** Vider la base laisserait derriere
+        // elle la cle d'API, le compte Open Food Facts et l'etat de l'adaptation --
+        // c'est-a-dire tout ce qui permet de reconnaitre l'utilisateur.
+        val reglages = FakeStoredPreferences()
         store.content = RESTAURE
 
-        EraseEverything(store, cles, contribution)()
+        EraseEverything(store, reglages)()
 
         assertNull(store.content)
-        assertNull(cles.observe().first().credentials[AiProvider.ANTHROPIC], "une cle oubliee ne revient pas")
-        assertTrue(contribution.forgotten, "le compte Open Food Facts part avec")
+        assertTrue(reglages.erased, "les reglages et les cles partent avec le journal")
     }
 
     @Test
@@ -156,14 +145,47 @@ class BackupUseCasesTest {
         // sans le demander detruirait la seule chose qui restait.
         createBackup()(cible)
 
-        EraseEverything(store, InMemoryAiCredentials(), FakeContributionSettings())()
+        EraseEverything(store, FakeStoredPreferences())()
 
         assertEquals(1, cible.names.size)
     }
 
-    private fun createBackup(jour: LocalDate = LUNDI) = CreateBackup(store, codec, FixedClock.atNoon(jour))
+    // --- Exporter --------------------------------------------------------------------
+
+    @Test
+    fun `exporter encode ce qui vient d etre capture`() = runTest {
+        store.content = RESTAURE
+
+        val octets = ExportBackup(store, codec)()
+
+        assertEquals(RESTAURE, codec.encoded, "les octets doivent decrire l'instant de la capture")
+        assertEquals(FICHIER.decodeToString(), octets.decodeToString(), "et c'est le codec qui les produit")
+    }
+
+    @Test
+    fun `exporter ne touche a rien`() = runTest {
+        // Le cas qui distingue un export d'une sauvegarde : celui-ci ne range nulle
+        // part, il rend des octets. Rien ne doit apparaitre dans une cible.
+        store.content = RESTAURE
+
+        ExportBackup(store, codec)()
+
+        assertTrue(cible.names.isEmpty(), "un export par fichier n'ecrit dans aucune cible")
+    }
+
+    private fun createBackup(jour: LocalDate = LUNDI) =
+        CreateBackup(ExportBackup(store, codec), FixedClock.atNoon(jour))
 
     private fun restoreBackup() = RestoreBackup(store, codec, createBackup(), securite)
+
+    /** Le second rangement, reduit a la seule question que le cas d'usage lui pose. */
+    private class FakeStoredPreferences : StoredPreferences {
+        var erased = false
+
+        override suspend fun erase() {
+            erased = true
+        }
+    }
 
     private fun Instant.jour(): LocalDate = atZone(java.time.ZoneId.of("Europe/Paris")).toLocalDate()
 
@@ -184,24 +206,23 @@ class BackupUseCasesTest {
     }
 
     /** Un codec qui ne code rien : ce qui se juge ici est l'ordre des gestes. */
+    /**
+     * Retient **ce qu'on lui a donne a encoder**, et pas seulement ce qu'il a rendu.
+     *
+     * Sans cela, comparer les octets d'un export a `codec.encode(attendu)` comparerait
+     * `FICHIER` a `FICHIER` : le cas passerait meme si le cas d'usage encodait un
+     * instantane vide. Un faux qui rend toujours la meme chose ne peut affirmer que
+     * ce qu'on lui a demande.
+     */
     private class FakeCodec(var read: SnapshotRead = SnapshotRead.Readable(RESTAURE)) : SnapshotCodec {
-        override suspend fun encode(snapshot: Snapshot): ByteArray = FICHIER
+        var encoded: Snapshot? = null
 
-        override suspend fun decode(bytes: ByteArray): SnapshotRead = read
-    }
-
-    private class FakeContributionSettings : ContributionSettings {
-        var forgotten = false
-
-        override fun observe(): Flow<ContributionSetup> = MutableStateFlow(ContributionSetup())
-
-        override suspend fun save(account: OffAccount) = Unit
-
-        override suspend fun forget() {
-            forgotten = true
+        override suspend fun encode(snapshot: Snapshot): ByteArray {
+            encoded = snapshot
+            return FICHIER
         }
 
-        override suspend fun useSandbox(sandbox: Boolean) = Unit
+        override suspend fun decode(bytes: ByteArray): SnapshotRead = read
     }
 
     private companion object {

@@ -32,6 +32,21 @@ interface AdjustmentSettings {
 
     /** « Ne plus proposer ». Définitif jusqu'à ce que l'utilisateur revienne dessus. */
     suspend fun stop()
+
+    /**
+     * Repose l'état entier, tel qu'une sauvegarde le portait.
+     *
+     * **Il manquait, et l'instantané l'emportait pour rien.** `Snapshot` capture cet
+     * état depuis toujours et l'écrit dans le fichier ; la restauration le laissait
+     * tomber, faute de savoir où le remettre. Quelqu'un qui restaurait retrouvait donc
+     * ses repas et ses objectifs, mais pas son « ne plus proposer » — et la carte
+     * revenait le lendemain sans que rien ne l'explique.
+     *
+     * Un état entier et non trois appels : `accepted`, `ignored` et `stop` décrivent
+     * des **réponses**, et rejouer une réponse qui n'a pas lieu n'est pas la même chose
+     * que reposer ce qu'elle avait produit.
+     */
+    suspend fun restore(setup: AdjustmentSetup)
 }
 
 /**
