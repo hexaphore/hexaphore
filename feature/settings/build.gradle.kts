@@ -1,7 +1,7 @@
 plugins {
-    id("hexaphore.android.feature")
+    id("hexavore.android.feature")
 }
 
 android {
-    namespace = "app.hexaphore.feature.settings"
+    namespace = "app.hexavore.feature.settings"
 }

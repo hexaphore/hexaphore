@@ -7,7 +7,7 @@ build:
   # Zero constat tolere. Un seuil superieur a zero se remplit toujours.
   maxIssues: 0
 
-hexaphore:
+hexavore:
   active: true
 
   HardcodedColor:

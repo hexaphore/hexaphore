@@ -18,7 +18,7 @@
     <string name="scan_search_by_name">Chercher par nom</string>
     <string name="scan_retry">Scanner à nouveau</string>
 
-    <string name="scan_permission_title">Hexaphore a besoin de la caméra</string>
+    <string name="scan_permission_title">Hexavore a besoin de la caméra</string>
     <string name="scan_permission_body">Le scan lit le code-barres du produit, et rien d\'autre. Aucune image n\'est enregistrée ni envoyée. Les trois autres façons d\'ajouter un aliment restent disponibles.</string>
     <string name="scan_permission_grant">Autoriser la caméra</string>
     <string name="scan_permission_settings">Ouvrir les réglages</string>

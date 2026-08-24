@@ -4,7 +4,7 @@
 
 | Donnée | Emplacement | Sauvegardée ? |
 |---|---|---|
-| Journal, aliments, objectifs, poids | `hexaphore.db` (Room) | oui |
+| Journal, aliments, objectifs, poids | `hexavore.db` (Room) | oui |
 | Préférences d'affichage | DataStore | oui |
 | Clés API | `EncryptedSharedPreferences` (Keystore) | **non, jamais** |
 | Photos analysées | `cacheDir`, supprimées immédiatement | sans objet |
@@ -89,7 +89,7 @@ La connexion n'est demandée **qu'au moment** où l'utilisateur active la sauveg
 
 ### Rotation
 
-Cinq fichiers conservés, nommés `hexaphore-{ISO8601}.json.gz`. Au-delà, le plus ancien est supprimé.
+Cinq fichiers conservés, nommés `hexavore-{ISO8601}.json.gz`. Au-delà, le plus ancien est supprimé.
 
 Cinq et non un seul : une corruption locale sauvegardée écraserait la seule copie saine. Cinq et non vingt : au-delà, l'utilisateur ne sait plus laquelle choisir.
 

@@ -1,16 +1,16 @@
 plugins {
-    id("hexaphore.android.application")
-    id("hexaphore.android.hilt")
+    id("hexavore.android.application")
+    id("hexavore.android.hilt")
 }
 
 android {
-    namespace = "app.hexaphore"
+    namespace = "app.hexavore"
 
     defaultConfig {
         // Verrouille des la premiere publication sur le Play Store : le changer
         // ensuite cree une application entierement nouvelle, sans ses installations
         // ni ses mises a jour. Voir docs/10-qualite-et-livraison.md.
-        applicationId = "app.hexaphore"
+        applicationId = "app.hexavore"
         targetSdk =
             libs.versions.targetSdk
                 .get()

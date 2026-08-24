@@ -1,9 +1,9 @@
 plugins {
-    id("hexaphore.android.feature")
+    id("hexavore.android.feature")
 }
 
 android {
-    namespace = "app.hexaphore.feature.scan"
+    namespace = "app.hexavore.feature.scan"
 }
 
 dependencies {

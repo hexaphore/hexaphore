@@ -1,7 +1,7 @@
 plugins {
     // Kotlin/JVM comme :domain : les fausses implementations n'ont aucune raison
     // d'avoir besoin d'Android, et le verifier ici coute zero.
-    id("hexaphore.jvm.library")
+    id("hexavore.jvm.library")
 }
 
 dependencies {

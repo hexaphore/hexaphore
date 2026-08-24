@@ -1,13 +1,13 @@
 plugins {
-    id("hexaphore.android.library")
-    id("hexaphore.android.hilt")
+    id("hexavore.android.library")
+    id("hexavore.android.hilt")
     // Les DTO sont des data class @Serializable, comme les routes de navigation :
     // c'est ce plugin qui leur fabrique un decodeur.
     alias(libs.plugins.kotlin.serialization)
 }
 
 android {
-    namespace = "app.hexaphore.integration.openfoodfacts"
+    namespace = "app.hexavore.integration.openfoodfacts"
 }
 
 dependencies {

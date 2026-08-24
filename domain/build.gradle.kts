@@ -5,7 +5,7 @@ plugins {
     // Module Kotlin/JVM, sans plugin Android. C'est structurel : personne ne peut
     // importer android.* par distraction, Gradle ne met tout simplement pas ces
     // classes sur le classpath. Voir docs/06-architecture.md.
-    id("hexaphore.jvm.library")
+    id("hexavore.jvm.library")
 }
 
 dependencies {

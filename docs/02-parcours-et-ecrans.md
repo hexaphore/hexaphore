@@ -31,7 +31,7 @@ Cinq étapes, une question par écran, barre de progression en haut. **L'applica
 
 ~~Bouton « Passer » sur toutes les étapes sauf la première : un utilisateur pressé doit pouvoir arriver à l'accueil. Les champs sautés prennent une valeur par défaut raisonnable et sont signalés dans les réglages.~~ **Chaque étape exige ses champs** ([D56](11-decisions.md)). Un objectif calculé sur des valeurs par défaut est l'objectif de quelqu'un d'autre, affiché avec l'autorité d'un chiffre personnel. Un « Continuer » refusé affiche une barre qui dit **ce qui** manque — pas qu'il manque quelque chose.
 
-**1. Accueil.** Nom de l'application, une phrase, et l'**hexagone des macros** rempli d'une journée d'exemple : la figure qui donne son nom à l'application montre en une image ce qu'un paragraphe raconterait. Affiche l'avertissement : *« Hexaphore est un outil de suivi personnel. Ce n'est pas un dispositif médical et il ne remplace pas l'avis d'un professionnel de santé. »* — à accepter pour continuer, **la phrase entière étant la cible tactile** et non la seule case.
+**1. Accueil.** Nom de l'application, une phrase, et l'**hexagone des macros** rempli d'une journée d'exemple : la figure qui donne son nom à l'application montre en une image ce qu'un paragraphe raconterait. Affiche l'avertissement : *« Hexavore est un outil de suivi personnel. Ce n'est pas un dispositif médical et il ne remplace pas l'avis d'un professionnel de santé. »* — à accepter pour continuer, **la phrase entière étant la cible tactile** et non la seule case.
 
 **2. Vous.** Date de naissance (**vrai sélecteur de date**, jamais une saisie au format imposé), sexe, taille, poids actuel.
 

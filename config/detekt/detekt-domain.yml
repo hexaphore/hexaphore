@@ -4,6 +4,6 @@
 # cette regle est la pour que le message dise pourquoi, et pas seulement que
 # la reference est introuvable.
 
-hexaphore:
+hexavore:
   AndroidImportInDomain:
     active: true

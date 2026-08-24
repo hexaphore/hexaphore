@@ -1,10 +1,10 @@
 plugins {
-    id("hexaphore.android.library")
-    id("hexaphore.android.hilt")
+    id("hexavore.android.library")
+    id("hexavore.android.hilt")
 }
 
 android {
-    namespace = "app.hexaphore.data.food"
+    namespace = "app.hexavore.data.food"
 
     // Robolectric a besoin des ressources Android -- et des assets, dont ciqual.db
     // que :core:database livre -- pour ouvrir une base SQLite sur la JVM. Sans cela,

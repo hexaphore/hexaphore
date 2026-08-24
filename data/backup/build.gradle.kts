@@ -1,11 +1,11 @@
 plugins {
-    id("hexaphore.android.library")
-    id("hexaphore.android.hilt")
+    id("hexavore.android.library")
+    id("hexavore.android.hilt")
     alias(libs.plugins.kotlin.serialization)
 }
 
 android {
-    namespace = "app.hexaphore.data.backup"
+    namespace = "app.hexavore.data.backup"
 
     // Robolectric a besoin des ressources Android pour ouvrir une base SQLite sur la
     // JVM. Le critere de fin de tranche -- export, effacement, import, etat identique

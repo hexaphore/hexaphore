@@ -10,7 +10,7 @@
             android:name=".gallery.GalleryActivity"
             android:exported="true"
             android:label="@string/gallery_launcher_label"
-            android:theme="@style/Theme.Hexaphore">
+            android:theme="@style/Theme.Hexavore">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

@@ -1,4 +1,4 @@
-# Hexaphore
+# Hexavore
 
 Suivi alimentaire pour Android. Libre, gratuit, sans compte, sans publicité, sans télémétrie.
 

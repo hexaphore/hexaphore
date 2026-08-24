@@ -1,10 +1,10 @@
 plugins {
-    id("hexaphore.android.library")
-    id("hexaphore.android.hilt")
+    id("hexavore.android.library")
+    id("hexavore.android.hilt")
 }
 
 android {
-    namespace = "app.hexaphore.data.settings"
+    namespace = "app.hexavore.data.settings"
 
     // Le contrat monte de vraies preferences et un vrai Keystore sous Robolectric :
     // sans cette ligne, il exigerait un appareil, donc ne tournerait pas.
