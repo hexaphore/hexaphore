@@ -3000,6 +3000,46 @@ Deux corrections, et la première rend la seconde difficile à contourner :
 
 ---
 
+## D103 — La portée d'un geste est une affaire de disposition, et une règle ne s'écrit qu'une fois · ✓ validée
+
+**Contexte.** Deux défauts rapportés à l'usage après [D101](#d101--laccueil-porte-une-date-et-lécran-journée-disparaît---validée), et **les deux sont des corrections qui n'avaient pas pris**.
+
+### Le calendrier se refermait quand on voulait le lire
+
+Déplié, défiler *dans* le mois le repliait au lieu de le faire défiler. La condition était pourtant juste — un doigt qui monte, sur un calendrier déployé — et c'est bien ce qui rendait le défaut difficile à voir : **le problème n'était pas ce que la connexion décidait, mais où elle était posée.**
+
+`onPreScroll` va du parent vers l'enfant. La connexion enveloppait toute la page, calendrier compris ; elle voyait donc le geste avant le mois déplié et le consommait avant qu'il ait pu défiler. Aucune condition n'aurait pu réparer cela : une connexion ne sait pas d'où vient le geste qu'elle intercepte.
+
+**La portée d'un geste se règle par la disposition.** Le titre et le calendrier sortent du défilement — [docs/02](02-parcours-et-ecrans.md#bandeau-calendrier-fixe-en-haut) les voulait fixes en haut depuis toujours — et la connexion ne couvre plus que le contenu qui les suit. Un geste dans le calendrier appartient au calendrier, un geste sous lui replie.
+
+La décision, elle, sort dans `collapsingDelta` : ce qui reste dans l'écran est le seul effet, et la règle se laisse éprouver.
+
+### « 1 bol » a survécu à son propre correctif
+
+L'unité nommée disparaissait toujours du sélecteur en rouvrant un plat, **après** la correction de D101. La raison est nette : la règle avait été corrigée dans le domaine — l'unité qu'une ligne porte fait toujours partie de celles qu'elle propose — mais **l'écran ne lisait pas cette règle-là**. `EntryFormLine` portait sa propre copie, `QuantityUnit.universal + servings`, et personne ne l'avait touchée.
+
+C'est la même forme que les pastilles ovales, à un étage de plus : un compte tenu à deux endroits. Ici la copie était plus discrète, parce que les deux listes étaient *vraies en même temps* jusqu'au jour où l'une a appris quelque chose.
+
+**Une règle écrite à deux endroits n'est pas la même règle**, c'est deux règles qui se ressemblent. `EntryFormLine.units` délègue désormais au brouillon qu'il sait déjà construire — le chemin par lequel il obtient toutes ses autres règles du domaine.
+
+La pastille choisie se compare aussi **par le code**, comme la liste qui la contient : un bol passé de 250 à 260 g depuis l'enregistrement reste le même bol pour qui regarde l'écran, et une pastille « 1 bol » qui ne s'allume pas serait incompréhensible.
+
+### Ce que la campagne précédente n'avait pas su voir
+
+Les cinq cas de D101 éprouvaient `DraftLine.units`, et ils tombaient bien quand on sabotait le domaine. **Ils ne prouvaient rien de ce que l'écran affiche**, parce qu'aucun d'eux n'empruntait le chemin de l'écran. Le nouveau jeu part de `EntryFormLine`, c'est-à-dire de l'objet que le sélecteur lit.
+
+C'est une leçon sur le choix du point d'entrée d'un cas : éprouver la règle à l'endroit où elle est écrite ne dit pas qu'elle est lue.
+
+**Campagne de défaite : huit sabotages, huit cas tombés.** Celui qui compte : remettre à l'écran sa copie de la règle fait tomber deux cas, là où auparavant il n'en faisait tomber aucun.
+
+**Conséquences.** L'accueil se scinde en un en-tête fixe et une zone défilante ; le calendrier ne quitte plus le haut de l'écran quand on descend dans le journal. `collapsingDelta` et `EntryFormLine.chose` sont deux fonctions de plus, et deux règles de moins dans des composables.
+
+**Ce que le vert ne prouve pas.** **La portée du geste.** Que la connexion ne soit plus un ancêtre du calendrier est un fait de disposition, et aucun test unitaire ne mesure une disposition — c'est le même constat qu'en [D101](#d101--laccueil-porte-une-date-et-lécran-journée-disparaît---validée) et [D102](#d102--le-retour-à-aujourdhui-a-une-porte-visible-et-le-jour-regardé-a-un-contrat---validée), et c'est la troisième fois. Les cas disent quels deltas replient, jamais lesquels arrivent.
+
+Rien ne dit non plus qu'un en-tête fixe soit agréable : sur un petit écran avec le calendrier déplié, ce qui reste au journal est mince.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

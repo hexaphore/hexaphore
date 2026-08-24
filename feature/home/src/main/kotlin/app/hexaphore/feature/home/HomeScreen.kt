@@ -3,6 +3,7 @@ package app.hexaphore.feature.home
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -176,18 +177,16 @@ fun HomeScreen(
     // plus rien, et le geste n'aurait sinon aucune cible.
     BackHandler(enabled = day != null) { onBackToToday() }
 
-    // Un doigt qui part vers le haut replie d'abord, puis la page suit. Le delta qui
-    // declenche le repli est consomme : sans cela la page se deplacerait pendant que
-    // la hauteur du calendrier s'anime, et le contenu ferait un bond.
+    // La regle est dans `collapsingDelta`, ou elle se laisse eprouver. Ce qui reste
+    // ici est le seul effet : ce qu'on consomme, on l'a referme.
+    //
+    // **La connexion n'est posee que sur le contenu**, jamais sur le calendrier :
+    // `onPreScroll` va du parent vers l'enfant, donc une connexion englobant le mois
+    // deplie le refermerait avant qu'il ait pu defiler.
     val collapseOnScroll = remember {
         object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset = when {
-                !calendarExpanded || available.y >= 0f -> Offset.Zero
-                else -> {
-                    calendarExpanded = false
-                    available
-                }
-            }
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset =
+                collapsingDelta(calendarExpanded, available).also { if (it != Offset.Zero) calendarExpanded = false }
         }
     }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -218,37 +217,64 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .nestedScroll(collapseOnScroll)
-                .verticalScroll(rememberScrollState())
                 .padding(padding)
                 .padding(horizontal = Spacing.screenMargin),
             verticalArrangement = Arrangement.spacedBy(Spacing.xl),
         ) {
+            // Le titre et le calendrier ne defilent pas : docs/02 les veut fixes en
+            // haut, et c'est aussi ce qui permet au mois deplie de defiler pour son
+            // propre compte -- il n'est plus sous la connexion qui replie.
             DayHeader(actions, day, onBackToToday)
             calendar(calendarExpanded) { calendarExpanded = it }
 
-            suggestion?.let {
-                AdjustmentCard(
-                    suggestion = it,
-                    onAccept = { onAdjustment(AdjustmentResponse.ACCEPT) },
-                    onIgnore = { onAdjustment(AdjustmentResponse.IGNORE) },
-                    onStop = { onAdjustment(AdjustmentResponse.STOP) },
-                )
-            }
+            DayScroll(collapseOnScroll) {
+                suggestion?.let {
+                    AdjustmentCard(
+                        suggestion = it,
+                        onAccept = { onAdjustment(AdjustmentResponse.ACCEPT) },
+                        onIgnore = { onAdjustment(AdjustmentResponse.IGNORE) },
+                        onStop = { onAdjustment(AdjustmentResponse.STOP) },
+                    )
+                }
 
-            when (state) {
-                HomeUiState.Loading -> Unit
-                is HomeUiState.Content -> DayContent(
-                    summary = state.summary,
-                    actions = actions,
-                    favoriteNameTaken = favoriteNameTaken,
-                    onDismissFavoriteError = onDismissFavoriteError,
-                )
+                when (state) {
+                    HomeUiState.Loading -> Unit
+                    is HomeUiState.Content -> DayContent(
+                        summary = state.summary,
+                        actions = actions,
+                        favoriteNameTaken = favoriteNameTaken,
+                        onDismissFavoriteError = onDismissFavoriteError,
+                    )
 
-                HomeUiState.Error -> UnreadableDay(actions.onRetry)
+                    HomeUiState.Error -> UnreadableDay(actions.onRetry)
+                }
             }
         }
     }
+}
+
+/**
+ * Ce qui défile sous le calendrier, et rien d'autre.
+ *
+ * **La connexion de repli est posée ici**, pas sur la page entière. `onPreScroll` va
+ * du parent vers l'enfant : une connexion qui englobait le calendrier voyait le geste
+ * avant lui et le refermait, alors que défiler *dans* le mois déplié doit le faire
+ * défiler. La portée du geste est une affaire de disposition, pas de condition.
+ */
+@Composable
+private fun ColumnScope.DayScroll(
+    collapseOnScroll: NestedScrollConnection,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f)
+            .nestedScroll(collapseOnScroll)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xl),
+        content = content,
+    )
 }
 
 /**
