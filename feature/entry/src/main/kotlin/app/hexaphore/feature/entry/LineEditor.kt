@@ -263,7 +263,7 @@ private fun QuantityRow(line: EntryFormLine, actions: EntryActions, flagged: Boo
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             line.units.forEach { unit ->
                 FilterChip(
-                    selected = line.unit == unit,
+                    selected = line.chose(unit),
                     onClick = { actions.onLineEdit(line.id, LineEdit.Measurement(unit)) },
                     label = { Text(unit.code) },
                 )

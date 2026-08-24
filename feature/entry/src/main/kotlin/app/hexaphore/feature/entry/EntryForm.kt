@@ -157,8 +157,29 @@ internal data class EntryFormLine(
      */
     val suggestion: Suggestion? = null,
 ) {
-    /** Les unités proposées : les deux universelles, puis celles de la fiche. */
-    val units: List<QuantityUnit> get() = QuantityUnit.universal + servings
+    /**
+     * Les unités proposées, **lues du domaine et non recalculées ici**.
+     *
+     * Cette liste portait sa propre copie de la règle — les deux universelles, puis
+     * celles de la fiche — et c'est ce qui a laissé « 1 bol » disparaître deux fois.
+     * La première correction avait ajouté au domaine que l'unité qu'une ligne porte
+     * fait toujours partie de celles qu'elle propose ; l'écran, lui, lisait la copie
+     * et n'en savait rien.
+     *
+     * Une règle écrite à deux endroits n'est pas la même règle : c'est deux règles qui
+     * se ressemblent jusqu'au jour où l'une change.
+     */
+    val units: List<QuantityUnit> get() = toDraftLine().units
+
+    /**
+     * Cette unité est-elle celle que la ligne porte ?
+     *
+     * **La comparaison porte sur le code**, comme celle qui construit [units]. Une
+     * portion qui aurait changé de poids depuis l'enregistrement — un bol passé de 250
+     * à 260 g — reste le même bol pour qui regarde l'écran, et une pastille « 1 bol »
+     * qui ne s'allume pas serait incompréhensible.
+     */
+    fun chose(unit: QuantityUnit): Boolean = this.unit.code == unit.code
 
     fun toDraftLine(): DraftLine = DraftLine(
         id = id,
