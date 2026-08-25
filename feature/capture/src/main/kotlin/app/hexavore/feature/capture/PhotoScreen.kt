@@ -12,7 +12,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -210,7 +209,12 @@ internal fun PhotoScreen(state: PhotoUiState, actions: PhotoActions) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Preview(state)
+            // **L'apercu prend ce qui reste, et rien de plus.** Il occupait la
+            // hauteur que son rapport de forme lui donnait : une photo de portrait
+            // poussait le bouton d'analyse hors de l'ecran, et la barre du haut, en
+            // gagnant les encoches du systeme, a fini de l'y envoyer. Ce qu'on juge sur
+            // un apercu est le cadrage, pas le detail -- il n'a pas besoin de tout.
+            Preview(state, Modifier.weight(1f))
 
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 NeonButton(
@@ -245,7 +249,7 @@ internal fun PhotoScreen(state: PhotoUiState, actions: PhotoActions) {
  * payer une analyse, et c'est ce que l'aperçu caméra aurait donné.
  */
 @Composable
-private fun Preview(state: PhotoUiState) {
+private fun Preview(state: PhotoUiState, modifier: Modifier = Modifier) {
     val photo = state.photo ?: return
     val bitmap = remember(photo) {
         BitmapFactory.decodeByteArray(photo.jpeg, 0, photo.jpeg.size)
@@ -254,7 +258,10 @@ private fun Preview(state: PhotoUiState) {
     Image(
         bitmap = bitmap.asImageBitmap(),
         contentDescription = stringResource(R.string.photo_preview_a11y),
-        modifier = Modifier.fillMaxWidth().aspectRatio(bitmap.width.toFloat() / bitmap.height),
+        // Pas de rapport de forme impose : c'est `Fit` qui garde les proportions
+        // **dans** la place qu'on donne, au lieu de reclamer la hauteur qu'elles
+        // valent. Une photo verticale se met en boite ; elle ne pousse plus rien.
+        modifier = modifier.fillMaxWidth(),
         contentScale = ContentScale.Fit,
     )
 }
