@@ -21,7 +21,7 @@ Onboarding (première ouverture uniquement)
 
 Une seule règle structurante : **les quatre modes de saisie se rejoignent sur le même écran de validation**. Un seul composant à concevoir, à tester et à corriger, et un geste identique quel que soit le chemin emprunté.
 
-Le nœud « Réglages » n'existe pas encore : quatre de ses cinq sections dépendent des tranches à venir, et l'accueil ouvre pour l'instant **directement** « Profil et objectifs » ([D59](11-decisions.md)). **Sans clé d'IA, l'appareil photo et le crayon y mènent aussi** — droit à la section « Intelligence artificielle », et non au hub : quelqu'un qui appuie sur l'appareil photo cherche l'endroit où mettre une clé, pas la liste des réglages ([D106](11-decisions.md#d106--une-clé-sobtient-quelque-part-et-les-barres-du-haut-passaient-sous-lhorloge---validée)).
+Le nœud « Réglages » n'existe pas encore : quatre de ses cinq sections dépendent des tranches à venir, et l'accueil ouvre pour l'instant **directement** « Profil et objectifs » ([D59](11-decisions.md)). **Sans clé d'IA, l'appareil photo et le crayon expliquent d'abord**, puis y mènent — droit à la section « Intelligence artificielle », et non au hub : quelqu'un qui appuie sur l'appareil photo cherche l'endroit où mettre une clé, pas la liste des réglages. L'explication précède le déplacement, parce qu'une explication qui arrive après arrive chez quelqu'un qui se demande d'abord où il est ([D106](11-decisions.md#d106--une-clé-sobtient-quelque-part-et-les-barres-du-haut-passaient-sous-lhorloge---validée)).
 
 ---
 

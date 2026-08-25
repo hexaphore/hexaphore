@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -23,6 +24,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -303,18 +305,30 @@ private fun ColumnScope.DayScroll(
  */
 @Composable
 private fun DayActions(actions: HomeActions, aiConfigured: Boolean) {
+    var explaining by rememberSaveable { mutableStateOf(false) }
+
+    if (explaining) {
+        AiUnavailableDialog(
+            onConfigure = {
+                explaining = false
+                actions.onConfigureAi()
+            },
+            onDismiss = { explaining = false },
+        )
+    }
+
     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         AiButton(
             label = stringResource(R.string.home_photograph),
             configured = aiConfigured,
             onClick = actions.onPhotograph,
-            onConfigure = actions.onConfigureAi,
+            onExplain = { explaining = true },
         ) { label -> CameraGlyph(contentDescription = label) }
         AiButton(
             label = stringResource(R.string.home_describe),
             configured = aiConfigured,
             onClick = actions.onDescribe,
-            onConfigure = actions.onConfigureAi,
+            onExplain = { explaining = true },
         ) { label -> Icon(imageVector = Icons.Filled.Edit, contentDescription = label) }
         SmallFloatingActionButton(onClick = actions.onScan) {
             BarcodeGlyph(contentDescription = stringResource(R.string.home_scan))
@@ -347,18 +361,18 @@ private fun AiButton(
     label: String,
     configured: Boolean,
     onClick: () -> Unit,
-    onConfigure: () -> Unit,
+    onExplain: () -> Unit,
     icon: @Composable (String) -> Unit,
 ) {
     val unavailable = stringResource(R.string.home_describe_unavailable)
 
     SmallFloatingActionButton(
-        // **Sans cle, le bouton mene aux reglages d'IA -- directement.** Il ouvrait
-        // d'abord un dialogue qui expliquait puis proposait d'y aller ; c'etait une
-        // porte de plus devant une porte. L'ecran d'arrivee dit lui-meme ce qu'est une
-        // cle, ou on la prend et qui facture, et il le dit mieux qu'une boite : il a la
-        // place, et le champ ou coller est juste dessous.
-        onClick = if (configured) onClick else onConfigure,
+        // **Sans cle, le bouton explique avant d'emmener.** Y aller directement
+        // deposait quelqu'un dans un ecran de reglages sans lui avoir dit pourquoi --
+        // ce qu'il cherchait etait de photographier une assiette, pas de configurer
+        // un fournisseur. La boite dit ce qui manque et ce que ca coute ; son bouton
+        // ouvre la **section d'IA** et non le hub, pour ne pas faire choisir deux fois.
+        onClick = if (configured) onClick else onExplain,
         containerColor = if (configured) {
             MaterialTheme.colorScheme.secondaryContainer
         } else {
@@ -377,6 +391,28 @@ private fun AiButton(
             icon(label)
         }
     }
+}
+
+/**
+ * Ce qu'on dit quand il n'y a pas de clé, et **où aller**.
+ *
+ * Une explication sans chemin obligerait à chercher soi-même la bonne section des
+ * réglages ; le bouton l'ouvre — la section d'IA directement, et non le hub, parce que
+ * quelqu'un qui vient d'appuyer sur l'appareil photo cherche l'endroit où mettre une
+ * clé, pas la liste des réglages. [docs/02][parcours] veut cette explication courte :
+ * ce qui manque, ce que ça coûte, et rien de plus.
+ *
+ * [parcours]: docs/02-parcours-et-ecrans.md
+ */
+@Composable
+private fun AiUnavailableDialog(onConfigure: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.home_ai_title)) },
+        text = { Text(stringResource(R.string.home_ai_explanation)) },
+        confirmButton = { TextButton(onClick = onConfigure) { Text(stringResource(R.string.home_ai_configure)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.home_ai_later)) } },
+    )
 }
 
 /**

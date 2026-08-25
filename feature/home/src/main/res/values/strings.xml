@@ -82,6 +82,14 @@
     <string name="home_photograph">Photographier un repas</string>
     <string name="home_describe_unavailable">indisponible, aucune clé d\'IA</string>
 
+    <!-- Ce qui manque, ce que ça coûte, et où aller. Le bouton ouvre la section d'IA
+         et non le hub : qui vient d'appuyer sur l'appareil photo cherche l'endroit où
+         mettre une clé, pas la liste des réglages. -->
+    <string name="home_ai_title">Analyser un repas avec l\'IA</string>
+    <string name="home_ai_explanation">Ce mode envoie votre photo ou votre description à un fournisseur d\'IA que vous choisissez, avec votre propre clé. Les appels vous sont facturés par ce fournisseur, et Hexavore ne conserve rien : nous n\'avons aucun serveur.</string>
+    <string name="home_ai_configure">Configurer</string>
+    <string name="home_ai_later">Plus tard</string>
+
     <!-- Le nom est proposé depuis les aliments du plat, puis librement réécrit : un
          favori sans nom serait introuvable, et un champ vide ferait renoncer. -->
     <string name="home_favorite_title">Enregistrer comme favori</string>
