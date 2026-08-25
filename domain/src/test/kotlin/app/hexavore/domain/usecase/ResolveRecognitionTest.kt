@@ -219,6 +219,58 @@ class ResolveRecognitionTest {
         assertNull(line.values.kcal)
     }
 
+    // --- Le choix du modele -----------------------------------------------------------
+
+    @Test
+    fun `une fiche choisie par le modele l emporte sur la recherche`() = runTest {
+        // **Le defaut que l'outillage corrige.** « Pomme » trouve POMME par la
+        // recherche ; le modele, lui, a vu l'assiette et designe la pomme de terre.
+        // C'est lui qui doit gagner -- sans quoi l'outil ne servirait a rien.
+        val ligne = resolve(item("pomme", 100.0, EstimatedUnit.G).copy(chosen = POMME_DE_TERRE_VAPEUR))
+            .lines
+            .single()
+
+        assertEquals(POMME_DE_TERRE_VAPEUR.name, ligne.name)
+    }
+
+    @Test
+    fun `une fiche choisie ne part pas au repli`() = runTest {
+        // Elle est resolue : demander une estimation par-dessus se paierait pour rien.
+        resolve(item("chose inconnue", 100.0, EstimatedUnit.G).copy(chosen = RIZ))
+
+        assertEquals(emptyList<List<String>>(), demandes)
+    }
+
+    @Test
+    fun `une fiche choisie n est pas signalee a relire`() = runTest {
+        // Les valeurs viennent de la table de l'ANSES et non du modele : ce n'est pas
+        // une estimation, et signaler chaque ligne en permanence ne signalerait rien.
+        val ligne = resolve(item("pomme", 100.0, EstimatedUnit.G).copy(chosen = POMME)).lines.single()
+
+        assertEquals(MatchVerdict.AUTOMATIC, ligne.suggestion?.verdict)
+        assertEquals(emptyList<Food>(), ligne.suggestion?.alternatives)
+    }
+
+    @Test
+    fun `la confiance du modele est conservee`() = runTest {
+        // Elle ne devient pas 1 sous pretexte qu'il a choisi dans une liste : il a pu
+        // choisir le moins mauvais, et c'est ce que l'ecran montre ligne par ligne.
+        val ligne = resolve(item("pomme", 100.0, EstimatedUnit.G, confidence = 0.6f).copy(chosen = POMME))
+            .lines
+            .single()
+
+        assertEquals(0.6f, ligne.suggestion?.confidence)
+    }
+
+    @Test
+    fun `la portion nommee de la fiche choisie sert a convertir`() = runTest {
+        // La conversion reste celle du chemin ordinaire : « une pomme » vaut ce que la
+        // fiche dit qu'elle vaut, et non le forfait.
+        val ligne = resolve(item("pomme", 1.0, EstimatedUnit.PIECE).copy(chosen = POMME)).lines.single()
+
+        assertEquals(150.0, ligne.quantity)
+    }
+
     private fun item(label: String, quantity: Double, unit: EstimatedUnit, confidence: Float = 0.9f) =
         RecognizedItem(label = label, quantity = quantity, unit = unit, confidence = confidence)
 
