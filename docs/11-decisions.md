@@ -3200,11 +3200,13 @@ L'application portait une table de tarifs embarquée et affichait un montant dat
 
 Ce qui reste est ce que l'application sait de première main : combien d'appels sont partis, et combien de jetons ils ont consommés. Le fournisseur, lui, facture exactement — et c'est chez lui qu'on lit sa facture. `AiPricing` et ses trente lignes de tarifs sont supprimés ; c'était en outre le seul fichier du projet qui exigeait d'être révisé pour rester vrai.
 
-### Une porte devant une porte
+### ~~Une porte devant une porte~~ · corrigé au retour d'usage
 
-Sans clé, l'appareil photo ouvrait un dialogue qui expliquait, puis proposait d'aller aux réglages. Il mène désormais **directement aux réglages d'IA** — pas au hub, qui aurait laissé un choix de plus à faire à quelqu'un qui en faisait déjà un.
+Sans clé, l'appareil photo ouvrait un dialogue qui expliquait, puis proposait d'aller aux réglages. ~~Il mène désormais **directement aux réglages d'IA**~~ — la boîte avait été jugée superflue, l'écran d'arrivée devant porter l'explication mieux qu'elle.
 
-L'explication n'est pas perdue : l'écran d'arrivée la porte, et il la porte mieux qu'une boîte — il a la place, et le champ où coller est juste dessous.
+**C'était faux, et l'usage l'a dit tout de suite.** Y aller directement dépose quelqu'un dans un écran de réglages sans lui avoir dit pourquoi : ce qu'il cherchait était de photographier une assiette, pas de configurer un fournisseur. Une explication qui arrive *après* le déplacement arrive trop tard — celui qui la lit est déjà ailleurs, et se demande d'abord comment il y est arrivé.
+
+Le dialogue revient donc. Ce qui reste de la correction est ce qu'elle avait de juste : **son bouton ouvre la section d'IA et non le hub**, pour ne pas faire choisir deux fois quelqu'un qui vient de choisir.
 
 ### Les barres du haut passaient sous l'horloge
 
