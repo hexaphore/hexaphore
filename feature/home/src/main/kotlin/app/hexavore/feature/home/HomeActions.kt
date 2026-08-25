@@ -76,6 +76,15 @@ data class HomeActions(
      */
     val onOpenSettings: () -> Unit,
     /**
+     * Ouvre les réglages **d'IA**, pas le hub.
+     *
+     * Une route à part parce que la destination est à part : quelqu'un qui appuie sur
+     * l'appareil photo sans avoir de clé cherche l'endroit où en mettre une, pas la
+     * liste des réglages. Le déposer sur le hub lui laisserait un choix de plus à faire
+     * alors qu'il en faisait déjà un.
+     */
+    val onConfigureAi: () -> Unit,
+    /**
      * Vers le journal de poids.
      *
      * Depuis la barre de l'accueil et non depuis les reglages : c'est un ecran qu'on
@@ -105,6 +114,7 @@ internal fun HomeRoutes.toActions(viewModel: HomeViewModel) = HomeActions(
     onRetry = viewModel::retry,
     onSetUpGoal = onSetUpGoal,
     onOpenSettings = onOpenSettings,
+    onConfigureAi = onConfigureAi,
     onToggleFavorite = viewModel::onToggleFavorite,
     onOpenFavorites = onOpenFavorites,
     onOpenWeight = onOpenWeight,

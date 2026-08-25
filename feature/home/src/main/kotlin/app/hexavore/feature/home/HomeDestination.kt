@@ -31,6 +31,7 @@ data class HomeRoutes(
     val onEditDish: (DishId) -> Unit,
     val onSetUpGoal: () -> Unit,
     val onOpenSettings: () -> Unit,
+    val onConfigureAi: () -> Unit,
     val onOpenFavorites: () -> Unit,
     val onOpenWeight: () -> Unit,
 )

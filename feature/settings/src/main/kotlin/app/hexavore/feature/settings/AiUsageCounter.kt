@@ -11,21 +11,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import app.hexavore.core.designsystem.theme.Spacing
-import app.hexavore.domain.ai.AiPricing
 
 /**
- * Ce que les analyses ont consommé, et ce que ça a probablement coûté.
+ * Ce que les analyses ont consommé — **des appels et des jetons, jamais un montant**.
  *
  * **Rien tant que rien n'a été consommé** : un compteur à zéro sur une installation
  * neuve n'apprend rien et occupe le bas de l'écran de quelqu'un qui cherche où coller
  * sa clé.
  *
- * La date du relevé est affichée **avec** le montant, comme [docs/05][ia] l'exige :
- * les tarifs changent, et une estimation périmée présentée comme exacte serait pire que
- * pas d'estimation. Un modèle sans tarif connu montre ses jetons sans montant — c'est
- * le cas de tout modèle saisi à la main, et de tous ceux du fournisseur « compatible ».
- *
- * [ia]: docs/05-ia.md
+ * L'estimation de coût est retirée. Elle reposait sur une table de tarifs embarquée,
+ * relevée un jour donné : elle vieillit sans prévenir, personne ne la corrige, et un
+ * montant approximatif affiché avec l'autorité d'un chiffre est pire qu'aucun montant.
+ * Le fournisseur, lui, facture exactement — et c'est chez lui qu'on lit sa facture.
  */
 @Composable
 internal fun UsageCounter(rows: List<UsageRow>) {
@@ -49,17 +46,10 @@ internal fun UsageCounter(rows: List<UsageRow>) {
                     ),
                     style = MaterialTheme.typography.bodySmall,
                 )
-                Text(
-                    text = row.cost
-                        ?.let { stringResource(R.string.ai_usage_cost, it) }
-                        ?: stringResource(R.string.ai_usage_cost_unknown),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
 
             Text(
-                text = stringResource(R.string.ai_usage_disclaimer, AiPricing.ASSESSED_ON.toString()),
+                text = stringResource(R.string.ai_usage_billing),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

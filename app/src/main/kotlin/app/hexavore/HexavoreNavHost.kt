@@ -34,6 +34,7 @@ import app.hexavore.feature.search.navigateToManualEntryFor
 import app.hexavore.feature.search.navigateToSearch
 import app.hexavore.feature.search.navigateToSearchForDraft
 import app.hexavore.feature.search.searchScreens
+import app.hexavore.feature.settings.AiSettingsDestination
 import app.hexavore.feature.settings.navigateToSettings
 import app.hexavore.feature.settings.settingsScreens
 import app.hexavore.feature.weight.navigateToWeight
@@ -93,6 +94,7 @@ private fun HexavoreNavHost(startDestination: Any, modifier: Modifier = Modifier
                 // Le hub existe desormais : sa deuxieme section est arrivee, ce qui est
                 // exactement l echeance que D59 avait ecrite.
                 onOpenSettings = { navController.navigateToSettings() },
+                onConfigureAi = { navController.navigate(AiSettingsDestination) },
                 onOpenFavorites = { navController.navigateToFavorites() },
                 onOpenWeight = { navController.navigateToWeight() },
             ),

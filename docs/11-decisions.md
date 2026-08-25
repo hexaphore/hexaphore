@@ -1198,9 +1198,9 @@ Le seuil de paramètres de detekt a forcé trois regroupements dans les `ViewMod
 
 `openFoodFactsClient` et `openFoodFactsApi` sont des fonctions ; le module Hilt n'est plus que la portée. Le test dresse donc **la même pile** devant un serveur local, intercepteur compris.
 
-C'est ce qui donne sa valeur à l'assertion sur le `User-Agent`. Recopié dans le test, le montage aurait éprouvé un client qui *ressemble* au vrai, et l'en-tête que [D26](#d26--le-user-agent-dopen-food-facts-est-figé---validée) rend obligatoire aurait pu manquer en production avec un test vert. C'est la forme de défaut que [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée) a nommée, appliquée à un service tiers au lieu d'une base.
+C'est ce qui donne sa valeur à l'assertion sur le `User-Agent`. Recopié dans le test, le montage aurait éprouvé un client qui *ressemble* au vrai, et l'en-tête que [D26](#d26--le-user-agent-dopen-food-facts-est-figé---en-partie-remplacée-par-d105) rend obligatoire aurait pu manquer en production avec un test vert. C'est la forme de défaut que [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée) a nommée, appliquée à un service tiers au lieu d'une base.
 
-**Le `User-Agent` est fourni par `:app`.** Le numéro qu'exige [D26](#d26--le-user-agent-dopen-food-facts-est-figé---validée) est celui du **binaire**, suffixe de variante compris ; un module de bibliothèque qui le relirait dans le catalogue de versions donnerait un second endroit à tenir d'accord.
+**Le `User-Agent` est fourni par `:app`.** Le numéro qu'exige [D26](#d26--le-user-agent-dopen-food-facts-est-figé---en-partie-remplacée-par-d105) est celui du **binaire**, suffixe de variante compris ; un module de bibliothèque qui le relirait dans le catalogue de versions donnerait un second endroit à tenir d'accord.
 
 ### Un test qui passait aussi bien sans la règle
 
@@ -2428,7 +2428,7 @@ Les deux instances sont désormais **injectées**. Une URL en dur dans une class
 
 **Neuf tours d'affilée ont rapporté « rien n'a tourné », et la cause était le harnais — encore.** Il supprimait `domain/build/libs/domain.jar` avant chaque tour, en croyant appliquer le remède de [10](10-qualite-et-livraison.md#gradle). Ce remède est **curatif** : il s'applique à un jar *vide*. L'appliquer préventivement fait disparaître un jar sain sans que Gradle s'en aperçoive — la tâche `jar` se croit à jour, et tout module qui dépend du domaine cesse de compiler. Il a fallu vider `.gradle` pour en sortir. Le compte de cas exécutés a évité une quatrième conclusion fausse.
 
-**Conséquences.** `:integration:openfoodfacts` gagne une seconde interface Retrofit — l'écriture n'est pas l'API v2, c'est un script d'édition hérité qui attend un formulaire — montée sur **le même client**, donc avec l'en-tête que [D26](#d26--le-user-agent-dopen-food-facts-est-figé---validée) rend obligatoire. `:data:settings` ouvre son propre fichier de préférences : effacer ses réglages d'IA ne doit pas déconnecter le compte de contribution.
+**Conséquences.** `:integration:openfoodfacts` gagne une seconde interface Retrofit — l'écriture n'est pas l'API v2, c'est un script d'édition hérité qui attend un formulaire — montée sur **le même client**, donc avec l'en-tête que [D26](#d26--le-user-agent-dopen-food-facts-est-figé---en-partie-remplacée-par-d105) rend obligatoire. `:data:settings` ouvre son propre fichier de préférences : effacer ses réglages d'IA ne doit pas déconnecter le compte de contribution.
 
 **Ce que le vert ne prouve pas.** **Aucun envoi n'a jamais abouti.** Les quinze cas passent devant un serveur local qui répond ce qu'on lui a dit de répondre ; ce que le vrai service accepte, refuse, ou accepte en ignorant un champ mal nommé, reste à voir — et c'est précisément pour ça que le bac à sable existe. Le premier envoi réel est un travail de vérification à part entière, pas une formalité.
 
@@ -3163,6 +3163,64 @@ D13 et D26 sont marquées remplacées ; leur texte n'a pas été touché.
 **Conséquences.** 538 entrées touchées : 488 changent de chemin, 532 changent de contenu, et les six schémas Room déménagent sans qu'un octet bouge. Cinquante répertoires — les quarante-neuf paquets de sources, plus celui des schémas — et quatre fichiers changent de nom. Six identifiants de plugins de convention passent en `hexavore.*`, la coordonnée du build inclus en `app.hexavore.buildlogic:detekt-rules`, le jeu de règles detekt maison en `hexavore` — dans son `RuleSetProvider` et dans les trois `config/detekt/*.yml` à la fois, faute de quoi les règles se seraient désactivées en silence. Six chaînes visibles par l'utilisateur changent de nom, dont l'avertissement médical de l'onboarding.
 
 **Leçon retenue.** D13 concluait qu'un nom se vérifie sur quatre fronts avant la première ligne. Elle avait raison sur la méthode et tort sur la liste : il en manquait un cinquième, **le sens**. Un nom disponible partout et compris nulle part est un nom qu'on renomme — et cette fois, la disponibilité de l'espace de noms ne suffisait pas non plus, puisque le front GitHub s'est perdu sans que le nom soit perdu.
+
+---
+
+## D106 — Une clé s'obtient quelque part, et les barres du haut passaient sous l'horloge · ✓ validée
+
+**Contexte.** Sept corrections rapportées à l'usage sur la même séance. Elles se ressemblent : chacune est un endroit où l'application savait quelque chose qu'elle ne disait pas.
+
+### Le trou le plus large du parcours : où prend-on une clé ?
+
+L'écran demandait une clé d'API sans dire ce que c'est, où on l'obtient, ni qui facture — trois questions qu'une personne qui n'en a jamais pris se pose toutes en même temps, et devant lesquelles elle referme l'application. **Le champ vide ne les posait pas, il les laissait deviner.**
+
+Un lien vers la console du fournisseur, et un dialogue de trois paragraphes courts. **Un lien, pas un mode d'emploi** : les consoles changent de forme plusieurs fois par an, et des captures d'écran ou une marche à suivre en six étapes seraient fausses avant la fin de l'année — fausses avec l'autorité d'une documentation. La page du fournisseur, elle, est toujours à jour.
+
+Ce que le dialogue dit de plus important n'est pas la marche à suivre mais **la répartition** : la clé reste sur l'appareil, les appels partent en direct, et c'est le fournisseur qui facture. C'est la seule chose que l'utilisateur ne peut pas déduire de ce qu'il voit.
+
+**L'URL vit dans l'énumération**, à côté de `displayName`, et pour la même raison : ce n'est pas du texte à traduire, et la mettre ailleurs obligerait l'écran à un `when` sur le fournisseur — précisément le signal que `docs/12` nomme comme la fuite de l'abstraction. Il en va de même pour l'étoile du fournisseur mis en avant.
+
+### « Utiliser » plutôt que « Enregistrer », et le formulaire qui reste
+
+Le geste ne range pas une clé : il **choisit qui analysera les prochaines photos**. « Enregistrer » décrivait ce que le code faisait, « Utiliser » décrit ce que l'utilisateur veut.
+
+**Le formulaire ne se referme plus après**, et c'est une réversion assumée. Il se fermait pour ne pas inviter à corriger ce qu'on venait d'écrire — un bon argument, jusqu'à ce que le bouton porte la confirmation : une carte qui se replie emporte sa réponse avec elle, et il ne restait plus rien à l'endroit où le doigt avait appuyé.
+
+« Utilisé » demande **deux conditions, pas une** : que ce fournisseur soit celui qui sert, *et* que le formulaire n'ait pas bougé depuis. La première seule afficherait « Utilisé » sous une clé qu'on vient de modifier sans l'enregistrer — le contraire exact de la vérité. La comparaison ignore la révélation du champ : montrer sa clé ne la modifie pas.
+
+### Deux mots au lieu d'un paragraphe
+
+Une carte en réserve expliquait en trois lignes pourquoi elle n'était pas proposée. Ce texte occupait plus de place que les cartes qui, elles, servent à quelque chose. Il devient **« Bientôt disponible »**, et la carte s'estompe.
+
+La raison n'a pas disparu : elle est dans `AiProvider`, à l'endroit où quelqu'un qui se demande *pourquoi* ira la lire. **L'écran dit ce que l'utilisateur peut faire ; le code dit pourquoi.** C'est la répartition normale, et elle avait glissé.
+
+### L'estimation de coût disparaît
+
+L'application portait une table de tarifs embarquée et affichait un montant daté. La date était là, l'avertissement aussi — et cela ne suffit pas. **Un prix relevé un jour donné vieillit sans prévenir, personne ne le corrige, et un montant approximatif affiché avec l'autorité d'un chiffre est pire qu'aucun montant.**
+
+Ce qui reste est ce que l'application sait de première main : combien d'appels sont partis, et combien de jetons ils ont consommés. Le fournisseur, lui, facture exactement — et c'est chez lui qu'on lit sa facture. `AiPricing` et ses trente lignes de tarifs sont supprimés ; c'était en outre le seul fichier du projet qui exigeait d'être révisé pour rester vrai.
+
+### Une porte devant une porte
+
+Sans clé, l'appareil photo ouvrait un dialogue qui expliquait, puis proposait d'aller aux réglages. Il mène désormais **directement aux réglages d'IA** — pas au hub, qui aurait laissé un choix de plus à faire à quelqu'un qui en faisait déjà un.
+
+L'explication n'est pas perdue : l'écran d'arrivée la porte, et il la porte mieux qu'une boîte — il a la place, et le champ où coller est juste dessous.
+
+### Les barres du haut passaient sous l'horloge
+
+Les croix de fermeture touchaient le bord de l'écran. **La cause n'était pas une marge oubliée sept fois** : `enableEdgeToEdge()` est actif — l'application dessine d'un bord à l'autre, ce qui est voulu — et `Scaffold` **n'applique pas les encoches à ce qu'on met dans son emplacement `topBar`**. Il les retire du corps, en supposant que la barre s'en charge. Aucune des sept ne s'en chargeait.
+
+Un composant partagé plutôt qu'un `statusBarsPadding()` recopié sept fois, parce que c'est la même barre — et parce que les sept copies **avaient déjà divergé** : deux d'entre elles passaient `contentDescription = null` à leur croix, qui ne s'annonçait donc pas au lecteur d'écran. Un bouton de fermeture introuvable pour qui ne voit pas la croix, sur deux écrans, depuis toujours. Personne ne l'avait remarqué parce qu'il n'y avait rien à comparer ; le paramètre est maintenant obligatoire.
+
+C'est la troisième fois qu'une règle recopiée diverge ([D103](#d103--la-portée-dun-geste-est-une-affaire-de-disposition-et-une-règle-ne-sécrit-quune-fois---validée)), et la première où la divergence touche l'accessibilité.
+
+**Campagne de défaite : neuf sabotages, neuf cas tombés.**
+
+**Conséquences.** `AiSettingsScreen` se scinde en deux — ce qu'on écrit d'un côté, quels fournisseurs existent de l'autre — et `BackupScreen` en trois, quand les seuils ont mordu. Le hub de réglages, l'écran de contribution, le journal de poids, la photo et la description passent tous par la même barre.
+
+**Ce que le vert ne prouve pas.** **Les marges.** Qu'une barre commence sous l'horloge est un fait de disposition, et aucun test unitaire ne mesure une disposition — c'est le quatrième constat de suite. Rien ne dit non plus que le lien s'ouvre : `LocalUriHandler` délègue au navigateur du système, et un appareil sans navigateur n'a été éprouvé nulle part.
+
+Et rien ne dit que les deux URL de console soient **les bonnes** : elles ont été fournies, pas vérifiées par un appel. Un lien mort ne se distingue d'un lien juste qu'en l'ouvrant.
 
 ---
 

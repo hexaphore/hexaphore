@@ -33,16 +33,31 @@ data class AiSettingsUiState(
      * [parcours]: docs/02-parcours-et-ecrans.md
      */
     val usage: List<UsageRow> = emptyList(),
+    /**
+     * Le fournisseur ouvert est **celui qui sert**, et son formulaire n'a pas bougé
+     * depuis l'enregistrement.
+     *
+     * C'est ce que le bouton lit pour dire « Utilisé » plutôt que « Utiliser ». Les
+     * deux conditions comptent : actif seul dirait « Utilisé » sous une clé qu'on
+     * vient de modifier sans l'enregistrer, ce qui est exactement le contraire de la
+     * vérité.
+     */
+    val inUse: Boolean = false,
 )
 
 /**
- * Une ligne de compteur : un modèle, ce qu'il a consommé, ce que ça a coûté.
+ * Une ligne de compteur : un modèle, et ce qu'il a consommé.
  *
- * [cost] est `null` quand le modèle n'a pas de tarif connu — un modèle saisi à la
- * main, ou n'importe lequel derrière le fournisseur « compatible ». L'écran affiche
- * alors les jetons seuls, plutôt qu'un montant inventé.
+ * **Pas de montant.** L'application portait une table de tarifs et affichait une
+ * estimation datée ; elle est retirée. Un prix relevé un jour donné vieillit sans
+ * prévenir, personne ne le corrige, et une facture approximative affichée avec
+ * l'autorité d'un chiffre est pire qu'aucune facture — seule celle du fournisseur
+ * fait foi, et lui la donne exactement.
+ *
+ * Ce qui reste est ce que l'application sait de première main : combien d'appels sont
+ * partis, et combien de jetons ils ont consommés.
  */
-data class UsageRow(val provider: AiProvider, val model: String, val calls: Int, val tokens: Int, val cost: Double?)
+data class UsageRow(val provider: AiProvider, val model: String, val calls: Int, val tokens: Int)
 
 /** Une ligne de la liste : qui, et où il en est. */
 data class ProviderRow(

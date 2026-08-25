@@ -21,7 +21,7 @@ Onboarding (première ouverture uniquement)
 
 Une seule règle structurante : **les quatre modes de saisie se rejoignent sur le même écran de validation**. Un seul composant à concevoir, à tester et à corriger, et un geste identique quel que soit le chemin emprunté.
 
-Le nœud « Réglages » n'existe pas encore : quatre de ses cinq sections dépendent des tranches à venir, et l'accueil ouvre pour l'instant **directement** « Profil et objectifs » ([D59](11-decisions.md)).
+Le nœud « Réglages » n'existe pas encore : quatre de ses cinq sections dépendent des tranches à venir, et l'accueil ouvre pour l'instant **directement** « Profil et objectifs » ([D59](11-decisions.md)). **Sans clé d'IA, l'appareil photo et le crayon y mènent aussi** — droit à la section « Intelligence artificielle », et non au hub : quelqu'un qui appuie sur l'appareil photo cherche l'endroit où mettre une clé, pas la liste des réglages ([D106](11-decisions.md#d106--une-clé-sobtient-quelque-part-et-les-barres-du-haut-passaient-sous-lhorloge---validée)).
 
 ---
 
@@ -269,7 +269,13 @@ En saisie manuelle, le poids cible et l'échéance **restent modifiables mais ne
 
 Corriger ses objectifs **ouvre une nouvelle version**, il n'en modifie aucune ([D04](11-decisions.md)), et l'écran le dit en une phrase. Quand les six chiffres changent, une boîte les affiche **face aux anciens** avant d'écrire — seul écart assumé à la règle des dialogues ci-dessous. Corriger son poids enregistre une pesée du jour ; le laisser tel quel n'en invente aucune.
 
-**Intelligence artificielle** — liste des fournisseurs. Pour chacun : clé API (masquée, avec bouton « Tester »), modèle, et l'URL de base. Un fournisseur actif est désigné par défaut — enregistrer une clé l'active, parce que la renseigner sans s'en servir n'est jamais ce qu'on voulait faire. ~~En bas, compteur d'utilisation~~ : il attend sa propre livraison, avec la table de tarifs qu'il suppose.
+**Intelligence artificielle** — liste des fournisseurs. Pour chacun : clé API (masquée, avec bouton « Tester »), modèle, et l'URL de base. Un fournisseur actif est désigné par défaut — le bouton dit **« Utiliser »**, puis **« Utilisé »**, parce que le geste ne range pas une clé : il choisit qui analysera les prochaines photos ([D106](11-decisions.md#d106--une-clé-sobtient-quelque-part-et-les-barres-du-haut-passaient-sous-lhorloge---validée)).
+
+Sous le champ de clé, **« Comment obtenir une clé ? »** ouvre une explication courte — ce qu'est une clé, où on la prend, qui facture — et un bouton vers la console du fournisseur. Un lien plutôt qu'un mode d'emploi : les consoles changent de forme plusieurs fois par an.
+
+Un fournisseur mis en avant porte une **étoile « Recommandé »**. Ceux qui ne sont pas encore éprouvés sur un vrai compte s'affichent estompés, avec deux mots : **« Bientôt disponible »**.
+
+**En bas, compteur d'utilisation** : appels et jetons par fournisseur. ~~Et une estimation de coût, d'après une table de tarifs embarquée et datée.~~ Elle disparaît — un prix relevé un jour donné vieillit sans prévenir, et un montant approximatif affiché avec l'autorité d'un chiffre est pire qu'aucun montant. Seule la facture du fournisseur fait foi, et lui la donne exactement.
 
 L'URL de base est modifiable pour **tous** les fournisseurs et non pour le seul générique : c'est ce qui rend un relais branchable devant n'importe lequel, pour zéro ligne de plus.
 

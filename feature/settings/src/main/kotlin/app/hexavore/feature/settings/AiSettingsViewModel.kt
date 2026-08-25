@@ -15,7 +15,6 @@ import app.hexavore.domain.ai.ApiKey
 import app.hexavore.domain.ai.ProbeOutcome
 import app.hexavore.domain.ai.ProviderCredentials
 import app.hexavore.domain.ai.ProviderStatus
-import app.hexavore.domain.ai.estimatedCost
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -83,6 +82,12 @@ class AiSettingsViewModel @Inject constructor(
             form = edited.form,
             probe = edited.probe,
             usage = counted,
+            // « Utilise » et non « Utiliser » : le fournisseur ouvert sert deja, et
+            // rien n'a bouge depuis. La comparaison porte sur le formulaire prerempli
+            // -- actif seul dirait « Utilise » sous une cle qu'on vient de modifier.
+            inUse = edited.open != null &&
+                edited.open == stored.active &&
+                edited.form.sameValuesAs(stored.formFor(edited.open)),
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, AiSettingsUiState())
 
@@ -132,9 +137,11 @@ class AiSettingsViewModel @Inject constructor(
 
         viewModelScope.launch {
             credentials.save(provider, form.credentials())
-            // Le formulaire se referme : ce qui est enregistre se lit dans la liste,
-            // et un champ qui reste ouvert invite a corriger ce qu'on vient d'ecrire.
-            editor.value = Editor()
+            // **Le formulaire reste ouvert**, contrairement a avant. Il se refermait
+            // pour ne pas inviter a corriger ce qu'on venait d'ecrire ; mais le bouton
+            // dit maintenant « Utilise », et une confirmation doit se lire la ou le
+            // doigt a appuye. Une carte qui se replie emporte sa reponse avec elle.
+            editor.value = editor.value.copy(probe = ProbeState.Idle)
         }
     }
 
@@ -180,6 +187,16 @@ private fun AiSetup.formFor(provider: AiProvider): ProviderForm {
     )
 }
 
+/**
+ * Les trois valeurs saisies sont-elles celles d'un autre formulaire ?
+ *
+ * **La révélation ne compte pas.** Montrer sa clé ne la modifie pas, et un
+ * `equals` de structure ferait passer le bouton de « Utilisé » à « Utiliser » parce
+ * qu'on a appuyé sur l'œil.
+ */
+private fun ProviderForm.sameValuesAs(other: ProviderForm): Boolean =
+    apiKey == other.apiKey && model == other.model && baseUrl == other.baseUrl
+
 private fun ProviderForm.credentials() =
     ProviderCredentials(apiKey = ApiKey(apiKey.trim()), model = model.trim(), baseUrl = baseUrl.trim())
 
@@ -195,11 +212,10 @@ private fun ProbeOutcome.toState(): ProbeState = when (this) {
     is ProbeOutcome.Failed -> ProbeState.Failed(error.messageRes, error.diagnostic)
 }
 
-/** Un compte du domaine, prêt à s'afficher : les jetons additionnés, le prix estimé. */
+/** Un compte du domaine, prêt à s'afficher : les appels, et les jetons additionnés. */
 private fun AiUsageEntry.toRow() = UsageRow(
     provider = provider,
     model = model,
     calls = calls,
     tokens = input + output,
-    cost = estimatedCost(),
 )

@@ -33,6 +33,23 @@ enum class AiProvider(
     val suggestedModels: List<String>,
     val vision: VisionSupport,
     /**
+     * Où l'on obtient une clé chez ce fournisseur. Vide quand il n'y a pas de console
+     * unique — c'est le cas du relais générique, qui désigne un service inconnu.
+     *
+     * **Ici et non dans les ressources**, pour la même raison que [displayName] : une
+     * URL de console n'est pas du texte à traduire, et la mettre ailleurs obligerait
+     * l'écran à un `when` sur le fournisseur.
+     */
+    val consoleUrl: String = "",
+    /**
+     * Celui que l'application met en avant.
+     *
+     * **Un seul**, sans quoi le mot ne veut plus rien dire. Ce n'est pas un jugement
+     * sur la qualité des modèles : c'est celui dont la mise en route demande le moins
+     * de démarches à quelqu'un qui n'a jamais pris de clé d'API.
+     */
+    val recommended: Boolean = false,
+    /**
      * Si ce fournisseur est proposé aujourd'hui, ou tenu en réserve.
      *
      * **Le code des six existe et passe ses tests.** Ce qui manque aux quatre derniers
@@ -51,6 +68,7 @@ enum class AiProvider(
         defaultBaseUrl = "https://api.anthropic.com/",
         suggestedModels = listOf("claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5"),
         vision = VisionSupport.ALWAYS,
+        consoleUrl = "https://platform.claude.com/settings/keys",
     ),
 
     GEMINI(
@@ -60,6 +78,8 @@ enum class AiProvider(
         // identifiants que j'aurais devines n'existaient pas.
         suggestedModels = listOf("gemini-3.5-flash-lite", "gemini-3.7-flash", "gemini-2.5-flash"),
         vision = VisionSupport.ALWAYS,
+        consoleUrl = "https://aistudio.google.com/api-keys",
+        recommended = true,
     ),
 
     OPENAI(
