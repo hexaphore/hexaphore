@@ -262,6 +262,7 @@
     <string name="exchanges_close">Fermer</string>
     <string name="exchanges_clear">Vider</string>
     <string name="exchanges_empty">Aucun échange pour l\'instant. Lancez une analyse, puis revenez ici.</string>
+    <string name="exchanges_indent">Mise en page</string>
     <string name="exchanges_sent">Envoyé</string>
     <string name="exchanges_received">Reçu</string>
 </resources>
