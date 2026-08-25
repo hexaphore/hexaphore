@@ -250,4 +250,18 @@
 
     <string name="notices_yesterday_title">Hier n\'a rien de noté</string>
     <string name="notices_yesterday_body">Sur la pastille d\'hier dans le calendrier. Toucher cette journée permet d\'y noter le repas oublié.</string>
+
+    <!-- ===== Mise au point ========================================================
+         Un instrument, pas un reglage : il s\'allume le jour où quelque chose ne va
+         pas. Rien n\'est écrit sur le disque, la liste meurt avec le processus. -->
+    <string name="ai_debug_title">Mode debug</string>
+    <string name="ai_debug_body">Enregistre ce qui part chez le fournisseur et ce qui en revient, pour comprendre une réponse inattendue. Rien n\'est écrit sur le disque : la liste disparaît quand vous fermez l\'application, et les images en sont retirées.</string>
+    <string name="ai_debug_open">Voir les échanges</string>
+
+    <string name="exchanges_title">Échanges avec l\'IA</string>
+    <string name="exchanges_close">Fermer</string>
+    <string name="exchanges_clear">Vider</string>
+    <string name="exchanges_empty">Aucun échange pour l\'instant. Lancez une analyse, puis revenez ici.</string>
+    <string name="exchanges_sent">Envoyé</string>
+    <string name="exchanges_received">Reçu</string>
 </resources>

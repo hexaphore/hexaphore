@@ -37,10 +37,14 @@ data object BackupDestination
 @Serializable
 data object NoticeSettingsDestination
 
+/** Les derniers échanges avec un fournisseur. Ouverte depuis les réglages d'IA. */
+@Serializable
+data object AiExchangesDestination
+
 fun NavController.navigateToSettings() = navigate(SettingsDestination)
 
 /**
- * Déclare les six écrans de réglages dans un graphe.
+ * Déclare les sept écrans de réglages dans un graphe.
  *
  * Ensemble parce qu'ils partagent une sortie et une seule : **le retour rend l'écran
  * précédent**. Le module ne sait pas lequel c'est, ce qui lui évite de dépendre de
@@ -61,7 +65,10 @@ fun NavGraphBuilder.settingsScreens(navController: NavController) {
         ProfileRoute(onClose = { navController.popBackStack() })
     }
     composable<AiSettingsDestination> {
-        AiSettingsRoute(onClose = { navController.popBackStack() })
+        AiSettingsRoute(
+            onClose = { navController.popBackStack() },
+            onOpenExchanges = { navController.navigate(AiExchangesDestination) },
+        )
     }
     composable<ContributionSettingsDestination> {
         ContributionSettingsRoute(onClose = { navController.popBackStack() })
@@ -71,5 +78,8 @@ fun NavGraphBuilder.settingsScreens(navController: NavController) {
     }
     composable<NoticeSettingsDestination> {
         NoticeSettingsRoute(onClose = { navController.popBackStack() })
+    }
+    composable<AiExchangesDestination> {
+        AiExchangesRoute(onClose = { navController.popBackStack() })
     }
 }

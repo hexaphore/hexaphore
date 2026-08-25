@@ -6,10 +6,12 @@ import app.hexavore.data.settings.KeystoreCipher
 import app.hexavore.data.settings.SecretCipher
 import app.hexavore.data.settings.StoredAiCredentials
 import app.hexavore.data.settings.StoredAiUsage
+import app.hexavore.data.settings.StoredDebugSettings
 import app.hexavore.data.settings.StoredPhotoConsent
 import app.hexavore.domain.ai.AiCredentials
 import app.hexavore.domain.ai.AiSettings
 import app.hexavore.domain.ai.AiUsageLog
+import app.hexavore.domain.ai.DebugSettings
 import app.hexavore.domain.ai.PhotoConsent
 import app.hexavore.domain.concurrency.DispatcherProvider
 import dagger.Module
@@ -52,6 +54,22 @@ internal object AiSettingsModule {
 
     @Provides
     fun credentials(stored: StoredAiCredentials): AiCredentials = stored
+
+    /**
+     * Le reglage de mise au point, dans le fichier des cles.
+     *
+     * C'est un reglage d'IA : effacer ses cles doit l'eteindre avec elles, et
+     * quelqu'un qui repart de zero n'a rien demande a voir.
+     */
+    @Provides
+    @Singleton
+    fun storedDebug(
+        @Named(AI_PREFERENCES) preferences: SharedPreferences,
+        dispatchers: DispatcherProvider,
+    ): StoredDebugSettings = StoredDebugSettings(preferences, dispatchers)
+
+    @Provides
+    fun debug(stored: StoredDebugSettings): DebugSettings = stored
 
     @Provides
     fun settings(stored: StoredAiCredentials): AiSettings = stored

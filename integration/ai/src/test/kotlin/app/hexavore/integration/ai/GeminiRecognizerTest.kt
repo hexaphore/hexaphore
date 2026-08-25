@@ -183,7 +183,7 @@ class GeminiRecognizerTest {
 
     private suspend fun estimate(labels: List<String>): List<EstimatedFood> {
         val recognizer = GeminiRecognizer(
-            api = geminiApi(aiClient(NetworkLog.Silent)),
+            api = geminiApi(aiClient(NetworkLog.Silent, SilentExchanges)),
             prompt = { PROMPT },
             estimatePrompt = { ESTIMATE_PROMPT },
             dispatchers = TestDispatchers(UnconfinedTestDispatcher()),
@@ -202,7 +202,7 @@ class GeminiRecognizerTest {
 
     private suspend fun recognize(input: RecognitionInput): RecognitionOutcome {
         val recognizer = GeminiRecognizer(
-            api = geminiApi(aiClient(NetworkLog.Silent)),
+            api = geminiApi(aiClient(NetworkLog.Silent, SilentExchanges)),
             prompt = { PROMPT },
             estimatePrompt = { ESTIMATE_PROMPT },
             dispatchers = TestDispatchers(UnconfinedTestDispatcher()),

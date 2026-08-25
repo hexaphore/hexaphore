@@ -5,6 +5,7 @@ import app.hexavore.data.settings.ErasablePreferences
 import app.hexavore.data.settings.StoredAdjustmentSettings
 import app.hexavore.data.settings.StoredAiCredentials
 import app.hexavore.data.settings.StoredContributionSettings
+import app.hexavore.data.settings.StoredDebugSettings
 import app.hexavore.data.settings.StoredNoticeSettings
 import app.hexavore.domain.backup.StoredPreferences
 import app.hexavore.domain.concurrency.DispatcherProvider
@@ -71,6 +72,7 @@ internal object ErasureModule {
         contribution: StoredContributionSettings,
         adjustment: StoredAdjustmentSettings,
         notices: StoredNoticeSettings,
+        debug: StoredDebugSettings,
         @ErasableFiles files: List<@JvmSuppressWildcards SharedPreferences>,
         dispatchers: DispatcherProvider,
     ): StoredPreferences = ErasablePreferences(
@@ -78,6 +80,7 @@ internal object ErasureModule {
         contribution = contribution,
         adjustment = adjustment,
         notices = notices,
+        debug = debug,
         files = files,
         dispatchers = dispatchers,
     )

@@ -19,6 +19,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,17 +33,24 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.hexavore.core.designsystem.component.NeonButton
 import app.hexavore.core.designsystem.component.ScreenTopBar
 import app.hexavore.core.designsystem.theme.Spacing
 import app.hexavore.domain.ai.AiProvider
 
 /** L'écran des fournisseurs, branché sur le graphe d'injection. */
 @Composable
-internal fun AiSettingsRoute(onClose: () -> Unit, viewModel: AiSettingsViewModel = hiltViewModel()) {
+internal fun AiSettingsRoute(
+    onClose: () -> Unit,
+    onOpenExchanges: () -> Unit,
+    viewModel: AiSettingsViewModel = hiltViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     AiSettingsScreen(
         state = state,
+        onDebug = viewModel::onDebug,
+        onOpenExchanges = onOpenExchanges,
         actions = remember(viewModel, onClose) {
             AiSettingsActions(
                 onOpen = viewModel::onOpen,
@@ -70,7 +78,12 @@ internal fun AiSettingsRoute(onClose: () -> Unit, viewModel: AiSettingsViewModel
  * [ia]: docs/05-ia.md
  */
 @Composable
-internal fun AiSettingsScreen(state: AiSettingsUiState, actions: AiSettingsActions) {
+internal fun AiSettingsScreen(
+    state: AiSettingsUiState,
+    actions: AiSettingsActions,
+    onDebug: (Boolean) -> Unit = {},
+    onOpenExchanges: () -> Unit = {},
+) {
     Scaffold(
         topBar = {
             ScreenTopBar(
@@ -106,6 +119,8 @@ internal fun AiSettingsScreen(state: AiSettingsUiState, actions: AiSettingsActio
             }
 
             UsageCounter(state.usage)
+
+            DebugCard(enabled = state.debug, onToggle = onDebug, onOpenExchanges = onOpenExchanges)
 
             // De l'air sous la derniere carte : le clavier remonte le contenu, et un
             // bouton colle au bord bas se manque.
@@ -221,3 +236,41 @@ private val ProviderRow.statusRes: Int
  * et assez peu pour que l'œil ne s'y arrête pas en cherchant où coller sa clé.
  */
 private const val SUSPENDED_ALPHA = 0.45f
+
+/**
+ * L'interrupteur de mise au point, et la porte qu'il ouvre.
+ *
+ * **En bas de l'écran, après le compteur.** Ce n'est pas un réglage qu'on vient poser :
+ * c'est un instrument qu'on allume le jour où quelque chose ne va pas, et le mettre en
+ * tête ferait croire qu'il faut s'en occuper.
+ *
+ * La porte n'apparaît que s'il est allumé — un écran d'échanges vides ne dit rien de ce
+ * qu'il montrerait, et laisserait chercher pourquoi il ne montre rien.
+ */
+@Composable
+private fun DebugCard(enabled: Boolean, onToggle: (Boolean) -> Unit, onOpenExchanges: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(Spacing.cardPadding),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.ai_debug_title),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = stringResource(R.string.ai_debug_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = enabled, onCheckedChange = onToggle)
+            }
+            if (enabled) {
+                NeonButton(text = stringResource(R.string.ai_debug_open), onClick = onOpenExchanges)
+            }
+        }
+    }
+}

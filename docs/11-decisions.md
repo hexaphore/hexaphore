@@ -3280,6 +3280,50 @@ Rien ne dit non plus que **la liste soit la bonne**. Quatre situations ont été
 
 ---
 
+## D108 — Le mode debug montre les corps, et n'écrit rien nulle part · ✓ validée
+
+**Contexte.** L'outillage du modèle arrive : une boucle de trois tours entre l'application et un fournisseur, où ce qui se passe mal se passe mal **à l'intérieur**. Sans un moyen de voir ce qui part et ce qui revient, la mettre au point reviendrait à deviner.
+
+L'instrument se livre donc **avant** ce qu'il sert à régler.
+
+### Les corps, pas les en-têtes
+
+Il existait déjà un `RedactionInterceptor` : il journalise la méthode, l'URL et les en-têtes, en masquant ceux par lesquels une clé voyage. **Ce n'est pas ce qu'on veut voir.** Ce qui explique une réponse inattendue est le corps — le prompt envoyé, le JSON reçu — et le corps est précisément ce que l'autre n'enregistre pas.
+
+Celui-ci fait l'inverse, et c'est délibéré : **aucun en-tête n'est retenu, ni masqué, ni filtré — simplement absent**. C'est plus sûr qu'une liste de noms secrets à tenir à jour, et l'autre en tient une qui a déjà dû être complétée d'avance pour des fournisseurs qui n'existaient pas encore. Un corps, lui, ne porte pas de clé.
+
+### Rien sur le disque, et ce n'est pas une limite
+
+Le journal vit en mémoire, borné à vingt échanges, et meurt avec le processus. **Ce n'est pas une étape vers un fichier.** Ce qu'il contient est la description d'un repas, la photo d'une assiette, les libellés qu'on a cherchés : un fichier de mise au point qui survit à la session est un fichier que personne n'efface, et qui finit dans une sauvegarde.
+
+Fermer l'application est donc la façon la plus sûre de l'effacer. Le bouton « Vider » n'est là que pour ceux qui ne veulent pas attendre.
+
+### Éteint, il ne coûte rien
+
+La première ligne de l'intercepteur rend la main : pas de lecture de corps, pas de copie, pas d'allocation. C'est ce qui permet de le laisser dans la chaîne en permanence, plutôt que de reconstruire le client — donc les trois interfaces Retrofit — au milieu d'une analyse en cours.
+
+Le réglage se lit **sans suspendre**, comme le jour regardé : c'est un intercepteur qui pose la question, sur le fil d'OkHttp, et lui demander une coroutine obligerait à en lancer une par requête.
+
+### Trois pièges, et chacun casse en silence
+
+- **Les images.** Une photo voyage en base64 : quelques centaines de milliers de caractères qui rempliraient la mémoire et noieraient le JSON qu'on cherche. Toute longue suite base64 est remplacée par sa longueur. **Élider d'abord, tronquer ensuite** — l'inverse couperait au milieu de l'image et laisserait quatre mille caractères de bruit à la place du JSON.
+- **La réponse.** Elle est lue par `peekBody`, qui en prend une copie sans consommer le flux. La lire autrement la viderait, et l'appelant recevrait une réponse vide : un journal qui casse ce qu'il observe.
+- **L'effacement.** Le réglage vit dans le fichier des clés, et part avec elles. Quelqu'un qui efface ses données n'a rien demandé à voir de ce qui reste.
+
+### L'écran ne s'embellit pas
+
+Du texte à chasse fixe, défilant horizontalement, le plus récent en tête. Pas de mise en forme du JSON, pas de coloration, pas de pliage. **Embellir un instrument de diagnostic revient à en cacher une partie, et la partie cachée est toujours celle qu'on cherchait.**
+
+Le code HTTP porte la seule couleur de l'écran, parce que c'est ce qu'on regarde en premier.
+
+**Campagne de défaite : huit sabotages, huit cas tombés.**
+
+**Conséquences.** Deux ports de plus au domaine, un journal en mémoire dans `:core:common` à côté de l'horloge, un intercepteur, un écran. `aiClient` prend un paramètre de plus — **sans valeur par défaut**, et `SilentExchanges` existe pour que les montages qui n'observent rien le disent. Une valeur par défaut aurait laissé passer un câblage oublié en production, où l'absence de journal ressemble exactement à un mode debug qui ne s'allume pas.
+
+**Ce que le vert ne prouve pas.** **Que l'écran se lise.** Un JSON de huit mille caractères en chasse fixe sur un téléphone est un pari : les cas affirment ce qui est retenu, pas qu'on arrive à le lire. Et rien ne dit que vingt échanges soient le bon nombre — c'est de quoi remonter une boucle d'outillage entière, ce qui est une supposition sur une boucle qui n'existe pas encore.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

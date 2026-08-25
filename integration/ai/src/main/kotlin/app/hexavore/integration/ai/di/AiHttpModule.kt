@@ -1,6 +1,10 @@
 package app.hexavore.integration.ai.di
 
+import app.hexavore.domain.ai.AiExchangeLog
+import app.hexavore.domain.ai.DebugSettings
+import app.hexavore.domain.time.Clock
 import app.hexavore.integration.ai.AnthropicApi
+import app.hexavore.integration.ai.ExchangeInterceptor
 import app.hexavore.integration.ai.GeminiApi
 import app.hexavore.integration.ai.NetworkLog
 import app.hexavore.integration.ai.OpenAiApi
@@ -12,6 +16,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import javax.inject.Named
 import javax.inject.Singleton
@@ -30,10 +35,23 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 internal object AiHttpModule {
+    /**
+     * L'intercepteur de mise au point, construit ici et branche toujours.
+     *
+     * Toujours, parce qu'eteint il rend la main a sa premiere ligne : le reconstruire
+     * au changement de reglage obligerait a reconstruire le client, donc les trois
+     * interfaces Retrofit, au milieu d'une analyse en cours.
+     */
+    @Provides
+    @Singleton
+    @Named(AI_EXCHANGES)
+    fun exchanges(debug: DebugSettings, log: AiExchangeLog, clock: Clock): Interceptor =
+        ExchangeInterceptor(debug, log, clock)
+
     @Provides
     @Singleton
     @Named(AI_CLIENT)
-    fun client(log: NetworkLog): OkHttpClient = aiClient(log)
+    fun client(log: NetworkLog, @Named(AI_EXCHANGES) exchanges: Interceptor): OkHttpClient = aiClient(log, exchanges)
 
     @Provides
     @Singleton
@@ -70,3 +88,6 @@ internal data class AiApis(val anthropic: AnthropicApi, val gemini: GeminiApi, v
  * d'Open Food Facts n'a rien à faire dans un appel payant.
  */
 internal const val AI_CLIENT = "ai"
+
+/** Ce qui distingue l'intercepteur de mise au point de tout autre `Interceptor` du graphe. */
+internal const val AI_EXCHANGES = "ai-exchanges"

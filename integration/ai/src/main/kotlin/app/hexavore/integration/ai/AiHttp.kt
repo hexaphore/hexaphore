@@ -5,6 +5,7 @@ import app.hexavore.domain.ai.AiProvider
 import app.hexavore.domain.ai.EstimationOutcome
 import app.hexavore.domain.ai.RecognitionOutcome
 import kotlinx.serialization.json.Json
+import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -27,13 +28,17 @@ import java.util.concurrent.TimeUnit
  *
  * [decisions]: docs/11-decisions.md
  */
-internal fun aiClient(log: NetworkLog): OkHttpClient = OkHttpClient.Builder()
+internal fun aiClient(log: NetworkLog, exchanges: Interceptor): OkHttpClient = OkHttpClient.Builder()
     // Soixante secondes de lecture, la valeur que docs/05 fixe pour AiError.Timeout :
     // une analyse d'image est lente, et abandonner trop tot ferait recommencer
     // quelqu'un qui n'avait qu'a attendre. La connexion, elle, se juge vite.
     .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
     .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
     .addInterceptor(RedactionInterceptor(log))
+    // **Apres celui qui expurge**, et l'ordre n'est pas indifferent : celui-ci lit le
+    // corps de la reponse, donc il doit etre le plus pres possible de l'appel reel
+    // pour voir ce que le fournisseur a vraiment rendu.
+    .addInterceptor(exchanges)
     .build()
 
 internal fun anthropicApi(client: OkHttpClient): AnthropicApi = Retrofit.Builder()

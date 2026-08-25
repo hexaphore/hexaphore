@@ -277,6 +277,8 @@ Sous le champ de clé, **« Comment obtenir une clé ? »** ouvre une explicatio
 
 Un fournisseur mis en avant porte une **étoile « Recommandé »**. Ceux qui ne sont pas encore éprouvés sur un vrai compte s'affichent estompés, avec deux mots : **« Bientôt disponible »**.
 
+**Mode debug**, tout en bas : un interrupteur qui enregistre ce qui part chez le fournisseur et ce qui en revient, et une porte vers la liste ([D108](11-decisions.md#d108--le-mode-debug-montre-les-corps-et-nécrit-rien-nulle-part---validée)). C'est un instrument qu'on allume le jour où quelque chose ne va pas, pas un réglage qu'on vient poser — d'où sa place, après le reste. **Rien n'est écrit sur le disque** : la liste vit en mémoire, garde les vingt derniers échanges, et disparaît quand on ferme l'application. Les images en sont retirées.
+
 **En bas, compteur d'utilisation** : appels et jetons par fournisseur. ~~Et une estimation de coût, d'après une table de tarifs embarquée et datée.~~ Elle disparaît — un prix relevé un jour donné vieillit sans prévenir, et un montant approximatif affiché avec l'autorité d'un chiffre est pire qu'aucun montant. Seule la facture du fournisseur fait foi, et lui la donne exactement.
 
 L'URL de base est modifiable pour **tous** les fournisseurs et non pour le seul générique : c'est ce qui rend un relais branchable devant n'importe lequel, pour zéro ligne de plus.

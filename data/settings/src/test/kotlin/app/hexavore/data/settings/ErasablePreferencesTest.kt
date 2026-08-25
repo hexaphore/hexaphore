@@ -56,6 +56,7 @@ class ErasablePreferencesTest {
     private val adjustment = StoredAdjustmentSettings(adjustmentFile, dispatchers)
     private val noticeFile = context.getSharedPreferences("erase-notices", Context.MODE_PRIVATE)
     private val notices = StoredNoticeSettings(noticeFile, dispatchers)
+    private val debug = StoredDebugSettings(aiFile, dispatchers)
     private val consent = StoredPhotoConsent(aiFile, dispatchers)
 
     private val erasable = ErasablePreferences(
@@ -63,6 +64,7 @@ class ErasablePreferencesTest {
         contribution = contribution,
         adjustment = adjustment,
         notices = notices,
+        debug = debug,
         files = listOf(aiFile, adjustmentFile, contributionFile, noticeFile),
         dispatchers = dispatchers,
     )
@@ -120,6 +122,17 @@ class ErasablePreferencesTest {
         erasable.erase()
 
         assertTrue("toutes les pastilles se rallument", Notice.WEIGHT_STALE in notices.observe().first())
+    }
+
+    @Test
+    fun `le mode debug se rallume eteint`() = runTest {
+        // Le journal des echanges retient ce qu'on a envoye a un fournisseur :
+        // quelqu'un qui efface ses cles n'a rien demande a voir de ce qui reste.
+        debug.setEnabled(enabled = true)
+
+        erasable.erase()
+
+        assertEquals(false, debug.enabled())
     }
 
     @Test
