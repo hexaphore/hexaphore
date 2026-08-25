@@ -74,6 +74,14 @@ internal fun CalendarPane(
      * C'est l'accueil qui reçoit le défilement de la page, donc lui seul peut replier
      * le calendrier quand le doigt part vers le haut. L'état vit là où le geste arrive.
      */
+    /**
+     * La veille n'a aucune ligne, et porte donc une pastille.
+     *
+     * Un booléen plutôt qu'une date : c'est **toujours** la veille du jour courant qui
+     * est regardée, jamais une liste de jours oubliés. Le calendrier connaît déjà
+     * aujourd'hui, il n'a pas besoin qu'on lui dise lequel.
+     */
+    flagYesterday: Boolean = false,
     expanded: Boolean = false,
     onExpandedChange: (Boolean) -> Unit = {},
 ) {
@@ -81,10 +89,10 @@ internal fun CalendarPane(
         WeekdayHeader()
 
         AnimatedVisibility(visible = !expanded, enter = expandVertically(), exit = shrinkVertically()) {
-            WeekStrip(state, selected, onOpenDay)
+            WeekStrip(state, selected, flagYesterday, onOpenDay)
         }
         AnimatedVisibility(visible = expanded, enter = expandVertically(), exit = shrinkVertically()) {
-            MonthPager(state, selected, onOpenDay, onVisibleMonth)
+            MonthPager(state, selected, flagYesterday, onOpenDay, onVisibleMonth)
         }
 
         ExpandHandle(expanded = expanded, onToggle = { onExpandedChange(!expanded) })
@@ -99,7 +107,12 @@ internal fun CalendarPane(
  * fait pour remonter loin — c'est le rôle du mois déplié.
  */
 @Composable
-private fun WeekStrip(state: CalendarUiState, selected: LocalDate?, onOpenDay: (LocalDate) -> Unit) {
+private fun WeekStrip(
+    state: CalendarUiState,
+    selected: LocalDate?,
+    flagYesterday: Boolean,
+    onOpenDay: (LocalDate) -> Unit,
+) {
     val firstDayOfWeek = WeekFields.of(Locale.getDefault()).firstDayOfWeek
     val weeks = rememberWeekCalendarState(
         startDate = state.today.minusWeeks(WEEKS_BACK),
@@ -112,7 +125,7 @@ private fun WeekStrip(state: CalendarUiState, selected: LocalDate?, onOpenDay: (
         val place = cellFootprint(maxWidth)
         WeekCalendar(
             state = weeks,
-            dayContent = { day -> DayCell(day.date, state, place, selected, onOpenDay) },
+            dayContent = { day -> DayCell(day.date, state, place, selected, flagYesterday, onOpenDay) },
         )
     }
 }
@@ -128,6 +141,7 @@ private fun WeekStrip(state: CalendarUiState, selected: LocalDate?, onOpenDay: (
 private fun MonthPager(
     state: CalendarUiState,
     selected: LocalDate?,
+    flagYesterday: Boolean,
     onOpenDay: (LocalDate) -> Unit,
     onVisibleMonth: (YearMonth) -> Unit,
 ) {
@@ -159,7 +173,7 @@ private fun MonthPager(
                     modifier = Modifier.padding(vertical = Spacing.sm),
                 )
             },
-            dayContent = { day -> DayCell(day.date, state, place, selected, onOpenDay) },
+            dayContent = { day -> DayCell(day.date, state, place, selected, flagYesterday, onOpenDay) },
         )
     }
 }

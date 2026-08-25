@@ -55,6 +55,7 @@ import app.hexavore.domain.diary.DaySummary
 import app.hexavore.domain.diary.Dish
 import app.hexavore.domain.goal.AdjustmentSuggestion
 import app.hexavore.domain.goal.DailyGoal
+import app.hexavore.domain.notice.Notice
 import app.hexavore.domain.nutrition.Macro
 import app.hexavore.domain.usecase.AdjustmentResponse
 import kotlinx.coroutines.withTimeoutOrNull
@@ -74,6 +75,8 @@ fun HomeRoute(routes: HomeRoutes) {
     val aiConfigured by viewModel.aiConfigured.collectAsStateWithLifecycle()
     val suggestion by viewModel.suggestion.collectAsStateWithLifecycle()
     val day by viewModel.selectedDay.collectAsStateWithLifecycle()
+    val noticeViewModel: NoticeViewModel = hiltViewModel()
+    val notices by noticeViewModel.notices.collectAsStateWithLifecycle()
 
     HomeScreen(
         state = state,
@@ -85,6 +88,7 @@ fun HomeRoute(routes: HomeRoutes) {
         onAdjustment = viewModel::onAdjustment,
         day = day,
         onBackToToday = { viewModel.onSelectDay(null) },
+        notices = notices,
         calendar = { expanded, onExpandedChange ->
             CalendarPane(
                 state = calendar,
@@ -93,6 +97,9 @@ fun HomeRoute(routes: HomeRoutes) {
                 onOpenDay = viewModel::onSelectDay,
                 onVisibleMonth = calendarViewModel::onVisibleMonth,
                 selected = day,
+                // La pastille de la veille se pose sur la journee concernee, et non
+                // sur une icone : c'est la qu'on la touche pour agir.
+                flagYesterday = Notice.YESTERDAY_EMPTY in notices,
                 expanded = expanded,
                 onExpandedChange = onExpandedChange,
             )
@@ -157,6 +164,8 @@ fun HomeScreen(
      */
     day: LocalDate? = null,
     onBackToToday: () -> Unit = {},
+    /** Ce qui merite une pastille. Vide dans les apercus, qui n'ont rien a signaler. */
+    notices: Set<Notice> = emptySet(),
     /**
      * L'en-tete escamotable, ou rien.
      *
@@ -223,7 +232,7 @@ fun HomeScreen(
             // Le titre et le calendrier ne defilent pas : docs/02 les veut fixes en
             // haut, et c'est aussi ce qui permet au mois deplie de defiler pour son
             // propre compte -- il n'est plus sous la connexion qui replie.
-            DayHeader(actions, day, onBackToToday)
+            DayHeader(actions, day, onBackToToday, notices)
             calendar(calendarExpanded) { calendarExpanded = it }
 
             DayScroll(collapseOnScroll) {

@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,10 +13,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.hexavore.core.designsystem.component.NoticeDot
 import app.hexavore.core.designsystem.component.ScreenTopBar
 import app.hexavore.core.designsystem.theme.Spacing
+import app.hexavore.domain.notice.Notice
 
 /**
  * Le hub de réglages, **né avec sa deuxième section**.
@@ -32,13 +39,46 @@ import app.hexavore.core.designsystem.theme.Spacing
  * [parcours]: docs/02-parcours-et-ecrans.md
  * [decisions]: docs/11-decisions.md
  */
+/**
+ * Le hub, branché sur les pastilles.
+ *
+ * Il emprunte le modèle de l'écran des notifications plutôt que d'en avoir un à lui :
+ * c'est le même flux, lu au lieu d'être écrit, et un second modèle aurait fait deux
+ * abonnements pour une seule question.
+ */
+@Composable
+internal fun SettingsHubRoute(
+    onOpenProfile: () -> Unit,
+    onOpenAi: () -> Unit,
+    onOpenContribution: () -> Unit,
+    onOpenBackup: () -> Unit,
+    onOpenNotices: () -> Unit,
+    onClose: () -> Unit,
+    viewModel: NoticeSettingsViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    SettingsHubScreen(
+        onOpenProfile = onOpenProfile,
+        onOpenAi = onOpenAi,
+        onOpenContribution = onOpenContribution,
+        onOpenBackup = onOpenBackup,
+        onOpenNotices = onOpenNotices,
+        onClose = onClose,
+        aiFlagged = state.active.any { it == Notice.AI_NOT_CONFIGURED || it == Notice.AI_KEY_REJECTED },
+    )
+}
+
 @Composable
 internal fun SettingsHubScreen(
     onOpenProfile: () -> Unit,
     onOpenAi: () -> Unit,
     onOpenContribution: () -> Unit,
     onOpenBackup: () -> Unit,
+    onOpenNotices: () -> Unit,
     onClose: () -> Unit,
+    /** La section d'IA porte une pastille : aucune clé ne sert, ou la dernière a été refusée. */
+    aiFlagged: Boolean = false,
 ) {
     Scaffold(
         topBar = {
@@ -65,6 +105,7 @@ internal fun SettingsHubScreen(
                 titleRes = R.string.settings_ai_title,
                 subtitleRes = R.string.settings_ai_subtitle,
                 onClick = onOpenAi,
+                flagged = aiFlagged,
             )
             SectionCard(
                 titleRes = R.string.settings_contribution_title,
@@ -76,18 +117,36 @@ internal fun SettingsHubScreen(
                 subtitleRes = R.string.settings_backup_subtitle,
                 onClick = onOpenBackup,
             )
+            SectionCard(
+                titleRes = R.string.settings_notices_title,
+                subtitleRes = R.string.settings_notices_subtitle,
+                onClick = onOpenNotices,
+            )
         }
     }
 }
 
 @Composable
-private fun SectionCard(@StringRes titleRes: Int, @StringRes subtitleRes: Int, onClick: () -> Unit) {
+private fun SectionCard(
+    @StringRes titleRes: Int,
+    @StringRes subtitleRes: Int,
+    onClick: () -> Unit,
+    flagged: Boolean = false,
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(Spacing.cardPadding),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            Text(text = stringResource(titleRes), style = MaterialTheme.typography.titleMedium)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = stringResource(titleRes), style = MaterialTheme.typography.titleMedium)
+                if (flagged) {
+                    NoticeDot(
+                        label = stringResource(R.string.settings_section_flagged),
+                        modifier = Modifier.padding(start = Spacing.sm),
+                    )
+                }
+            }
             Text(
                 text = stringResource(subtitleRes),
                 style = MaterialTheme.typography.bodySmall,

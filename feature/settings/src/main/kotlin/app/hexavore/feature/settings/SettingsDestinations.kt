@@ -33,10 +33,14 @@ data object ContributionSettingsDestination
 @Serializable
 data object BackupDestination
 
+/** Les quatre pastilles et leurs interrupteurs. Aucun argument. */
+@Serializable
+data object NoticeSettingsDestination
+
 fun NavController.navigateToSettings() = navigate(SettingsDestination)
 
 /**
- * Déclare les cinq écrans de réglages dans un graphe.
+ * Déclare les six écrans de réglages dans un graphe.
  *
  * Ensemble parce qu'ils partagent une sortie et une seule : **le retour rend l'écran
  * précédent**. Le module ne sait pas lequel c'est, ce qui lui évite de dépendre de
@@ -44,11 +48,12 @@ fun NavController.navigateToSettings() = navigate(SettingsDestination)
  */
 fun NavGraphBuilder.settingsScreens(navController: NavController) {
     composable<SettingsDestination> {
-        SettingsHubScreen(
+        SettingsHubRoute(
             onOpenProfile = { navController.navigate(ProfileDestination) },
             onOpenAi = { navController.navigate(AiSettingsDestination) },
             onOpenContribution = { navController.navigate(ContributionSettingsDestination) },
             onOpenBackup = { navController.navigate(BackupDestination) },
+            onOpenNotices = { navController.navigate(NoticeSettingsDestination) },
             onClose = { navController.popBackStack() },
         )
     }
@@ -63,5 +68,8 @@ fun NavGraphBuilder.settingsScreens(navController: NavController) {
     }
     composable<BackupDestination> {
         BackupRoute(onClose = { navController.popBackStack() })
+    }
+    composable<NoticeSettingsDestination> {
+        NoticeSettingsRoute(onClose = { navController.popBackStack() })
     }
 }

@@ -5,8 +5,10 @@ import app.hexavore.domain.ai.AiProbe
 import app.hexavore.domain.ai.AiSettings
 import app.hexavore.domain.ai.AiUsageLog
 import app.hexavore.domain.ai.FoodRecognizer
+import app.hexavore.domain.ai.NotingRecognizer
 import app.hexavore.domain.ai.NutritionEstimator
 import app.hexavore.domain.concurrency.DispatcherProvider
+import app.hexavore.domain.notice.KeyRejection
 import app.hexavore.integration.ai.AnthropicRecognizer
 import app.hexavore.integration.ai.AssetSystemPrompt
 import app.hexavore.integration.ai.ConfiguredRecognizer
@@ -78,8 +80,17 @@ internal object AiModule {
         compatible = OpenAiCompatibleRecognizer(apis.openAi, prompt, estimate, dispatchers, strictSchema = false),
     )
 
+    /**
+     * Le reconnaisseur, **enveloppe** de ce qui retient un refus de clé.
+     *
+     * La décoration est ici et non chez l'appelant : les deux écrans d'IA passent par
+     * ce port, et le troisieme qui viendra aussi. Un décorateur pose la règle une fois ;
+     * deux lignes dans deux `ViewModel` l'auraient posée deux fois et oubliée la
+     * troisième.
+     */
     @Provides
-    fun recognizer(configured: ConfiguredRecognizer): FoodRecognizer = configured
+    fun recognizer(configured: ConfiguredRecognizer, rejection: KeyRejection): FoodRecognizer =
+        NotingRecognizer(configured, rejection)
 
     @Provides
     fun probe(configured: ConfiguredRecognizer): AiProbe = configured

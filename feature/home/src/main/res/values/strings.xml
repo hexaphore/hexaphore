@@ -81,10 +81,6 @@
     <string name="home_describe">Décrire un repas</string>
     <string name="home_photograph">Photographier un repas</string>
     <string name="home_describe_unavailable">indisponible, aucune clé d\'IA</string>
-    <string name="home_ai_title">Décrire un repas avec l\'IA</string>
-    <string name="home_ai_explanation">Ce mode envoie votre description à un fournisseur d\'IA que vous choisissez, avec votre propre clé. Les appels vous sont facturés par ce fournisseur.</string>
-    <string name="home_ai_configure">Configurer</string>
-    <string name="home_ai_later">Plus tard</string>
 
     <!-- Le nom est proposé depuis les aliments du plat, puis librement réécrit : un
          favori sans nom serait introuvable, et un champ vide ferait renoncer. -->
@@ -144,4 +140,13 @@
     <string name="calendar_expand">Afficher le mois</string>
     <string name="calendar_collapse">Revenir à la semaine</string>
 
+
+    <!-- ===== Pastilles ============================================================
+         Chacune designe une situation, jamais un message : elle s'eteint quand la
+         situation cesse, et aucune ne se rejette. Le libelle dit ce qu'il y a a faire,
+         jamais « notification » - « 1 notification » demande d'aller voir. -->
+    <string name="notice_ai_absent">Aucune intelligence artificielle configurée</string>
+    <string name="notice_ai_rejected">Votre clé d\'API a été refusée</string>
+    <string name="notice_weight_stale">Aucune pesée depuis une semaine</string>
+    <string name="notice_yesterday_empty">Hier n\'a rien de noté</string>
 </resources>

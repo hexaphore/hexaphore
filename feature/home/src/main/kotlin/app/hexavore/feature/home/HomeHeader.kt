@@ -20,7 +20,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import app.hexavore.core.designsystem.component.TrendGlyph
+import app.hexavore.core.designsystem.component.WithNoticeDot
 import app.hexavore.core.designsystem.theme.Spacing
+import app.hexavore.domain.notice.Notice
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -43,9 +45,14 @@ import java.time.format.FormatStyle
  * En dessous, et seulement alors, le chemin du retour ([TodayChip]).
  */
 @Composable
-internal fun DayHeader(actions: HomeActions, day: LocalDate?, onBackToToday: () -> Unit) {
+internal fun DayHeader(
+    actions: HomeActions,
+    day: LocalDate?,
+    onBackToToday: () -> Unit,
+    notices: Set<Notice> = emptySet(),
+) {
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        DayTitle(actions, day)
+        DayTitle(actions, day, notices)
         // Rien du tout quand on est aujourd'hui : un bouton grise qui ne fait rien
         // occuperait la place et poserait la question de ce qu'il fait la.
         AnimatedVisibility(visible = day != null) { TodayChip(onBackToToday) }
@@ -82,7 +89,7 @@ private fun TodayChip(onBackToToday: () -> Unit) {
 
 /** La date et les deux icônes, sur une ligne. */
 @Composable
-private fun DayTitle(actions: HomeActions, day: LocalDate?) {
+private fun DayTitle(actions: HomeActions, day: LocalDate?, notices: Set<Notice>) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -97,14 +104,32 @@ private fun DayTitle(actions: HomeActions, day: LocalDate?) {
         // de l'ecran, et le titre du jour doit rester ce qu'on lit en premier.
         Row {
             IconButton(onClick = actions.onOpenWeight) {
-                TrendGlyph(contentDescription = stringResource(R.string.home_open_weight))
+                WithNoticeDot(
+                    visible = Notice.WEIGHT_STALE in notices,
+                    label = stringResource(R.string.notice_weight_stale),
+                ) {
+                    TrendGlyph(contentDescription = stringResource(R.string.home_open_weight))
+                }
             }
             IconButton(onClick = actions.onOpenSettings) {
-                Icon(
-                    imageVector = Icons.Filled.Person,
-                    contentDescription = stringResource(R.string.home_open_profile),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                // Les deux pastilles d'IA se posent au meme endroit : le geste a faire
+                // est le meme -- ouvrir les reglages et s'occuper de la cle.
+                WithNoticeDot(
+                    visible = notices.any { it == Notice.AI_NOT_CONFIGURED || it == Notice.AI_KEY_REJECTED },
+                    label = stringResource(
+                        if (Notice.AI_KEY_REJECTED in notices) {
+                            R.string.notice_ai_rejected
+                        } else {
+                            R.string.notice_ai_absent
+                        },
+                    ),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Person,
+                        contentDescription = stringResource(R.string.home_open_profile),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }

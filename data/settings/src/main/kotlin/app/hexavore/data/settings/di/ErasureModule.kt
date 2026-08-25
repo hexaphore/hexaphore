@@ -5,6 +5,7 @@ import app.hexavore.data.settings.ErasablePreferences
 import app.hexavore.data.settings.StoredAdjustmentSettings
 import app.hexavore.data.settings.StoredAiCredentials
 import app.hexavore.data.settings.StoredContributionSettings
+import app.hexavore.data.settings.StoredNoticeSettings
 import app.hexavore.domain.backup.StoredPreferences
 import app.hexavore.domain.concurrency.DispatcherProvider
 import dagger.Module
@@ -12,7 +13,19 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Named
+import javax.inject.Qualifier
 import javax.inject.Singleton
+
+/**
+ * Les fichiers de préférences que l'effacement vide.
+ *
+ * Un qualificatif parce qu'une `List<SharedPreferences>` sans nom serait ambiguë le
+ * jour où une seconde liste existerait — et parce que celle-ci **est** une chose : la
+ * réponse à « qu'est-ce qui disparaît ? », qu'un lecteur cherchera sous ce nom.
+ */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+internal annotation class ErasableFiles
 
 /**
  * Ce qu'« Effacer toutes mes données » doit vider, hors du journal.
@@ -30,21 +43,42 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 internal object ErasureModule {
+    /**
+     * **La liste des fichiers, et rien d'autre.**
+     *
+     * Sortie du fournisseur principal quand le seuil de paramètres a mordu, et le
+     * découpage suit ce que les choses sont : ici les rangements, là les magasins qui
+     * portent un flux. Un quatrième fichier s'ajoute d'une ligne, au seul endroit qui
+     * les connaisse tous.
+     */
+    @Provides
+    @Singleton
+    @ErasableFiles
+    fun erasableFiles(
+        @Named(AI_PREFERENCES) ai: SharedPreferences,
+        @Named(ADJUSTMENT_PREFERENCES) adjustment: SharedPreferences,
+        @Named(CONTRIBUTION_PREFERENCES) contribution: SharedPreferences,
+        @Named(NOTICE_PREFERENCES) notices: SharedPreferences,
+        // `@JvmSuppressWildcards` : sans lui, Kotlin genere `List<? extends
+        // SharedPreferences>` au point d'injection et `List<SharedPreferences>` a la
+        // fourniture -- deux types differents pour Dagger, qui ne trouve alors rien.
+    ): List<@JvmSuppressWildcards SharedPreferences> = listOf(ai, adjustment, contribution, notices)
+
     @Provides
     @Singleton
     fun storedPreferences(
         credentials: StoredAiCredentials,
         contribution: StoredContributionSettings,
         adjustment: StoredAdjustmentSettings,
-        @Named(AI_PREFERENCES) ai: SharedPreferences,
-        @Named(ADJUSTMENT_PREFERENCES) adjustmentFile: SharedPreferences,
-        @Named(CONTRIBUTION_PREFERENCES) contributionFile: SharedPreferences,
+        notices: StoredNoticeSettings,
+        @ErasableFiles files: List<@JvmSuppressWildcards SharedPreferences>,
         dispatchers: DispatcherProvider,
     ): StoredPreferences = ErasablePreferences(
         credentials = credentials,
         contribution = contribution,
         adjustment = adjustment,
-        files = listOf(ai, adjustmentFile, contributionFile),
+        notices = notices,
+        files = files,
         dispatchers = dispatchers,
     )
 }
