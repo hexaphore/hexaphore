@@ -1,9 +1,11 @@
 package app.hexavore.core.common.di
 
+import app.hexavore.core.common.ai.RecentExchanges
 import app.hexavore.core.common.concurrency.DefaultDispatcherProvider
 import app.hexavore.core.common.diary.CurrentSelectedDay
 import app.hexavore.core.common.identity.UuidGenerator
 import app.hexavore.core.common.time.SystemClock
+import app.hexavore.domain.ai.AiExchangeLog
 import app.hexavore.domain.concurrency.DispatcherProvider
 import app.hexavore.domain.diary.SelectedDay
 import app.hexavore.domain.identity.IdGenerator
@@ -37,6 +39,17 @@ abstract class CommonModule {
      */
     @Binds
     abstract fun selectedDay(implementation: CurrentSelectedDay): SelectedDay
+
+    /**
+     * Les derniers échanges avec un fournisseur d'IA, en mémoire.
+     *
+     * Même raison que le jour regardé : un état d'application sans rangement. Ici
+     * l'absence de stockage n'est pas une commodité mais la décision — un journal de
+     * mise au point qui survit à la session est un journal que personne n'efface.
+     */
+    @Binds
+    @Singleton
+    abstract fun exchangeLog(implementation: RecentExchanges): AiExchangeLog
 
     @Binds
     @Singleton

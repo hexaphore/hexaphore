@@ -36,6 +36,7 @@ internal class ErasablePreferences(
     private val contribution: StoredContributionSettings,
     private val adjustment: StoredAdjustmentSettings,
     private val notices: StoredNoticeSettings,
+    private val debug: StoredDebugSettings,
     private val files: List<SharedPreferences>,
     private val dispatchers: DispatcherProvider,
 ) : StoredPreferences {
@@ -44,6 +45,7 @@ internal class ErasablePreferences(
         contribution.forget()
         adjustment.forget()
         notices.forget()
+        debug.forget()
 
         withContext(dispatchers.io) {
             // `commit` et non `apply` : l'ecriture differee ferait repartir l'appelant

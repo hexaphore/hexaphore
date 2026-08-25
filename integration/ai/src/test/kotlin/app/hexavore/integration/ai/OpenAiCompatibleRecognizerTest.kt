@@ -202,7 +202,7 @@ class OpenAiCompatibleRecognizerTest {
 
     private suspend fun estimate(labels: List<String>): List<EstimatedFood> {
         val recognizer = OpenAiCompatibleRecognizer(
-            api = openAiApi(aiClient(NetworkLog.Silent)),
+            api = openAiApi(aiClient(NetworkLog.Silent, SilentExchanges)),
             prompt = { PROMPT },
             estimatePrompt = { ESTIMATE_PROMPT },
             dispatchers = TestDispatchers(UnconfinedTestDispatcher()),
@@ -226,7 +226,7 @@ class OpenAiCompatibleRecognizerTest {
         strictSchema: Boolean = true,
     ): RecognitionOutcome {
         val recognizer = OpenAiCompatibleRecognizer(
-            api = openAiApi(aiClient(NetworkLog.Silent)),
+            api = openAiApi(aiClient(NetworkLog.Silent, SilentExchanges)),
             prompt = { PROMPT },
             estimatePrompt = { ESTIMATE_PROMPT },
             dispatchers = TestDispatchers(UnconfinedTestDispatcher()),
