@@ -10,10 +10,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -22,7 +20,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -30,6 +27,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.hexavore.core.designsystem.component.AdjustmentCard
+import app.hexavore.core.designsystem.component.ScreenTopBar
 import app.hexavore.core.designsystem.theme.Spacing
 import app.hexavore.domain.goal.AdjustmentSuggestion
 import app.hexavore.domain.usecase.AdjustmentResponse
@@ -137,16 +135,11 @@ internal fun WeightScreen(
 
 @Composable
 private fun WeightTitle(onClose: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onClose) {
-            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.weight_close))
-        }
-        Text(
-            text = stringResource(R.string.weight_title),
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-    }
+    ScreenTopBar(
+        title = stringResource(R.string.weight_title),
+        onClose = onClose,
+        closeLabel = stringResource(R.string.weight_close),
+    )
 }
 
 /** La courbe, l'avertissement s'il y a lieu, puis les pesées. */

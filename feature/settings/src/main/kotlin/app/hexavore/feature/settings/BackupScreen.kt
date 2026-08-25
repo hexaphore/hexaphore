@@ -4,18 +4,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -29,12 +24,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.hexavore.core.designsystem.component.ScreenTopBar
 import app.hexavore.core.designsystem.theme.Spacing
 
 /**
@@ -99,7 +94,13 @@ private fun BackupScreen(
     }
 
     Scaffold(
-        topBar = { BackupTopBar(onClose) },
+        topBar = {
+            ScreenTopBar(
+                title = stringResource(R.string.backup_title),
+                onClose = onClose,
+                closeLabel = stringResource(R.string.backup_close),
+            )
+        },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         Column(
@@ -110,54 +111,72 @@ private fun BackupScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.betweenCards),
         ) {
-            ActionCard(
-                title = stringResource(R.string.backup_export_title),
-                body = stringResource(R.string.backup_export_body),
-                action = stringResource(R.string.backup_export_action),
+            BackupCards(
                 enabled = !state.busy,
-                onClick = onExport,
+                onExport = onExport,
+                onImport = { confirmingRestore = true },
+                onErase = { confirmingErase = true },
             )
-            ActionCard(
-                title = stringResource(R.string.backup_import_title),
-                body = stringResource(R.string.backup_import_body),
-                action = stringResource(R.string.backup_import_action),
-                enabled = !state.busy,
-                onClick = { confirmingRestore = true },
-            )
-            EraseCard(enabled = !state.busy, onClick = { confirmingErase = true })
         }
     }
 
-    if (confirmingRestore) {
-        RestoreWarningDialog(
-            onConfirm = {
-                confirmingRestore = false
-                onImport()
-            },
-            onDismiss = { confirmingRestore = false },
-        )
-    }
-    if (confirmingErase) {
-        EraseConfirmDialog(
-            onConfirm = {
-                confirmingErase = false
-                onErase()
-            },
-            onDismiss = { confirmingErase = false },
-        )
-    }
+    BackupConfirmations(
+        confirmingRestore = confirmingRestore,
+        confirmingErase = confirmingErase,
+        onRestore = {
+            confirmingRestore = false
+            onImport()
+        },
+        onErase = {
+            confirmingErase = false
+            onErase()
+        },
+        onDismissRestore = { confirmingRestore = false },
+        onDismissErase = { confirmingErase = false },
+    )
 }
 
+/** Les trois gestes, dans l'ordre où l'on veut les rencontrer : emporter, remettre, effacer. */
 @Composable
-private fun BackupTopBar(onClose: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(Spacing.screenMargin),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = onClose) {
-            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.backup_close))
-        }
-        Text(stringResource(R.string.backup_title), style = MaterialTheme.typography.titleLarge)
+private fun BackupCards(enabled: Boolean, onExport: () -> Unit, onImport: () -> Unit, onErase: () -> Unit) {
+    ActionCard(
+        title = stringResource(R.string.backup_export_title),
+        body = stringResource(R.string.backup_export_body),
+        action = stringResource(R.string.backup_export_action),
+        enabled = enabled,
+        onClick = onExport,
+    )
+    ActionCard(
+        title = stringResource(R.string.backup_import_title),
+        body = stringResource(R.string.backup_import_body),
+        action = stringResource(R.string.backup_import_action),
+        enabled = enabled,
+        onClick = onImport,
+    )
+    EraseCard(enabled = enabled, onClick = onErase)
+}
+
+/**
+ * Les deux boîtes qui gardent les gestes destructeurs.
+ *
+ * Sorties du corps de l'écran quand le seuil de longueur a mordu, et le découpage suit
+ * ce que les choses sont : au-dessus, la page et ses trois cartes ; ici, ce qui
+ * s'interpose entre un doigt et une donnée qui disparaît.
+ */
+@Composable
+private fun BackupConfirmations(
+    confirmingRestore: Boolean,
+    confirmingErase: Boolean,
+    onRestore: () -> Unit,
+    onErase: () -> Unit,
+    onDismissRestore: () -> Unit,
+    onDismissErase: () -> Unit,
+) {
+    if (confirmingRestore) {
+        RestoreWarningDialog(onConfirm = onRestore, onDismiss = onDismissRestore)
+    }
+    if (confirmingErase) {
+        EraseConfirmDialog(onConfirm = onErase, onDismiss = onDismissErase)
     }
 }
 

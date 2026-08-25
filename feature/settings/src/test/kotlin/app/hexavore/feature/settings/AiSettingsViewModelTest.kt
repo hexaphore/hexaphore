@@ -19,8 +19,10 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -135,7 +137,10 @@ internal class AiSettingsViewModelTest {
     }
 
     @Test
-    fun `enregistrer ecrit, active et referme`() = runTest {
+    fun `utiliser ecrit, active, et le dit sur le bouton`() = runTest {
+        // **Le formulaire reste ouvert**, contrairement a avant : le bouton passe de
+        // « Utiliser » a « Utilise », et une confirmation doit se lire la ou le doigt a
+        // appuye. Une carte qui se replie emporte sa reponse avec elle.
         val viewModel = viewModel()
         viewModel.onOpen(AiProvider.ANTHROPIC)
         viewModel.onKey(CLE.apiKey.value)
@@ -144,7 +149,53 @@ internal class AiSettingsViewModelTest {
         advanceUntilIdle()
 
         assertEquals(CLE.apiKey, credentials.current()?.apiKey)
-        assertNull(viewModel.uiState.value.open, "le formulaire se referme sur ce qui vient d etre ecrit")
+        assertEquals(AiProvider.ANTHROPIC, viewModel.uiState.value.open, "la carte reste ouverte")
+        assertTrue(viewModel.uiState.value.inUse, "le bouton dit « Utilise »")
+    }
+
+    @Test
+    fun `modifier la cle apres coup redonne le bouton`() = runTest {
+        // Sans cela, « Utilise » resterait affiche sous une cle qu'on vient de changer
+        // et qui n'est enregistree nulle part -- exactement le contraire de la verite.
+        val viewModel = viewModel()
+        viewModel.onOpen(AiProvider.ANTHROPIC)
+        viewModel.onKey(CLE.apiKey.value)
+        viewModel.onSave()
+        advanceUntilIdle()
+
+        viewModel.onKey("sk-ant-une-autre")
+
+        assertFalse(viewModel.uiState.value.inUse, "le bouton redevient « Utiliser »")
+    }
+
+    @Test
+    fun `afficher la cle ne redonne pas le bouton`() = runTest {
+        // Montrer sa cle ne la modifie pas : la comparaison porte sur les trois valeurs
+        // saisies, jamais sur la revelation.
+        val viewModel = viewModel()
+        viewModel.onOpen(AiProvider.ANTHROPIC)
+        viewModel.onKey(CLE.apiKey.value)
+        viewModel.onSave()
+        advanceUntilIdle()
+
+        viewModel.onReveal()
+
+        assertTrue(viewModel.uiState.value.inUse, "l oeil n est pas une modification")
+    }
+
+    @Test
+    fun `un fournisseur qui ne sert pas n a pas le bouton utilise`() = runTest {
+        // Deux conditions, pas une : enregistre ne suffit pas, il faut que ce soit
+        // celui-la qui analyse.
+        val viewModel = viewModel()
+        viewModel.onOpen(AiProvider.ANTHROPIC)
+        viewModel.onKey(CLE.apiKey.value)
+        viewModel.onSave()
+        advanceUntilIdle()
+
+        viewModel.onOpen(AiProvider.GEMINI)
+
+        assertFalse(viewModel.uiState.value.inUse, "Gemini n est pas celui qui sert")
     }
 
     @Test

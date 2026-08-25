@@ -6,11 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -26,6 +22,7 @@ import app.hexavore.core.designsystem.component.DraftTextField
 import app.hexavore.core.designsystem.component.NeonButton
 import app.hexavore.core.designsystem.component.NeonButtonAvailability
 import app.hexavore.core.designsystem.component.NeonButtonStyle
+import app.hexavore.core.designsystem.component.ScreenTopBar
 import app.hexavore.core.designsystem.component.aiErrorMessage
 import app.hexavore.core.designsystem.component.diagnostic
 import app.hexavore.core.designsystem.theme.Spacing
@@ -80,15 +77,11 @@ internal fun DescribeScreen(
 ) {
     Scaffold(
         topBar = {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(Spacing.screenMargin),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onClose) {
-                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.describe_close))
-                }
-                Text(stringResource(R.string.describe_title), style = MaterialTheme.typography.titleLarge)
-            }
+            ScreenTopBar(
+                title = stringResource(R.string.describe_title),
+                onClose = onClose,
+                closeLabel = stringResource(R.string.describe_close),
+            )
         },
     ) { padding ->
         Column(

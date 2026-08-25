@@ -9,11 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Card
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -33,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.hexavore.core.designsystem.component.DraftTextField
 import app.hexavore.core.designsystem.component.NeonButton
 import app.hexavore.core.designsystem.component.NeonButtonAvailability
+import app.hexavore.core.designsystem.component.ScreenTopBar
 import app.hexavore.core.designsystem.theme.Spacing
 
 @Composable
@@ -86,15 +83,11 @@ internal fun ContributionSettingsScreen(
 
 @Composable
 private fun Header(onClose: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onClose) {
-            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.contribution_close))
-        }
-        Text(
-            text = stringResource(R.string.contribution_title),
-            style = MaterialTheme.typography.titleLarge,
-        )
-    }
+    ScreenTopBar(
+        title = stringResource(R.string.contribution_title),
+        onClose = onClose,
+        closeLabel = stringResource(R.string.contribution_close),
+    )
 }
 
 /**

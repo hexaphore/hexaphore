@@ -114,6 +114,9 @@
     <string name="profile_unreadable_body">La lecture n\'a pas abouti. Rien n\'a été modifié : votre profil et votre objectif sont là où ils étaient.</string>
 
     <!-- Le hub, qui naît avec sa deuxième section (D59). -->
+    <!-- La croix des deux ecrans dont elle etait muette au lecteur d’ecran. -->
+    <string name="settings_close">Fermer les réglages</string>
+    <string name="ai_close">Fermer</string>
     <string name="settings_title">Réglages</string>
     <string name="settings_profile_title">Profil et objectifs</string>
     <string name="settings_profile_subtitle">Vos mesures, votre objectif et vos six compteurs.</string>
@@ -145,11 +148,9 @@
     <!-- Le compteur d'usage. La date du releve accompagne le montant : docs/05 veut
          que la table de tarifs soit datee et signalee comme indicative, parce qu'une
          estimation perimee presentee comme exacte serait pire que pas d'estimation. -->
+    <string name="ai_usage_billing">Hexavore ne connaît pas les tarifs de votre fournisseur et n’en estime aucun. Seule sa facture fait foi.</string>
     <string name="ai_usage_title">Ce que vos analyses ont consommé</string>
     <string name="ai_usage_line">%1$s · %2$s — %3$d appel(s), %4$d jetons</string>
-    <string name="ai_usage_cost">≈ %1$.2f $ US</string>
-    <string name="ai_usage_cost_unknown">Tarif inconnu pour ce modèle : jetons seuls.</string>
-    <string name="ai_usage_disclaimer">Estimation indicative, d\'après les tarifs relevés le %1$s. Votre fournisseur facture en dollars ; seule sa facture fait foi.</string>
     <string name="ai_active">Utilisé</string>
     <string name="ai_configured">Clé enregistrée</string>
     <string name="ai_not_configured">Aucune clé</string>
@@ -158,8 +159,8 @@
          Leur carte reste visible : la cacher laisserait croire qu'ils n'existent pas,
          et les proposer ferait payer a quelqu'un la decouverte d'un defaut que
          personne n'a cherche. -->
-    <string name="ai_provider_soon">Bientôt</string>
-    <string name="ai_provider_suspended">Ce fournisseur est écrit et testé, mais aucun appel réel ne l\'a encore éprouvé. Il sera proposé quand ce sera fait. En attendant, Anthropic et Google Gemini fonctionnent.</string>
+    <string name="ai_provider_soon">Bientôt disponible</string>
+    <string name="ai_provider_recommended">Recommandé</string>
     <string name="ai_key_label">Clé API</string>
     <string name="ai_model_label">Modèle</string>
     <string name="ai_base_url_label">URL de base</string>
@@ -167,7 +168,19 @@
     <string name="ai_hide">Masquer la clé</string>
     <string name="ai_test">Tester</string>
     <string name="ai_testing">Essai en cours…</string>
-    <string name="ai_save">Enregistrer</string>
+    <!-- « Utiliser » et non « Enregistrer » : le geste ne range pas une clé, il choisit
+         qui analysera les prochaines photos. -->
+    <string name="ai_use">Utiliser</string>
+    <string name="ai_in_use">Utilisé</string>
+
+    <!-- L’aide à la clé : trois questions qu’on se pose toutes en même temps. -->
+    <string name="ai_key_help_link">Comment obtenir une clé ?</string>
+    <string name="ai_key_help_title">Une clé %1$s</string>
+    <string name="ai_key_help_what">Une clé d\'API est un mot de passe que vous créez chez le fournisseur. Elle autorise Hexavore à lui envoyer vos photos et vos descriptions de repas pour analyse.</string>
+    <string name="ai_key_help_where">Le bouton ci-dessous ouvre la page de %1$s où l\'on crée une clé. Copiez-la, puis revenez la coller ici.</string>
+    <string name="ai_key_help_billing">La clé reste sur cet appareil, chiffrée par son trousseau, et les appels partent en direct : Hexavore n\'a pas de serveur et ne voit rien de ce qui passe. C\'est votre fournisseur qui compte les appels et qui facture.</string>
+    <string name="ai_key_help_open">Ouvrir la page</string>
+    <string name="ai_key_help_close">Fermer</string>
     <string name="ai_forget">Effacer la clé</string>
 
     <!-- Ce que l'essai apprend. Il coûte un appel : son résultat reste affiché. -->

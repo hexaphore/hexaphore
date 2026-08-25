@@ -16,12 +16,8 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -46,6 +42,7 @@ import app.hexavore.core.designsystem.component.DraftTextField
 import app.hexavore.core.designsystem.component.NeonButton
 import app.hexavore.core.designsystem.component.NeonButtonAvailability
 import app.hexavore.core.designsystem.component.NeonButtonStyle
+import app.hexavore.core.designsystem.component.ScreenTopBar
 import app.hexavore.core.designsystem.component.aiErrorMessage
 import app.hexavore.core.designsystem.component.diagnostic
 import app.hexavore.core.designsystem.theme.Spacing
@@ -196,15 +193,11 @@ internal fun PhotoScreen(state: PhotoUiState, actions: PhotoActions) {
 
     Scaffold(
         topBar = {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(Spacing.screenMargin),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = actions.onClose) {
-                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.photo_close))
-                }
-                Text(stringResource(R.string.photo_title), style = MaterialTheme.typography.titleLarge)
-            }
+            ScreenTopBar(
+                title = stringResource(R.string.photo_title),
+                onClose = actions.onClose,
+                closeLabel = stringResource(R.string.photo_close),
+            )
         },
     ) { padding ->
         Column(
