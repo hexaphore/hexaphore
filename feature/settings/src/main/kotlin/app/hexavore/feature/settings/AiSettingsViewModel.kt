@@ -15,6 +15,7 @@ import app.hexavore.domain.ai.ApiKey
 import app.hexavore.domain.ai.ProbeOutcome
 import app.hexavore.domain.ai.ProviderCredentials
 import app.hexavore.domain.ai.ProviderStatus
+import app.hexavore.domain.notice.KeyRejection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -42,6 +43,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AiSettingsViewModel @Inject constructor(
     private val credentials: AiCredentials,
+    private val rejection: KeyRejection,
     private val probe: AiProbe,
     usageLog: AiUsageLog,
 ) : ViewModel() {
@@ -137,6 +139,10 @@ class AiSettingsViewModel @Inject constructor(
 
         viewModelScope.launch {
             credentials.save(provider, form.credentials())
+            // La cle qui avait ete refusee n'est plus celle-la : la pastille n'a plus
+            // rien a designer. Elle se rallumera d'elle-meme si la neuve est refusee
+            // aussi -- ce qui est une information, et non un souvenir.
+            rejection.clear()
             // **Le formulaire reste ouvert**, contrairement a avant. Il se refermait
             // pour ne pas inviter a corriger ce qu'on venait d'ecrire ; mais le bouton
             // dit maintenant « Utilise », et une confirmation doit se lire la ou le

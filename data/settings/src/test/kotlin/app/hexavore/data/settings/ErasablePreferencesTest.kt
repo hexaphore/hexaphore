@@ -7,6 +7,7 @@ import app.hexavore.domain.ai.AiProvider
 import app.hexavore.domain.ai.ApiKey
 import app.hexavore.domain.ai.ProviderCredentials
 import app.hexavore.domain.food.OffAccount
+import app.hexavore.domain.notice.Notice
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -53,13 +54,16 @@ class ErasablePreferencesTest {
     private val credentials = StoredAiCredentials(aiFile, cipher, dispatchers)
     private val contribution = StoredContributionSettings(contributionFile, cipher, dispatchers)
     private val adjustment = StoredAdjustmentSettings(adjustmentFile, dispatchers)
+    private val noticeFile = context.getSharedPreferences("erase-notices", Context.MODE_PRIVATE)
+    private val notices = StoredNoticeSettings(noticeFile, dispatchers)
     private val consent = StoredPhotoConsent(aiFile, dispatchers)
 
     private val erasable = ErasablePreferences(
         credentials = credentials,
         contribution = contribution,
         adjustment = adjustment,
-        files = listOf(aiFile, adjustmentFile, contributionFile),
+        notices = notices,
+        files = listOf(aiFile, adjustmentFile, contributionFile, noticeFile),
         dispatchers = dispatchers,
     )
 
@@ -107,6 +111,18 @@ class ErasablePreferencesTest {
     }
 
     @Test
+    fun `les reglages de pastilles reviennent a leur etat neuf`() = runTest {
+        // Le quatrieme oubli possible : une pastille eteinte survivrait a un
+        // effacement, et l'installation « neuve » serait muette sur ce qu'elle ne
+        // sait pas encore faire.
+        notices.setEnabled(Notice.WEIGHT_STALE, enabled = false)
+
+        erasable.erase()
+
+        assertTrue("toutes les pastilles se rallument", Notice.WEIGHT_STALE in notices.observe().first())
+    }
+
+    @Test
     fun `aucun fichier ne garde quoi que ce soit`() = runTest {
         // **Le cas qui couvre ce que personne n'a modelise** — le compteur d'appels
         // d'aujourd'hui, et le reglage qu'on ajoutera l'an prochain sans penser a cette
@@ -115,10 +131,11 @@ class ErasablePreferencesTest {
         aiFile.edit().putString("un_reglage_futur", "valeur").commit()
         adjustmentFile.edit().putInt("un_compteur", 12).commit()
         contributionFile.edit().putBoolean("un_drapeau", true).commit()
+        noticeFile.edit().putString("un_reglage", "x").commit()
 
         erasable.erase()
 
-        listOf(aiFile, adjustmentFile, contributionFile).forEach { fichier ->
+        listOf(aiFile, adjustmentFile, contributionFile, noticeFile).forEach { fichier ->
             assertTrue("il reste ${fichier.all}", fichier.all.isEmpty())
         }
     }

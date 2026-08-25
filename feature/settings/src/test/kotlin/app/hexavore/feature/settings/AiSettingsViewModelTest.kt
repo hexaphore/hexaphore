@@ -3,6 +3,7 @@ package app.hexavore.feature.settings
 import app.hexavore.core.designsystem.component.messageRes
 import app.hexavore.core.testing.InMemoryAiCredentials
 import app.hexavore.core.testing.InMemoryAiUsage
+import app.hexavore.core.testing.InMemoryKeyRejection
 import app.hexavore.domain.ai.AiConfiguration
 import app.hexavore.domain.ai.AiError
 import app.hexavore.domain.ai.AiProbe
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.Test
 internal class AiSettingsViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private val credentials = InMemoryAiCredentials()
+    private val rejection = InMemoryKeyRejection()
     private val usage = InMemoryAiUsage()
     private var probed: AiConfiguration? = null
     private var outcome: ProbeOutcome = ProbeOutcome.Reachable(vision = true)
@@ -134,6 +136,21 @@ internal class AiSettingsViewModelTest {
         advanceUntilIdle()
 
         assertNull(probed, "rien d incomplet ne se paie")
+    }
+
+    @Test
+    fun `enregistrer une cle oublie le refus precedent`() = runTest {
+        // La cle qui avait ete refusee n'est plus celle-la : la pastille n'a plus rien
+        // a designer. Elle se rallumera d'elle-meme si la neuve est refusee aussi.
+        rejection.note()
+        val viewModel = viewModel()
+        viewModel.onOpen(AiProvider.ANTHROPIC)
+        viewModel.onKey(CLE.apiKey.value)
+
+        viewModel.onSave()
+        advanceUntilIdle()
+
+        assertFalse(rejection.noted)
     }
 
     @Test
@@ -251,7 +268,7 @@ internal class AiSettingsViewModelTest {
         assertNotNull(viewModel.uiState.value.rows.firstOrNull { it.provider == AiProvider.ANTHROPIC })
     }
 
-    private fun viewModel() = AiSettingsViewModel(credentials, probe, usage)
+    private fun viewModel() = AiSettingsViewModel(credentials, rejection, probe, usage)
 
     private companion object {
         val CLE = ProviderCredentials(

@@ -65,6 +65,8 @@ Un segment se remplit à mesure que l'objectif du jour est atteint ; il passe en
 
 Le jour de départ d'un objectif porte un liseré : on voit où une nouvelle phase a commencé.
 
+**La veille porte une pastille si elle est restée vide** ([D107](11-decisions.md#d107--une-pastille-désigne-une-situation-jamais-un-message---validée)), sur la journée concernée et non sur une icône : c'est là qu'on la touche pour y noter le repas oublié. Elle s'éteint dès qu'une ligne est notée, et le lendemain la déplace plutôt que de l'accumuler.
+
 ~~Tap sur une pastille → écran **Journée**. Tap sur l'en-tête du mois → **Calendrier étendu**.~~
 
 **Tap sur une pastille : l'accueil change de date, sur place** ([D101](11-decisions.md#d101--laccueil-porte-une-date-et-lécran-journée-disparaît---validée)). Le calendrier ne bouge pas — c'est ce qui permet de se promener dans l'historique sans le perdre — et le bouton d'ajout écrit sur le jour affiché, pour rattraper un oubli. Une poignée déplie le mois ; un glissement vers le haut le replie et la page suit.
@@ -257,7 +259,7 @@ Si l'algorithme a une suggestion d'ajustement en attente, une carte apparaît en
 
 ## Réglages
 
-Écran simple à sections. L'accueil y mène, et les sections mènent aux écrans. **Il existe depuis que sa deuxième section existe** — c'est l'échéance que [D59](11-decisions.md) avait fixée, et [D77](11-decisions.md#d77--la-clé-va-dans-le-keystore-en-direct-et-le-bouton-tester-est-une-vraie-analyse---validée) l'honore. Il en porte quatre : **Profil et objectifs**, **Intelligence artificielle**, **Contribution**, et **Sauvegarde**. Les deux dernières — Apparence, À propos — n'y figurent pas, pour la raison inchangée : elles n'ouvriraient rien.
+Écran simple à sections. L'accueil y mène, et les sections mènent aux écrans. **Il existe depuis que sa deuxième section existe** — c'est l'échéance que [D59](11-decisions.md) avait fixée, et [D77](11-decisions.md#d77--la-clé-va-dans-le-keystore-en-direct-et-le-bouton-tester-est-une-vraie-analyse---validée) l'honore. Il en porte cinq : **Profil et objectifs**, **Intelligence artificielle**, **Contribution**, **Sauvegarde** et **Notifications**. Les deux dernières — Apparence, À propos — n'y figurent pas, pour la raison inchangée : elles n'ouvriraient rien.
 
 **Profil et objectifs** — toutes les données de l'onboarding. **On les consulte d'abord** : l'écran ouvre en lecture, et un crayon ouvre la modification ([D60](11-decisions.md)). Un écran de réglages entièrement saisissable invite à corriger ce qu'on venait relire.
 
@@ -278,6 +280,16 @@ Un fournisseur mis en avant porte une **étoile « Recommandé »**. Ceux qui ne
 **En bas, compteur d'utilisation** : appels et jetons par fournisseur. ~~Et une estimation de coût, d'après une table de tarifs embarquée et datée.~~ Elle disparaît — un prix relevé un jour donné vieillit sans prévenir, et un montant approximatif affiché avec l'autorité d'un chiffre est pire qu'aucun montant. Seule la facture du fournisseur fait foi, et lui la donne exactement.
 
 L'URL de base est modifiable pour **tous** les fournisseurs et non pour le seul générique : c'est ce qui rend un relais branchable devant n'importe lequel, pour zéro ligne de plus.
+
+**Notifications** — les quatre pastilles, et un interrupteur pour chacune ([D107](11-decisions.md#d107--une-pastille-désigne-une-situation-jamais-un-message---validée)).
+
+Ce sont des **points colorés dans l'application**, et rien d'autre : rien ne sonne, rien n'apparaît sur l'écran de verrouillage, aucune permission n'est demandée. Chacune désigne une **situation** et s'éteint quand la situation cesse — aucune ne se rejette, parce qu'un rappel qu'on peut faire taire ne dit plus rien à personne.
+
+- **Aucune IA configurée** et **clé refusée**, sur l'icône du profil. Les deux ne s'allument jamais ensemble : une clé refusée n'a de sens que s'il y a une clé.
+- **Pas de pesée depuis sept jours**, sur l'icône du journal de poids — sept, comme la fenêtre de la moyenne mobile. Une absence totale de pesée compte comme un silence trop long.
+- **Hier n'a rien de noté**, sur la pastille d'hier dans le calendrier.
+
+Chaque ligne de l'écran montre si sa pastille est allumée **en ce moment** : un interrupteur seul laisse celui qui vient de l'activer se demander ce qu'il surveille.
 
 **Sauvegarde** — trois gestes, tous locaux ([D104](11-decisions.md#d104--la-sauvegarde-locale-a-ses-écrans-et-deux-promesses-qui-nétaient-pas-tenues---validée)).
 

@@ -226,4 +226,28 @@
     <string name="backup_erase_confirm_accept">Tout effacer</string>
     <string name="backup_erase_word">SUPPRIMER</string>
     <string name="backup_erased">Toutes vos données ont été effacées</string>
+
+    <!-- ===== Pastilles ============================================================
+         Aucune notification systeme : ce sont des points colorés qu'on voit en ouvrant
+         l'application. Chacune designe une situation, jamais un message empile. -->
+    <string name="settings_notices_title">Notifications</string>
+    <string name="settings_notices_subtitle">Les pastilles qui signalent ce qu\'il y a à faire</string>
+
+    <string name="notices_title">Notifications</string>
+    <string name="notices_close">Fermer</string>
+    <string name="notices_intro">Ces pastilles sont des points colorés dans l\'application. Rien ne sonne, rien n\'apparaît sur votre écran de verrouillage, et aucune permission n\'est demandée. Chacune s\'éteint d\'elle-même quand la situation qu\'elle signale a cessé.</string>
+    <string name="settings_section_flagged">Quelque chose à régler ici</string>
+    <string name="notices_active_now">Allumée en ce moment</string>
+
+    <string name="notices_ai_absent_title">Aucune IA configurée</string>
+    <string name="notices_ai_absent_body">Sur l\'icône du profil, tant qu\'aucune clé d\'API ne sert. Les deux boutons d\'analyse restent grisés sans elle.</string>
+
+    <string name="notices_ai_rejected_title">Clé d\'API refusée</string>
+    <string name="notices_ai_rejected_body">Sur l\'icône du profil, quand le dernier appel d\'analyse a été refusé. Sans elle, l\'analyse cesse de fonctionner sans que rien ne le dise.</string>
+
+    <string name="notices_weight_title">Pas de pesée depuis une semaine</string>
+    <string name="notices_weight_body">Sur l\'icône du journal de poids. Sans pesées régulières, la tendance se tait et l\'adaptation hebdomadaire ne peut rien proposer.</string>
+
+    <string name="notices_yesterday_title">Hier n\'a rien de noté</string>
+    <string name="notices_yesterday_body">Sur la pastille d\'hier dans le calendrier. Toucher cette journée permet d\'y noter le repas oublié.</string>
 </resources>

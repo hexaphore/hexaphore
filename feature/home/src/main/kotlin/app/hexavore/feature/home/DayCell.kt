@@ -12,6 +12,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import app.hexavore.core.designsystem.component.MacroSegmentRing
+import app.hexavore.core.designsystem.component.NoticeDot
 import app.hexavore.domain.nutrition.Macro
 import app.hexavore.domain.usecase.CalendarDay
 import java.time.LocalDate
@@ -42,6 +43,8 @@ internal fun DayCell(
     /** La place que la cellule occupe ; l'anneau tient dedans. */
     footprint: Dp,
     selected: LocalDate?,
+    /** La veille est vide : elle porte une pastille, sur la journée concernée. */
+    flagYesterday: Boolean,
     onOpenDay: (LocalDate) -> Unit,
 ) {
     val future = state.isFuture(date)
@@ -50,8 +53,10 @@ internal fun DayCell(
     // convention que partout ailleurs, et elle evite qu'un ecran laisse ouvert
     // pendant la nuit garde son cerne sur la veille.
     val shown = date == (selected ?: state.today)
+    val flagged = flagYesterday && date == state.today.minusDays(1)
 
     Box(
+        contentAlignment = Alignment.TopEnd,
         modifier = Modifier
             // La cellule prend sa place, sans en retirer ni en ajouter : c'est ce
             // qui garantit que sept tiennent dans la largeur. Elle ne compte rien
@@ -60,9 +65,9 @@ internal fun DayCell(
             // Un jour a venir n'est pas cliquable : pas de ride au toucher, pas de
             // navigation, et le lecteur d'ecran ne l'annonce pas comme un bouton.
             .let { base -> if (future) base else base.clickable { onOpenDay(date) } },
-        contentAlignment = Alignment.Center,
     ) {
         MacroSegmentRing(
+            modifier = Modifier.align(Alignment.Center),
             progress = day.progress(),
             diameter = ringDiameter(footprint),
             contentDescription = stringResource(date.labelOf(day, future), date.dayOfMonth),
@@ -82,6 +87,13 @@ internal fun DayCell(
                 )
             },
         )
+
+        if (flagged) {
+            NoticeDot(
+                label = stringResource(R.string.notice_yesterday_empty),
+                modifier = Modifier.align(Alignment.TopEnd),
+            )
+        }
     }
 }
 

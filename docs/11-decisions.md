@@ -3224,6 +3224,60 @@ Et rien ne dit que les deux URL de console soient **les bonnes** : elles ont ét
 
 ---
 
+## D107 — Une pastille désigne une situation, jamais un message · ✓ validée
+
+**Contexte.** Quatre choses que l'application sait et ne dit pas : qu'aucune IA ne sert, qu'une clé vient d'être refusée, qu'aucune pesée n'a été notée depuis une semaine, et qu'hier est resté vide. Toutes les quatre sont **actionnables** — c'est le critère qui a fait la liste.
+
+### Ce qu'une pastille est ici
+
+**Elle désigne une situation, et s'éteint quand la situation cesse.** Aucune ne se rejette : il n'y a pas de bouton « je sais ». Un tel bouton transformerait chaque règle en rappel, et un rappel qu'on peut faire taire ne dit plus rien à personne — c'est le mécanisme par lequel toutes les pastilles finissent par être ignorées.
+
+Cela a une conséquence directe sur ce qui **peut** figurer dans la liste : une situation qu'on ne peut pas faire cesser n'a pas droit à une pastille. C'est ce qui a écarté la cinquième candidate, « vous n'avez jamais exporté vos données » : la sauvegarde est visible dans les réglages, et un point qui rappelle de sauvegarder ressemble à du harcèlement d'antivirus.
+
+**Aucun chiffre.** Un compteur inviterait à vider une file, alors qu'il n'y a rien à empiler : « aucune clé » n'arrive pas trois fois. Il aurait en outre demandé de décider ce qu'on compte.
+
+**Rien ne sort de l'application.** Pas de notification système, pas de permission demandée, pas de travail de fond, pas de `WorkManager`. Ce sont des points colorés que l'on voit en ouvrant un écran. Le jour où l'une d'elles devra sonner sur l'écran de verrouillage, ce sera une autre décision — avec une permission à demander, une politique de fréquence à écrire, et un utilisateur à ne pas fâcher.
+
+### Un seul endroit décide
+
+Quatre règles réparties dans les quatre écrans qui les affichent auraient divergé au premier changement. Pire : **chacune n'aurait été évaluée que là où elle se voit**, donc jamais ailleurs. `ObserveNotices` rend un flux unique, et les écrans y lisent ce qui les concerne.
+
+Le filtre des réglages s'applique **avant** l'évaluation : une pastille éteinte ne doit pas coûter la lecture qui la produirait.
+
+**Les deux pastilles d'IA se posent au même endroit et ne s'allument jamais ensemble.** Elles demandent le même geste — ouvrir les réglages, s'occuper de la clé — et une clé refusée n'a de sens que s'il y a une clé. Les afficher toutes deux dirait deux fois la même chose.
+
+### Le refus de clé passe par un décorateur
+
+Rien n'enregistrait les échecs : le journal d'usage compte ce qui a **réussi**. Un échec d'authentification n'est pas une consommation — ni jetons, ni modèle à additionner — et le ranger là aurait demandé d'inventer des zéros pour les colonnes qui ne s'appliquent pas. C'est donc un port à lui.
+
+L'écriture se fait dans un **décorateur du port de reconnaissance**, et non dans les deux `ViewModel` qui l'appellent. La photo et la description passent par le même port ; leur demander à chacun de noter l'issue aurait fait deux endroits à tenir d'accord, et le troisième chemin — celui qui n'existe pas encore — serait arrivé sans. Ici, la règle est vraie par construction.
+
+**La sonde n'y passe pas**, et c'est voulu : le bouton « Tester » affiche son résultat sous le doigt qui vient d'appuyer. Une pastille ne rompt un silence que là où il y en a un.
+
+**Ce qu'il ne fait pas est le point délicat.** Une panne de réseau ou un quota épuisé ne disent rien de la clé : les traiter comme un succès effacerait une pastille pour la mauvaise raison, les traiter comme un refus en allumerait une qui ment.
+
+### Sept jours, et pas six
+
+La fenêtre de la moyenne mobile fait sept jours. Se plaindre plus tôt réclamerait une pesée dont le calcul n'a pas encore besoin ; attendre un mois laisserait afficher une tendance qui décrit un état révolu. **L'absence totale de pesée compte comme un silence trop long** — celui qui n'en a jamais noté est précisément celui à qui la courbe ne sert à rien, et attendre une première pesée pour en réclamer une serait un silence qui ne se romprait jamais.
+
+### Le réglage montre ce qu'il règle
+
+Un interrupteur par pastille, et non un seul global : celui que l'une d'elles agace ne doit pas renoncer aux trois autres.
+
+**Chaque ligne montre si sa pastille est allumée *en ce moment*.** Un interrupteur seul laisse celui qui vient de l'activer se demander ce qu'il surveille ; le point à côté du libellé répond sans documentation, et c'est exactement ce qu'on verrait en revenant à l'accueil.
+
+**Toutes sont allumées par défaut.** Une pastille éteinte d'office ne serait découverte par personne, et c'est aussi ce qui fait qu'une cinquième s'allumera sans migration : dans le fichier de préférences, absent vaut allumé.
+
+**Campagne de défaite : treize sabotages, treize cas tombés.**
+
+**Conséquences.** Deux ports de plus, un décorateur, un quatrième fichier de préférences — que l'effacement emporte comme les trois autres. `ErasureModule` sort la liste des fichiers dans son propre fournisseur, le seuil de paramètres ayant mordu. Le hub de réglages gagne sa cinquième section.
+
+**Ce que le vert ne prouve pas.** **Que les pastilles se voient.** Leur position sur les icônes, leur taille, le fait qu'un point de huit points ne disparaisse pas sur un écran chargé — rien de cela n'est éprouvé, et c'est le cinquième constat de suite sur une question de disposition.
+
+Rien ne dit non plus que **la liste soit la bonne**. Quatre situations ont été retenues parce qu'elles sont actionnables ; savoir si elles sont *utiles* demande de vivre avec elles quelques semaines. La pastille de la veille est celle dont je doute le plus : elle s'allumera chaque matin chez quelqu'un qui note ses repas le soir.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.
