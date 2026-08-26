@@ -51,7 +51,8 @@ class ErasablePreferencesTest {
 
         override fun decrypt(encoded: String): String? = encoded.reversed()
     }
-    private val credentials = StoredAiCredentials(aiFile, cipher, dispatchers)
+    private val deep = StoredDeepAnalysisSettings(aiFile, dispatchers)
+    private val credentials = StoredAiCredentials(aiFile, cipher, dispatchers, deep)
     private val contribution = StoredContributionSettings(contributionFile, cipher, dispatchers)
     private val adjustment = StoredAdjustmentSettings(adjustmentFile, dispatchers)
     private val noticeFile = context.getSharedPreferences("erase-notices", Context.MODE_PRIVATE)
@@ -60,11 +61,7 @@ class ErasablePreferencesTest {
     private val consent = StoredPhotoConsent(aiFile, dispatchers)
 
     private val erasable = ErasablePreferences(
-        credentials = credentials,
-        contribution = contribution,
-        adjustment = adjustment,
-        notices = notices,
-        debug = debug,
+        stores = FlowBackedStores(credentials, contribution, adjustment, notices, debug, deep),
         files = listOf(aiFile, adjustmentFile, contributionFile, noticeFile),
         dispatchers = dispatchers,
     )
@@ -133,6 +130,17 @@ class ErasablePreferencesTest {
         erasable.erase()
 
         assertEquals(false, debug.enabled())
+    }
+
+    @Test
+    fun `l analyse approfondie repart decochee`() = runTest {
+        // Une facon d'analyser, rangee avec les cles : quelqu'un qui repart de zero n'a
+        // pas demande que le modele interroge son catalogue.
+        deep.setEnabled(enabled = true)
+
+        erasable.erase()
+
+        assertEquals(false, deep.enabled())
     }
 
     @Test

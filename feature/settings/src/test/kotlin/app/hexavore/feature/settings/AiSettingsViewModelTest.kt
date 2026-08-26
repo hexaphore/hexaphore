@@ -3,7 +3,6 @@ package app.hexavore.feature.settings
 import app.hexavore.core.designsystem.component.messageRes
 import app.hexavore.core.testing.InMemoryAiCredentials
 import app.hexavore.core.testing.InMemoryAiUsage
-import app.hexavore.core.testing.InMemoryDebugSettings
 import app.hexavore.core.testing.InMemoryKeyRejection
 import app.hexavore.domain.ai.AiConfiguration
 import app.hexavore.domain.ai.AiError
@@ -42,7 +41,6 @@ internal class AiSettingsViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private val credentials = InMemoryAiCredentials()
     private val rejection = InMemoryKeyRejection()
-    private val debug = InMemoryDebugSettings()
     private val usage = InMemoryAiUsage()
     private var probed: AiConfiguration? = null
     private var outcome: ProbeOutcome = ProbeOutcome.Reachable(vision = true)
@@ -138,18 +136,6 @@ internal class AiSettingsViewModelTest {
         advanceUntilIdle()
 
         assertNull(probed, "rien d incomplet ne se paie")
-    }
-
-    @Test
-    fun `le mode debug s allume et se lit dans l etat`() = runTest {
-        // L'ecran montre la porte vers les echanges quand il est allume : sans ce
-        // reflet dans l'etat, l'interrupteur bougerait sans que rien ne suive.
-        val viewModel = viewModel()
-
-        viewModel.onDebug(enabled = true)
-        advanceUntilIdle()
-
-        assertTrue(viewModel.uiState.value.debug)
     }
 
     @Test
@@ -282,7 +268,7 @@ internal class AiSettingsViewModelTest {
         assertNotNull(viewModel.uiState.value.rows.firstOrNull { it.provider == AiProvider.ANTHROPIC })
     }
 
-    private fun viewModel() = AiSettingsViewModel(credentials, rejection, debug, probe, usage)
+    private fun viewModel() = AiSettingsViewModel(credentials, rejection, probe, usage)
 
     private companion object {
         val CLE = ProviderCredentials(

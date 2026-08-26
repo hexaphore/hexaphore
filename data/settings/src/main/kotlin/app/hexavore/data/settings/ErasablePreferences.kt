@@ -32,25 +32,48 @@ import kotlinx.coroutines.withContext
  * @see docs/09-donnees-et-sauvegarde.md
  */
 internal class ErasablePreferences(
-    private val credentials: StoredAiCredentials,
-    private val contribution: StoredContributionSettings,
-    private val adjustment: StoredAdjustmentSettings,
-    private val notices: StoredNoticeSettings,
-    private val debug: StoredDebugSettings,
+    private val stores: FlowBackedStores,
     private val files: List<SharedPreferences>,
     private val dispatchers: DispatcherProvider,
 ) : StoredPreferences {
     override suspend fun erase() {
-        AiProvider.entries.forEach { credentials.forget(it) }
-        contribution.forget()
-        adjustment.forget()
-        notices.forget()
-        debug.forget()
+        stores.forgetAll()
 
         withContext(dispatchers.io) {
             // `commit` et non `apply` : l'ecriture differee ferait repartir l'appelant
             // en annoncant un effacement qui n'a pas encore eu lieu.
             files.forEach { it.edit().clear().commit() }
         }
+    }
+}
+
+/**
+ * Les magasins qui portent un flux, reunis sous le nom de ce qu'ils ont en commun.
+ *
+ * **Ce n'est pas un sac de dependances.** Ce qui les rassemble est precisement ce qui
+ * oblige a les appeler un a un : chacun tient un `MutableStateFlow` construit une fois
+ * et mis a jour par ses propres ecritures. Vider leur fichier sous eux ne les
+ * previendrait pas, et l'ecran continuerait d'annoncer une cle qui n'existe plus.
+ *
+ * Le groupe est ne quand le seuil de parametres a mordu, et il dit quelque chose de
+ * vrai : un septieme magasin sans flux n'aurait rien a faire ici, et c'est la question
+ * qu'on se posera en l'ajoutant.
+ */
+internal data class FlowBackedStores(
+    val credentials: StoredAiCredentials,
+    val contribution: StoredContributionSettings,
+    val adjustment: StoredAdjustmentSettings,
+    val notices: StoredNoticeSettings,
+    val debug: StoredDebugSettings,
+    val deep: StoredDeepAnalysisSettings,
+) {
+    /** Chacun remet son flux d'accord avec un disque qu'on s'apprete a vider. */
+    suspend fun forgetAll() {
+        AiProvider.entries.forEach { credentials.forget(it) }
+        contribution.forget()
+        adjustment.forget()
+        notices.forget()
+        debug.forget()
+        deep.forget()
     }
 }

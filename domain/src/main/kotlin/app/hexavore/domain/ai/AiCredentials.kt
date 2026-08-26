@@ -31,10 +31,19 @@ data class AiSetup(val active: AiProvider? = null, val credentials: Map<AiProvid
  * [AiCredentials] à [AiSettings], et deux copies d'une même règle divergent le jour où
  * l'une devient défensive et l'autre non.
  */
-fun AiSetup.activeConfiguration(): AiConfiguration? {
+fun AiSetup.activeConfiguration(deepAnalysis: Boolean = false): AiConfiguration? {
     val provider = active ?: return null
     return credentials[provider]?.let {
-        AiConfiguration(provider = provider, apiKey = it.apiKey, model = it.model, baseUrl = it.baseUrl)
+        AiConfiguration(
+            provider = provider,
+            apiKey = it.apiKey,
+            model = it.model,
+            baseUrl = it.baseUrl,
+            // **Demandee et possible.** La case peut rester cochee pendant qu'on
+            // bascule sur un fournisseur qui ne sait pas appeler d'outils ; le `&&`
+            // vit ici, une fois, plutot que dans chaque reconnaisseur.
+            deepAnalysis = deepAnalysis && provider.tooling,
+        )
     }
 }
 

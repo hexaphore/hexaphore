@@ -254,6 +254,12 @@
     <!-- ===== Mise au point ========================================================
          Un instrument, pas un reglage : il s\'allume le jour où quelque chose ne va
          pas. Rien n\'est écrit sur le disque, la liste meurt avec le processus. -->
+    <!-- L\'analyse approfondie : le modele interroge le catalogue avant de conclure,
+         au lieu de laisser un score de ressemblance choisir a sa place. -->
+    <string name="ai_deep_title">Analyse approfondie</string>
+    <string name="ai_deep_body">Le modèle interroge le catalogue de l\'application et choisit lui-même la fiche de chaque aliment, au lieu de laisser une recherche par nom décider. Plus lent et plus coûteux, nettement plus juste sur les aliments dont le nom ressemble à celui d\'un autre.</string>
+    <string name="ai_deep_unavailable">Le fournisseur actif ne sait pas appeler d\'outils. Le réglage est conservé et reprendra effet avec un fournisseur qui le sait.</string>
+
     <string name="ai_debug_title">Mode debug</string>
     <string name="ai_debug_body">Enregistre ce qui part chez le fournisseur et ce qui en revient, pour comprendre une réponse inattendue. Rien n\'est écrit sur le disque : la liste disparaît quand vous fermez l\'application, et les images en sont retirées.</string>
     <string name="ai_debug_open">Voir les échanges</string>

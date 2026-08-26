@@ -9,6 +9,7 @@ import app.hexavore.domain.diary.EntryDraft
 import app.hexavore.domain.diary.EntrySource
 import app.hexavore.domain.diary.QuantityUnit
 import app.hexavore.domain.diary.Suggestion
+import app.hexavore.domain.food.Food
 import app.hexavore.domain.nutrition.NutrientValues
 import app.hexavore.domain.resolution.MatchVerdict
 import app.hexavore.domain.resolution.convertToGrams
@@ -58,6 +59,13 @@ class ResolveRecognition(
      * l'utilisateur a bel et bien mangé — et il ne saurait pas lequel.
      */
     private suspend fun resolveLine(item: RecognizedItem): DraftLine {
+        // **Le choix du modèle l'emporte, et ne se relit pas.** Il a vu l'assiette, il
+        // a écrit le libellé, et on lui a montré ce que le catalogue propose : c'est
+        // mieux informé qu'un score de ressemblance de chaînes. Rechercher malgré tout
+        // pour comparer ferait deux juges qui se contredisent, et il faudrait alors
+        // décider lequel a tort — ce que rien ne permet de faire.
+        item.chosen?.let { return chosenLine(item, it) }
+
         val match = resolve(item.label)
         val converted = convertToGrams(item.quantity, item.unit, match.food)
         val line = match.food?.let(create::line) ?: create.line().copy(name = item.label)
@@ -69,6 +77,32 @@ class ResolveRecognition(
                     confidence = item.confidence,
                     verdict = match.verdict,
                     alternatives = match.alternatives,
+                    estimated = converted.guessed,
+                ),
+            )
+    }
+
+    /**
+     * La ligne d'une fiche que le modèle a désignée.
+     *
+     * **Le verdict est `AUTOMATIC`, et sans alternatives.** Les valeurs viennent de la
+     * table de l'ANSES et non du modèle : ce n'est pas une estimation, et le marqueur
+     * pointillé mentirait. Proposer des alternatives reviendrait à signaler chaque
+     * ligne en permanence — et un signal permanent ne signale plus rien.
+     *
+     * La confiance affichée reste **celle du modèle sur son identification**, qui est
+     * ce que l'écran montre ligne par ligne. Elle ne devient pas 1 sous prétexte qu'il
+     * a choisi dans une liste : il a pu choisir le moins mauvais.
+     */
+    private fun chosenLine(item: RecognizedItem, food: Food): DraftLine {
+        val converted = convertToGrams(item.quantity, item.unit, food)
+        return create.line(food)
+            .measured(converted.grams, QuantityUnit.Gram)
+            .copy(
+                suggestion = Suggestion(
+                    confidence = item.confidence,
+                    verdict = MatchVerdict.AUTOMATIC,
+                    alternatives = emptyList(),
                     estimated = converted.guessed,
                 ),
             )

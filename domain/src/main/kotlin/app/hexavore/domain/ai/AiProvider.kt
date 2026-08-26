@@ -50,6 +50,19 @@ enum class AiProvider(
      */
     val recommended: Boolean = false,
     /**
+     * Ce fournisseur sait-il appeler des outils ?
+     *
+     * **Une capacité et non une supposition.** L'analyse approfondie repose sur un
+     * aller-retour où le modèle interroge le catalogue ; un fournisseur qui ne sait pas
+     * le faire rendrait du texte là où on attend un appel, et l'analyse échouerait sans
+     * que l'utilisateur comprenne pourquoi. La case se grise plutôt, et le dit.
+     *
+     * Vrai pour les deux fournisseurs éprouvés, dont la documentation le décrit et dont
+     * la forme d'appel a été relevée — pas écrite de mémoire. Faux pour les autres,
+     * comme leur statut : ce qui n'a pas été vérifié ne se promet pas.
+     */
+    val tooling: Boolean = false,
+    /**
      * Si ce fournisseur est proposé aujourd'hui, ou tenu en réserve.
      *
      * **Le code des six existe et passe ses tests.** Ce qui manque aux quatre derniers
@@ -69,6 +82,7 @@ enum class AiProvider(
         suggestedModels = listOf("claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5"),
         vision = VisionSupport.ALWAYS,
         consoleUrl = "https://platform.claude.com/settings/keys",
+        tooling = true,
     ),
 
     GEMINI(
@@ -80,6 +94,7 @@ enum class AiProvider(
         vision = VisionSupport.ALWAYS,
         consoleUrl = "https://aistudio.google.com/api-keys",
         recommended = true,
+        tooling = true,
     ),
 
     OPENAI(

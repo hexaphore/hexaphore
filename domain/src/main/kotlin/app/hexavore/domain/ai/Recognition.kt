@@ -1,5 +1,7 @@
 package app.hexavore.domain.ai
 
+import app.hexavore.domain.food.Food
+
 /** Ce qu'une analyse a rendu, et ce qu'elle a coûté quand le fournisseur le dit. */
 data class Recognition(val items: List<RecognizedItem>, val usage: TokenUsage? = null)
 
@@ -25,6 +27,22 @@ data class RecognizedItem(
      * l'IA fait gagner du temps sans faire autorité.
      */
     val confidence: Float,
+    /**
+     * La fiche que le modèle a **choisie lui-même**, quand il en a choisi une.
+     *
+     * Renseignée par le seul chemin outillé : là, le modèle voit ce que le catalogue
+     * propose et tranche, au lieu de laisser un score de ressemblance de chaînes le
+     * faire à sa place. C'est ce qui corrige « Abricot » devenu « Jus d'abricot ».
+     *
+     * `null` sur le chemin ordinaire, et `null` aussi quand le modèle n'a rien trouvé
+     * qui convienne — auquel cas la ligne repart vers l'estimation, comme avant.
+     *
+     * **Une fiche et non une référence** : le modèle ne peut choisir que parmi ce
+     * qu'on lui a montré, donc la fiche est déjà là quand sa réponse arrive. Aller la
+     * relire par sa référence coûterait une lecture, et une fiche de l'ANSES pas
+     * encore copiée dans le catalogue local ne s'y trouverait pas.
+     */
+    val chosen: Food? = null,
 )
 
 /**

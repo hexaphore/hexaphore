@@ -216,8 +216,7 @@ class AnthropicRecognizerTest {
     private suspend fun estimate(labels: List<String>): List<EstimatedFood> {
         val recognizer = AnthropicRecognizer(
             api = anthropicApi(aiClient(NetworkLog.Silent, SilentExchanges)),
-            prompt = { PROMPT },
-            estimatePrompt = { ESTIMATE_PROMPT },
+            prompts = AiPrompts(extract = { PROMPT }, estimate = { ESTIMATE_PROMPT }, deep = { PROMPT }),
             dispatchers = TestDispatchers(UnconfinedTestDispatcher()),
         )
         val outcome = recognizer.estimate(
@@ -238,8 +237,7 @@ class AnthropicRecognizerTest {
     ): RecognitionOutcome {
         val recognizer = AnthropicRecognizer(
             api = anthropicApi(aiClient(NetworkLog.Silent, SilentExchanges)),
-            prompt = { PROMPT },
-            estimatePrompt = { ESTIMATE_PROMPT },
+            prompts = AiPrompts(extract = { PROMPT }, estimate = { ESTIMATE_PROMPT }, deep = { PROMPT }),
             dispatchers = TestDispatchers(UnconfinedTestDispatcher()),
         )
         return recognizer.recognize(

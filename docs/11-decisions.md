@@ -3324,6 +3324,89 @@ Le code HTTP porte la seule couleur de l'écran, parce que c'est ce qu'on regard
 
 ---
 
+## D109 — Le modèle choisit la fiche, parce qu'il en sait plus que notre score · ✓ validée
+
+**Contexte.** « Abricot » devenait « Jus d'abricot ». Le modèle disait *abricot*, l'application cherchait « abricot » dans la table de l'ANSES, en tirait vingt candidats, et **son propre score** tranchait. Pire : la confiance restait haute, donc la ligne se remplissait sans être signalée — le défaut arrivait silencieusement dans le journal.
+
+Le modèle n'avait jamais voix au chapitre sur la ligne retenue, alors qu'il est le seul à avoir vu l'assiette.
+
+### Ce que l'outillage renverse
+
+Le modèle interroge le catalogue et **choisit lui-même**. Il connaît l'assiette, il a écrit le libellé, et on lui montre ce que la table propose : c'est mieux informé que n'importe quel score de ressemblance de chaînes.
+
+Ce qu'il reçoit pour chaque libellé : le nom complet, le rayon, et **les six teneurs pour 100 g**. Les teneurs ne sont pas décoratives — elles permettent d'écarter un jus sans deviner : un jus d'abricot a près de zéro protéine et beaucoup de sucres, un abricot entier a des fibres. Sans elles, il choisirait sur le seul libellé, c'est-à-dire sur la même information que le score qu'on remplace.
+
+Le nom **long** et non le titre court : ce qui distingue deux fiches voisines est précisément ce que le raccourci enlève — « cru », « en conserve, égoutté », « sans matière grasse ».
+
+### Le double outil, et pourquoi la réponse passe par un outil elle aussi
+
+Le chemin ordinaire force la sortie par un schéma — `output_config.format` chez Anthropic, `responseSchema` chez Gemini. **Rien dans la documentation des deux ne dit si ce forçage se combine avec un appel d'outil.** J'ai lu les deux références ; le silence n'est pas une confirmation, et bâtir dessus reviendrait à parier sur une combinaison non vérifiée, dans deux dialectes à la fois.
+
+En mode approfondi il n'y a donc **aucun forçage de sortie** : le modèle rend son repas en appelant `rendre_le_repas`, et le JSON arrive dans les arguments. C'est le même parseur qui le lit — on lui passe la chaîne, il ne sait pas d'où elle vient.
+
+**Un seul appel d'outil par tour**, demandé aux deux fournisseurs. Un tour qui en rendrait trois obligerait à répondre aux trois dans un unique message, et la moindre erreur y apprendrait au modèle à cesser d'appeler en parallèle. On s'épargne le problème.
+
+### Ce que la boucle ne fait pas
+
+**Elle ne relit rien.** Le candidat porte la fiche entière, qui ne voyage pas jusqu'au modèle : celui-ci ne peut choisir que parmi ce qu'on lui a montré, donc la fiche est déjà là quand sa réponse arrive. Aller la rechercher par sa référence coûterait une lecture — et une fiche de l'ANSES pas encore copiée dans le catalogue local ne s'y trouverait pas.
+
+Une référence qu'il **invente** ne correspond alors à aucun candidat, et la ligne repart vers l'estimation. C'est le bon comportement : on ne remplit pas une ligne avec une fiche qu'on n'a pas.
+
+**Elle ne relie pas par position.** C'est le libellé qui rattache une référence à sa ligne, parce que le parseur commun écarte les lignes sans quantité : les index ne correspondent déjà plus quand on en sort. Deux lignes d'un même libellé partagent leur référence — c'est acceptable, elles désignent le même aliment.
+
+**Elle ne compare pas.** Chercher malgré tout pour confronter son choix au nôtre ferait deux juges qui se contredisent, et il faudrait décider lequel a tort — ce que rien ne permet de faire.
+
+**Elle ne signale pas.** Une fiche choisie donne un verdict automatique, sans alternatives : les valeurs viennent de la table de l'ANSES et non du modèle, donc le marqueur pointillé de [D25](#d25--lestimation-ia-se-signale-par-une-forme-pas-par-une-couleur---validée) mentirait. Mais **la confiance affichée reste la sienne** : elle ne devient pas 1 sous prétexte qu'il a choisi dans une liste, parce qu'il a pu choisir le moins mauvais.
+
+### Trois tours, six candidats, et le repli
+
+Trois recherches au maximum, plus un tour pour conclure. Un seul aller-retour ne laisserait pas la possibilité de se rattraper — « merguez grillée » ne trouve rien là où « saucisse de bœuf » trouve, et il inventerait des macros pour une fiche qui existait. Au-delà de trois, une analyse dépasse la minute, et comme chaque tour renvoie toute la conversation — l'assiette comprise —, le quatrième se paierait quatre fois pour un gain que rien ne laisse espérer.
+
+**Six candidats par libellé**, pour la même raison de coût : six multipliés par les cinq aliments d'une assiette font déjà trente fiches à chaque tour.
+
+**Le compteur additionne les tours.** Puisque chaque aller-retour se paie, ne relever que le dernier annoncerait une fraction de la facture — sur le mode qui coûte précisément le plus cher. Un seul tour muet rend le total **inconnu** plutôt que partiel : une somme incomplète présentée comme le total serait un chiffre faux, et « inconnu » est ce que ce projet dit partout ailleurs d'une valeur qu'il n'a pas.
+
+L'analyse compte en revanche pour **une entrée** et non quatre. C'est un choix, et il se discute : ce qu'on compare à une facture est le nombre de jetons, que les fournisseurs facturent, et une photo qui apparaîtrait quatre fois dans la liste raconterait mal ce qui s'est passé. Le mode debug montre les quatre allers-retours pour qui veut les voir.
+
+**Le repli est la moitié qui compte.** Une boucle a plus de façons d'échouer qu'un aller-retour — un modèle qui répond en texte, trois tours sans conclure, un fournisseur qui refuse le champ des outils — et aucune ne justifie de rendre l'utilisateur bredouille alors que le chemin ordinaire, lui, marche.
+
+Trois pannes ne se retentent pas : réseau absent, clé refusée, quota épuisé. Elles se reproduiraient à l'identique, et sur le quota l'appel se paierait quand même.
+
+### Les deux dialectes, relevés et non devinés
+
+Ma mémoire d'une API s'est déjà révélée fausse plusieurs fois sur ce projet, alors la forme de Gemini vient de la référence de `generateContent` : les outils enveloppés dans `functionDeclarations`, l'appel dans une *part* `functionCall`, sa réponse dans une part `functionResponse` d'un contenu de rôle `user` — et cette réponse est un **objet**, pas une chaîne comme chez Anthropic.
+
+**Le même jeu de cas éprouve les deux**, délibérément : ce qui change est la forme du fil, ce qui ne doit pas changer est le comportement. Deux jeux différents auraient laissé l'un dériver sans que rien ne le dise — c'est le raisonnement des contrats partagés de [D53](#d53--la-recherche-est-un-flux-et-le-faux-est-tenu-par-un-contrat---validée), appliqué à un protocole.
+
+### Une capacité, pas une supposition
+
+`AiProvider.tooling` dit qui sait appeler des outils. Un fournisseur qui ne le sait pas rendrait du texte là où on attend un appel, et l'analyse échouerait sans que l'utilisateur comprenne. La case se grise plutôt, **sans s'éteindre** : le réglage reste et reprendra effet quand on rebranchera un fournisseur capable — l'éteindre à la bascule ferait perdre un choix que personne n'a défait.
+
+Le `&&` entre « demandée » et « possible » vit dans la dérivation de la configuration, une fois, plutôt que dans chaque reconnaisseur.
+
+**Campagne de défaite : vingt-sept sabotages, vingt-sept cas tombés.**
+
+La première passe en laissait **six debout et deux sans tourner**, et c'est là qu'elle a servi :
+
+- **Quatre lacunes réelles.** Aucune assiette à deux aliments, donc rien ne vérifiait qu'une référence rejoint **sa** ligne. Aucun cas côté Anthropic n'interdisait le schéma de sortie, alors que son jumeau existait côté Gemini — la symétrie que ce jeu revendique n'était pas tenue. La réponse d'outil de Gemini était affirmée « objet », ce qu'un objet à clé unique contenant tout le JSON échappé satisfait tout autant. Et la dérivation « demandée et possible » n'avait de cas nulle part : `activeConfiguration` n'était éprouvée qu'indirectement, par les magasins qui s'en servent.
+- **Un cas qui se lisait lui-même.** La borne s'affirmait `<= TOOL_CANDIDATES` — elle bougeait donc avec ce qu'elle vérifiait, et survivait à un passage de six à soixante. **Un cas qui lit la constante qu'il éprouve n'éprouve rien** ; le nombre y est maintenant écrit en toutes lettres.
+- **Un sabotage qui n'en était pas un.** Remplacer l'échec d'une réponse en texte par l'analyse d'un objet vide produit… un échec. Il a cédé la place à celui qui discrimine — rendre un succès vide — et à un second qui nomme l'erreur attendue.
+- **Deux qui ne compilaient pas**, donc ne prouvaient rien : l'un a été reporté sur le nom de champ qu'il visait vraiment, l'autre transformé en appel qui ne court-circuite plus.
+
+**Aucun seuil n'a été relevé et aucun sabotage n'a été adouci** : les survivants sont tombés parce que des cas ont été ajoutés ou resserrés.
+
+Trois sabotages de plus sont venus avec le comptage des jetons : ne relever que le dernier tour, chez l'un puis chez l'autre, et lire un tour muet comme un zéro.
+
+**Conséquences.** Deux ports de plus au domaine — le catalogue qu'on interroge, le réglage de l'analyse —, deux boucles, un troisième prompt, et une recherche qui présente sans décider. **Cinq seuils detekt ont mordu et produit cinq découpages**, tous selon ce que les choses sont plutôt qu'en relevant le seuil : les trois prompts se groupent comme les trois interfaces Retrofit ; « un tour » sort de chaque boucle, qui ne dit plus que combien de fois ; ce qui **passe** par les outils quitte ce que les outils **sont** ; et les deux façons d'analyser quittent le modèle des clés puis son module, parce qu'elles parlent de comment on analyse et non d'identifiants.
+
+**Ce que le vert ne prouve pas.** **Que les choix soient meilleurs.** Les cas éprouvent la conversation — combien de tours partent, ce que l'outil reçoit, ce que la boucle fait d'une réponse — et pas la qualité d'un choix, qu'aucun test ne peut affirmer. Savoir si « Abricot » cesse vraiment de devenir « Jus d'abricot » demande de photographier un abricot.
+
+Rien ne dit non plus que **six candidats** soient le bon nombre, ni **trois tours** : les deux sont des paris sur un usage qui n'a pas encore eu lieu, et le mode debug de [D108](#d108--le-mode-debug-montre-les-corps-et-nécrit-rien-nulle-part---validée) existe pour les corriger sur pièces.
+
+Et aucun appel réel n'a tourné : les deux boucles sont éprouvées contre un serveur qui récite. Un fournisseur qui refuserait un champ, ou qui n'appellerait jamais l'outil de réponse, ne se découvrira qu'avec une vraie clé.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

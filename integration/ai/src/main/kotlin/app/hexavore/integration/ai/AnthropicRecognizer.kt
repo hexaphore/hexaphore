@@ -2,6 +2,7 @@ package app.hexavore.integration.ai
 
 import app.hexavore.domain.ai.AiConfiguration
 import app.hexavore.domain.ai.AiError
+import app.hexavore.domain.ai.CatalogueTool
 import app.hexavore.domain.ai.EstimationOutcome
 import app.hexavore.domain.ai.RecognitionInput
 import app.hexavore.domain.ai.RecognitionOutcome
@@ -51,8 +52,7 @@ import java.util.Base64
  */
 internal class AnthropicRecognizer(
     private val api: AnthropicApi,
-    private val prompt: SystemPrompt,
-    private val estimatePrompt: SystemPrompt,
+    private val prompts: AiPrompts,
     private val dispatchers: DispatcherProvider,
 ) : ProviderRecognizer {
     override suspend fun recognize(input: RecognitionInput, configuration: AiConfiguration): RecognitionOutcome =
@@ -62,7 +62,7 @@ internal class AnthropicRecognizer(
                     .messages(
                         configuration.endpoint(),
                         configuration.apiKey.value,
-                        configuration.request(input, prompt),
+                        configuration.request(input, prompts.extract),
                     )
                     .toOutcome()
             } catch (timeout: SocketTimeoutException) {
@@ -74,6 +74,20 @@ internal class AnthropicRecognizer(
             }
         }
 
+    override suspend fun deepRecognize(
+        input: RecognitionInput,
+        configuration: AiConfiguration,
+        catalogue: CatalogueTool,
+    ): RecognitionOutcome = withContext(dispatchers.io) {
+        try {
+            api.deepRecognize(input, configuration, prompts.deep, catalogue)
+        } catch (timeout: SocketTimeoutException) {
+            timeout.reducedTo(AiError.Timeout)
+        } catch (offline: IOException) {
+            offline.reducedTo(AiError.NoNetwork)
+        }
+    }
+
     override suspend fun estimate(labels: List<String>, configuration: AiConfiguration): EstimationOutcome =
         withContext(dispatchers.io) {
             try {
@@ -81,7 +95,7 @@ internal class AnthropicRecognizer(
                     .messages(
                         configuration.endpoint(),
                         configuration.apiKey.value,
-                        configuration.estimateRequest(labels, estimatePrompt),
+                        configuration.estimateRequest(labels, prompts.estimate),
                     )
                     .toEstimation()
             } catch (timeout: SocketTimeoutException) {
@@ -121,7 +135,7 @@ private fun Response<AnthropicResponse>.toEstimation(): EstimationOutcome {
  * Une base sans barre oblique finale collerait le chemin au dernier segment, et
  * l'échec ressemblerait à une clé refusée.
  */
-private fun AiConfiguration.endpoint(): String = baseUrl.trimEnd('/') + "/v1/messages"
+internal fun AiConfiguration.endpoint(): String = baseUrl.trimEnd('/') + "/v1/messages"
 
 private fun AiConfiguration.request(input: RecognitionInput, prompt: SystemPrompt) = AnthropicRequest(
     model = model,
@@ -139,7 +153,7 @@ private fun AiConfiguration.request(input: RecognitionInput, prompt: SystemPromp
  * c'est le levier de précision le moins coûteux qui existe, et il n'a de sens qu'à
  * côté de la demande.
  */
-private fun RecognitionInput.blocks(): List<ContentBlock> = when (this) {
+internal fun RecognitionInput.blocks(): List<ContentBlock> = when (this) {
     is RecognitionInput.Photo -> listOf(
         ImageBlock(ImageSource(data = Base64.getEncoder().encodeToString(jpeg))),
         TextBlock(note?.let { "$PHOTO_REQUEST\n\n$it" } ?: PHOTO_REQUEST),
@@ -168,7 +182,7 @@ private fun Response<AnthropicResponse>.toOutcome(): RecognitionOutcome {
 private fun AnthropicResponse.text(): String =
     content.filter { it.type == TEXT_BLOCK }.mapNotNull { it.text }.joinToString(separator = "")
 
-private fun AnthropicUsage.toDomain() = TokenUsage(input = inputTokens, output = outputTokens)
+internal fun AnthropicUsage.toDomain() = TokenUsage(input = inputTokens, output = outputTokens)
 
 /**
  * Le code HTTP, traduit une fois — et qui ne remonte jamais tel quel à un écran
@@ -184,7 +198,7 @@ private fun AnthropicUsage.toDomain() = TokenUsage(input = inputTokens, output =
  * refuse un champ et un `400` qui annonce un compte sans crédits sont deux problèmes
  * différents que le seul chiffre confond.
  */
-private fun Response<AnthropicResponse>.toAiError(): AiError = when (code()) {
+internal fun Response<AnthropicResponse>.toAiError(): AiError = when (code()) {
     UNAUTHORIZED, FORBIDDEN -> AiError.InvalidKey
     PAYMENT_REQUIRED, TOO_MANY_REQUESTS -> AiError.QuotaExceeded
     else -> AiError.Server(code(), detail())
@@ -216,7 +230,7 @@ private const val EFFORT = "low"
 /** Large exprès : le plafond couvre le raisonnement autant que la réponse. */
 private const val MAX_TOKENS = 4096
 
-private const val TEXT_BLOCK = "text"
+internal const val TEXT_BLOCK = "text"
 private const val REFUSAL = "refusal"
 
 private const val UNAUTHORIZED = 401

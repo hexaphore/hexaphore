@@ -32,8 +32,38 @@ internal data class AnthropicRequest(
      */
     @SerialName("max_tokens") val maxTokens: Int,
     val system: String,
-    @SerialName("output_config") val outputConfig: OutputConfig,
+    /**
+     * `null` en mode approfondi : la sortie n'y est pas forcée, le modèle rend son
+     * repas en appelant un outil. Rien ne documente si les deux se combinent, et le
+     * silence n'est pas une confirmation.
+     */
+    @SerialName("output_config") val outputConfig: OutputConfig? = null,
     val messages: List<AnthropicMessage>,
+    /** Les deux outils, en mode approfondi seulement. */
+    val tools: List<AnthropicTool>? = null,
+    @SerialName("tool_choice") val toolChoice: ToolChoice? = null,
+)
+
+/** Un outil déclaré : son nom, ce qu'il fait, et la forme de ses arguments. */
+@Serializable
+internal data class AnthropicTool(
+    val name: String,
+    val description: String,
+    @SerialName("input_schema") val inputSchema: JsonObject,
+)
+
+/**
+ * Un seul appel d'outil par tour.
+ *
+ * `auto` laisse le modèle décider s'il appelle ou s'il répond ;
+ * `disable_parallel_tool_use` lui interdit d'en appeler plusieurs à la fois. C'est la
+ * forme que la documentation montre elle-même pour un aller-retour de ce genre, et
+ * elle épargne la règle des résultats parallèles — qu'une erreur suffit à casser.
+ */
+@Serializable
+internal data class ToolChoice(
+    val type: String = "auto",
+    @SerialName("disable_parallel_tool_use") val disableParallelToolUse: Boolean = true,
 )
 
 /** L'effort consenti, et la forme exigée de la réponse. */
@@ -76,6 +106,22 @@ internal data class TextBlock(val text: String) : ContentBlock
 @SerialName("image")
 internal data class ImageBlock(val source: ImageSource) : ContentBlock
 
+/**
+ * L'appel d'outil, **renvoyé tel quel** dans l'historique.
+ *
+ * L'API exige que le message d'assistant soit rejoué à l'identique avant le résultat :
+ * un appel qu'on paraphraserait ne serait plus celui auquel le résultat répond.
+ */
+@Serializable
+@SerialName("tool_use")
+internal data class ToolUseBlock(val id: String, val name: String, val input: JsonObject) : ContentBlock
+
+/** Ce que l'outil a répondu, rattaché à l'appel par son identifiant. */
+@Serializable
+@SerialName("tool_result")
+internal data class ToolResultBlock(@SerialName("tool_use_id") val toolUseId: String, val content: String) :
+    ContentBlock
+
 @Serializable
 internal data class ImageSource(
     val type: String = "base64",
@@ -100,7 +146,14 @@ internal data class AnthropicResponse(
 )
 
 @Serializable
-internal data class ResponseBlock(val type: String, val text: String? = null)
+internal data class ResponseBlock(
+    val type: String,
+    val text: String? = null,
+    /** Les trois champs d'un `tool_use`. Absents partout ailleurs, donc facultatifs. */
+    val id: String? = null,
+    val name: String? = null,
+    val input: JsonObject? = null,
+)
 
 @Serializable
 internal data class AnthropicUsage(

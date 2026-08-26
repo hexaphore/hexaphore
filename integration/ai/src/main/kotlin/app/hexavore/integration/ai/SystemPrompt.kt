@@ -77,3 +77,34 @@ internal const val EXTRACT_PROMPT_ASSET = "prompts/extract_$EXTRACT_PROMPT_VERSI
  * [sources]: docs/04-sources-de-donnees.md
  */
 internal const val ESTIMATE_PROMPT_ASSET = "prompts/estimate_$ESTIMATE_PROMPT_VERSION.txt"
+
+/**
+ * Le prompt de l'analyse approfondie.
+ *
+ * **Un troisième fichier et non un paragraphe ajouté au premier.** Les consignes
+ * d'outillage ne servent qu'au mode approfondi ; les joindre au prompt ordinaire ferait
+ * payer à chaque analyse simple une demi-page qui parle d'outils qu'elle ne déclare
+ * pas — et un modèle à qui l'on décrit un outil absent finit par annoncer qu'il va
+ * l'appeler.
+ *
+ * Le début des deux textes est identique, et ce n'est pas une duplication à corriger :
+ * ils décriront la même tâche jusqu'au jour où l'un des deux devra en dire plus, et les
+ * factoriser dans un fragment commun rendrait chacun illisible pour économiser des
+ * lignes que personne ne compte.
+ */
+internal const val DEEP_PROMPT_VERSION: String = "fr_v1"
+
+internal const val DEEP_PROMPT_ASSET = "prompts/deep_$DEEP_PROMPT_VERSION.txt"
+
+/**
+ * Les trois textes que les fournisseurs se partagent.
+ *
+ * `extract` identifie et estime les quantités, `estimate` complète ce que le catalogue
+ * n'a pas rejoint, `deep` fait la même chose qu'`extract` mais en parlant des outils.
+ *
+ * **Groupés comme les trois interfaces Retrofit**, et pour la même raison : passés un
+ * par un, ils poussaient la fabrique au-delà du seuil de paramètres. Le regroupement dit
+ * en outre quelque chose de vrai — ce sont les trois textes communs, là où le reste des
+ * dépendances d'un fournisseur lui est propre.
+ */
+internal data class AiPrompts(val extract: SystemPrompt, val estimate: SystemPrompt, val deep: SystemPrompt)

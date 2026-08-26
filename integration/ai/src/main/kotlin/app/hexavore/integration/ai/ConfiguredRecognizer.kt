@@ -6,6 +6,7 @@ import app.hexavore.domain.ai.AiProbe
 import app.hexavore.domain.ai.AiProvider
 import app.hexavore.domain.ai.AiSettings
 import app.hexavore.domain.ai.AiUsageLog
+import app.hexavore.domain.ai.CatalogueTool
 import app.hexavore.domain.ai.EstimationOutcome
 import app.hexavore.domain.ai.FoodRecognizer
 import app.hexavore.domain.ai.NutritionEstimator
@@ -40,6 +41,7 @@ import app.hexavore.domain.ai.VisionSupport
 internal class ConfiguredRecognizer(
     private val settings: AiSettings,
     private val usage: AiUsageLog,
+    private val catalogue: CatalogueTool,
     private val anthropic: ProviderRecognizer,
     private val gemini: ProviderRecognizer,
     private val openAi: ProviderRecognizer,
@@ -49,10 +51,39 @@ internal class ConfiguredRecognizer(
     AiProbe {
     override suspend fun recognize(input: RecognitionInput): RecognitionOutcome {
         val configuration = settings.current() ?: return RecognitionOutcome.Failed(AiError.NoProviderConfigured)
-        val outcome = configuration.provider.recognizer().recognize(input, configuration)
+        val provider = configuration.provider.recognizer()
+        val outcome = provider.analyse(input, configuration)
 
         usage.recordIfBilled(configuration, outcome.billing())
         return outcome
+    }
+
+    /**
+     * L'analyse approfondie **avec repli sur l'ordinaire**.
+     *
+     * Le repli est la moitié qui compte. Une boucle d'outillage a plus de façons
+     * d'échouer qu'un aller-retour — un modèle qui répond en texte, trois tours sans
+     * conclure, un fournisseur qui refuse le champ `tools` — et aucune ne justifie de
+     * rendre l'utilisateur bredouille alors que le chemin ordinaire, lui, marche.
+     *
+     * **Le second appel se paie**, et c'est le prix assumé d'un mode qui s'annonce plus
+     * lent. Il ne se paie que sur l'échec, c'est-à-dire jamais dans le cas courant.
+     *
+     * Un échec de **réseau** ne repart pas : réessayer hors ligne coûterait une minute
+     * pour échouer deux fois de la même façon.
+     */
+    private suspend fun ProviderRecognizer.analyse(
+        input: RecognitionInput,
+        configuration: AiConfiguration,
+    ): RecognitionOutcome {
+        if (!configuration.deepAnalysis) return recognize(input, configuration)
+
+        val deep = deepRecognize(input, configuration, catalogue)
+        return when {
+            deep is RecognitionOutcome.Recognized -> deep
+            deep is RecognitionOutcome.Failed && deep.error.worthRetrying -> recognize(input, configuration)
+            else -> deep
+        }
     }
 
     /**
@@ -185,3 +216,17 @@ private fun AiError.billing(): Billing = when (this) {
 private suspend fun AiUsageLog.recordIfBilled(configuration: AiConfiguration, billing: Billing) {
     if (billing is Billing.Billed) record(configuration.provider, configuration.model, billing.usage)
 }
+
+/**
+ * Une panne d'outillage vaut-elle un second essai, sans outils ?
+ *
+ * **Non pour ce qui se reproduira à l'identique.** Un réseau absent le restera, une clé
+ * refusée le sera encore, un quota épuisé aussi : réessayer coûterait une minute pour
+ * échouer deux fois de la même façon, et sur le quota, l'appel se paierait quand même.
+ *
+ * Oui pour tout le reste — un modèle qui a répondu en texte, trois tours sans conclure,
+ * un fournisseur qui refuse le champ `tools`. Ce sont des défaillances de la **boucle**,
+ * et le chemin ordinaire n'en souffre pas.
+ */
+private val AiError.worthRetrying: Boolean
+    get() = this !is AiError.NoNetwork && this !is AiError.InvalidKey && this !is AiError.QuotaExceeded

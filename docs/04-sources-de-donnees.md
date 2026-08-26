@@ -208,6 +208,35 @@ Ces deux valeurs datent de la conception et **n'ont été calibrées contre rien
 
 Sans clé API valide à ce moment-là, la ligne est présentée à zéro avec une invitation à la compléter ou à la remplacer.
 
+### Le catalogue outillé : quand le modèle choisit lui-même
+
+Les quatre étapes ci-dessus ont un angle mort, et « Abricot » qui devient « Jus d'abricot » le montre : le modèle a vu l'assiette, il a écrit le libellé, puis **notre score** choisit parmi vingt candidats sans lui redonner la parole. La confiance restant haute, la ligne se remplit sans même être signalée.
+
+L'analyse approfondie de [05](05-ia.md#analyse-approfondie) renverse cet ordre ([D109](11-decisions.md#d109--le-modèle-choisit-la-fiche-parce-quil-en-sait-plus-que-notre-score---validée)). Le modèle **interroge** le catalogue et **choisit**.
+
+**Ce qu'il demande** : une liste de libellés, en une fois — « semoule, merguez grillée, carottes cuites, oignons cuits, coriandre ».
+
+**Ce qu'il reçoit**, pour chaque libellé, jusqu'à **six** fiches :
+
+| Champ | Pourquoi |
+|---|---|
+| `reference` | Ce par quoi il désignera son choix — la référence de la source, pas un identifiant interne |
+| `nom` | Le nom **long**, jamais le titre court : ce qui distingue deux fiches voisines est précisément ce que le raccourci enlève |
+| `rayon` | La catégorie, quand la fiche en a une |
+| `pour_100g` | Les **six** teneurs, `null` compris |
+
+Les teneurs ne sont pas décoratives : elles permettent d'écarter un jus sans deviner — près de zéro protéine et beaucoup de sucres d'un côté, des fibres de l'autre. Sans elles, le modèle choisirait sur le seul libellé, c'est-à-dire sur la même information que le score qu'on remplace.
+
+**La recherche est celle de l'étape 1**, moins la décision : même normalisation, même second essai au singulier, même index. Ce qui disparaît est l'étape 3 — aucun score, aucun verdict, aucune alternative.
+
+**Une fiche sans référence est écartée.** Un aliment personnel sans origine serait proposé sans pouvoir être désigné, et le modèle passerait un tour à le nommer.
+
+**Ce que son choix produit.** La fiche désignée donne une ligne au verdict automatique, sans alternatives : les valeurs viennent de la table et non du modèle, donc le marqueur d'estimation mentirait. **Sa confiance est conservée telle quelle** — elle ne devient pas 1 sous prétexte qu'il a choisi dans une liste, parce qu'il a pu choisir le moins mauvais.
+
+**Une référence qu'il invente** ne correspond à aucune fiche montrée, et la ligne repart vers l'étape 4. On ne remplit pas une ligne avec une fiche qu'on n'a pas.
+
+**Rien n'est écrit.** Comme la résolution, c'est une lecture ; c'est l'enregistrement du brouillon qui verse une fiche au catalogue.
+
 ### Conversion des quantités
 
 ```

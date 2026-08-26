@@ -17,8 +17,37 @@ import kotlinx.serialization.json.JsonObject
 internal data class GeminiRequest(
     val contents: List<GeminiContent>,
     @SerialName("systemInstruction") val systemInstruction: GeminiContent,
-    @SerialName("generationConfig") val generationConfig: GeminiGenerationConfig,
+    /**
+     * `null` en mode approfondi : la sortie n'y est pas forcée, le modèle rend son
+     * repas en appelant un outil. Rien ne documente si les deux se combinent.
+     */
+    @SerialName("generationConfig") val generationConfig: GeminiGenerationConfig? = null,
+    /** Les deux outils, en mode approfondi seulement. */
+    val tools: List<GeminiTool>? = null,
+    @SerialName("toolConfig") val toolConfig: GeminiToolConfig? = null,
 )
+
+/**
+ * Un outil, à la façon de Google : une enveloppe qui porte des déclarations.
+ *
+ * Un niveau de plus que chez Anthropic, où la liste porte les outils directement.
+ * C'est le genre d'écart qu'on n'invente pas — la forme a été relevée sur la référence
+ * de `generateContent`, pas écrite de mémoire.
+ */
+@Serializable
+internal data class GeminiTool(@SerialName("functionDeclarations") val functionDeclarations: List<GeminiFunction>)
+
+@Serializable
+internal data class GeminiFunction(val name: String, val description: String, val parameters: JsonObject)
+
+/** Le pendant de `tool_choice` : `AUTO` laisse décider, et un seul appel par tour. */
+@Serializable
+internal data class GeminiToolConfig(
+    @SerialName("functionCallingConfig") val functionCallingConfig: GeminiFunctionCalling = GeminiFunctionCalling(),
+)
+
+@Serializable
+internal data class GeminiFunctionCalling(val mode: String = "AUTO")
 
 @Serializable
 internal data class GeminiContent(val parts: List<GeminiPart>, val role: String? = null)
@@ -37,7 +66,23 @@ internal data class GeminiContent(val parts: List<GeminiPart>, val role: String?
 internal data class GeminiPart(
     val text: String? = null,
     @SerialName("inlineData") val inlineData: GeminiInlineData? = null,
+    /** L'appel que le modèle a fait, et qu'on rejoue tel quel dans l'historique. */
+    @SerialName("functionCall") val functionCall: GeminiFunctionCall? = null,
+    /** Ce que l'outil a répondu. Porté par un contenu de rôle `user`, comme la question. */
+    @SerialName("functionResponse") val functionResponse: GeminiFunctionResponse? = null,
 )
+
+@Serializable
+internal data class GeminiFunctionCall(val name: String, val args: JsonObject = JsonObject(emptyMap()))
+
+/**
+ * La réponse d'un outil.
+ *
+ * `response` est un **objet** et non une chaîne, à la différence d'Anthropic : on y
+ * range donc le JSON déjà analysé plutôt que son texte.
+ */
+@Serializable
+internal data class GeminiFunctionResponse(val name: String, val response: JsonObject)
 
 @Serializable
 internal data class GeminiInlineData(@SerialName("mimeType") val mimeType: String = "image/jpeg", val data: String)

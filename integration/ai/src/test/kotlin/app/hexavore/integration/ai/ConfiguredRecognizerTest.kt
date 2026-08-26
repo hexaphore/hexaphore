@@ -6,6 +6,7 @@ import app.hexavore.domain.ai.AiError
 import app.hexavore.domain.ai.AiProvider
 import app.hexavore.domain.ai.AiSettings
 import app.hexavore.domain.ai.ApiKey
+import app.hexavore.domain.ai.CatalogueTool
 import app.hexavore.domain.ai.EstimationOutcome
 import app.hexavore.domain.ai.ProbeOutcome
 import app.hexavore.domain.ai.Recognition
@@ -261,6 +262,110 @@ class ConfiguredRecognizerTest {
                 error("ce cas ne parle pas de l estimation")
         }
 
+    // --- Le repli de l'analyse approfondie ---------------------------------------------
+
+    @Test
+    fun `sans le mode approfondi, la boucle n est meme pas tentee`() = runTest {
+        val chemins = mutableListOf<String>()
+
+        factory(settings = { configuration(deep = false) }, anthropic = tracing(chemins)).recognize(ENTREE)
+
+        assertEquals(listOf("ordinaire"), chemins)
+    }
+
+    @Test
+    fun `en mode approfondi, la boucle passe en premier`() = runTest {
+        val chemins = mutableListOf<String>()
+
+        factory(settings = { configuration(deep = true) }, anthropic = tracing(chemins)).recognize(ENTREE)
+
+        assertEquals(listOf("approfondi"), chemins, "elle a abouti, donc rien d autre ne part")
+    }
+
+    @Test
+    fun `une boucle qui echoue retombe sur l analyse ordinaire`() = runTest {
+        // **La moitie qui compte.** Une boucle a plus de facons d'echouer qu'un
+        // aller-retour, et aucune ne justifie de rendre l'utilisateur bredouille alors
+        // que le chemin ordinaire, lui, marche.
+        val chemins = mutableListOf<String>()
+
+        factory(
+            settings = { configuration(deep = true) },
+            anthropic = tracing(chemins, deepFails = AiError.NothingRecognized),
+        ).recognize(ENTREE)
+
+        assertEquals(listOf("approfondi", "ordinaire"), chemins)
+    }
+
+    @Test
+    fun `un reseau absent ne se retente pas`() = runTest {
+        // Il le restera : reessayer couterait une minute pour echouer deux fois de la
+        // meme facon.
+        val chemins = mutableListOf<String>()
+
+        factory(
+            settings = { configuration(deep = true) },
+            anthropic = tracing(chemins, deepFails = AiError.NoNetwork),
+        ).recognize(ENTREE)
+
+        assertEquals(listOf("approfondi"), chemins)
+    }
+
+    @Test
+    fun `une cle refusee ne se retente pas`() = runTest {
+        val chemins = mutableListOf<String>()
+
+        factory(
+            settings = { configuration(deep = true) },
+            anthropic = tracing(chemins, deepFails = AiError.InvalidKey),
+        ).recognize(ENTREE)
+
+        assertEquals(listOf("approfondi"), chemins)
+    }
+
+    @Test
+    fun `un quota epuise ne se retente pas`() = runTest {
+        // L'appel se paierait quand meme, et echouerait pareil.
+        val chemins = mutableListOf<String>()
+
+        factory(
+            settings = { configuration(deep = true) },
+            anthropic = tracing(chemins, deepFails = AiError.QuotaExceeded),
+        ).recognize(ENTREE)
+
+        assertEquals(listOf("approfondi"), chemins)
+    }
+
+    /** Un fournisseur qui note par ou on est passe, et peut faire echouer la boucle. */
+    private fun tracing(chemins: MutableList<String>, deepFails: AiError? = null) = object : ProviderRecognizer {
+        override suspend fun recognize(input: RecognitionInput, configuration: AiConfiguration): RecognitionOutcome {
+            chemins += "ordinaire"
+            return RecognitionOutcome.Recognized(Recognition(items = emptyList()))
+        }
+
+        override suspend fun deepRecognize(
+            input: RecognitionInput,
+            configuration: AiConfiguration,
+            catalogue: CatalogueTool,
+        ): RecognitionOutcome {
+            chemins += "approfondi"
+            return deepFails
+                ?.let { RecognitionOutcome.Failed(it) }
+                ?: RecognitionOutcome.Recognized(Recognition(items = emptyList()))
+        }
+
+        override suspend fun estimate(labels: List<String>, configuration: AiConfiguration): EstimationOutcome =
+            error("ce cas ne parle pas de l estimation")
+    }
+
+    private fun configuration(deep: Boolean) = AiConfiguration(
+        provider = AiProvider.ANTHROPIC,
+        apiKey = ApiKey("sk-de-test"),
+        model = "claude-opus-5",
+        baseUrl = "https://exemple/",
+        deepAnalysis = deep,
+    )
+
     /**
      * La fabrique, avec des fournisseurs qui echouent bruyamment par defaut.
      *
@@ -269,11 +374,12 @@ class ConfiguredRecognizerTest {
      */
     private fun factory(
         settings: AiSettings = AiSettings { null },
+        catalogue: CatalogueTool = CatalogueTool { emptyList() },
         anthropic: ProviderRecognizer = unused(),
         gemini: ProviderRecognizer = unused(),
         openAi: ProviderRecognizer = unused(),
         compatible: ProviderRecognizer = unused(),
-    ) = ConfiguredRecognizer(settings, usage, anthropic, gemini, openAi, compatible)
+    ) = ConfiguredRecognizer(settings, usage, catalogue, anthropic, gemini, openAi, compatible)
 
     /** Le compteur, inspecte par les cas qui parlent de ce qui est facture. */
     private val usage = InMemoryAiUsage()
@@ -304,6 +410,8 @@ class ConfiguredRecognizerTest {
     }
 
     private companion object {
+        val ENTREE = RecognitionInput.Text("un abricot")
+
         val CONFIGURATION = AiConfiguration(
             provider = AiProvider.ANTHROPIC,
             apiKey = ApiKey("sk-ant-de-test"),

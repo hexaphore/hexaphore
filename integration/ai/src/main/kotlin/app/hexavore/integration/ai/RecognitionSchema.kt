@@ -109,4 +109,11 @@ internal fun estimationSchema(strict: Boolean): JsonObject = Json.parseToJsonEle
 private fun unknowable(strict: Boolean) =
     if (strict) """{ "type": ["number", "null"] }""" else """{ "type": "number", "nullable": true }"""
 
-private fun closure(strict: Boolean) = if (strict) ",\n\"additionalProperties\": false" else ""
+/**
+ * `additionalProperties: false`, ou rien.
+ *
+ * `internal` et non `private` : les schémas d'outils, dans `Tooling.kt`, portent le
+ * même écart de dialecte. Le recopier là-bas aurait fait deux règles qui divergent le
+ * jour où un troisième fournisseur exige autre chose.
+ */
+internal fun closure(strict: Boolean) = if (strict) ",\n\"additionalProperties\": false" else ""
