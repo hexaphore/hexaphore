@@ -12,7 +12,6 @@ import app.hexavore.domain.ai.AiSetup
 import app.hexavore.domain.ai.AiUsageEntry
 import app.hexavore.domain.ai.AiUsageLog
 import app.hexavore.domain.ai.ApiKey
-import app.hexavore.domain.ai.DebugSettings
 import app.hexavore.domain.ai.ProbeOutcome
 import app.hexavore.domain.ai.ProviderCredentials
 import app.hexavore.domain.ai.ProviderStatus
@@ -45,7 +44,6 @@ import javax.inject.Inject
 class AiSettingsViewModel @Inject constructor(
     private val credentials: AiCredentials,
     private val rejection: KeyRejection,
-    private val debug: DebugSettings,
     private val probe: AiProbe,
     usageLog: AiUsageLog,
 ) : ViewModel() {
@@ -73,7 +71,7 @@ class AiSettingsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val uiState: StateFlow<AiSettingsUiState> =
-        combine(setup, editor, usage, debug.observe()) { stored, edited, counted, tracing ->
+        combine(setup, editor, usage) { stored, edited, counted ->
             AiSettingsUiState(
                 rows = AiProvider.entries.map {
                     ProviderRow(
@@ -87,7 +85,6 @@ class AiSettingsViewModel @Inject constructor(
                 form = edited.form,
                 probe = edited.probe,
                 usage = counted,
-                debug = tracing,
                 // « Utilise » et non « Utiliser » : le fournisseur ouvert sert deja, et
                 // rien n'a bouge depuis. La comparaison porte sur le formulaire prerempli
                 // -- actif seul dirait « Utilise » sous une cle qu'on vient de modifier.
@@ -153,11 +150,6 @@ class AiSettingsViewModel @Inject constructor(
             // doigt a appuye. Une carte qui se replie emporte sa reponse avec elle.
             editor.value = editor.value.copy(probe = ProbeState.Idle)
         }
-    }
-
-    /** Allume ou éteint l'enregistrement des échanges. */
-    fun onDebug(enabled: Boolean) {
-        viewModelScope.launch { debug.setEnabled(enabled) }
     }
 
     fun onForget() {

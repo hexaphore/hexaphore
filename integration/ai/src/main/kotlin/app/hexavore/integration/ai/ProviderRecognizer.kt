@@ -1,6 +1,8 @@
 package app.hexavore.integration.ai
 
 import app.hexavore.domain.ai.AiConfiguration
+import app.hexavore.domain.ai.AiError
+import app.hexavore.domain.ai.CatalogueTool
 import app.hexavore.domain.ai.EstimationOutcome
 import app.hexavore.domain.ai.RecognitionInput
 import app.hexavore.domain.ai.RecognitionOutcome
@@ -39,4 +41,22 @@ internal interface ProviderRecognizer {
      * [sources]: docs/04-sources-de-donnees.md
      */
     suspend fun estimate(labels: List<String>, configuration: AiConfiguration): EstimationOutcome
+
+    /**
+     * La même reconnaissance, mais le modèle interroge le catalogue avant de conclure.
+     *
+     * **Une méthode et non un drapeau sur [recognize]** : ce sont deux conversations
+     * différentes — l'une envoie une requête et lit une réponse, l'autre tient un
+     * historique sur plusieurs tours. Les fondre aurait mis un `if` au début d'une
+     * fonction dont les deux moitiés n'ont rien en commun.
+     *
+     * **Le défaut rend un échec**, et c'est ce qui permet à un fournisseur sans
+     * outillage d'exister : l'appelant retombe alors sur l'analyse ordinaire, ce qui
+     * est exactement ce qu'on veut d'un mode qui n'est pas disponible.
+     */
+    suspend fun deepRecognize(
+        input: RecognitionInput,
+        configuration: AiConfiguration,
+        catalogue: CatalogueTool,
+    ): RecognitionOutcome = RecognitionOutcome.Failed(AiError.NothingRecognized)
 }

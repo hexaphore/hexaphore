@@ -43,8 +43,6 @@ data class AiSettingsUiState(
      * vérité.
      */
     val inUse: Boolean = false,
-    /** Les échanges avec le fournisseur sont enregistrés, et lisibles. */
-    val debug: Boolean = false,
 )
 
 /**

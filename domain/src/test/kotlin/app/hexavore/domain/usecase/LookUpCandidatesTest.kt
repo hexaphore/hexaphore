@@ -1,7 +1,6 @@
 package app.hexavore.domain.usecase
 
 import app.hexavore.core.testing.InMemoryFoodCatalog
-import app.hexavore.domain.ai.TOOL_CANDIDATES
 import app.hexavore.domain.food.Food
 import app.hexavore.domain.food.FoodId
 import app.hexavore.domain.food.FoodSource
@@ -78,14 +77,14 @@ class LookUpCandidatesTest {
     }
 
     @Test
-    fun `la liste est bornee`() = runTest {
+    fun `la liste est bornee a six candidats`() = runTest {
         // Chaque candidat coute un nom, un rayon et six nombres, multiplies par le
         // nombre de libelles d'une assiette.
-        val fiches = List(TOOL_CANDIDATES + 4) { fiche("pain-$it", "Pain numero $it") }
+        val fiches = List(12) { fiche("pain-$it", "Pain numero $it") }
 
         val candidats = outil(*fiches.toTypedArray()).candidatesFor(listOf("pain")).single().candidates
 
-        assertTrue(candidats.size <= TOOL_CANDIDATES, "or ${candidats.size} candidats")
+        assertEquals(6, candidats.size, "or ${candidats.size} candidats")
     }
 
     private fun outil(vararg fiches: Food) = LookUpCandidates(InMemoryFoodCatalog(initial = fiches.toList()))

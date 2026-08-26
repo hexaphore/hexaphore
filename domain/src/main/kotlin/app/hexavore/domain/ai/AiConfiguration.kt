@@ -35,4 +35,18 @@ value class ApiKey(val value: String) {
  *
  * [ia]: docs/05-ia.md
  */
-data class AiConfiguration(val provider: AiProvider, val apiKey: ApiKey, val model: String, val baseUrl: String)
+data class AiConfiguration(
+    val provider: AiProvider,
+    val apiKey: ApiKey,
+    val model: String,
+    val baseUrl: String,
+    /**
+     * L'analyse approfondie est demandée **et** possible.
+     *
+     * Deux conditions et non une : la case peut rester cochée pendant qu'on bascule sur
+     * un fournisseur qui ne sait pas appeler d'outils. Le calcul se fait une fois, ici,
+     * plutôt que dans chaque reconnaisseur — trois copies d'un `&&` divergent au
+     * premier fournisseur ajouté.
+     */
+    val deepAnalysis: Boolean = false,
+)

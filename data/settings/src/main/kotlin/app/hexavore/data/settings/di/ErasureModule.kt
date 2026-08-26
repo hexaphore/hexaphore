@@ -2,10 +2,12 @@ package app.hexavore.data.settings.di
 
 import android.content.SharedPreferences
 import app.hexavore.data.settings.ErasablePreferences
+import app.hexavore.data.settings.FlowBackedStores
 import app.hexavore.data.settings.StoredAdjustmentSettings
 import app.hexavore.data.settings.StoredAiCredentials
 import app.hexavore.data.settings.StoredContributionSettings
 import app.hexavore.data.settings.StoredDebugSettings
+import app.hexavore.data.settings.StoredDeepAnalysisSettings
 import app.hexavore.data.settings.StoredNoticeSettings
 import app.hexavore.domain.backup.StoredPreferences
 import app.hexavore.domain.concurrency.DispatcherProvider
@@ -65,23 +67,29 @@ internal object ErasureModule {
         // fourniture -- deux types differents pour Dagger, qui ne trouve alors rien.
     ): List<@JvmSuppressWildcards SharedPreferences> = listOf(ai, adjustment, contribution, notices)
 
+    /**
+     * Les six magasins qui portent un flux, reunis.
+     *
+     * Sortis du fournisseur principal quand le seuil de parametres a mordu, et le
+     * decoupage suit ce que les choses sont : ici ceux qui doivent etre prevenus,
+     * la les fichiers qu'on vide.
+     */
     @Provides
     @Singleton
-    fun storedPreferences(
+    fun flowBackedStores(
         credentials: StoredAiCredentials,
         contribution: StoredContributionSettings,
         adjustment: StoredAdjustmentSettings,
         notices: StoredNoticeSettings,
         debug: StoredDebugSettings,
+        deep: StoredDeepAnalysisSettings,
+    ) = FlowBackedStores(credentials, contribution, adjustment, notices, debug, deep)
+
+    @Provides
+    @Singleton
+    fun storedPreferences(
+        stores: FlowBackedStores,
         @ErasableFiles files: List<@JvmSuppressWildcards SharedPreferences>,
         dispatchers: DispatcherProvider,
-    ): StoredPreferences = ErasablePreferences(
-        credentials = credentials,
-        contribution = contribution,
-        adjustment = adjustment,
-        notices = notices,
-        debug = debug,
-        files = files,
-        dispatchers = dispatchers,
-    )
+    ): StoredPreferences = ErasablePreferences(stores, files, dispatchers)
 }

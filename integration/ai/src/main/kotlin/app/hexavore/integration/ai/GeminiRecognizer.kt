@@ -2,6 +2,7 @@ package app.hexavore.integration.ai
 
 import app.hexavore.domain.ai.AiConfiguration
 import app.hexavore.domain.ai.AiError
+import app.hexavore.domain.ai.CatalogueTool
 import app.hexavore.domain.ai.EstimationOutcome
 import app.hexavore.domain.ai.RecognitionInput
 import app.hexavore.domain.ai.RecognitionOutcome
@@ -34,8 +35,7 @@ import java.util.Base64
  */
 internal class GeminiRecognizer(
     private val api: GeminiApi,
-    private val prompt: SystemPrompt,
-    private val estimatePrompt: SystemPrompt,
+    private val prompts: AiPrompts,
     private val dispatchers: DispatcherProvider,
 ) : ProviderRecognizer {
     override suspend fun recognize(input: RecognitionInput, configuration: AiConfiguration): RecognitionOutcome =
@@ -45,7 +45,7 @@ internal class GeminiRecognizer(
                     .generateContent(
                         configuration.geminiEndpoint(),
                         configuration.apiKey.value,
-                        configuration.geminiRequest(input, prompt),
+                        configuration.geminiRequest(input, prompts.extract),
                     )
                     .toGeminiOutcome()
             } catch (timeout: SocketTimeoutException) {
@@ -57,6 +57,20 @@ internal class GeminiRecognizer(
             }
         }
 
+    override suspend fun deepRecognize(
+        input: RecognitionInput,
+        configuration: AiConfiguration,
+        catalogue: CatalogueTool,
+    ): RecognitionOutcome = withContext(dispatchers.io) {
+        try {
+            api.deepRecognize(input, configuration, prompts.deep, catalogue)
+        } catch (timeout: SocketTimeoutException) {
+            timeout.reducedTo(AiError.Timeout)
+        } catch (offline: IOException) {
+            offline.reducedTo(AiError.NoNetwork)
+        }
+    }
+
     override suspend fun estimate(labels: List<String>, configuration: AiConfiguration): EstimationOutcome =
         withContext(dispatchers.io) {
             try {
@@ -64,7 +78,7 @@ internal class GeminiRecognizer(
                     .generateContent(
                         configuration.geminiEndpoint(),
                         configuration.apiKey.value,
-                        configuration.geminiEstimateRequest(labels, estimatePrompt),
+                        configuration.geminiEstimateRequest(labels, prompts.estimate),
                     )
                     .toGeminiEstimation()
             } catch (timeout: SocketTimeoutException) {
@@ -148,7 +162,7 @@ private fun GeminiCandidate.text(): String = content?.parts?.mapNotNull {
     it.text
 }?.joinToString(separator = "").orEmpty()
 
-private fun GeminiUsage.toDomain() = TokenUsage(input = promptTokenCount, output = candidatesTokenCount)
+internal fun GeminiUsage.toDomain() = TokenUsage(input = promptTokenCount, output = candidatesTokenCount)
 
 /**
  * Les codes de Google, traduits vers les mêmes issues.
@@ -158,7 +172,7 @@ private fun GeminiUsage.toDomain() = TokenUsage(input = promptTokenCount, output
  * corps de l'erreur. Sans quoi une requête mal formée s'annoncerait comme une clé
  * refusée, et personne ne chercherait au bon endroit.
  */
-private fun Response<GeminiResponse>.geminiError(): AiError = when (code()) {
+internal fun Response<GeminiResponse>.geminiError(): AiError = when (code()) {
     GEMINI_UNAUTHORIZED, GEMINI_FORBIDDEN -> AiError.InvalidKey
     GEMINI_TOO_MANY_REQUESTS -> AiError.QuotaExceeded
     else -> AiError.Server(code(), geminiDetail())

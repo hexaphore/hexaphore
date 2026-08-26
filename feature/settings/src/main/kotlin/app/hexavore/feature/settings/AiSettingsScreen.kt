@@ -44,12 +44,16 @@ internal fun AiSettingsRoute(
     onClose: () -> Unit,
     onOpenExchanges: () -> Unit,
     viewModel: AiSettingsViewModel = hiltViewModel(),
+    modes: AnalysisModesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val modesState by modes.uiState.collectAsStateWithLifecycle()
 
     AiSettingsScreen(
         state = state,
-        onDebug = viewModel::onDebug,
+        modes = modesState,
+        onDebug = modes::onDebug,
+        onDeepAnalysis = modes::onDeepAnalysis,
         onOpenExchanges = onOpenExchanges,
         actions = remember(viewModel, onClose) {
             AiSettingsActions(
@@ -81,7 +85,9 @@ internal fun AiSettingsRoute(
 internal fun AiSettingsScreen(
     state: AiSettingsUiState,
     actions: AiSettingsActions,
+    modes: ModesUiState = ModesUiState(),
     onDebug: (Boolean) -> Unit = {},
+    onDeepAnalysis: (Boolean) -> Unit = {},
     onOpenExchanges: () -> Unit = {},
 ) {
     Scaffold(
@@ -118,9 +124,15 @@ internal fun AiSettingsScreen(
                 )
             }
 
+            DeepAnalysisCard(
+                enabled = modes.deepAnalysis,
+                available = modes.toolingAvailable,
+                onToggle = onDeepAnalysis,
+            )
+
             UsageCounter(state.usage)
 
-            DebugCard(enabled = state.debug, onToggle = onDebug, onOpenExchanges = onOpenExchanges)
+            DebugCard(enabled = modes.debug, onToggle = onDebug, onOpenExchanges = onOpenExchanges)
 
             // De l'air sous la derniere carte : le clavier remonte le contenu, et un
             // bouton colle au bord bas se manque.
@@ -270,6 +282,50 @@ private fun DebugCard(enabled: Boolean, onToggle: (Boolean) -> Unit, onOpenExcha
             }
             if (enabled) {
                 NeonButton(text = stringResource(R.string.ai_debug_open), onClick = onOpenExchanges)
+            }
+        }
+    }
+}
+
+/**
+ * L'analyse approfondie : plus lente, plus précise, et décochée par défaut.
+ *
+ * **Au-dessus du compteur et sous les fournisseurs.** C'est une façon d'analyser, donc
+ * elle appartient à ce qu'on vient régler ici — mais elle n'a de sens qu'une fois une
+ * clé branchée, d'où sa place après les cartes.
+ *
+ * **Grisée sans être éteinte** quand le fournisseur actif ne sait pas appeler d'outils.
+ * L'éteindre à la bascule ferait perdre un choix que personne n'a défait ; la griser
+ * dit ce qui se passe, et le réglage reprend effet dès qu'on rebranche un fournisseur
+ * capable.
+ */
+@Composable
+private fun DeepAnalysisCard(enabled: Boolean, available: Boolean, onToggle: (Boolean) -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(Spacing.cardPadding),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.ai_deep_title),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = stringResource(R.string.ai_deep_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = enabled, onCheckedChange = onToggle, enabled = available)
+            }
+            if (!available) {
+                Text(
+                    text = stringResource(R.string.ai_deep_unavailable),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

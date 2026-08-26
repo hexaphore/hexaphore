@@ -4,14 +4,17 @@ import android.content.Context
 import app.hexavore.domain.ai.AiProbe
 import app.hexavore.domain.ai.AiSettings
 import app.hexavore.domain.ai.AiUsageLog
+import app.hexavore.domain.ai.CatalogueTool
 import app.hexavore.domain.ai.FoodRecognizer
 import app.hexavore.domain.ai.NotingRecognizer
 import app.hexavore.domain.ai.NutritionEstimator
 import app.hexavore.domain.concurrency.DispatcherProvider
 import app.hexavore.domain.notice.KeyRejection
+import app.hexavore.integration.ai.AiPrompts
 import app.hexavore.integration.ai.AnthropicRecognizer
 import app.hexavore.integration.ai.AssetSystemPrompt
 import app.hexavore.integration.ai.ConfiguredRecognizer
+import app.hexavore.integration.ai.DEEP_PROMPT_ASSET
 import app.hexavore.integration.ai.ESTIMATE_PROMPT_ASSET
 import app.hexavore.integration.ai.EXTRACT_PROMPT_ASSET
 import app.hexavore.integration.ai.GeminiRecognizer
@@ -55,6 +58,27 @@ internal object AiModule {
     fun estimatePrompt(@ApplicationContext context: Context): SystemPrompt =
         AssetSystemPrompt(context, ESTIMATE_PROMPT_ASSET)
 
+    @Provides
+    @Singleton
+    @Named(DEEP_PROMPT)
+    fun deepPrompt(@ApplicationContext context: Context): SystemPrompt = AssetSystemPrompt(context, DEEP_PROMPT_ASSET)
+
+    /**
+     * Les trois prompts, en un objet.
+     *
+     * Le même remède que pour les trois interfaces Retrofit : passés un par un, ils
+     * poussaient la fabrique au-delà du seuil de paramètres. Et le regroupement dit
+     * quelque chose de vrai — ce sont les trois textes que les fournisseurs partagent,
+     * là où le reste de leurs dépendances leur est propre.
+     */
+    @Provides
+    @Singleton
+    fun prompts(
+        @Named(EXTRACT_PROMPT) extract: SystemPrompt,
+        @Named(ESTIMATE_PROMPT) estimate: SystemPrompt,
+        @Named(DEEP_PROMPT) deep: SystemPrompt,
+    ) = AiPrompts(extract, estimate, deep)
+
     /**
      * **Une seule instance pour deux ports.** Analyser et sonder empruntent le même
      * chemin — c'est ce qui rend le bouton « Tester » digne de confiance —, et deux
@@ -65,19 +89,20 @@ internal object AiModule {
     fun configured(
         settings: AiSettings,
         usage: AiUsageLog,
+        catalogue: CatalogueTool,
         apis: AiApis,
-        @Named(EXTRACT_PROMPT) prompt: SystemPrompt,
-        @Named(ESTIMATE_PROMPT) estimate: SystemPrompt,
+        prompts: AiPrompts,
         dispatchers: DispatcherProvider,
     ): ConfiguredRecognizer = ConfiguredRecognizer(
         settings = settings,
         usage = usage,
-        anthropic = AnthropicRecognizer(apis.anthropic, prompt, estimate, dispatchers),
-        gemini = GeminiRecognizer(apis.gemini, prompt, estimate, dispatchers),
+        catalogue = catalogue,
+        anthropic = AnthropicRecognizer(apis.anthropic, prompts, dispatchers),
+        gemini = GeminiRecognizer(apis.gemini, prompts, dispatchers),
         // Deux instances d'une meme classe, et la difference tient en un booleen :
         // OpenAI prend un schema complet, les trois autres ne promettent que du JSON.
-        openAi = OpenAiCompatibleRecognizer(apis.openAi, prompt, estimate, dispatchers, strictSchema = true),
-        compatible = OpenAiCompatibleRecognizer(apis.openAi, prompt, estimate, dispatchers, strictSchema = false),
+        openAi = openAiLike(apis, prompts, dispatchers, strictSchema = true),
+        compatible = openAiLike(apis, prompts, dispatchers, strictSchema = false),
     )
 
     /**
@@ -108,3 +133,15 @@ internal object AiModule {
  */
 private const val EXTRACT_PROMPT = "extract"
 private const val ESTIMATE_PROMPT = "estimate"
+
+/** Le troisieme prompt : celui qui parle des deux outils. */
+private const val DEEP_PROMPT = "deep"
+
+/**
+ * Les deux fournisseurs qui parlent la langue d OpenAI.
+ *
+ * Une fabrique nommee plutot que deux appels recopies : la difference tient en un
+ * booleen, et deux lignes identiques a un mot pres se corrigent une fois sur deux.
+ */
+private fun openAiLike(apis: AiApis, prompts: AiPrompts, dispatchers: DispatcherProvider, strictSchema: Boolean) =
+    OpenAiCompatibleRecognizer(apis.openAi, prompts.extract, prompts.estimate, dispatchers, strictSchema)

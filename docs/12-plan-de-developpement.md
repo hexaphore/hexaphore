@@ -276,7 +276,7 @@ Le reste de la tranche : la contribution à Open Food Facts ([D70](11-decisions.
 
 ## Demandes issues de l'usage réel
 
-Trois demandes formulées après les premières analyses réelles, et qui ne rentrent dans
+Cinq demandes formulées après les premières analyses réelles, et qui ne rentrent dans
 aucune tranche existante. Elles sont écrites ici plutôt que dans une tranche parce que
 les tranches décrivent des **capacités** et que celles-ci corrigent la façon dont une
 capacité déjà livrée se comporte quand on s'en sert vraiment.
@@ -405,6 +405,29 @@ seule manière de voir le début est de supprimer la fin. »*
 
 Ce qui reste à faire est donc l'essentiel : les colonnes distinctes, la lecture qui
 préfère l'originale, la marque à l'écran, et la seconde passe.
+
+### « Abricot » qui devient « Jus d'abricot »
+
+Cinquième demande, et la seule qui portait sur la justesse plutôt que sur le confort :
+*« résoudre le problème des imprécisions des IA où "Abricot" devient "Jus d'abricot"
+dans l'appli. »*
+
+> **Livrée** ([D109](11-decisions.md#d109--le-modèle-choisit-la-fiche-parce-quil-en-sait-plus-que-notre-score---validée)).
+> Le modèle n'avait jamais voix au chapitre sur la fiche retenue : il écrivait
+> « abricot », et **notre score** choisissait parmi vingt candidats. La confiance restant
+> haute, la ligne se remplissait sans même être signalée.
+>
+> Une case **« Analyse approfondie »**, éteinte par défaut, lui donne deux outils : il
+> interroge le catalogue, reçoit jusqu'à six fiches par libellé avec leurs teneurs pour
+> 100 g, et **choisit**. S'il n'y trouve pas son compte, il estime lui-même — comme
+> avant. Trois recherches au maximum, puis l'analyse ordinaire reprend la main si la
+> boucle échoue.
+
+**Ce qui reste à vérifier** : que les choix soient effectivement meilleurs. Les cas
+éprouvent la conversation — combien de tours partent, ce que l'outil reçoit, ce que la
+boucle fait d'une réponse — et pas la qualité d'un choix, qu'aucun test ne peut
+affirmer. Il faut photographier un abricot, avec une vraie clé, et regarder le mode
+debug.
 
 ---
 

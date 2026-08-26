@@ -77,7 +77,12 @@ class StoredAiCredentialsTest : AiCredentialsContract() {
     }
 
     private fun view(cipher: SecretCipher): AiCredentialsView {
-        val stored = StoredAiCredentials(preferences, cipher, TestDispatchers(UnconfinedTestDispatcher()))
+        val stored = StoredAiCredentials(
+            preferences,
+            cipher,
+            TestDispatchers(UnconfinedTestDispatcher()),
+            StoredDeepAnalysisSettings(preferences, TestDispatchers(UnconfinedTestDispatcher())),
+        )
         return object : AiCredentialsView, app.hexavore.domain.ai.AiCredentials by stored {
             override suspend fun current() = stored.current()
         }
