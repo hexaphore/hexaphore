@@ -15,7 +15,11 @@ import kotlinx.serialization.json.JsonObject
  */
 @Serializable
 internal data class GeminiRequest(
-    val contents: List<GeminiContent>,
+    /**
+     * Du **JSON brut** : un contenu venu du modèle repart tel quel, un contenu qu'on
+     * fabrique passe par `asJson`. Voir `Verbatim.kt`.
+     */
+    val contents: List<JsonObject>,
     @SerialName("systemInstruction") val systemInstruction: GeminiContent,
     /**
      * `null` en mode approfondi : la sortie n'y est pas forcée, le modèle rend son
@@ -122,7 +126,12 @@ internal data class GeminiResponse(
  */
 @Serializable
 internal data class GeminiCandidate(
-    val content: GeminiContent? = null,
+    /**
+     * Brut, parce qu'il repartira tel quel : les *parts* d'un appel d'outil portent une
+     * **signature de pensée** que le modèle exige de revoir, et qu'aucun de nos champs
+     * ne nomme. On la décode pour lire, jamais pour renvoyer.
+     */
+    val content: JsonObject? = null,
     @SerialName("finishReason") val finishReason: String? = null,
 )
 

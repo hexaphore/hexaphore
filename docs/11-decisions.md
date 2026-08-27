@@ -3405,6 +3405,61 @@ Rien ne dit non plus que **six candidats** soient le bon nombre, ni **trois tour
 
 Et aucun appel réel n'a tourné : les deux boucles sont éprouvées contre un serveur qui récite. Un fournisseur qui refuserait un champ, ou qui n'appellerait jamais l'outil de réponse, ne se découvrira qu'avec une vraie clé.
 
+> **Le premier vrai appel a échoué**, et pour la raison annoncée juste au-dessus : Gemini exige de revoir la **signature de pensée** de son appel d'outil, et nous rejouions son tour en le reconstruisant depuis nos types. Anthropic était cassé de la même façon, sans qu'on l'ait vu. Corrigé par [D110](#d110--le-tour-du-modèle-se-rejoue-tel-quel-jamais-reconstruit---validée).
+
+---
+
+## D110 — Le tour du modèle se rejoue tel quel, jamais reconstruit · ✓ validée
+
+**Contexte.** Le premier vrai appel de l'analyse approfondie a échoué. Premier échange : 200, le modèle appelle `chercher_aliments`. Second : **400**.
+
+> *Function call is missing a `thought_signature`. This is required for tools to work correctly […] function call `chercher_aliments`, position 2.*
+
+Gemini attache à ses appels d'outil une **signature de pensée** qu'il exige de revoir quand on lui rejoue son tour. Aucun de nos champs ne la nommait, et `AI_JSON` ignore les champs inconnus : elle était lue, jetée, et ne repartait jamais.
+
+C'est exactement ce que [D109](#d109--le-modèle-choisit-la-fiche-parce-quil-en-sait-plus-que-notre-score---validée) annonçait comme non prouvé — « aucun appel réel n'a tourné ». Le serveur qui récite récitait ce que nous savions déjà.
+
+### Le défaut n'est pas un champ manquant
+
+Ajouter `thoughtSignature` aux *parts* aurait refermé ce trou-là, et rouvert le même le jour où un fournisseur ajoute un champ. **La cause est que nous reconstruisions le tour du modèle au lieu de le renvoyer.**
+
+Reconstruire depuis nos types revient à promettre qu'on connaît la liste complète des champs du fournisseur. Cette promesse était fausse hier ; rien ne la rendra vraie demain. Les deux API disent la même chose, et je l'ai relu chez les deux plutôt que de m'en souvenir :
+
+- **Gemini** : « You MUST always resend all thought blocks exactly as they were received from the model. »
+- **Anthropic** : les blocs de raisonnement se repassent **inchangés**, et en retirer un déclenche une erreur d'ordre ou de signature.
+
+**Le contenu venu du modèle voyage donc en JSON brut.** On le **décode pour lire** — trouver l'appel d'outil, ses arguments —, jamais pour renvoyer. Lire une copie ne perd rien ; réécrire l'original perd exactement ce qu'on ignore.
+
+Seuls les contenus **qu'on fabrique** passent encore par un type : notre question, notre réponse d'outil. Là, on connaît tous les champs, puisque c'est nous qui les écrivons.
+
+### Anthropic était cassé aussi, sans qu'on l'ait vu
+
+`asSent()` écartait tout bloc qui n'était ni du texte ni un appel d'outil, et son commentaire s'en expliquait : « les blocs qu'on ne sait pas rejouer sont écartés, pas devinés ». **Le raisonnement était bon et la conclusion fausse.** Il ne s'agissait jamais de deviner — il s'agissait de ne pas toucher. Un bloc de raisonnement porte une signature ; l'écarter est précisément ce que l'API refuse.
+
+Le défaut n'était pas visible parce que Charly utilise Gemini. Il serait apparu au premier essai avec une clé Anthropic, sous une erreur qui n'aurait rien dit du mode approfondi.
+
+`ToolUseBlock` disparaît avec `asSent()` : il n'existait que pour rebâtir ce qui se recopie maintenant.
+
+### Le cas ne nomme pas le champ, et c'est le point
+
+Le cas de régression envoie, sur le tour du modèle, **un champ qu'aucun type ne déclare** et — côté Anthropic — **un bloc entier dont le module ignore le type**, puis affirme qu'ils reviennent intacts dans la requête suivante.
+
+Nommer `thoughtSignature` aurait fait un cas qui vérifie le champ d'hier. Ne pas le nommer fait un cas qui vérifie **la règle**, et qui vaudra donc pour le champ que le fournisseur ajoutera sans prévenir. C'est la seule forme qui protège de ce qui vient de se produire.
+
+### La seule retouche autorisée
+
+Le rôle du tour est **ajouté s'il manque**, jamais remplacé. Gemini le renvoie normalement dans son contenu, et on le garde tel quel ; mais un tour sans rôle serait attribué au hasard des positions, et c'est maintenant son contenu à lui qui le porte plutôt qu'une valeur qu'on écrivait.
+
+Ajouter ce qu'on sait ne perd rien ; c'est retirer ce qu'on ignore qui casse. La règle interdit le second, pas le premier.
+
+**Campagne de défaite : trente et un sabotages, trente et un cas tombés.** Quatre sont nouveaux, dont un qui reproduit le défaut exact — reconstruire le contenu de Gemini depuis ses *parts* typées.
+
+**Conséquences.** `AnthropicMessage.content`, `AnthropicResponse.content`, `GeminiRequest.contents` et `GeminiCandidate.content` portent du JSON brut. Quatre conversions vivent dans `Verbatim.kt`, qui porte la règle. Les corps envoyés sur le fil sont **identiques** à ceux d'avant — les cas du chemin ordinaire, inchangés, en témoignent.
+
+**Ce que le vert ne prouve pas.** **Que Gemini accepte maintenant le second tour.** Le cas prouve que ce que le modèle a envoyé repart intact ; il ne prouve pas que la signature soit ce qui manquait, ni qu'il n'en manque pas une autre. Un serveur qui récite ne refuse rien. **Seule une photo avec une vraie clé le dira**, et c'est la deuxième fois que cette phrase apparaît pour cette fonctionnalité — la première a eu raison.
+
+Rien ne prouve non plus que le **chemin ordinaire** soit intact au-delà de ses cas : il envoie désormais des contenus encodés en deux temps plutôt qu'un. Les corps sont affirmés identiques par les cas existants, pas par un appel réel.
+
 ---
 
 ## Décisions prises par défaut, à confirmer

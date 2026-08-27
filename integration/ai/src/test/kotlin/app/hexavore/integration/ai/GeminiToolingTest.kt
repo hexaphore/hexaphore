@@ -177,6 +177,35 @@ class GeminiToolingTest {
     }
 
     @Test
+    fun `le tour du modele repart tel quel, signature comprise`() = runTest {
+        // La signature de pensee vit sur la *part*, dans un champ qu aucun de nos
+        // types ne nomme -- et c'est ce qui a casse l'analyse approfondie au premier
+        // vrai appel. **Ce cas ne le nomme pas non plus** : il affirme la regle.
+        server.enqueue(appelDeRecherche("abricot", inconnus = true))
+        server.enqueue(reponseFinale("abricot" to "13039"))
+
+        analyser()
+
+        server.takeRequest()
+        val second = server.takeRequest().body.readUtf8()
+        assertTrue(second.contains(""""champ_que_personne_ne_declare":"garde-moi""""), second.take(600))
+    }
+
+    @Test
+    fun `le tour rejoue porte le role du modele`() = runTest {
+        // Gemini le renvoie normalement ; sans lui, le tour serait attribue au hasard
+        // des positions. On l ajoute quand il manque -- ajouter ne perd rien.
+        server.enqueue(appelDeRecherche("abricot"))
+        server.enqueue(reponseFinale("abricot" to "13039"))
+
+        analyser()
+
+        server.takeRequest()
+        val second = server.takeRequest().body.readUtf8()
+        assertTrue(second.contains(""""role":"model""""), second.take(600))
+    }
+
+    @Test
     fun `une reponse en texte est un echec`() = runTest {
         server.enqueue(
             MockResponse().setBody("""{"candidates":[{"content":{"parts":[{"text":"Je vois un abricot."}]}}]}"""),
@@ -224,11 +253,16 @@ class GeminiToolingTest {
 
     private fun RecognitionOutcome.recognized() = (this as RecognitionOutcome.Recognized).recognition
 
-    private fun appelDeRecherche(vararg labels: String, jetons: Pair<Int, Int>? = null) = MockResponse().setBody(
-        """{"candidates":[{"content":{"parts":[{"functionCall":{"name":"$TOOL_SEARCH",""" +
-            """"args":{"libelles":[${labels.joinToString(",") { "\"$it\"" }}]}}}]}}]""" +
-            jetons.asUsage() + "}",
-    )
+    private fun appelDeRecherche(vararg labels: String, jetons: Pair<Int, Int>? = null, inconnus: Boolean = false) =
+        MockResponse().setBody(
+            """{"candidates":[{"content":{"parts":[{"functionCall":{"name":"$TOOL_SEARCH",""" +
+                """"args":{"libelles":[${labels.joinToString(",") { "\"$it\"" }}]}}""" +
+                inconnus.champInconnu() +
+                """}]}}]""" + jetons.asUsage() + "}",
+        )
+
+    /** Un champ que rien ne declare, pose sur la *part* -- la ou vit la signature. */
+    private fun Boolean.champInconnu(): String = if (this) ""","champ_que_personne_ne_declare":"garde-moi"""" else ""
 
     private fun reponseFinale(vararg lignes: Pair<String, String?>, jetons: Pair<Int, Int>? = null) =
         MockResponse().setBody(

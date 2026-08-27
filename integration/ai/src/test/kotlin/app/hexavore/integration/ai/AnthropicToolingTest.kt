@@ -155,6 +155,23 @@ class AnthropicToolingTest {
     }
 
     @Test
+    fun `le tour du modele repart tel quel, blocs inconnus compris`() = runTest {
+        // Un bloc de raisonnement porte une signature que l'API exige de revoir, et
+        // aucun de nos types ne la nomme. **Ce cas ne la nomme pas non plus** : il
+        // affirme la regle -- ce que le modele a envoye repart intact -- et vaudra
+        // donc pour le prochain champ que le fournisseur ajoutera sans prevenir.
+        server.enqueue(appelDeRecherche("abricot", inconnus = true))
+        server.enqueue(reponseFinale("abricot" to "13039"))
+
+        analyser()
+
+        server.takeRequest()
+        val second = server.takeRequest().body.readUtf8()
+        assertTrue(second.contains(""""signature":"sig-de-test""""), second.take(600))
+        assertTrue(second.contains(""""champ_que_personne_ne_declare":"garde-moi""""), second.take(600))
+    }
+
+    @Test
     fun `une reponse en texte est un echec`() = runTest {
         // Il a repondu au lieu d'appeler l'outil de reponse : on ne devine pas ce qu'il
         // voulait dire, et l'appelant retombera sur l'analyse ordinaire.
@@ -204,11 +221,21 @@ class AnthropicToolingTest {
 
     private fun RecognitionOutcome.recognized() = (this as RecognitionOutcome.Recognized).recognition
 
-    private fun appelDeRecherche(vararg labels: String, jetons: Pair<Int, Int>? = null) = MockResponse().setBody(
-        """{"content":[{"type":"tool_use","id":"toolu_1","name":"$TOOL_SEARCH",""" +
-            """"input":{"libelles":[${labels.joinToString(",") { "\"$it\"" }}]}}],""" +
-            """"stop_reason":"tool_use"""" + jetons.asUsage() + "}",
-    )
+    private fun appelDeRecherche(vararg labels: String, jetons: Pair<Int, Int>? = null, inconnus: Boolean = false) =
+        MockResponse().setBody(
+            """{"content":[""" + inconnus.raisonnement() +
+                """{"type":"tool_use","id":"toolu_1","name":"$TOOL_SEARCH",""" +
+                inconnus.champInconnu() +
+                """"input":{"libelles":[${labels.joinToString(",") { "\"$it\"" }}]}}],""" +
+                """"stop_reason":"tool_use"""" + jetons.asUsage() + "}",
+        )
+
+    /** Un bloc entier dont ce module ignore le type, signature comprise. */
+    private fun Boolean.raisonnement(): String =
+        if (this) """{"type":"thinking","thinking":"","signature":"sig-de-test"},""" else ""
+
+    /** Un champ que rien ne declare, pose sur le bloc d appel lui-meme. */
+    private fun Boolean.champInconnu(): String = if (this) """"champ_que_personne_ne_declare":"garde-moi",""" else ""
 
     private fun reponseFinale(vararg lignes: Pair<String, String?>, jetons: Pair<Int, Int>? = null) =
         MockResponse().setBody(

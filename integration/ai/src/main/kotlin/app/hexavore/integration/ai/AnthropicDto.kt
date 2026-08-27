@@ -85,8 +85,15 @@ internal data class OutputConfig(val effort: String, val format: OutputFormat)
 @Serializable
 internal data class OutputFormat(val type: String = "json_schema", val schema: JsonObject)
 
+/**
+ * Un message du fil.
+ *
+ * Le contenu est du **JSON brut** et non des blocs typés : un tour venu du modèle
+ * repart tel quel, et un tour qu'on fabrique passe par `asJson`. Voir `Verbatim.kt` —
+ * c'est la règle, et elle a coûté une livraison.
+ */
 @Serializable
-internal data class AnthropicMessage(val role: String, val content: List<ContentBlock>)
+internal data class AnthropicMessage(val role: String, val content: List<JsonObject>)
 
 /**
  * Un bloc de contenu envoyé au modèle.
@@ -106,16 +113,6 @@ internal data class TextBlock(val text: String) : ContentBlock
 @SerialName("image")
 internal data class ImageBlock(val source: ImageSource) : ContentBlock
 
-/**
- * L'appel d'outil, **renvoyé tel quel** dans l'historique.
- *
- * L'API exige que le message d'assistant soit rejoué à l'identique avant le résultat :
- * un appel qu'on paraphraserait ne serait plus celui auquel le résultat répond.
- */
-@Serializable
-@SerialName("tool_use")
-internal data class ToolUseBlock(val id: String, val name: String, val input: JsonObject) : ContentBlock
-
 /** Ce que l'outil a répondu, rattaché à l'appel par son identifiant. */
 @Serializable
 @SerialName("tool_result")
@@ -132,19 +129,24 @@ internal data class ImageSource(
 /**
  * Ce que l'API rend.
  *
- * **Les blocs de réponse ne sont pas polymorphes ici**, contrairement à ceux qu'on
- * envoie : `type` est une simple chaîne. La réponse contient des blocs dont ce module
- * n'a que faire — un bloc de raisonnement au texte vide, par exemple — et un décodeur
- * scellé échouerait sur le premier type qu'Anthropic ajoute. Ne pas reconnaître un
- * bloc doit être sans conséquence.
+ * **Le contenu reste en JSON brut.** ~~Ne pas reconnaître un bloc est sans
+ * conséquence~~ — ce n'était vrai que pour la lecture. Un bloc de raisonnement porte
+ * une signature que l'API exige de revoir, et le décoder en [ResponseBlock] la
+ * perdrait. On décode donc bloc par bloc **pour lire**, et on renvoie l'original.
  */
 @Serializable
 internal data class AnthropicResponse(
-    val content: List<ResponseBlock> = emptyList(),
+    val content: List<JsonObject> = emptyList(),
     @SerialName("stop_reason") val stopReason: String? = null,
     val usage: AnthropicUsage? = null,
 )
 
+/**
+ * La **lecture** d'un bloc reçu, jamais ce qu'on renvoie.
+ *
+ * Les champs absents d'un type de bloc donné sont facultatifs, et ceux qu'on ne nomme
+ * pas sont ignorés — sans dommage, puisque l'original repart intact.
+ */
 @Serializable
 internal data class ResponseBlock(
     val type: String,

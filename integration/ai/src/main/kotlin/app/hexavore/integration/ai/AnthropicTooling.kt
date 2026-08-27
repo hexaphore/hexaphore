@@ -48,7 +48,7 @@ internal suspend fun AnthropicApi.deepRecognize(
     prompt: SystemPrompt,
     catalogue: CatalogueTool,
 ): RecognitionOutcome {
-    val messages = mutableListOf(AnthropicMessage(role = "user", content = input.blocks()))
+    val messages = mutableListOf(AnthropicMessage(role = "user", content = input.blocks().map { it.asJson() }))
     val shown = mutableMapOf<String, Food>()
     val rounds = mutableListOf<TokenUsage?>()
 
@@ -68,10 +68,14 @@ internal suspend fun AnthropicApi.deepRecognize(
                 val groups = catalogue.candidatesFor(turn.labels)
                 groups.forEach { group -> group.candidates.forEach { shown[it.reference] = it.food } }
 
-                messages += AnthropicMessage(role = "assistant", content = turn.content.asSent())
+                // Tel quel : ses blocs de raisonnement portent une signature que
+                // l'API exige de revoir, et qu'aucun de nos types ne nomme.
+                messages += AnthropicMessage(role = "assistant", content = turn.content)
                 messages += AnthropicMessage(
                     role = "user",
-                    content = listOf(ToolResultBlock(toolUseId = turn.callId, content = groups.asToolAnswer())),
+                    content = listOf(
+                        ToolResultBlock(toolUseId = turn.callId, content = groups.asToolAnswer()).asJson(),
+                    ),
                 )
             }
         }
@@ -88,7 +92,7 @@ internal suspend fun AnthropicApi.deepRecognize(
  * choses sont : la boucle dit **combien de fois**, ceci dit **ce qui vient d'arriver**.
  */
 private sealed interface Turn {
-    data class Searching(val labels: List<String>, val callId: String, val content: List<ResponseBlock>) : Turn
+    data class Searching(val labels: List<String>, val callId: String, val content: List<JsonObject>) : Turn
 
     data class Done(val outcome: RecognitionOutcome) : Turn
 }
@@ -103,7 +107,7 @@ private fun Response<AnthropicResponse>.asTurn(shown: Map<String, Food>, billed:
  * et c'est ce qui rend evident qu'aucun n'est oublie.
  */
 private fun AnthropicResponse.asTurn(shown: Map<String, Food>, billed: TokenUsage?): Turn {
-    val call = content.firstOrNull { it.type == TOOL_USE_BLOCK }
+    val call = content.mapNotNull { it.asResponseBlock() }.firstOrNull { it.type == TOOL_USE_BLOCK }
     val arguments = call?.input
     return when {
         // Il a repondu en texte au lieu d'appeler l'outil de reponse : on ne devine pas.
@@ -111,25 +115,6 @@ private fun AnthropicResponse.asTurn(shown: Map<String, Food>, billed: TokenUsag
         arguments == null -> Turn.Done(RecognitionOutcome.Failed(AiError.Unparseable))
         call.name == TOOL_SUBMIT -> Turn.Done(parseSubmitted(arguments, shown, billed))
         else -> Turn.Searching(arguments.requestedLabels(), call.id.orEmpty(), content)
-    }
-}
-
-/**
- * Le message d'assistant, rejoué à l'identique.
- *
- * **Les blocs qu'on ne sait pas rejouer sont écartés**, pas devinés : un bloc de
- * raisonnement renvoyé sous une forme approximative vaut moins que son absence, et
- * l'API n'exige que la cohérence de l'appel avec son résultat.
- */
-private fun List<ResponseBlock>.asSent(): List<ContentBlock> = mapNotNull { block ->
-    when (block.type) {
-        TEXT_BLOCK -> block.text?.let { TextBlock(it) }
-        TOOL_USE_BLOCK -> ToolUseBlock(
-            id = block.id.orEmpty(),
-            name = block.name.orEmpty(),
-            input = block.input ?: EMPTY,
-        )
-        else -> null
     }
 }
 
@@ -170,8 +155,6 @@ private const val TOOL_USE_BLOCK = "tool_use"
  * du repas coupé au milieu d'un libellé, après avoir payé trois allers-retours.
  */
 private const val TOOL_MAX_TOKENS = 8192
-
-private val EMPTY = JsonObject(emptyMap())
 
 private const val SEARCH_DESCRIPTION =
     "Cherche des aliments dans le catalogue nutritionnel de l'application. " +

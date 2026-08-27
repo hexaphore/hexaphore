@@ -90,7 +90,7 @@ internal class GeminiRecognizer(
 }
 
 private fun AiConfiguration.geminiEstimateRequest(labels: List<String>, prompt: SystemPrompt) = GeminiRequest(
-    contents = listOf(GeminiContent(role = "user", parts = listOf(GeminiPart(text = labels.asRequest())))),
+    contents = listOf(GeminiContent(role = "user", parts = listOf(GeminiPart(text = labels.asRequest()))).asJson()),
     systemInstruction = GeminiContent(parts = listOf(GeminiPart(text = prompt.text()))),
     generationConfig = GeminiGenerationConfig(
         responseSchema = GEMINI_ESTIMATION_SCHEMA,
@@ -118,7 +118,7 @@ private fun AiConfiguration.geminiEndpoint(): String =
     baseUrl.trimEnd('/') + "/v1beta/models/" + model + ":generateContent"
 
 private fun AiConfiguration.geminiRequest(input: RecognitionInput, prompt: SystemPrompt) = GeminiRequest(
-    contents = listOf(GeminiContent(role = "user", parts = input.geminiParts())),
+    contents = listOf(GeminiContent(role = "user", parts = input.geminiParts()).asJson()),
     systemInstruction = GeminiContent(parts = listOf(GeminiPart(text = prompt.text()))),
     generationConfig = GeminiGenerationConfig(responseSchema = GEMINI_SCHEMA, maxOutputTokens = GEMINI_MAX_TOKENS),
 )
@@ -158,9 +158,12 @@ private fun Response<GeminiResponse>.toGeminiOutcome(): RecognitionOutcome {
  *
  * [decisions]: docs/11-decisions.md
  */
-private fun GeminiCandidate.text(): String = content?.parts?.mapNotNull {
-    it.text
-}?.joinToString(separator = "").orEmpty()
+private fun GeminiCandidate.text(): String = content
+    ?.asGeminiContent()
+    ?.parts
+    ?.mapNotNull { it.text }
+    ?.joinToString(separator = "")
+    .orEmpty()
 
 internal fun GeminiUsage.toDomain() = TokenUsage(input = promptTokenCount, output = candidatesTokenCount)
 
