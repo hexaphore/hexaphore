@@ -37,7 +37,7 @@ internal suspend fun GeminiApi.deepRecognize(
     prompt: SystemPrompt,
     catalogue: CatalogueTool,
 ): RecognitionOutcome {
-    val contents = mutableListOf(GeminiContent(role = "user", parts = input.geminiToolParts()))
+    val contents = mutableListOf(GeminiContent(role = "user", parts = input.geminiToolParts()).asJson())
     val shown = mutableMapOf<String, Food>()
     val rounds = mutableListOf<TokenUsage?>()
 
@@ -55,8 +55,13 @@ internal suspend fun GeminiApi.deepRecognize(
                 val groups = catalogue.candidatesFor(turn.labels)
                 groups.forEach { group -> group.candidates.forEach { shown[it.reference] = it.food } }
 
-                contents += GeminiContent(role = "model", parts = turn.parts)
-                contents += GeminiContent(role = "user", parts = listOf(groups.asFunctionResponse(turn.name)))
+                // Tel quel : la signature de pensee de l'appel vit dans des champs
+                // que nos types ne nomment pas, et le modele exige de la revoir.
+                contents += turn.content.asModelTurn()
+                contents += GeminiContent(
+                    role = "user",
+                    parts = listOf(groups.asFunctionResponse(turn.name)),
+                ).asJson()
             }
         }
     }
@@ -65,7 +70,7 @@ internal suspend fun GeminiApi.deepRecognize(
 
 /** Ce qu un tour a produit, dans l autre dialecte. La meme distinction, les memes raisons. */
 private sealed interface GeminiTurn {
-    data class Searching(val labels: List<String>, val name: String, val parts: List<GeminiPart>) : GeminiTurn
+    data class Searching(val labels: List<String>, val name: String, val content: JsonObject) : GeminiTurn
 
     data class Done(val outcome: RecognitionOutcome) : GeminiTurn
 }
@@ -73,14 +78,14 @@ private sealed interface GeminiTurn {
 private fun Response<GeminiResponse>.asGeminiTurn(shown: Map<String, Food>, billed: TokenUsage?): GeminiTurn {
     val body = body()
     val candidate = body?.candidates?.firstOrNull()
-    val parts = candidate?.content?.parts.orEmpty()
-    val call = parts.firstNotNullOfOrNull { it.functionCall }
+    // Brut : on le decode pour lire l'appel, et c'est l'original qui repartira.
+    val raw = candidate?.content
+    val call = raw?.asGeminiContent()?.parts?.firstNotNullOfOrNull { it.functionCall }
     return when {
         candidate == null -> GeminiTurn.Done(RecognitionOutcome.Failed(geminiToolFailure()))
-        call == null -> GeminiTurn.Done(RecognitionOutcome.Failed(AiError.NothingRecognized))
+        call == null || raw == null -> GeminiTurn.Done(RecognitionOutcome.Failed(AiError.NothingRecognized))
         call.name == TOOL_SUBMIT -> GeminiTurn.Done(parseSubmitted(call.args, shown, billed))
-
-        else -> GeminiTurn.Searching(call.args.requestedLabels(), call.name, parts)
+        else -> GeminiTurn.Searching(call.args.requestedLabels(), call.name, raw)
     }
 }
 
@@ -105,7 +110,7 @@ private fun List<LabelCandidates>.asFunctionResponse(name: String) = GeminiPart(
  * champ vide que rien n'attend. La boucle s'en passe — les modèles de Gemini ont un
  * plafond par défaut plus large que ce qu'une réponse d'outil demande.
  */
-private fun AiConfiguration.geminiToolRequest(contents: List<GeminiContent>, prompt: SystemPrompt) = GeminiRequest(
+private fun AiConfiguration.geminiToolRequest(contents: List<JsonObject>, prompt: SystemPrompt) = GeminiRequest(
     contents = contents,
     systemInstruction = GeminiContent(parts = listOf(GeminiPart(text = prompt.text()))),
     tools = listOf(

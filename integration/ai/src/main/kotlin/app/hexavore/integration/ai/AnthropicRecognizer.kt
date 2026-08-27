@@ -117,7 +117,7 @@ private fun AiConfiguration.estimateRequest(labels: List<String>, prompt: System
     maxTokens = MAX_TOKENS,
     system = prompt.text(),
     outputConfig = OutputConfig(effort = EFFORT, format = OutputFormat(schema = ESTIMATION_SCHEMA)),
-    messages = listOf(AnthropicMessage(role = "user", content = listOf(TextBlock(labels.asRequest())))),
+    messages = listOf(AnthropicMessage(role = "user", content = listOf(TextBlock(labels.asRequest()).asJson()))),
 )
 
 private fun Response<AnthropicResponse>.toEstimation(): EstimationOutcome {
@@ -142,7 +142,7 @@ private fun AiConfiguration.request(input: RecognitionInput, prompt: SystemPromp
     maxTokens = MAX_TOKENS,
     system = prompt.text(),
     outputConfig = OutputConfig(effort = EFFORT, format = OutputFormat(schema = RECOGNITION_SCHEMA)),
-    messages = listOf(AnthropicMessage(role = "user", content = input.blocks())),
+    messages = listOf(AnthropicMessage(role = "user", content = input.blocks().map { it.asJson() })),
 )
 
 /**
@@ -179,8 +179,11 @@ private fun Response<AnthropicResponse>.toOutcome(): RecognitionOutcome {
  * porte une chaîne vide, et prendre le premier rendrait donc du vide. Les recoller
  * évite de dépendre d'un ordre que rien ne nous promet.
  */
-private fun AnthropicResponse.text(): String =
-    content.filter { it.type == TEXT_BLOCK }.mapNotNull { it.text }.joinToString(separator = "")
+private fun AnthropicResponse.text(): String = content
+    .mapNotNull { it.asResponseBlock() }
+    .filter { it.type == TEXT_BLOCK }
+    .mapNotNull { it.text }
+    .joinToString(separator = "")
 
 internal fun AnthropicUsage.toDomain() = TokenUsage(input = inputTokens, output = outputTokens)
 
