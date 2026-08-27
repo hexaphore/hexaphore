@@ -4,7 +4,9 @@ import app.hexavore.core.testing.FixedClock
 import app.hexavore.core.testing.InMemoryDiaryRepository
 import app.hexavore.core.testing.InMemoryFavoriteDishes
 import app.hexavore.core.testing.InMemoryFoodCatalog
+import app.hexavore.core.testing.InMemorySelectedDay
 import app.hexavore.core.testing.SequentialIdGenerator
+import app.hexavore.domain.diary.EntrySource
 import app.hexavore.domain.diary.FavoriteDishId
 import app.hexavore.domain.diary.FavoriteNumbering
 import app.hexavore.domain.diary.JOUR
@@ -215,6 +217,9 @@ class FavoriteDishTest {
         assertEquals(id, rejoue.favoriteId, "c'est lui qui allume l etoile")
         assertNull(rejoue.dishId, "rejouer compose un plat neuf, il n en modifie aucun")
         assertEquals(JOUR, rejoue.date)
+        // Composer son plat depuis ses favoris, c est le composer soi-meme : rien n y
+        // est devine, donc rien n y merite la pastille d une autre source.
+        assertEquals(EntrySource.MANUAL, rejoue.source)
     }
 
     @Test
@@ -258,7 +263,8 @@ class FavoriteDishTest {
     private val ids = SequentialIdGenerator("fav")
 
     private val saveFavorite = SaveFavoriteDish(favoris, ids)
-    private val getFavoriteDraft = GetFavoriteDraft(favoris, catalogue, clock, ids)
+    private val getFavoriteDraft =
+        GetFavoriteDraft(favoris, catalogue, CreateDraft(clock, ids, InMemorySelectedDay(clock.today())), ids)
 
     /** Une ligne issue d'une fiche : c'est celle qui suivra la fiche vivante. */
     private fun ligneDeFiche() = ligne("a", nom = "Flocons", quantite = 60.0, kcal = 218.0).copy(

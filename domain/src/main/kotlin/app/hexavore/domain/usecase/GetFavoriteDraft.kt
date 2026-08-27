@@ -10,7 +10,6 @@ import app.hexavore.domain.diary.FavoriteDishes
 import app.hexavore.domain.food.Food
 import app.hexavore.domain.food.FoodLookup
 import app.hexavore.domain.identity.IdGenerator
-import app.hexavore.domain.time.Clock
 
 /**
  * Rejoue un plat favori sous la forme que l'écran de validation manipule.
@@ -28,27 +27,30 @@ import app.hexavore.domain.time.Clock
  * Le brouillon porte le lien vers son favori : c'est lui qui allume l'étoile, et il
  * tombera à la première ligne touchée ([D62][decisions]).
  *
+ * **Le brouillon est fabriqué par [CreateDraft] et non ici.** C'est elle qui sait sur
+ * quel jour un brouillon s'écrit — celui qu'on regarde, sinon aujourd'hui —, et le
+ * favori le datait d'aujourd'hui pour avoir bâti le sien à la main. Rejouer un plat
+ * depuis la veille l'enregistrait alors sur le jour courant, en silence
+ * ([D111][decisions]).
+ *
  * [modele]: docs/07-modele-de-donnees.md
  * [decisions]: docs/11-decisions.md
  */
 class GetFavoriteDraft(
     private val favorites: FavoriteDishes,
     private val foods: FoodLookup,
-    private val clock: Clock,
+    private val create: CreateDraft,
     private val ids: IdGenerator,
 ) {
     /** @return `null` si le favori a été supprimé entre le choix et l'ouverture. */
     suspend operator fun invoke(id: FavoriteDishId): EntryDraft? {
         val favorite = favorites.byId(id) ?: return null
 
-        return EntryDraft(
-            date = clock.today(),
-            // Composer son plat depuis ses favoris, c'est le composer soi-meme : il
-            // n'y a rien de devine ici, donc rien qui merite une pastille a part.
-            source = EntrySource.MANUAL,
-            lines = favorite.components.map { it.toLine(DraftLineId(ids.next()), lookUp(it)) },
-            favoriteId = favorite.id,
-        )
+        val lines = favorite.components.map { it.toLine(DraftLineId(ids.next()), lookUp(it)) }
+
+        // Composer son plat depuis ses favoris, c'est le composer soi-meme : il n'y a
+        // rien de devine ici, donc rien qui merite une pastille a part.
+        return create(EntrySource.MANUAL, lines).copy(favoriteId = favorite.id)
     }
 
     /** La fiche citée, si elle existe encore et si la ligne en citait une. */

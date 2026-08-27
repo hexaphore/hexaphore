@@ -71,6 +71,14 @@ class EntryViewModelTest {
     private val catalogue = InMemoryFoodCatalog()
     private val ids = SequentialIdGenerator()
 
+    /**
+     * Une seule fabrique, donc un seul jour regarde.
+     *
+     * Trois instances distinctes pouvaient se contredire sans que rien ne le dise --
+     * et c'est exactement la forme du defaut que ce correctif repare ailleurs.
+     */
+    private val create = CreateDraft(clock, ids, InMemorySelectedDay(clock.today()))
+
     /** Un objectif de maintien : le restant se compte par rapport à lui. */
     private val objectif = InMemoryGoals.maintenance(jour)
     private val goals = InMemoryGoals(listOf(objectif))
@@ -385,19 +393,19 @@ class EntryViewModelTest {
         ),
         openDraft = OpenDraft(
             dishes = GetDishDraft(diary, ids),
-            favorites = GetFavoriteDraft(favoris, catalogue, clock, ids),
-            create = CreateDraft(clock, ids, InMemorySelectedDay(clock.today())),
+            favorites = GetFavoriteDraft(favoris, catalogue, create, ids),
+            create = create,
             foods = catalogue,
             pending = pending,
             resolve = ResolveRecognition(
                 ResolveFoodLabel(catalogue),
-                CreateDraft(clock, ids, InMemorySelectedDay(clock.today())),
+                create,
                 // Aucun repli : ces cas ne parlent pas de l'etape 4, et un estimateur
                 // qui repondrait remplirait des lignes qu'ils veulent vides.
                 estimate = { EstimationOutcome.Estimated(emptyList()) },
             ),
         ),
-        addFoodLine = AddFoodLine(catalogue, CreateDraft(clock, ids, InMemorySelectedDay(clock.today()))),
+        addFoodLine = AddFoodLine(catalogue, create),
         getDaySummary = GetDaySummary(diary, goals, clock),
         saveDraft = SaveDraft(LogDish(diary, catalogue, favoris, clock, ids), UpdateDish(diary, ids)),
         favorites = DraftFavorites(
