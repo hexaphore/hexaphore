@@ -28,6 +28,18 @@ data class RecognizedItem(
      */
     val confidence: Float,
     /**
+     * Ce que **pèse la ligne entière**, selon le modèle — et `null` s'il s'est tu.
+     *
+     * C'est ce qui rattrape « 5 cacahuètes ». [quantity] et [unit] ne suffisent pas :
+     * « une pièce » n'implique aucune taille, et notre forfait de cent grammes se
+     * trompait d'un facteur cent-vingt-cinq sur une cacahuète. Le modèle, lui, a vu
+     * l'assiette.
+     *
+     * **Un poids et non un poids par pièce** : c'est ce qu'on peut lui demander sans
+     * qu'il ait à diviser, et c'est directement ce dont la conversion a besoin.
+     */
+    val grams: Double? = null,
+    /**
      * La fiche que le modèle a **choisie lui-même**, quand il en a choisi une.
      *
      * Renseignée par le seul chemin outillé : là, le modèle voit ce que le catalogue

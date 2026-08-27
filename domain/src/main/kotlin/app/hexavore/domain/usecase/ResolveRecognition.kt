@@ -67,7 +67,7 @@ class ResolveRecognition(
         item.chosen?.let { return chosenLine(item, it) }
 
         val match = resolve(item.label)
-        val converted = convertToGrams(item.quantity, item.unit, match.food)
+        val converted = convertToGrams(item.quantity, item.unit, match.food, estimated = item.grams)
         val line = match.food?.let(create::line) ?: create.line().copy(name = item.label)
 
         return line
@@ -95,7 +95,7 @@ class ResolveRecognition(
      * a choisi dans une liste : il a pu choisir le moins mauvais.
      */
     private fun chosenLine(item: RecognizedItem, food: Food): DraftLine {
-        val converted = convertToGrams(item.quantity, item.unit, food)
+        val converted = convertToGrams(item.quantity, item.unit, food, estimated = item.grams)
         return create.line(food)
             .measured(converted.grams, QuantityUnit.Gram)
             .copy(

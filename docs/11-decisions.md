@@ -3496,6 +3496,54 @@ Et rien ne prouve que le jour regardé atteigne l'écran dans **l'application** 
 
 ---
 
+## D112 — Le modèle pèse ce qu'il compte, parce qu'une pièce ne dit rien de sa taille · ✓ validée
+
+**Contexte.** Cinq cacahuètes entraient dans le journal à **500 g**. Le modèle disait *5 PIECE*, la fiche ne nommait aucune portion, et notre forfait valait cent grammes la pièce.
+
+### Pourquoi « une pièce » n'est pas une tranche
+
+Les autres unités portent leur ordre de grandeur : une tranche fait trente grammes à peu près toujours, une cuillère à soupe quinze, un verre deux cents. Se tromper d'un tiers sur un forfait est supportable.
+
+**« Une pièce » ne porte rien du tout.** Une cacahuète pèse moins d'un gramme, un œuf soixante, une pomme cent cinquante. Trois ordres de grandeur séparent les extrêmes, et aucun nombre ne les résume. Le forfait de cent grammes n'était donc pas un repli approximatif : c'était une **fabrication**, présentée avec l'autorité d'un chiffre.
+
+Le projet refuse partout qu'une absence se dise « zéro ». Ici, c'était le miroir : une absence se disait « cent ».
+
+### Le modèle a vu l'assiette
+
+Il compte les cacahuètes, donc il sait à peu près ce qu'elles pèsent — c'est le même raisonnement que [D109](#d109--le-modèle-choisit-la-fiche-parce-quil-en-sait-plus-que-notre-score---validée), appliqué à la quantité au lieu de la fiche. Chaque ligne reconnue porte donc un **poids total en grammes**, que le modèle donne avec le reste.
+
+**Un poids total, et non un poids par pièce.** C'est ce qu'on peut lui demander sans qu'il ait à diviser, et c'est directement ce dont la conversion a besoin.
+
+### L'ordre, et ce qu'il protège
+
+1. **La portion nommée de la fiche** — c'est une mesure, et [D73](#d73--la-portion-de-la-fiche-lemporte-sur-le-forfait-et-la-densité-attend-son-auteur---validée) lui donne déjà le dernier mot. Une estimation ne l'écrase pas, fût-elle informée.
+2. **Le poids du modèle**, quand il s'est prononcé.
+3. **Le forfait**, qui ne sert plus que lorsque personne ne s'est prononcé.
+
+La règle est écrite une fois, pour **toutes les unités** et non pour la seule pièce : le poids du modèle remplace ce que nous aurions **deviné**, jamais ce que nous avons mesuré. C'est plus simple qu'un cas particulier, et c'est vrai pour l'assiette — qui n'a jamais de portion nommée, et où le modèle aide donc le plus.
+
+La ligne reste **signalée comme estimée**. Il a estimé, il n'a pas pesé.
+
+### Exigé, et autorisé à valoir inconnu
+
+Le champ est dans `required` **et** accepte `null`. C'est [D98](#d98--le-modèle-doit-se-prononcer-sur-les-six-valeurs-et--inconnu--sécrit---validée) mot pour mot : un champ absent de `required` donne au décodage contraint de Gemini la permission de se taire **par défaut**, et un poids facultatif serait un poids jamais donné. Exiger la clé en autorisant `null` dit ce qu'on voulait dire — *prononce-toi, quitte à dire que tu ne sais pas*.
+
+Un zéro ou un nombre négatif est lu comme une absence, pas comme un poids : le forfait reprend alors la main plutôt que de faire entrer une ligne de zéro gramme dans le journal.
+
+### Ce que la campagne a trouvé en écrivant le code
+
+`unknowable(strict)` existait déjà, pour les six teneurs de l'estimation, et j'en avais écrit un doublon sous un autre nom. Deux fonctions pour une seule règle divergent le jour où un troisième fournisseur exige autre chose ; celle qui restait est passée `internal` et sert les trois schémas.
+
+**Campagne de défaite : neuf sabotages, neuf cas tombés.**
+
+**Conséquences.** Un champ de plus sur la ligne reconnue, dans les deux schémas et les deux prompts — qui passent en `fr_v2`, parce qu'un prompt qui demande autre chose n'est plus le même. Les versions sont enregistrées avec chaque analyse, et c'est exactement à ça qu'elles servent.
+
+**Ce que le vert ne prouve pas.** **Que les poids du modèle soient bons.** Les cas affirment qu'un poids donné est lu, transporté et préféré au forfait ; aucun ne dit qu'un modèle sait ce que pèsent cinq cacahuètes. Il faut les photographier.
+
+Rien ne dit non plus que le modèle **remplira** ce champ. Le schéma l'exige, mais un schéma part sur le réseau et c'est le fournisseur qui l'applique — et les deux prompts qui le demandent n'ont, eux non plus, jamais été essayés contre une vraie clé. Le mode debug est là pour le voir sur pièces.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

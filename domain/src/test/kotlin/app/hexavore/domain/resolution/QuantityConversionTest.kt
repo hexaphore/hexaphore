@@ -145,6 +145,43 @@ class QuantityConversionTest {
         assertTrue(rendu.guessed)
     }
 
+    @Test
+    fun `le poids du modele remplace le forfait de la piece`() {
+        // Cinq cacahuetes : le forfait en faisait cinq cents grammes, soit cent
+        // vingt-cinq fois trop. Le modele, lui, a vu l assiette.
+        val rendu = convertToGrams(5.0, EstimatedUnit.PIECE, estimated = 4.0)
+
+        assertEquals(4.0, rendu.grams, TOLERANCE)
+        assertTrue(rendu.guessed, "il a estime, il n a pas pese")
+    }
+
+    @Test
+    fun `le poids du modele ne remplace jamais une mesure`() {
+        // La portion nommee de la fiche est une donnee ; l estimation du modele n en
+        // est pas une, et une donnee ne se laisse pas ecraser par une estimation.
+        val pomme = aliment(FoodServing("1 pomme moyenne", grams = 150.0, isDefault = true))
+
+        val rendu = convertToGrams(2.0, EstimatedUnit.PIECE, pomme, estimated = 40.0)
+
+        assertEquals(300.0, rendu.grams, TOLERANCE)
+        assertFalse(rendu.guessed)
+    }
+
+    @Test
+    fun `un poids nul ou negatif n est pas un poids`() {
+        // Zero est une absence deguisee : le forfait reprend la main plutot que de
+        // faire disparaitre la ligne du journal.
+        assertEquals(500.0, convertToGrams(5.0, EstimatedUnit.PIECE, estimated = 0.0).grams, TOLERANCE)
+        assertEquals(500.0, convertToGrams(5.0, EstimatedUnit.PIECE, estimated = -3.0).grams, TOLERANCE)
+    }
+
+    @Test
+    fun `le poids du modele vaut aussi pour une assiette`() {
+        // L assiette n a jamais de portion nommee : c est le forfait ou rien, donc
+        // c est exactement la ou le modele aide le plus.
+        assertEquals(220.0, convertToGrams(1.0, EstimatedUnit.PLATE, estimated = 220.0).grams, TOLERANCE)
+    }
+
     private fun aliment(vararg servings: FoodServing) = Food(
         id = FoodId("fiche"),
         source = FoodSource.CIQUAL,

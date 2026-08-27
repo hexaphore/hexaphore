@@ -126,6 +126,8 @@ private data class ItemDto(
     val quantity: Double? = null,
     val unit: String? = null,
     val confidence: Float? = null,
+    /** Le poids total que le modèle attribue à la ligne, quand il s'est prononcé. */
+    val grams: Double? = null,
 )
 
 /**
@@ -219,6 +221,9 @@ private fun JsonElement.toItemOrNull(): RecognizedItem? {
             quantity = quantity,
             unit = estimatedUnit(dto.unit),
             confidence = (dto.confidence ?: 0f).coerceIn(0f, 1f),
+            // Zero ou negatif n'est pas un poids : c'est une absence, et elle se dit
+            // `null` plutot que de faire disparaitre la ligne du journal.
+            grams = dto.grams?.takeIf { it > 0.0 },
         )
     }
 }

@@ -61,6 +61,25 @@ class ResolveRecognitionTest {
     }
 
     @Test
+    fun `cinq cacahuetes pesent ce que le modele dit, pas cinq cents grammes`() = runTest {
+        // Le defaut qui a motive ce cas : « une piece » n implique aucune taille, et le
+        // forfait de cent grammes faisait cinq cents grammes de cinq cacahuetes.
+        val draft = resolve(item("cacahuete", 5.0, EstimatedUnit.PIECE, grams = 4.0))
+
+        assertEquals(4.0, draft.lines.single().quantity)
+        assertTrue(draft.lines.single().suggestion!!.estimated, "il a estime, il n a pas pese")
+    }
+
+    @Test
+    fun `le poids du modele ne prend pas le pas sur la fiche`() = runTest {
+        // La fiche dit qu une tranche pese 33 g : c est une mesure, et une estimation
+        // ne l ecrase pas -- meme quand elle vient de qui a vu l assiette.
+        val draft = resolve(item("pain de mie", 2.0, EstimatedUnit.SLICE, grams = 100.0))
+
+        assertEquals(66.0, draft.lines.single().quantity)
+    }
+
+    @Test
     fun `une conversion au forfait se signale`() = runTest {
         // « un bol » de riz : aucune portion nommee sur la fiche, donc le forfait --
         // et docs/04 exige que la ligne le dise.
@@ -271,8 +290,13 @@ class ResolveRecognitionTest {
         assertEquals(150.0, ligne.quantity)
     }
 
-    private fun item(label: String, quantity: Double, unit: EstimatedUnit, confidence: Float = 0.9f) =
-        RecognizedItem(label = label, quantity = quantity, unit = unit, confidence = confidence)
+    private fun item(
+        label: String,
+        quantity: Double,
+        unit: EstimatedUnit,
+        confidence: Float = 0.9f,
+        grams: Double? = null,
+    ) = RecognizedItem(label = label, quantity = quantity, unit = unit, confidence = confidence, grams = grams)
 
     private companion object {
         val JOUR: LocalDate = LocalDate.of(2026, 3, 14)
