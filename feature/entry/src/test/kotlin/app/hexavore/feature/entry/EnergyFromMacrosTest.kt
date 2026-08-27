@@ -3,6 +3,7 @@ package app.hexavore.feature.entry
 import app.hexavore.core.testing.FixedClock
 import app.hexavore.core.testing.InMemoryFavoriteDishes
 import app.hexavore.core.testing.InMemoryFoodCatalog
+import app.hexavore.core.testing.InMemorySelectedDay
 import app.hexavore.core.testing.SequentialIdGenerator
 import app.hexavore.domain.diary.DraftLineId
 import app.hexavore.domain.diary.EntryDraft
@@ -13,6 +14,7 @@ import app.hexavore.domain.food.FoodId
 import app.hexavore.domain.food.FoodSource
 import app.hexavore.domain.nutrition.Macro
 import app.hexavore.domain.nutrition.NutrientValues
+import app.hexavore.domain.usecase.CreateDraft
 import app.hexavore.domain.usecase.FavoriteOutcome
 import app.hexavore.domain.usecase.GetFavoriteDraft
 import app.hexavore.domain.usecase.SaveFavoriteDish
@@ -117,7 +119,12 @@ class EnergyFromMacrosTest {
         val ligne = feta(foodId = FETA.id).apply(LineEdit.AcceptEnergy)
 
         val enregistre = SaveFavoriteDish(favoris, ids)(brouillon(ligne), "Salade grecque")
-        val rejoue = GetFavoriteDraft(favoris, catalogue, FixedClock.atNoon(JOUR), ids)(
+        val rejoue = GetFavoriteDraft(
+            favoris,
+            catalogue,
+            CreateDraft(FixedClock.atNoon(JOUR), ids, InMemorySelectedDay(JOUR)),
+            ids,
+        )(
             (enregistre as FavoriteOutcome.Saved).id,
         )
 

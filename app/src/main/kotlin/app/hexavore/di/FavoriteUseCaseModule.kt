@@ -8,7 +8,6 @@ import app.hexavore.domain.diary.FavoriteNumbering
 import app.hexavore.domain.food.FoodLookup
 import app.hexavore.domain.food.FoodSearch
 import app.hexavore.domain.identity.IdGenerator
-import app.hexavore.domain.time.Clock
 import app.hexavore.domain.usecase.AddFoodLine
 import app.hexavore.domain.usecase.CreateDraft
 import app.hexavore.domain.usecase.GetDishDraft
@@ -105,7 +104,7 @@ object FavoriteUseCaseModule {
     fun getFavoriteDraft(
         favorites: FavoriteDishes,
         foods: FoodLookup,
-        clock: Clock,
+        create: CreateDraft,
         ids: IdGenerator,
-    ): GetFavoriteDraft = GetFavoriteDraft(favorites, foods, clock, ids)
+    ): GetFavoriteDraft = GetFavoriteDraft(favorites, foods, create, ids)
 }

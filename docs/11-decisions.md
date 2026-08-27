@@ -3462,6 +3462,40 @@ Rien ne prouve non plus que le **chemin ordinaire** soit intact au-delà de ses 
 
 ---
 
+## D111 — Une règle se vérifie aux portes, pas seulement à la fabrique · ✓ validée
+
+**Contexte.** Depuis l'accueil placé sur hier, rejouer un plat favori l'enregistrait sur **aujourd'hui**. En silence, et au mauvais endroit — exactement le défaut que [D102](#d102--le-retour-à-aujourdhui-a-une-porte-visible-et-le-jour-regardé-a-un-contrat---validée) avait nommé et cru refermé.
+
+### La règle existait, et elle était bonne
+
+`CreateDraft` porte la seule décision : *le jour qu'on regarde, sinon aujourd'hui*. Toutes les origines de l'écran de validation passent par elle — saisie neuve, fiche cherchée, produit scanné, proposition d'un modèle. Toutes **sauf une**.
+
+`GetFavoriteDraft` bâtissait son `EntryDraft` à la main, avec `clock.today()`. Il n'avait pas contourné la règle : il ne l'avait jamais rencontrée. C'est la différence entre enfreindre et ignorer, et la seconde ne se voit pas à la relecture d'un fichier — il faut regarder ceux d'à côté.
+
+Le favori passe donc par la fabrique, et rend son horloge : il n'a plus rien à savoir du calendrier. Le lien vers le favori s'attache après coup, parce que c'est la seule chose que la fabrique n'a pas à connaître.
+
+### Ce que le défaut dit du jeu de cas
+
+`DraftDayTest` couvrait la règle depuis [D102](#d102--le-retour-à-aujourdhui-a-une-porte-visible-et-le-jour-regardé-a-un-contrat---validée) : jour choisi, retour à aujourd'hui, brouillon de plusieurs lignes. Cinq cas, tous verts, tous **sur la fabrique**.
+
+**Un cas qui n'éprouve que la fabrique ne dit rien des portes qui l'appellent.** Il affirme qu'une règle est correctement écrite, jamais qu'elle est effectivement empruntée — et c'est par là qu'un chemin oublié passe sans faire tomber quoi que ce soit. Le jeu de cas s'exerce maintenant sur la porte du favori, celle-là même que l'écran ouvre.
+
+C'est le pendant de ce que [D110](#d110--le-tour-du-modèle-se-rejoue-tel-quel-jamais-reconstruit---validée) vient de dire d'un autre défaut : là, un cas nommait le champ d'hier au lieu de la règle ; ici, un cas nommait la fabrique au lieu des portes. Les deux fois, le cas décrivait **l'implémentation** plutôt que la promesse.
+
+### Ce que la campagne a trouvé en plus
+
+Rien n'affirmait qu'un favori rejoué garde la source « composé soi-même ». Le commentaire l'expliquait depuis toujours — *rien n'y est deviné, donc rien n'y mérite une pastille à part* —, et un sabotage qui la changeait en « photo » passait sans un bruit. La pastille aurait menti dans le journal, sur un plat que personne n'a photographié.
+
+**Campagne de défaite : cinq sabotages, cinq cas tombés.**
+
+**Conséquences.** `GetFavoriteDraft` perd son horloge et gagne la fabrique. Une seule `CreateDraft` là où les cas d'écran en construisaient trois : trois instances portaient trois jours regardés indépendants, qui ne pouvaient que se contredire — la même forme de défaut, dans le jeu de cas cette fois.
+
+**Ce que le vert ne prouve pas.** **Que toutes les portes soient éprouvées.** Deux le sont maintenant — la fabrique et le favori — et les trois autres origines ne le sont qu'indirectement, par les cas d'écran. Rien n'interdit à une sixième origine d'arriver demain en bâtissant son brouillon à la main : ce qui l'empêcherait vraiment serait que `EntryDraft` ne puisse pas être construit hors de la fabrique, et ce n'est pas le cas aujourd'hui.
+
+Et rien ne prouve que le jour regardé atteigne l'écran dans **l'application** plutôt que dans les cas : le port n'est pas persisté et vit dans un objet unique, ce que seul un vrai geste sur un vrai téléphone confirme.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

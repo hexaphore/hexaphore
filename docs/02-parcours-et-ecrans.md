@@ -241,6 +241,8 @@ Déplié, il **retient la page** : un glissement vers le haut **dans le contenu*
 
 Toucher une case change le jour affiché **sur place**. Le calendrier reste donc à l'écran pendant qu'on se promène dans l'historique, et le bouton d'ajout écrit sur le jour qu'on regarde.
 
+**Tout ce qui ouvre un brouillon y écrit**, et pas seulement le bouton d'ajout : une fiche cherchée, un produit scanné, une photo analysée, un **plat favori rejoué**. Le jour n'est décidé qu'à un endroit, et chaque porte y passe — le favori ne le faisait pas, et rejouer un plat depuis la veille l'enregistrait sur aujourd'hui ([D111](11-decisions.md#d111--une-règle-se-vérifie-aux-portes-pas-seulement-à-la-fabrique---validée)).
+
 Une journée sans aucune saisie est visuellement neutre — et non « à zéro ». Confondre « je n'ai rien noté » avec « je n'ai rien mangé » fausserait toutes les moyennes, ici comme dans l'algorithme d'adaptation ([03](03-nutrition-calculs.md#adaptation-hebdomadaire)).
 
 ---

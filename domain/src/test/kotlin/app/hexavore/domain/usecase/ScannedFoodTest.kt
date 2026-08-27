@@ -97,10 +97,11 @@ class ScannedFoodTest {
     private fun openDraft(catalogue: InMemoryFoodCatalog): OpenDraft {
         val ids = SequentialIdGenerator()
         val clock = FixedClock(MAINTENANT)
+        val create = CreateDraft(clock, ids, InMemorySelectedDay(clock.today()))
         return OpenDraft(
             dishes = GetDishDraft(InMemoryDiaryRepository(), ids),
-            favorites = GetFavoriteDraft(InMemoryFavoriteDishes(), catalogue, clock, ids),
-            create = CreateDraft(clock, ids, InMemorySelectedDay(clock.today())),
+            favorites = GetFavoriteDraft(InMemoryFavoriteDishes(), catalogue, create, ids),
+            create = create,
             foods = catalogue,
             pending = InMemoryPendingRecognition(),
             resolve = ResolveRecognition(
