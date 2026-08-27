@@ -18,6 +18,12 @@ import app.hexavore.domain.food.SearchText
  * facteur six. Le forfait n'est donc qu'un repli, et il se signale comme tel
  * ([D73][decisions]).
  *
+ * **Le poids du modèle l'emporte sur tout forfait, jamais sur une mesure.** Quand la
+ * fiche nomme la portion, c'est une donnée et elle gagne. Quand elle ne dit rien, notre
+ * repli est un chiffre inventé — cent grammes pour « une pièce », qu'elle soit cacahuète
+ * ou pomme — là où le modèle a regardé l'assiette. Le forfait ne sert donc plus que
+ * lorsque personne ne s'est prononcé.
+ *
  * @param food la fiche visée, ou `null` quand la résolution n'a rien trouvé.
  * @param density en g/ml, quand on la connaît. **Elle ne vient pas de [food]**, et
  *   ce n'est pas un oubli : aucune source ne la publie aujourd'hui — CIQUAL ne la
@@ -34,8 +40,15 @@ fun convertToGrams(
     unit: EstimatedUnit,
     food: Food? = null,
     density: Double? = null,
+    estimated: Double? = null,
 ): ConvertedQuantity {
     val perUnit = gramsPerUnit(unit, food, density)
+
+    // Il reste une estimation -- il n'a rien pesé -- mais une estimation informée, et
+    // elle ne remplace jamais qu'un forfait.
+    if (perUnit.guessed && estimated != null && estimated > 0.0) {
+        return guessed(estimated)
+    }
     return ConvertedQuantity(grams = quantity * perUnit.grams, guessed = perUnit.guessed)
 }
 

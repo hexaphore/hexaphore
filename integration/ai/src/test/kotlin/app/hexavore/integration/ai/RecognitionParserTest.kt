@@ -163,6 +163,26 @@ class RecognitionParserTest {
     }
 
     /** Les lignes rendues, ou l'échec du test si la réponse n'a pas été reconnue. */
+    @Test
+    fun `le poids estime par le modele est lu`() {
+        val brut = """[{"label": "cacahuete", "quantity": 5, "unit": "PIECE", "confidence": 0.9, "grams": 4}]"""
+
+        assertEquals(listOf(4.0), brut.lignes().map { it.grams })
+    }
+
+    @Test
+    fun `un poids absent ou nul vaut inconnu, jamais zero`() {
+        // Zero n est pas un poids : c est une absence deguisee, et la laisser passer
+        // ferait une ligne de zero gramme dans le journal.
+        val brut = """
+            [{"label": "riz", "quantity": 150, "unit": "G", "confidence": 0.8},
+             {"label": "huile", "quantity": 5, "unit": "ML", "confidence": 0.8, "grams": 0},
+             {"label": "pain", "quantity": 1, "unit": "SLICE", "confidence": 0.8, "grams": null}]
+        """.trimIndent()
+
+        assertEquals(listOf(null, null, null), brut.lignes().map { it.grams })
+    }
+
     private fun String.lignes() = recognition().items
 
     private fun String.recognition(): Recognition {

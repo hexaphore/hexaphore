@@ -80,9 +80,10 @@ internal fun submitToolSchema(strict: Boolean): JsonObject = Json.parseToJsonEle
                 "enum": ["G", "ML", "PIECE", "SLICE", "TBSP", "TSP", "BOWL", "PLATE", "GLASS"]
               },
               "confidence": { "type": "number" },
+              "grams": ${unknowable(strict)},
               "reference": ${optionalString(strict)}
             },
-            "required": ["label", "quantity", "unit", "confidence"]${closure(strict)}
+            "required": ["label", "quantity", "unit", "confidence", "grams"]${closure(strict)}
           }
         }
       },

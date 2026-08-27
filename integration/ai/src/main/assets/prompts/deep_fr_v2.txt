@@ -22,6 +22,12 @@ Le champ confidence vaut de 0 à 1 et porte sur l'identification **et** sur la
 quantité. Une quantité devinée sans référence d'échelle abaisse la confiance même
 quand l'aliment est certain.
 
+Le champ grams porte le poids total de la ligne, en grammes, tel que tu l'estimes.
+Il compte surtout quand tu comptes des pièces : « une pièce » ne dit rien de sa
+taille, et cinq cacahuètes ne pèsent pas comme cinq pommes. Donne-le sur chaque
+ligne, y compris quand l'unité est déjà G — il vaut alors la quantité. N'écris null
+que si tu n'as vraiment aucune idée de l'échelle.
+
 ## Comment procéder
 
 Appelle chercher_aliments **une seule fois**, avec tous les aliments que tu as

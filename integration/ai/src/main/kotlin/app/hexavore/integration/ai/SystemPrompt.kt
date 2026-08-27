@@ -50,7 +50,7 @@ internal class AssetSystemPrompt(private val context: Context, private val asset
  * renuméroté l'extraction quand ils partageaient un compteur, ce qui aurait fait croire
  * à un changement là où il n'y en avait pas.
  */
-const val EXTRACT_PROMPT_VERSION: String = "fr_v1"
+const val EXTRACT_PROMPT_VERSION: String = "fr_v2"
 
 /**
  * L'estimation en est à sa deuxième version.
@@ -92,7 +92,7 @@ internal const val ESTIMATE_PROMPT_ASSET = "prompts/estimate_$ESTIMATE_PROMPT_VE
  * factoriser dans un fragment commun rendrait chacun illisible pour économiser des
  * lignes que personne ne compte.
  */
-internal const val DEEP_PROMPT_VERSION: String = "fr_v1"
+internal const val DEEP_PROMPT_VERSION: String = "fr_v2"
 
 internal const val DEEP_PROMPT_ASSET = "prompts/deep_$DEEP_PROMPT_VERSION.txt"
 

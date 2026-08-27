@@ -38,9 +38,10 @@ internal fun recognitionSchema(strict: Boolean): JsonObject = Json.parseToJsonEl
                 "type": "string",
                 "enum": ["G", "ML", "PIECE", "SLICE", "TBSP", "TSP", "BOWL", "PLATE", "GLASS"]
               },
-              "confidence": { "type": "number" }
+              "confidence": { "type": "number" },
+              "grams": ${unknowable(strict)}
             },
-            "required": ["label", "quantity", "unit", "confidence"]${closure(strict)}
+            "required": ["label", "quantity", "unit", "confidence", "grams"]${closure(strict)}
           }
         }
       },
@@ -105,8 +106,13 @@ internal fun estimationSchema(strict: Boolean): JsonObject = Json.parseToJsonEle
  * `nullable`. C'est la seconde différence entre les deux — la première étant
  * `additionalProperties` — et [strict] les porte toutes les deux plutôt que d'ouvrir
  * un second paramètre qui dirait la même chose.
+ *
+ * `internal` et non `private` : les trois schémas s'en servent — les six teneurs de
+ * l'estimation, et le **poids** que chaque ligne reconnue porte, ici comme dans l'outil
+ * de réponse. Le recopier ferait deux règles qui divergent le jour où un troisième
+ * fournisseur exige autre chose.
  */
-private fun unknowable(strict: Boolean) =
+internal fun unknowable(strict: Boolean) =
     if (strict) """{ "type": ["number", "null"] }""" else """{ "type": "number", "nullable": true }"""
 
 /**
