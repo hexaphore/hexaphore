@@ -261,7 +261,7 @@ Si l'algorithme a une suggestion d'ajustement en attente, une carte apparaît en
 
 ## Réglages
 
-Écran simple à sections. L'accueil y mène, et les sections mènent aux écrans. **Il existe depuis que sa deuxième section existe** — c'est l'échéance que [D59](11-decisions.md) avait fixée, et [D77](11-decisions.md#d77--la-clé-va-dans-le-keystore-en-direct-et-le-bouton-tester-est-une-vraie-analyse---validée) l'honore. Il en porte cinq : **Profil et objectifs**, **Intelligence artificielle**, **Contribution**, **Sauvegarde** et **Notifications**. Les deux dernières — Apparence, À propos — n'y figurent pas, pour la raison inchangée : elles n'ouvriraient rien.
+Écran simple à sections. L'accueil y mène, et les sections mènent aux écrans. **Il existe depuis que sa deuxième section existe** — c'est l'échéance que [D59](11-decisions.md) avait fixée, et [D77](11-decisions.md#d77--la-clé-va-dans-le-keystore-en-direct-et-le-bouton-tester-est-une-vraie-analyse---validée) l'honore. Il en porte ~~cinq~~ **six** : **Profil et objectifs**, **Intelligence artificielle**, **Contribution**, **Sauvegarde**, **Notifications** et **Apparence**. Cette dernière s'ouvre le jour où le thème devient réglable ([D113](11-decisions.md#d113--apparence-existe-et-suivre-le-système-est-un-choix---validée)). ~~À propos~~ n'y figure toujours pas, pour la raison inchangée : elle n'ouvrirait rien.
 
 **Profil et objectifs** — toutes les données de l'onboarding. **On les consulte d'abord** : l'écran ouvre en lecture, et un crayon ouvre la modification ([D60](11-decisions.md)). Un écran de réglages entièrement saisissable invite à corriger ce qu'on venait relire.
 
@@ -305,7 +305,9 @@ Chaque ligne de l'écran montre si sa pastille est allumée **en ce moment** : u
 
 ~~connexion Google Drive, dernière sauvegarde, bascule automatique, « Sauvegarder maintenant »~~ — **Drive attend que le reste fonctionne en local**, et le port qui l'accueillera est déjà là.
 
-**Apparence** — thème (sombre / clair / système), langue, unités (métrique / impérial), animations réduites.
+**Apparence** — ~~thème (sombre / clair / système), langue, unités (métrique / impérial), animations réduites~~. **Le thème est livré** ([D113](11-decisions.md#d113--apparence-existe-et-suivre-le-système-est-un-choix---validée)) : trois choix exclusifs, « suivre le système » par défaut et par continuité — c'est ce que l'application faisait avant que le réglage existe. Un interrupteur n'aurait pas su dire « suivre », et le troisième état se serait deviné.
+
+Le réglage vit dans **son propre fichier** — effacer ses clés d'IA n'a aucune raison de changer les couleurs — et **ne part pas dans la sauvegarde** : c'est une préférence d'appareil, là où le système d'unités est une propriété du profil et voyage avec lui. *Les unités, la langue et les animations réduites restent à faire.*
 
 **À propos** — version, lien du dépôt, licence, attributions CIQUAL et Open Food Facts, avertissement médical, lien de don *(variante hors Play Store uniquement, voir [10](10-qualite-et-livraison.md#variantes-de-build))*.
 

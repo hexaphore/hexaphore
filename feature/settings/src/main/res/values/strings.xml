@@ -227,6 +227,20 @@
     <string name="backup_erase_word">SUPPRIMER</string>
     <string name="backup_erased">Toutes vos données ont été effacées</string>
 
+    <!-- ===== Apparence ===========================================================
+         La section que docs/02 annoncait et qui n ouvrait rien. Elle ouvre le theme ;
+         le systeme d unites la rejoindra. -->
+    <string name="settings_appearance_title">Apparence</string>
+    <string name="settings_appearance_subtitle">Le thème de l\'application</string>
+
+    <string name="appearance_title">Apparence</string>
+    <string name="appearance_close">Fermer</string>
+    <string name="appearance_theme_title">Thème</string>
+    <string name="appearance_theme_light">Clair</string>
+    <string name="appearance_theme_dark">Sombre</string>
+    <string name="appearance_theme_system">Suivre le système</string>
+    <string name="appearance_theme_note">« Suivre le système » reprend le réglage d\'Android, et bascule avec lui. C\'est ce que faisait l\'application avant que ce choix existe.</string>
+
     <!-- ===== Pastilles ============================================================
          Aucune notification systeme : ce sont des points colorés qu'on voit en ouvrant
          l'application. Chacune designe une situation, jamais un message empile. -->

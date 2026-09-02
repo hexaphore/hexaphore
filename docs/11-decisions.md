@@ -3544,6 +3544,56 @@ Rien ne dit non plus que le modèle **remplira** ce champ. Le schéma l'exige, m
 
 ---
 
+## D113 — Apparence existe, et suivre le système est un choix · ✓ validée
+
+**Contexte.** « Apparence » figurait dans [docs/02][parcours] depuis la conception, et n'avait jamais été ouverte pour une raison écrite : *elle n'ouvrirait rien*. Le thème la remplit — les deux palettes existent depuis la 0.1, mais rien ne permettait d'en imposer une.
+
+C'est la même échéance que D59 avait fixée au hub lui-même : une section s'ouvre le jour où elle a quelque chose à régler, et pas avant.
+
+### Un choix, pas une absence
+
+`SYSTEM` est rangé explicitement. C'est l'écart avec le jour regardé, où `null` **veut dire** aujourd'hui : là, la valeur nulle protégeait d'un écran qui resterait sur la veille après minuit, et l'absence portait donc une information. Ici, « suivre le système » est une intention durable ; la ranger comme un vide obligerait chaque lecteur à savoir ce que le vide signifie, et un fichier neuf serait indiscernable d'un choix fait.
+
+Trois boutons radio plutôt qu'un interrupteur, pour la même raison : un interrupteur « sombre » ne sait pas dire *suivre*, et le troisième état devrait alors se deviner.
+
+### La règle vit dans le domaine
+
+`ThemeMode.isDark(systemIsDark)` prend le réglage d'Android **en paramètre**. La racine de l'application ne fait que le lui fournir.
+
+L'écrire dans la composition aurait mis un `when` là où aucun test ne le lit, et donné à chaque appelant l'occasion d'en écrire un autre. C'est exactement le défaut que [D111](#d111--une-règle-se-vérifie-aux-portes-pas-seulement-à-la-fabrique---validée) vient de nommer, pris à l'endroit où il ne s'est pas encore produit.
+
+**Un seul endroit applique le thème** : `MainActivity`, parce que c'est le seul qui enveloppe tout ce qui s'affiche. Le poser plus bas laisserait un écran hors du réglage, et on ne s'en apercevrait qu'en l'ouvrant.
+
+### Ce qui ne voyage pas
+
+**Le thème ne part pas dans la sauvegarde**, et c'est [D96](#d96--la-sauvegarde-emprunte-les-mappeurs-et-le-format-ne-porte-que-ce-que-la-base-tient---validée) appliquée telle quelle : le format ne porte que ce que la base tient. Un thème vit dans les préférences, et restaurer un export sur un autre téléphone n'a aucune raison d'y imposer le thème du premier.
+
+Le **système d'unités**, lui, voyage — parce qu'il est une colonne du profil. Ce n'est pas une incohérence mais la même règle lue deux fois : les unités disent quelque chose de la personne, le thème dit quelque chose de l'écran qu'elle tient.
+
+~~docs/09 annonçait que « les préférences d'affichage naîtront avec la section Apparence ».~~ Elles naissent sans elle : la section existe, et le champ `preferences` reste vide.
+
+### Son propre fichier
+
+Pas celui des réglages d'IA, contrairement aux deux façons d'analyser. Celles-là se rapportent aux clés et **doivent** disparaître avec elles ; un thème ne se rapporte à rien qu'on efface. L'y ranger l'aurait fait sauter au premier effacement de clés, sans que rien ne l'annonce.
+
+Il est lu **au démarrage, sans suspendre** : le flux porte déjà la valeur du disque quand la première composition arrive. Une lecture asynchrone ferait apparaître l'application en clair pendant un instant avant de basculer, et ce clignotement se voit.
+
+### Ce que la campagne a trouvé
+
+Le défaut de l'état d'écran — `SYSTEM` — **n'était jamais observé** : le faux émettait toujours une valeur, donc la valeur initiale était remplacée avant qu'un cas la lise. Un sabotage qui la passait à « sombre » survivait.
+
+Ce défaut n'est pourtant pas décoratif : c'est le repli quand le magasin casse. Le faux a gagné un mode de panne, le repli est devenu observable, et le sabotage tombe. **Une valeur par défaut qu'aucun cas ne peut voir n'est pas une règle, c'est une décoration** — et celle-ci en était une jusqu'à ce qu'on lui donne la seule situation où elle compte.
+
+**Campagne de défaite : six sabotages, six cas tombés.**
+
+**Conséquences.** Un port et un magasin de plus, un fichier de préférences à eux, une huitième route de réglages, et deux modèles pour un seul réglage : celui de l'écran, qui règle, et celui de la racine, qui ne fait que lire. Les séparer évite que la racine porte un état d'écran, et permet au changement de se voir sans quitter l'écran qui vient de le demander.
+
+**Ce que le vert ne prouve pas.** **Que le thème s'applique vraiment.** Les cas s'arrêtent au modèle : rien n'éprouve `MainActivity`, ni que `NeonTheme` reçoive ce que le port a dit. Le câblage de la racine se vérifie en ouvrant l'application, pas autrement.
+
+Et surtout : **rien ne dit que la palette claire soit lisible.** Elle existe depuis la 0.1 et n'a jamais été autre chose qu'un défaut système que personne n'a forcé. Ce réglage est la première façon de la regarder vraiment — les tests d'image de la 1.0 sont ce qui le dira, et ils n'existent pas encore.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.
