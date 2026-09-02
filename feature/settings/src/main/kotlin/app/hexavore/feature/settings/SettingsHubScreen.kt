@@ -33,8 +33,9 @@ import app.hexavore.domain.notice.Notice
  * lui aussi — c'est exactement l'échéance qui avait été écrite.
  *
  * **Sauvegarde arrive avec son écran**, et pas avant : c'est la même règle qui l'avait
- * tenue dehors. Les deux dernières de [docs/02][parcours] — Apparence, À propos — n'y
- * figurent toujours pas, et pour la même raison : elles n'ouvriraient rien.
+ * tenue dehors. **Apparence arrive de la même façon**, le jour où le thème est devenu
+ * réglable. ~~À propos n'y figure toujours pas~~, et pour la raison inchangée : elle
+ * n'ouvrirait rien.
  *
  * [parcours]: docs/02-parcours-et-ecrans.md
  * [decisions]: docs/11-decisions.md
@@ -53,6 +54,7 @@ internal fun SettingsHubRoute(
     onOpenContribution: () -> Unit,
     onOpenBackup: () -> Unit,
     onOpenNotices: () -> Unit,
+    onOpenAppearance: () -> Unit,
     onClose: () -> Unit,
     viewModel: NoticeSettingsViewModel = hiltViewModel(),
 ) {
@@ -64,6 +66,7 @@ internal fun SettingsHubRoute(
         onOpenContribution = onOpenContribution,
         onOpenBackup = onOpenBackup,
         onOpenNotices = onOpenNotices,
+        onOpenAppearance = onOpenAppearance,
         onClose = onClose,
         aiFlagged = state.active.any { it == Notice.AI_NOT_CONFIGURED || it == Notice.AI_KEY_REJECTED },
     )
@@ -76,6 +79,7 @@ internal fun SettingsHubScreen(
     onOpenContribution: () -> Unit,
     onOpenBackup: () -> Unit,
     onOpenNotices: () -> Unit,
+    onOpenAppearance: () -> Unit,
     onClose: () -> Unit,
     /** La section d'IA porte une pastille : aucune clé ne sert, ou la dernière a été refusée. */
     aiFlagged: Boolean = false,
@@ -121,6 +125,11 @@ internal fun SettingsHubScreen(
                 titleRes = R.string.settings_notices_title,
                 subtitleRes = R.string.settings_notices_subtitle,
                 onClick = onOpenNotices,
+            )
+            SectionCard(
+                titleRes = R.string.settings_appearance_title,
+                subtitleRes = R.string.settings_appearance_subtitle,
+                onClick = onOpenAppearance,
             )
         }
     }
