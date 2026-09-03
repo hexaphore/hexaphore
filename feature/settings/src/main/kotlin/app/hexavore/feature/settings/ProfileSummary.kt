@@ -7,6 +7,9 @@ import androidx.compose.ui.res.stringResource
 import app.hexavore.core.designsystem.theme.Spacing
 import app.hexavore.domain.goal.GoalStrategy
 import app.hexavore.domain.nutrition.Macro
+import app.hexavore.domain.profile.UnitSystem
+import app.hexavore.domain.profile.centimetresToFeetAndInches
+import app.hexavore.domain.profile.kilogramsToPounds
 import kotlin.math.roundToInt
 
 /**
@@ -29,8 +32,8 @@ internal fun ProfileSummary(state: ProfileUiState) {
             SectionTitle(stringResource(R.string.profile_you_title))
             ReadLine(line(R.string.profile_label_birth, form.birthDate?.formatLong()))
             ReadLine(line(R.string.profile_label_sex, form.sex?.let { stringResource(it.labelRes) }))
-            ReadLine(line(R.string.profile_label_height, form.heightCm?.let { centimetres(it) }))
-            ReadLine(line(R.string.profile_label_weight, form.currentWeightKg?.let { kilogrammes(it) }))
+            ReadLine(line(R.string.profile_label_height, form.heightCm?.let { taille(it, state.units) }))
+            ReadLine(line(R.string.profile_label_weight, form.currentWeightKg?.let { poids(it, state.units) }))
             ReadLine(line(R.string.profile_label_activity, form.activityLevel?.let { stringResource(it.labelRes) }))
         }
 
@@ -40,7 +43,7 @@ internal fun ProfileSummary(state: ProfileUiState) {
             // Le maintien n'a ni cible ni echeance : afficher deux lignes « non
             // renseigne » ferait passer pour un oubli ce qui est la reponse exacte.
             if (form.strategy != null && form.strategy != GoalStrategy.MAINTAIN) {
-                ReadLine(line(R.string.profile_label_target, form.targetWeightKg?.let { kilogrammes(it) }))
+                ReadLine(line(R.string.profile_label_target, form.targetWeightKg?.let { poids(it, state.units) }))
                 ReadLine(line(R.string.profile_label_horizon, form.targetDate?.formatLong()))
             }
         }
@@ -86,8 +89,30 @@ private fun line(labelRes: Int, value: String?): String = stringResource(
     value ?: stringResource(R.string.profile_value_unknown),
 )
 
+/**
+ * Une taille, dans le systeme choisi.
+ *
+ * La conversion vient du domaine, comme celle des champs de saisie : deux copies de
+ * 2,54 auraient diverge le jour ou l une d elles gagne une decimale.
+ */
 @Composable
-private fun centimetres(value: Double): String = stringResource(R.string.profile_value_cm, formatDecimal(value))
+private fun taille(value: Double, units: UnitSystem): String = when (units) {
+    UnitSystem.METRIC -> stringResource(R.string.profile_value_cm, formatDecimal(value))
+    UnitSystem.IMPERIAL -> centimetresToFeetAndInches(value).let {
+        stringResource(R.string.profile_value_feet_inches, it.feet, it.inches)
+    }
+}
 
 @Composable
-private fun kilogrammes(value: Double): String = stringResource(R.string.profile_value_kg, formatDecimal(value))
+private fun poids(value: Double, units: UnitSystem): String = when (units) {
+    UnitSystem.METRIC -> stringResource(R.string.profile_value_kg, formatDecimal(value))
+    UnitSystem.IMPERIAL -> stringResource(
+        R.string.profile_value_pound,
+        formatDecimal(dixieme(kilogramsToPounds(value))),
+    )
+}
+
+/** Un dixieme de livre : 45 g, deja sous le bruit d une balance. */
+private fun dixieme(value: Double): Double = kotlin.math.round(value * TENTHS) / TENTHS
+
+private const val TENTHS = 10.0

@@ -85,6 +85,8 @@
     <string name="profile_label_horizon">Échéance</string>
     <string name="profile_value_cm">%1$s cm</string>
     <string name="profile_value_kg">%1$s kg</string>
+    <string name="profile_value_pound">%1$s lb</string>
+    <string name="profile_value_feet_inches">%1$d pi %2$d po</string>
     <string name="profile_value_unknown">non renseigné</string>
 
     <!-- Ce qui change, montré avant d'écrire. Corriger sa taille de deux centimètres
@@ -239,6 +241,10 @@
     <string name="appearance_theme_light">Clair</string>
     <string name="appearance_theme_dark">Sombre</string>
     <string name="appearance_theme_system">Suivre le système</string>
+    <string name="appearance_units_title">Unités</string>
+    <string name="appearance_units_metric">Métrique — g, ml, kg, cm</string>
+    <string name="appearance_units_imperial">Impérial — oz, fl oz, lb, pieds et pouces</string>
+    <string name="appearance_units_note">Ce réglage change ce qui est affiché et ce qu\'on propose de saisir. Rien n\'est converti dans vos données : un plat noté en grammes garde ses grammes, et vous pouvez basculer, regarder, puis revenir.</string>
     <string name="appearance_theme_note">« Suivre le système » reprend le réglage d\'Android, et bascule avec lui. C\'est ce que faisait l\'application avant que ce choix existe.</string>
 
     <!-- ===== Pastilles ============================================================

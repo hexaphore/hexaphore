@@ -1,6 +1,7 @@
 package app.hexavore.domain.diary
 
 import app.hexavore.domain.food.FoodServing
+import app.hexavore.domain.profile.UnitSystem
 
 /**
  * L'unité dans laquelle une quantité se saisit.
@@ -48,6 +49,31 @@ sealed interface QuantityUnit {
     }
 
     /**
+     * Une once, celle des étiquettes américaines.
+     *
+     * **Une unité de saisie de plus, et non une conversion d'affichage.** La ligne
+     * garde ce qui a été tapé et le poids d'une unité voyage avec elle, exactement
+     * comme « 1 tranche = 33 g » : ce que l'utilisateur a écrit est ce qui est
+     * enregistré, et relire un plat ne fait dériver aucun chiffre.
+     */
+    data object Ounce : QuantityUnit {
+        override val code: String = "oz"
+        override val gramsPerUnit: Double = GRAMS_PER_OUNCE
+    }
+
+    /**
+     * Une once liquide, ramenée en grammes par la même densité que le millilitre.
+     *
+     * L'écart est le même et il est isolé au même endroit : un litre de lait pèse
+     * 1,03 kg, et le jour où une source publie des densités, il n'y a qu'une ligne à
+     * corriger de chaque côté.
+     */
+    data object FluidOunce : QuantityUnit {
+        override val code: String = "fl oz"
+        override val gramsPerUnit: Double = MILLILITRES_PER_FLUID_OUNCE * DEFAULT_DENSITY
+    }
+
+    /**
      * Une portion nommée, avec le poids que sa fiche lui donne.
      *
      * Le poids voyage **avec** l'unité plutôt que d'être relu dans la fiche au
@@ -58,8 +84,19 @@ sealed interface QuantityUnit {
     data class Serving(override val code: String, override val gramsPerUnit: Double) : QuantityUnit
 
     companion object {
-        /** Les deux unités qu'un aliment propose toujours, quelle que soit sa fiche. */
-        val universal: List<QuantityUnit> = listOf(Gram, Millilitre)
+        /**
+         * Les deux unités qu'un aliment propose toujours, dans le système choisi.
+         *
+         * **Une paire et non les quatre.** Proposer grammes, millilitres, onces et
+         * onces liquides ensemble ferait une liste où l'on choisit son système à
+         * chaque ligne, alors que c'est un réglage. Ce qui reste saisissable malgré
+         * tout est ce que la ligne porte déjà — voir `DraftLine.units` : un plat noté
+         * en grammes se relit en grammes, même après avoir basculé.
+         */
+        fun universal(system: UnitSystem): List<QuantityUnit> = when (system) {
+            UnitSystem.METRIC -> listOf(Gram, Millilitre)
+            UnitSystem.IMPERIAL -> listOf(Ounce, FluidOunce)
+        }
 
         /**
          * L'unité correspondant à ce qui a été stocké.
@@ -76,6 +113,8 @@ sealed interface QuantityUnit {
         fun of(code: String, grams: Double, quantity: Double): QuantityUnit = when {
             code == Gram.code -> Gram
             code == Millilitre.code -> Millilitre
+            code == Ounce.code -> Ounce
+            code == FluidOunce.code -> FluidOunce
             quantity > 0.0 -> Serving(code, grams / quantity)
             else -> Gram
         }
@@ -87,3 +126,9 @@ sealed interface QuantityUnit {
 
 /** Densité par défaut, en g/ml. */
 private const val DEFAULT_DENSITY = 1.0
+
+/** L'once avoirdupois, définition légale et non arrondie. */
+private const val GRAMS_PER_OUNCE = 28.349523125
+
+/** L'once liquide **américaine** : celle du Royaume-Uni vaut 28,4 ml, et ce n'est pas la même. */
+private const val MILLILITRES_PER_FLUID_OUNCE = 29.5735295625

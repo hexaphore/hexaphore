@@ -4,6 +4,7 @@ import app.hexavore.domain.diary.DraftLine
 import app.hexavore.domain.diary.DraftLineId
 import app.hexavore.domain.diary.QuantityUnit
 import app.hexavore.domain.nutrition.NutrientValues
+import app.hexavore.domain.profile.UnitSystem
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -73,7 +74,7 @@ class FoodDraftLineTest {
 
         assertEquals(
             listOf("g", "ml", "1 pomme moyenne", "1 quartier"),
-            ligne.units.map { it.code },
+            ligne.units(UnitSystem.METRIC).map { it.code },
         )
     }
 
@@ -81,7 +82,7 @@ class FoodDraftLineTest {
     fun `une ligne tapee a la main ne propose aucune portion`() {
         // Sans fiche, rien ne peut dire ce que pese une tranche, et le demander a
         // l'utilisateur est exactement le travail qu'on veut lui epargner.
-        assertEquals(listOf("g", "ml"), DraftLine.blank(ID).units.map { it.code })
+        assertEquals(listOf("g", "ml"), DraftLine.blank(ID).units(UnitSystem.METRIC).map { it.code })
     }
 
     @Test

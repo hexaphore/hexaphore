@@ -1,6 +1,7 @@
 package app.hexavore.feature.entry
 
 import app.hexavore.domain.diary.DraftImpact
+import app.hexavore.domain.profile.UnitSystem
 import java.time.LocalDate
 
 /**
@@ -14,6 +15,13 @@ internal sealed interface EntryUiState {
 
     data class Content(
         val form: EntryForm,
+        /**
+         * Le système d'unités choisi, **pour le sélecteur d'une ligne et rien d'autre**.
+         *
+         * Il ne convertit rien : ce qu'une ligne porte reste ce qui a été saisi, et ce
+         * réglage décide seulement de la paire qu'on propose d'ajouter.
+         */
+        val units: UnitSystem,
         /**
          * `null` quand la journée n'a pas pu être lue.
          *

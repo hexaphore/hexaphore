@@ -2,6 +2,7 @@ package app.hexavore.feature.entry
 
 import app.hexavore.domain.diary.DraftLineId
 import app.hexavore.domain.diary.QuantityUnit
+import app.hexavore.domain.profile.UnitSystem
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -17,21 +18,21 @@ import org.junit.jupiter.api.Test
  * correction ne l'a pas touché. Le défaut a donc survécu à son propre correctif.
  *
  * Une règle écrite à deux endroits n'est pas la même règle : c'est deux règles qui se
- * ressemblent jusqu'au jour où l'une change. `EntryFormLine.units` délègue désormais,
+ * ressemblent jusqu'au jour où l'une change. `EntryFormLine.units(UnitSystem.METRIC)` délègue désormais,
  * et ces cas éprouvent le chemin que l'écran emprunte réellement.
  */
 class EntryFormLineUnitsTest {
     @Test
     fun `une ligne tapee a la main ne propose que les grammes et les millilitres`() {
         // Faute de fiche pour dire ce que pese une tranche.
-        assertEquals(QuantityUnit.universal, ligne().units)
+        assertEquals(QuantityUnit.universal(UnitSystem.METRIC), ligne().units(UnitSystem.METRIC))
     }
 
     @Test
     fun `une ligne propose les portions de sa fiche`() {
         val ligne = ligne(servings = listOf(BOL, TRANCHE))
 
-        assertEquals(QuantityUnit.universal + listOf(BOL, TRANCHE), ligne.units)
+        assertEquals(QuantityUnit.universal(UnitSystem.METRIC) + listOf(BOL, TRANCHE), ligne.units(UnitSystem.METRIC))
     }
 
     @Test
@@ -42,21 +43,27 @@ class EntryFormLineUnitsTest {
         // arrive donc avec « 1 bol » et aucune portion.
         val ligne = ligne(unit = BOL)
 
-        assertTrue(BOL in ligne.units, "« ${BOL.code} » doit rester choisissable, or ${ligne.units}")
+        assertTrue(
+            BOL in ligne.units(UnitSystem.METRIC),
+            "« ${BOL.code} » doit rester choisissable, or ${ligne.units(UnitSystem.METRIC)}",
+        )
     }
 
     @Test
     fun `l unite portee n apparait pas deux fois`() {
         val ligne = ligne(unit = BOL, servings = listOf(BOL))
 
-        assertEquals(1, ligne.units.count { it.code == BOL.code })
+        assertEquals(1, ligne.units(UnitSystem.METRIC).count { it.code == BOL.code })
     }
 
     @Test
     fun `la pastille de l unite portee est allumee`() {
         val ligne = ligne(unit = BOL)
 
-        assertTrue(ligne.units.any(ligne::chose), "aucune des ${ligne.units.size} pastilles ne s'allume")
+        assertTrue(
+            ligne.units(UnitSystem.METRIC).any(ligne::chose),
+            "aucune des ${ligne.units(UnitSystem.METRIC).size} pastilles ne s'allume",
+        )
     }
 
     @Test

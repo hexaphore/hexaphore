@@ -241,6 +241,7 @@ Les teneurs ne sont pas décoratives : elles permettent d'écarter un jus sans d
 
 ```
 G      → grammes tels quels
+OZ     → 28,349523125 g          FL OZ → 29,5735295625 ml × densité
 ML     → grammes × densité (1,00 par défaut ; 1,04 jus ; 1,03 lait ; 0,92 huile)
 PIECE  → table des portions usuelles ; à défaut, le poids que le modèle a estimé ; à défaut 100 g
 SLICE  → table des portions ; à défaut 30 g
@@ -253,6 +254,8 @@ Toute conversion appuyée sur un défaut plutôt que sur une donnée réelle est
 **Le poids que le modèle estime passe avant tout forfait, jamais avant une mesure** ([D112](11-decisions.md#d112--le-modèle-pèse-ce-quil-compte-parce-quune-pièce-ne-dit-rien-de-sa-taille---validée)). Les autres unités portent leur ordre de grandeur — une tranche fait trente grammes à peu près toujours —, mais « une pièce » n'en porte aucun : une cacahuète pèse moins d'un gramme, une pomme cent cinquante, et les cent grammes du tableau ci-dessus faisaient **cinq cents grammes de cinq cacahuètes**. Le modèle, lui, a vu l'assiette. Chaque ligne reconnue porte donc un poids total, et le forfait ne sert plus que lorsque personne ne s'est prononcé. La ligne reste signalée comme estimée : il a estimé, il n'a pas pesé.
 
 **Ces forfaits ne sont qu'un repli : la portion nommée de la fiche l'emporte toujours.** Le tableau ci-dessus ne réservait cette clause qu'à `PIECE` et `SLICE`, et il se trompait — `servings.csv` porte « 1 bol » à **40 g** pour des céréales, contre les 250 g du forfait. La règle vaut pour toutes les unités nommées : tranche, bol, verre, cuillère à soupe, cuillère à café. L'assiette est la seule exception, et c'est volontaire — elle n'est pas une propriété de l'aliment, donc aucune fiche ne peut la mesurer ([D73](11-decisions.md#d73--la-portion-de-la-fiche-lemporte-sur-le-forfait-et-la-densité-attend-son-auteur---validée)).
+
+**Les deux unités impériales sont des unités de saisie**, pas une conversion d'affichage ([D114](11-decisions.md#d114--lonce-est-une-unité-de-saisie-la-livre-un-affichage---validée)) : une ligne garde ce qui a été tapé, avec le poids d'une unité qui voyage avec elle — exactement comme une portion nommée. Le réglage décide de la paire proposée, et un plat déjà noté garde la sienne.
 
 **La densité n'est pas une colonne de `food`.** Aucune source ne la publie — CIQUAL ne la donne pas, Open Food Facts pas davantage — et les trois valeurs ci-dessus ne se rattachent à une fiche qu'en devinant à partir de son nom. Elle est donc un paramètre de la conversion, nul aujourd'hui : un millilitre pèse un gramme, et le dit. La colonne naîtra avec ce qui l'écrira, un `densities.csv` sur le modèle de `servings.csv` étant le candidat le plus simple.
 

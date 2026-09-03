@@ -8,6 +8,7 @@ import app.hexavore.domain.goal.GoalStrategy
 import app.hexavore.domain.goal.Goals
 import app.hexavore.domain.nutrition.Macro
 import app.hexavore.domain.profile.Profiles
+import app.hexavore.domain.profile.UnitSystem
 import app.hexavore.domain.profile.WeightLog
 import app.hexavore.domain.time.Clock
 import app.hexavore.domain.usecase.CalculateDailyGoal
@@ -54,8 +55,10 @@ internal class ProfileViewModel @Inject constructor(
             val outcome = runCatching { read() }
             state.update { current ->
                 outcome.fold(
-                    onSuccess = { (form, saved) ->
-                        current.copy(loaded = true, form = form, saved = saved).planned(calculate)
+                    onSuccess = { lu ->
+                        current
+                            .copy(loaded = true, form = lu.form, saved = lu.goal, units = lu.units)
+                            .planned(calculate)
                     },
                     // Un echec de lecture se dit (D39). Presenter un formulaire vide
                     // laisserait croire qu'aucun profil n'existe, et l'enregistrer
@@ -146,7 +149,10 @@ internal class ProfileViewModel @Inject constructor(
         }
     }
 
-    private suspend fun read(): Pair<ProfileForm, DailyGoal?> {
+    /** Ce qu'une lecture rapporte : le formulaire, l'objectif enregistré, et les unités. */
+    private data class Loaded(val form: ProfileForm, val goal: DailyGoal?, val units: UnitSystem)
+
+    private suspend fun read(): Loaded {
         val profile = profiles.observeProfile().first()
         val weight = weights.observeLatest().first()
         val goal = goals.observeCurrent().first()
@@ -165,7 +171,7 @@ internal class ProfileViewModel @Inject constructor(
             manual = goal?.origin == GoalOrigin.MANUAL,
             macros = if (goal?.origin == GoalOrigin.MANUAL) goal.daily.toMacros() else emptyMap(),
         )
-        return form to goal?.daily
+        return Loaded(form, goal?.daily, profile?.unitSystem ?: UnitSystem.METRIC)
     }
 }
 

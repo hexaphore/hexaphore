@@ -13,6 +13,7 @@ import app.hexavore.domain.food.Food
 import app.hexavore.domain.food.FoodId
 import app.hexavore.domain.nutrition.Macro
 import app.hexavore.domain.nutrition.NutrientValues
+import app.hexavore.domain.profile.UnitSystem
 import java.time.LocalDate
 import kotlin.math.roundToInt
 
@@ -169,7 +170,7 @@ internal data class EntryFormLine(
      * Une règle écrite à deux endroits n'est pas la même règle : c'est deux règles qui
      * se ressemblent jusqu'au jour où l'une change.
      */
-    val units: List<QuantityUnit> get() = toDraftLine().units
+    fun units(system: UnitSystem): List<QuantityUnit> = toDraftLine().units(system)
 
     /**
      * Cette unité est-elle celle que la ligne porte ?

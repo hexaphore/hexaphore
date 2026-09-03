@@ -31,6 +31,7 @@ import app.hexavore.core.designsystem.component.isWholeNumberField
 import app.hexavore.core.designsystem.theme.NeonTheme
 import app.hexavore.core.designsystem.theme.Spacing
 import app.hexavore.domain.nutrition.Macro
+import app.hexavore.domain.profile.UnitSystem
 import kotlin.math.roundToInt
 
 /**
@@ -48,6 +49,7 @@ import kotlin.math.roundToInt
 internal fun LineEditor(
     line: EntryFormLine,
     actions: EntryActions,
+    units: UnitSystem,
     modifier: Modifier = Modifier,
     flagged: MissingField? = null,
 ) {
@@ -69,7 +71,7 @@ internal fun LineEditor(
             key(line.substitutions) {
                 NameRow(line, actions, flagged == MissingField.NAME)
                 SuggestionRow(line, actions)
-                QuantityRow(line, actions, flagged == MissingField.QUANTITY)
+                QuantityRow(line, actions, units, flagged == MissingField.QUANTITY)
                 MacroGrid(line, actions, flagged == MissingField.CALORIES)
                 // Sous la grille et non a cote du champ d'energie : la proposition
                 // se deduit des trois autres valeurs, et la placer contre l'une
@@ -249,7 +251,7 @@ private fun SuggestionRow(line: EntryFormLine, actions: EntryActions) {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun QuantityRow(line: EntryFormLine, actions: EntryActions, flagged: Boolean = false) {
+private fun QuantityRow(line: EntryFormLine, actions: EntryActions, units: UnitSystem, flagged: Boolean = false) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         DraftTextField(
             initial = line.quantity,
@@ -261,7 +263,7 @@ private fun QuantityRow(line: EntryFormLine, actions: EntryActions, flagged: Boo
             accept = String::isNumberField,
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            line.units.forEach { unit ->
+            line.units(units).forEach { unit ->
                 FilterChip(
                     selected = line.chose(unit),
                     onClick = { actions.onLineEdit(line.id, LineEdit.Measurement(unit)) },

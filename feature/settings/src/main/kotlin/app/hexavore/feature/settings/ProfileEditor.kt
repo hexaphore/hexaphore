@@ -12,16 +12,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.input.KeyboardType
-import app.hexavore.core.designsystem.component.DraftTextField
+import app.hexavore.core.designsystem.component.BodyWeightField
+import app.hexavore.core.designsystem.component.HeightFields
 import app.hexavore.core.designsystem.component.NeonChip
 import app.hexavore.core.designsystem.component.NeonDateField
-import app.hexavore.core.designsystem.component.isNumberField
 import app.hexavore.core.designsystem.theme.Spacing
 import app.hexavore.domain.goal.GoalHorizon
 import app.hexavore.domain.goal.GoalStrategy
 import app.hexavore.domain.profile.ActivityLevel
 import app.hexavore.domain.profile.Sex
+import app.hexavore.domain.profile.UnitSystem
 import app.hexavore.domain.usecase.GoalPlan
 import java.time.LocalDate
 import kotlin.math.abs
@@ -31,9 +31,9 @@ import kotlin.math.abs
 internal fun ProfileEditor(state: ProfileUiState, actions: ProfileActions) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         Body(stringResource(R.string.profile_history_note))
-        YouSection(state.form, state.today, actions.onForm)
+        YouSection(state.form, state.today, state.units, actions.onForm)
         ActivitySection(state.form, actions.onForm)
-        ObjectiveSection(state.form, state.today, state.plan, actions.onForm)
+        ObjectiveSection(state.form, state.today, state.plan, state.units, actions.onForm)
         CountersSection(state, actions)
         if (state.failed) Body(stringResource(R.string.profile_save_failed))
     }
@@ -48,7 +48,7 @@ internal fun ProfileEditor(state: ProfileUiState, actions: ProfileActions) {
  * aucune, et l'écran le dit.
  */
 @Composable
-private fun YouSection(form: ProfileForm, today: LocalDate, onForm: (ProfileForm) -> Unit) {
+private fun YouSection(form: ProfileForm, today: LocalDate, units: UnitSystem, onForm: (ProfileForm) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         SectionTitle(stringResource(R.string.profile_you_title))
 
@@ -70,15 +70,17 @@ private fun YouSection(form: ProfileForm, today: LocalDate, onForm: (ProfileForm
         )
         if (form.sex == Sex.UNSPECIFIED) Body(stringResource(R.string.profile_sex_unspecified_note))
 
-        NumberField(
-            value = form.heightCm,
+        HeightFields(
+            centimetres = form.heightCm,
+            units = units,
             label = stringResource(R.string.profile_height),
-            onValueChange = { onForm(form.copy(heightCm = it)) },
+            onCentimetres = { onForm(form.copy(heightCm = it)) },
         )
-        NumberField(
-            value = form.currentWeightKg,
+        BodyWeightField(
+            kilograms = form.currentWeightKg,
+            units = units,
             label = stringResource(R.string.profile_weight),
-            onValueChange = { onForm(form.copy(currentWeightKg = it)) },
+            onKilograms = { onForm(form.copy(currentWeightKg = it)) },
         )
         Body(stringResource(R.string.profile_weight_note))
     }
@@ -114,7 +116,13 @@ private fun ActivitySection(form: ProfileForm, onForm: (ProfileForm) -> Unit) {
  * [decisions]: docs/11-decisions.md
  */
 @Composable
-private fun ObjectiveSection(form: ProfileForm, today: LocalDate, plan: GoalPlan?, onForm: (ProfileForm) -> Unit) {
+private fun ObjectiveSection(
+    form: ProfileForm,
+    today: LocalDate,
+    plan: GoalPlan?,
+    units: UnitSystem,
+    onForm: (ProfileForm) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         SectionTitle(stringResource(R.string.profile_objective_title))
 
@@ -128,10 +136,11 @@ private fun ObjectiveSection(form: ProfileForm, today: LocalDate, plan: GoalPlan
         if (form.strategy != null && form.strategy != GoalStrategy.MAINTAIN) {
             if (form.manual) Body(stringResource(R.string.profile_manual_horizon_note))
 
-            NumberField(
-                value = form.targetWeightKg,
+            BodyWeightField(
+                kilograms = form.targetWeightKg,
+                units = units,
                 label = stringResource(R.string.profile_target_weight),
-                onValueChange = { onForm(form.copy(targetWeightKg = it)) },
+                onKilograms = { onForm(form.copy(targetWeightKg = it)) },
             )
 
             form.targetDate?.let { Body(stringResource(R.string.profile_horizon_current, it.formatLong())) }
@@ -197,21 +206,6 @@ internal fun ModeSwitch(manual: Boolean, onManual: (Boolean) -> Unit) {
         // qui le porte. Sans cela, TalkBack annoncerait deux cibles pour une decision.
         Switch(checked = manual, onCheckedChange = null)
     }
-}
-
-@Composable
-private fun NumberField(value: Double?, label: String, onValueChange: (Double?) -> Unit) {
-    DraftTextField(
-        initial = value?.let { formatDecimal(it) }.orEmpty(),
-        onValueChange = { text -> onValueChange(text.replace(',', '.').toDoubleOrNull()) },
-        label = label,
-        keyboardType = KeyboardType.Decimal,
-        // Le champ refuse une frappe non numerique au lieu de l'accepter puis de la
-        // nettoyer : nettoyer obligerait a reecrire le texte affiche, donc a
-        // repositionner le curseur (D45).
-        accept = { it.isNumberField() },
-        modifier = Modifier.fillMaxWidth(),
-    )
 }
 
 @Composable

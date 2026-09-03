@@ -1,5 +1,6 @@
 package app.hexavore.domain.diary
 
+import app.hexavore.domain.profile.UnitSystem
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -16,14 +17,14 @@ import org.junit.jupiter.api.Test
 class DraftLineUnitsTest {
     @Test
     fun `une ligne propose toujours les grammes et les millilitres`() {
-        assertEquals(QuantityUnit.universal, ligne().units)
+        assertEquals(QuantityUnit.universal(UnitSystem.METRIC), ligne().units(UnitSystem.METRIC))
     }
 
     @Test
     fun `une ligne propose les portions de sa fiche`() {
         val ligne = ligne(servings = listOf(BOL, TRANCHE))
 
-        assertEquals(QuantityUnit.universal + listOf(BOL, TRANCHE), ligne.units)
+        assertEquals(QuantityUnit.universal(UnitSystem.METRIC) + listOf(BOL, TRANCHE), ligne.units(UnitSystem.METRIC))
     }
 
     @Test
@@ -31,14 +32,17 @@ class DraftLineUnitsTest {
         // Le cas du plat rouvert : l'unite a survecu, ses portions non.
         val ligne = ligne(unit = BOL)
 
-        assertTrue(BOL in ligne.units, "« ${BOL.code} » doit rester choisissable, or ${ligne.units}")
+        assertTrue(
+            BOL in ligne.units(UnitSystem.METRIC),
+            "« ${BOL.code} » doit rester choisissable, or ${ligne.units(UnitSystem.METRIC)}",
+        )
     }
 
     @Test
     fun `l unite portee n apparait pas deux fois`() {
         val ligne = ligne(unit = BOL, servings = listOf(BOL))
 
-        assertEquals(1, ligne.units.count { it.code == BOL.code })
+        assertEquals(1, ligne.units(UnitSystem.METRIC).count { it.code == BOL.code })
     }
 
     @Test
@@ -48,7 +52,7 @@ class DraftLineUnitsTest {
         // liste ne se distingueraient pas a l'oeil.
         val ligne = ligne(unit = BOL, servings = listOf(QuantityUnit.Serving(BOL.code, 260.0)))
 
-        assertEquals(1, ligne.units.count { it.code == BOL.code })
+        assertEquals(1, ligne.units(UnitSystem.METRIC).count { it.code == BOL.code })
     }
 
     private fun ligne(unit: QuantityUnit = QuantityUnit.Gram, servings: List<QuantityUnit.Serving> = emptyList()) =
