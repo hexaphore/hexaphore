@@ -180,6 +180,7 @@ private fun DraftEditor(state: EntryUiState.Content, actions: EntryActions) {
                 LineEditor(
                     line = line,
                     actions = actions,
+                    units = state.units,
                     flagged = line.missing.takeIf { line.id == flagged },
                 )
             }

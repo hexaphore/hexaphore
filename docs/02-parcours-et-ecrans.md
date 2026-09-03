@@ -37,7 +37,7 @@ Cinq étapes, une question par écran, barre de progression en haut. **L'applica
 
 Le sexe propose **Homme / Femme / Je préfère ne pas répondre**. La formule de Mifflin-St Jeor n'a que deux variantes ; la troisième option applique la moyenne des deux, et l'écran le dit : *« Nous utiliserons une estimation intermédiaire, que vous pourrez ajuster ensuite. »* Cacher ce détail produirait un chiffre inexplicable.
 
-Unités : kg et cm par défaut, lb et ft/in disponibles dans les réglages, conversion à l'affichage uniquement — **le stockage est toujours métrique** (voir [07](07-modele-de-donnees.md)).
+~~Unités : kg et cm par défaut, lb et ft/in disponibles dans les réglages, conversion à l'affichage uniquement.~~ **L'onboarding est métrique, sans réglage possible** : le système d'unités vit sur le profil que ces questions créent, donc il n'existe pas encore quand elles se posent. Il se choisit juste après, dans Apparence, et rien n'est perdu — **le stockage est toujours métrique** (voir [07](07-modele-de-donnees.md)), et pour le corps la conversion n'est qu'un affichage. Les quantités d'aliments, elles, ne se convertissent pas : l'once est une unité de saisie de plus ([D114](11-decisions.md#d114--lonce-est-une-unité-de-saisie-la-livre-un-affichage---validée)).
 
 **3. Activité.** Cinq niveaux, chacun décrit par un exemple concret plutôt que par un adjectif. « Modérément actif » ne veut rien dire ; « sport 3 à 5 fois par semaine » se répond en une seconde.
 
@@ -307,7 +307,13 @@ Chaque ligne de l'écran montre si sa pastille est allumée **en ce moment** : u
 
 **Apparence** — ~~thème (sombre / clair / système), langue, unités (métrique / impérial), animations réduites~~. **Le thème est livré** ([D113](11-decisions.md#d113--apparence-existe-et-suivre-le-système-est-un-choix---validée)) : trois choix exclusifs, « suivre le système » par défaut et par continuité — c'est ce que l'application faisait avant que le réglage existe. Un interrupteur n'aurait pas su dire « suivre », et le troisième état se serait deviné.
 
-Le réglage vit dans **son propre fichier** — effacer ses clés d'IA n'a aucune raison de changer les couleurs — et **ne part pas dans la sauvegarde** : c'est une préférence d'appareil, là où le système d'unités est une propriété du profil et voyage avec lui. *Les unités, la langue et les animations réduites restent à faire.*
+Le réglage vit dans **son propre fichier** — effacer ses clés d'IA n'a aucune raison de changer les couleurs — et **ne part pas dans la sauvegarde** : c'est une préférence d'appareil, là où le système d'unités est une propriété du profil et voyage avec lui.
+
+**Unités** — métrique ou impérial ([D114](11-decisions.md#d114--lonce-est-une-unité-de-saisie-la-livre-un-affichage---validée)). Le réglage **ne convertit rien** : les lignes du journal gardent l'unité dans laquelle elles ont été saisies, la base garde ses kilogrammes et ses centimètres, et l'on peut basculer, regarder, puis revenir sans qu'un chiffre ait bougé.
+
+En impérial, une ligne se saisit en **oz** ou **fl oz** — une unité de plus dans la liste, comme « 1 tranche » —, le corps s'affiche et se saisit en **livres** et en **pieds et pouces**, et la taille prend alors deux champs plutôt qu'un : personne n'énonce sa taille en pouces. Les **macros restent en grammes**, comme sur les étiquettes américaines.
+
+*La langue et les animations réduites restent à faire. L'onboarding reste métrique : le réglage vit sur le profil qu'il crée, donc il n'existe pas encore quand ses questions se posent.*
 
 **À propos** — version, lien du dépôt, licence, attributions CIQUAL et Open Food Facts, avertissement médical, lien de don *(variante hors Play Store uniquement, voir [10](10-qualite-et-livraison.md#variantes-de-build))*.
 

@@ -4,6 +4,8 @@ import app.hexavore.data.profile.RoomProfileStore
 import app.hexavore.domain.goal.Goals
 import app.hexavore.domain.profile.Profiles
 import app.hexavore.domain.profile.WeightLog
+import app.hexavore.domain.usecase.ChooseUnitSystem
+import app.hexavore.domain.usecase.ObserveUnitSystem
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -28,4 +30,17 @@ object ProfileModule {
 
     @Provides
     fun goals(store: RoomProfileStore): Goals = store
+
+    /**
+     * Le systeme d unites, lu et choisi.
+     *
+     * Ici et non dans un module d apparence : le reglage est une colonne du profil, et
+     * c est ce qui le fait voyager dans la sauvegarde -- contrairement au theme, qui
+     * est une preference d appareil.
+     */
+    @Provides
+    fun observeUnitSystem(profiles: Profiles): ObserveUnitSystem = ObserveUnitSystem(profiles)
+
+    @Provides
+    fun chooseUnitSystem(profiles: Profiles): ChooseUnitSystem = ChooseUnitSystem(profiles)
 }

@@ -3594,6 +3594,62 @@ Et surtout : **rien ne dit que la palette claire soit lisible.** Elle existe dep
 
 ---
 
+## D114 — L'once est une unité de saisie, la livre un affichage · ✓ validée
+
+**Contexte.** `UnitSystem` était modélisé, persisté et écrit dans la sauvegarde depuis la 0.1. **Aucun écran ne le lisait ni ne l'écrivait.** L'application promettait l'impérial dans son modèle de données et le refusait partout ailleurs.
+
+### Deux moitiés qui ne se traitent pas pareil
+
+La question posée était « tout convertir, quantités d'aliments comprises ». En lisant le code, une découverte a changé la réponse : `QuantityUnit` est déjà un type **ouvert** — un code et un poids par unité — et une ligne de journal stocke **la quantité dans l'unité choisie**, pas en grammes. « 1 tranche = 33 g » existait depuis [D42][decisions].
+
+D'où deux traitements, et la différence n'est pas un caprice :
+
+**Les quantités d'aliments : une unité de plus.** `oz` et `fl oz` rejoignent la liste. Ce qui est tapé est ce qui est enregistré, avec son équivalence en grammes qui voyage avec la ligne. Aucune dérive, aucun écran de lecture à changer, et une ligne de journal reste **le registre de ce qui s'est passé** — « j'ai mangé 6 oz ».
+
+**Le corps : un affichage.** La base porte `weight_kg` et `height_cm` ; ces colonnes ne bougent pas. Un poids corporel est une **mesure unique dont l'unité n'appartient qu'à celui qui la lit**, là où une ligne de journal est un événement daté. Convertir au stockage aurait rendu un profil exporté dépendant du réglage de qui le restaure.
+
+### Ce que le réglage ne fait pas
+
+**Il ne convertit rien.** On peut basculer, regarder, et revenir sans qu'un seul chiffre ait bougé. C'est la propriété qui rend le réglage sans danger, et elle vient de ce que ni les lignes ni les colonnes ne dépendent de lui.
+
+**Il ne rend rien illisible.** La paire impériale ne propose plus le gramme — c'est ce qui a été demandé, une liste où l'on choisit son système à chaque ligne n'étant pas un réglage. Mais un plat noté en grammes garde les siens : `DraftLine.units` ajoutait déjà l'unité que la ligne porte, une correction écrite pour « 1 bol » et qui protège ici sans une ligne de plus.
+
+### La dérive, et pourquoi il n'y en a pas
+
+Convertir à l'affichage pose toujours le même piège : 70 kg montré 154,3 lb, ré-enregistré 69,99 kg, et le poids glisse à chaque aller-retour.
+
+Il n'y en a pas ici, et c'est [D45][decisions] qui l'évite : **les champs sont non contrôlés**. Ils tiennent leur propre texte et ne rendent une valeur que si quelqu'un a frappé une touche. Un profil qu'on ouvre puis referme ressort avec le chiffre exact qui y était ; seule une saisie réelle convertit, et ce que l'utilisateur vient de taper fait alors autorité.
+
+### La taille change la forme du formulaire
+
+Deux champs — pieds, pouces — parce que personne n'énonce sa taille en pouces. C'est le seul endroit où le réglage change la **structure** d'un écran et non seulement ses libellés, et c'est le prix d'une saisie qu'on n'a pas à calculer soi-même.
+
+**Les pouces s'arrondissent avant d'être répartis.** Arrondir après la division laisserait douze pouces dans un pied : 182,88 cm s'écrirait « 5 pi 12 po », ce qui ne s'écrit pas.
+
+### Ce qui ne change pas d'unité
+
+**Les macros restent en grammes.** Les étiquettes nutritionnelles américaines les donnent ainsi — « Protein 12 g » — et un objectif de « 4,2 oz de protéines » ne ressemblerait à aucun emballage. Convertir aurait été *moins* familier à un utilisateur impérial, pas plus.
+
+**L'onboarding reste métrique**, et ce n'est pas un oubli : le réglage vit sur le profil que l'onboarding crée, donc il n'existe pas encore quand ses questions se posent. Le choix se fait juste après, et comme rien n'est converti au stockage, rien n'est perdu. Un défaut déduit de la région de l'appareil le comblerait ; il demanderait un port de plus, et cette livraison ne l'a pas ouvert.
+
+### Un endroit qui décide, deux qui lisent
+
+`ObserveUnitSystem` répond à la question, et `ChooseUnitSystem` l'écrit. Le sélecteur d'une ligne, le journal de poids et l'écran de profil la posent tous ; chacun lisant `Profiles` pour son compte, chacun aurait décidé ce que vaut un profil absent — et l'un d'eux aurait fini par décider autrement. C'est [D111](#d111--une-règle-se-vérifie-aux-portes-pas-seulement-à-la-fabrique---validée), appliquée avant qu'elle ne coûte quelque chose.
+
+Les conversions du corps vivent au **bord du champ**, dans un composable partagé du design system. Trois copies dans trois modules auraient divergé le jour où l'une apprend quelque chose — c'est la leçon que ce projet a déjà payée deux fois cette semaine.
+
+**Campagne de défaite : treize sabotages, treize cas tombés.**
+
+**Conséquences.** Deux unités, deux cas d'usage, un fichier de conversions corporelles, deux composables partagés. `QuantityUnit.universal` et `DraftLine.units` prennent un système : c'est la seule rupture d'API, et elle n'avait qu'un appelant de production.
+
+**Ce que le vert ne prouve pas.** **Qu'un utilisateur impérial s'y retrouve.** Les cas affirment des conversions et des listes ; aucun ne dit qu'un formulaire à deux champs se remplit bien au pouce près sur un téléphone. Il faut basculer et saisir sa taille.
+
+Rien ne dit non plus que **l'once soit l'unité qu'on veut** pour un aliment : les emballages américains portent souvent des tasses et des cuillères, que la table des portions couvre déjà par fiche. Six onces de riz est une phrase correcte, pas forcément une phrase courante.
+
+Et **l'onboarding n'a pas été touché** : sa première impression reste métrique pour tout le monde, ce qui est le seul endroit où l'application demande une mesure avant de savoir dans quel système la demander.
+
+---
+
 ## Décisions prises par défaut, à confirmer
 
 Ces points n'ont pas été arbitrés explicitement. J'ai tranché pour que la spécification soit complète et cohérente ; chacun se change sans rien casser à ce stade.

@@ -26,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.hexavore.core.designsystem.component.ScreenTopBar
 import app.hexavore.core.designsystem.theme.Spacing
 import app.hexavore.domain.appearance.ThemeMode
+import app.hexavore.domain.profile.UnitSystem
 
 /**
  * L'apparence de l'application.
@@ -46,11 +47,21 @@ import app.hexavore.domain.appearance.ThemeMode
 internal fun AppearanceRoute(onClose: () -> Unit, viewModel: AppearanceViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    AppearanceScreen(state = state, onTheme = viewModel::onTheme, onClose = onClose)
+    AppearanceScreen(
+        state = state,
+        onTheme = viewModel::onTheme,
+        onUnits = viewModel::onUnits,
+        onClose = onClose,
+    )
 }
 
 @Composable
-private fun AppearanceScreen(state: AppearanceUiState, onTheme: (ThemeMode) -> Unit, onClose: () -> Unit) {
+private fun AppearanceScreen(
+    state: AppearanceUiState,
+    onTheme: (ThemeMode) -> Unit,
+    onUnits: (UnitSystem) -> Unit,
+    onClose: () -> Unit,
+) {
     Scaffold(
         topBar = {
             ScreenTopBar(
@@ -79,18 +90,42 @@ private fun AppearanceScreen(state: AppearanceUiState, onTheme: (ThemeMode) -> U
                     // sans qu'une ligne d'affichage bouge, et sans libelle il ne
                     // compilerait pas.
                     ThemeMode.entries.forEach { mode ->
-                        ThemeRow(mode = mode, selected = mode == state.theme, onSelect = { onTheme(mode) })
+                        ChoiceRow(
+                            labelRes = mode.labelRes,
+                            selected = mode == state.theme,
+                            onSelect = { onTheme(mode) },
+                        )
                     }
                 }
             }
 
             Body(stringResource(R.string.appearance_theme_note))
+
+            SectionTitle(stringResource(R.string.appearance_units_title))
+
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(Spacing.cardPadding).selectableGroup(),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                ) {
+                    UnitSystem.entries.forEach { system ->
+                        ChoiceRow(
+                            labelRes = system.labelRes,
+                            selected = system == state.units,
+                            onSelect = { onUnits(system) },
+                        )
+                    }
+                }
+            }
+
+            Body(stringResource(R.string.appearance_units_note))
         }
     }
 }
 
+/** Une ligne à choix unique. Les deux réglages posent la même question, et la posent pareil. */
 @Composable
-private fun ThemeRow(mode: ThemeMode, selected: Boolean, onSelect: () -> Unit) {
+private fun ChoiceRow(labelRes: Int, selected: Boolean, onSelect: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -102,7 +137,7 @@ private fun ThemeRow(mode: ThemeMode, selected: Boolean, onSelect: () -> Unit) {
         // l'interieur d'une ligne cliquable annoncerait deux cibles pour une seule.
         RadioButton(selected = selected, onClick = null)
         Text(
-            text = stringResource(mode.labelRes),
+            text = stringResource(labelRes),
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(start = Spacing.sm),
         )
@@ -120,4 +155,11 @@ private val ThemeMode.labelRes: Int
         ThemeMode.LIGHT -> R.string.appearance_theme_light
         ThemeMode.DARK -> R.string.appearance_theme_dark
         ThemeMode.SYSTEM -> R.string.appearance_theme_system
+    }
+
+/** Le libellé d'un système d'unités, par la même table et pour la même raison. */
+private val UnitSystem.labelRes: Int
+    get() = when (this) {
+        UnitSystem.METRIC -> R.string.appearance_units_metric
+        UnitSystem.IMPERIAL -> R.string.appearance_units_imperial
     }

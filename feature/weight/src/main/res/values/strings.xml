@@ -7,6 +7,7 @@
     <!-- Poids et masses sont toujours stockés en kilogrammes ; l'impérial est une
          conversion d'affichage, jamais de stockage (docs/07). -->
     <string name="weight_kg">%1$.1f kg</string>
+    <string name="weight_pound">%1$.1f lb</string>
 
     <!-- Une courbe ne se lit pas au doigt : le lecteur d'écran reçoit le nombre de
          mesures, et la liste en dessous porte les chiffres. -->
@@ -38,6 +39,7 @@
     <string name="weight_add">Ajouter une pesée</string>
     <string name="weight_add_title">Nouvelle pesée</string>
     <string name="weight_field">Poids en kilogrammes</string>
+    <string name="weight_field_pound">Poids en livres</string>
     <string name="weight_date_field">Date de la pesée</string>
     <string name="weight_add_confirm">Enregistrer</string>
     <string name="weight_add_cancel">Annuler</string>

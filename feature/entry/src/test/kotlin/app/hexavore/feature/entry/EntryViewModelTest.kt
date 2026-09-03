@@ -6,6 +6,7 @@ import app.hexavore.core.testing.InMemoryDiaryRepository
 import app.hexavore.core.testing.InMemoryFavoriteDishes
 import app.hexavore.core.testing.InMemoryFoodCatalog
 import app.hexavore.core.testing.InMemoryGoals
+import app.hexavore.core.testing.InMemoryProfiles
 import app.hexavore.core.testing.InMemorySelectedDay
 import app.hexavore.core.testing.SequentialIdGenerator
 import app.hexavore.domain.ai.EstimatedUnit
@@ -34,6 +35,7 @@ import app.hexavore.domain.usecase.GetDishDraft
 import app.hexavore.domain.usecase.GetFavoriteDraft
 import app.hexavore.domain.usecase.LogDish
 import app.hexavore.domain.usecase.NextFavoriteNumber
+import app.hexavore.domain.usecase.ObserveUnitSystem
 import app.hexavore.domain.usecase.OpenDraft
 import app.hexavore.domain.usecase.RemoveFavoriteDish
 import app.hexavore.domain.usecase.ResolveFoodLabel
@@ -391,21 +393,24 @@ class EntryViewModelTest {
                 "proposal" to proposal,
             ).toMap(),
         ),
-        openDraft = OpenDraft(
-            dishes = GetDishDraft(diary, ids),
-            favorites = GetFavoriteDraft(favoris, catalogue, create, ids),
-            create = create,
-            foods = catalogue,
-            pending = pending,
-            resolve = ResolveRecognition(
-                ResolveFoodLabel(catalogue),
-                create,
-                // Aucun repli : ces cas ne parlent pas de l'etape 4, et un estimateur
-                // qui repondrait remplirait des lignes qu'ils veulent vides.
-                estimate = { EstimationOutcome.Estimated(emptyList()) },
+        composition = DraftComposition(
+            openDraft = OpenDraft(
+                dishes = GetDishDraft(diary, ids),
+                favorites = GetFavoriteDraft(favoris, catalogue, create, ids),
+                create = create,
+                foods = catalogue,
+                pending = pending,
+                resolve = ResolveRecognition(
+                    ResolveFoodLabel(catalogue),
+                    create,
+                    // Aucun repli : ces cas ne parlent pas de l'etape 4, et un estimateur
+                    // qui repondrait remplirait des lignes qu'ils veulent vides.
+                    estimate = { EstimationOutcome.Estimated(emptyList()) },
+                ),
             ),
+            addFoodLine = AddFoodLine(catalogue, create),
+            observeUnitSystem = ObserveUnitSystem(profils),
         ),
-        addFoodLine = AddFoodLine(catalogue, create),
         getDaySummary = GetDaySummary(diary, goals, clock),
         saveDraft = SaveDraft(LogDish(diary, catalogue, favoris, clock, ids), UpdateDish(diary, ids)),
         favorites = DraftFavorites(
@@ -416,6 +421,8 @@ class EntryViewModelTest {
         ),
         clock = clock,
     )
+
+    private val profils = InMemoryProfiles()
 
     private val favoris = InMemoryFavoriteDishes()
 

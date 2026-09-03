@@ -30,6 +30,8 @@ import app.hexavore.core.designsystem.component.AdjustmentCard
 import app.hexavore.core.designsystem.component.ScreenTopBar
 import app.hexavore.core.designsystem.theme.Spacing
 import app.hexavore.domain.goal.AdjustmentSuggestion
+import app.hexavore.domain.profile.UnitSystem
+import app.hexavore.domain.profile.kilogramsToPounds
 import app.hexavore.domain.usecase.AdjustmentResponse
 import app.hexavore.domain.usecase.TrendPoint
 import java.time.LocalDate
@@ -124,6 +126,7 @@ internal fun WeightScreen(
         RecordWeightDialog(
             today = today,
             initialKg = (state as? WeightUiState.Loaded)?.trend?.latest?.weightKg,
+            units = (state as? WeightUiState.Loaded)?.units ?: UnitSystem.METRIC,
             onConfirm = { date, kg ->
                 onRecord(date, kg)
                 recording = false
@@ -154,13 +157,13 @@ private fun Journal(state: WeightUiState.Loaded) {
     if (state.trendMissing) Note(stringResource(R.string.weight_trend_missing))
 
     LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        items(state.trend.points.asReversed(), key = { it.date.toString() }) { Weighing(it) }
+        items(state.trend.points.asReversed(), key = { it.date.toString() }) { Weighing(it, state.units) }
     }
 }
 
 /** Une pesée : la date, le poids, et le lissage du jour s'il existe. */
 @Composable
-private fun Weighing(point: TrendPoint) {
+private fun Weighing(point: TrendPoint, units: UnitSystem) {
     val average = point.averageKg
     val description = if (average == null) {
         stringResource(R.string.weight_row_a11y, point.date.longLabel(), point.weightKg)
@@ -182,11 +185,23 @@ private fun Weighing(point: TrendPoint) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = stringResource(R.string.weight_kg, point.weightKg),
+            text = weightLabel(point.weightKg, units),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
     }
+}
+
+/**
+ * Une pesée, dans le système choisi.
+ *
+ * La conversion vient du domaine : la base garde des kilogrammes, et c'est l'affichage
+ * qui change — basculer de réglage ne réécrit pas une seule pesée.
+ */
+@Composable
+private fun weightLabel(kilograms: Double, units: UnitSystem): String = when (units) {
+    UnitSystem.METRIC -> stringResource(R.string.weight_kg, kilograms)
+    UnitSystem.IMPERIAL -> stringResource(R.string.weight_pound, kilogramsToPounds(kilograms))
 }
 
 /** Une liste vide dit quoi faire, pas seulement qu'elle est vide. */

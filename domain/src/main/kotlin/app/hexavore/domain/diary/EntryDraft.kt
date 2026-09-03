@@ -5,6 +5,7 @@ import app.hexavore.domain.food.FoodId
 import app.hexavore.domain.identity.IdGenerator
 import app.hexavore.domain.nutrition.Macro
 import app.hexavore.domain.nutrition.NutrientValues
+import app.hexavore.domain.profile.UnitSystem
 import java.time.LocalDate
 
 /**
@@ -158,8 +159,8 @@ data class DraftLine(
         get() = name.isBlank() && quantity == null && values.empty
 
     /**
-     * Les unités proposées : les deux universelles, les portions de la fiche, **et
-     * celle que la ligne porte déjà**.
+     * Les unités proposées : les deux du système choisi, les portions de la fiche,
+     * **et celle que la ligne porte déjà**.
      *
      * Ce dernier terme n'est pas une précaution, c'est une correction. Rouvrir un plat
      * reconstruit son unité depuis ce qui a été écrit — « 1 bol » redevient une
@@ -171,10 +172,13 @@ data class DraftLine(
      * La comparaison porte sur le **code** et non sur l'unité entière : une portion
      * qui pèserait un gramme de plus que celle de la fiche apparaîtrait deux fois
      * sous le même nom.
+     *
+     * **C'est aussi ce qui rend le réglage d'unités sans danger.** Basculer en
+     * impérial ne propose plus les grammes ; un plat noté en grammes garde pourtant
+     * les siens, parce que la ligne apporte son unité avec elle.
      */
-    val units: List<QuantityUnit>
-        get() = (QuantityUnit.universal + servings)
-            .let { proposees -> if (proposees.any { it.code == unit.code }) proposees else proposees + unit }
+    fun units(system: UnitSystem): List<QuantityUnit> = (QuantityUnit.universal(system) + servings)
+        .let { proposees -> if (proposees.any { it.code == unit.code }) proposees else proposees + unit }
 
     /**
      * La même ligne, pour une autre quantité.

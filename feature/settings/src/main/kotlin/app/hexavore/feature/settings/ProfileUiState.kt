@@ -7,6 +7,7 @@ import app.hexavore.domain.goal.GoalStrategy
 import app.hexavore.domain.nutrition.Macro
 import app.hexavore.domain.profile.ActivityLevel
 import app.hexavore.domain.profile.Sex
+import app.hexavore.domain.profile.UnitSystem
 import app.hexavore.domain.profile.UserProfile
 import app.hexavore.domain.usecase.GoalPlan
 import app.hexavore.domain.usecase.GoalRequest
@@ -105,6 +106,14 @@ internal data class ProfileUiState(
     /** La lecture du profil ou de l'objectif a échoué ([D39][decisions]). */
     val unreadable: Boolean = false,
     val editing: Boolean = false,
+    /**
+     * Le système d'unités du profil lu.
+     *
+     * **Porté par l'état et non relu par l'écran**, comme la journée de l'horloge : la
+     * lecture a déjà le profil en main, et un second abonnement pour une propriété du
+     * même objet ferait deux sources pour un seul fait.
+     */
+    val units: UnitSystem = UnitSystem.METRIC,
     val form: ProfileForm = ProfileForm(),
     /** Les six chiffres tels qu'ils sont **enregistrés**. Ce à quoi la confirmation compare. */
     val saved: DailyGoal? = null,

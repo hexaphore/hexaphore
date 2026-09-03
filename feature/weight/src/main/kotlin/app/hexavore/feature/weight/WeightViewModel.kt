@@ -3,10 +3,12 @@ package app.hexavore.feature.weight
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.hexavore.domain.goal.AdjustmentSuggestion
+import app.hexavore.domain.profile.UnitSystem
 import app.hexavore.domain.profile.WeightEntry
 import app.hexavore.domain.time.Clock
 import app.hexavore.domain.usecase.AdjustmentResponse
 import app.hexavore.domain.usecase.GetWeightTrend
+import app.hexavore.domain.usecase.ObserveUnitSystem
 import app.hexavore.domain.usecase.RecordWeight
 import app.hexavore.domain.usecase.RespondToAdjustment
 import app.hexavore.domain.usecase.SuggestGoalAdjustment
@@ -15,7 +17,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -29,13 +31,21 @@ import javax.inject.Inject
 @HiltViewModel
 internal class WeightViewModel @Inject constructor(
     getWeightTrend: GetWeightTrend,
+    observeUnitSystem: ObserveUnitSystem,
     suggestGoalAdjustment: SuggestGoalAdjustment,
     private val recordWeight: RecordWeight,
     private val respondToAdjustment: RespondToAdjustment,
     private val clock: Clock,
 ) : ViewModel() {
-    val uiState: StateFlow<WeightUiState> = getWeightTrend()
-        .map<WeightTrend, WeightUiState> { WeightUiState.Loaded(it, clock.today()) }
+    val uiState: StateFlow<WeightUiState> = combine<WeightTrend, UnitSystem, WeightUiState>(
+        getWeightTrend(),
+        observeUnitSystem(),
+    ) {
+            trend,
+            units,
+        ->
+        WeightUiState.Loaded(trend, clock.today(), units)
+    }
         // Une lecture qui echoue ne se deguise pas en journal vide : « vous ne vous
         // etes jamais pese » est une affirmation, pas une absence de reponse.
         .catch { emit(WeightUiState.Error) }
@@ -96,7 +106,12 @@ internal sealed interface WeightUiState {
      */
     data object Error : WeightUiState
 
-    data class Loaded(val trend: WeightTrend, val today: LocalDate) : WeightUiState {
+    data class Loaded(
+        val trend: WeightTrend,
+        val today: LocalDate,
+        /** Le système d'unités : la courbe et la saisie le suivent, la base garde ses kilogrammes. */
+        val units: UnitSystem,
+    ) : WeightUiState {
         /** `true` quand aucune pesée n'a jamais été notée. */
         val empty: Boolean get() = trend.points.isEmpty()
 

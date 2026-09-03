@@ -15,6 +15,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import app.hexavore.core.designsystem.component.DraftTextField
 import app.hexavore.core.designsystem.component.NeonDateField
 import app.hexavore.core.designsystem.theme.Spacing
+import app.hexavore.domain.profile.UnitSystem
+import app.hexavore.domain.profile.kilogramsToPounds
+import app.hexavore.domain.profile.poundsToKilograms
 import java.time.LocalDate
 
 /**
@@ -40,12 +43,18 @@ import java.time.LocalDate
 internal fun RecordWeightDialog(
     today: LocalDate,
     initialKg: Double?,
+    units: UnitSystem,
     onConfirm: (LocalDate, Double) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var date by remember { mutableStateOf(today) }
-    var typed by remember { mutableStateOf(initialKg?.let { formatKg(it) }.orEmpty()) }
-    val weightKg = typed.toWeightKg()
+    val imperial = units == UnitSystem.IMPERIAL
+    // Ce qui est tape est dans le systeme choisi ; ce qui est enregistre reste en
+    // kilogrammes, comme la colonne qui l accueille.
+    var typed by remember {
+        mutableStateOf(initialKg?.let { formatKg(if (imperial) kilogramsToPounds(it) else it) }.orEmpty())
+    }
+    val weightKg = typed.toWeightKg()?.let { if (imperial) poundsToKilograms(it) else it }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -55,7 +64,7 @@ internal fun RecordWeightDialog(
                 DraftTextField(
                     initial = typed,
                     onValueChange = { typed = it },
-                    label = stringResource(R.string.weight_field),
+                    label = stringResource(if (imperial) R.string.weight_field_pound else R.string.weight_field),
                     keyboardType = KeyboardType.Decimal,
                 )
                 NeonDateField(

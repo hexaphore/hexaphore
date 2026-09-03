@@ -11,11 +11,9 @@ import app.hexavore.domain.diary.FavoriteDishId
 import app.hexavore.domain.diary.impactOf
 import app.hexavore.domain.food.FoodId
 import app.hexavore.domain.time.Clock
-import app.hexavore.domain.usecase.AddFoodLine
 import app.hexavore.domain.usecase.DraftOrigin
 import app.hexavore.domain.usecase.FavoriteOutcome
 import app.hexavore.domain.usecase.GetDaySummary
-import app.hexavore.domain.usecase.OpenDraft
 import app.hexavore.domain.usecase.SaveDraft
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -48,8 +46,7 @@ import javax.inject.Inject
 @HiltViewModel
 internal class EntryViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val openDraft: OpenDraft,
-    private val addFoodLine: AddFoodLine,
+    private val composition: DraftComposition,
     private val getDaySummary: GetDaySummary,
     private val saveDraft: SaveDraft,
     private val favorites: DraftFavorites,
@@ -105,7 +102,7 @@ internal class EntryViewModel @Inject constructor(
             }
 
     val uiState: StateFlow<EntryUiState> =
-        combine(form, status, day, favoriteError) { form, status, day, nameTaken ->
+        combine(form, status, day, favoriteError, composition.units()) { form, status, day, nameTaken, units ->
             when {
                 status == Status.UNAVAILABLE -> EntryUiState.Unavailable
                 status == Status.SAVED -> EntryUiState.Saved
@@ -113,6 +110,7 @@ internal class EntryViewModel @Inject constructor(
                 status == Status.FAILED -> EntryUiState.Error(form)
                 else -> EntryUiState.Content(
                     form = form,
+                    units = units,
                     impact = day?.impactOf(form.toDraft()),
                     saving = status == Status.SAVING,
                     favoriteNameTaken = nameTaken,
@@ -153,7 +151,7 @@ internal class EntryViewModel @Inject constructor(
      */
     fun onFoodPicked(id: FoodId) {
         viewModelScope.launch {
-            val line = addFoodLine(id) ?: return@launch
+            val line = composition.line(id) ?: return@launch
             // Ajouter une ligne detache du favori : le plat n'est plus celui que le
             // favori decrit (D62).
             form.update { current ->
@@ -242,7 +240,7 @@ internal class EntryViewModel @Inject constructor(
     }
 
     private suspend fun open() {
-        val relu = openDraft(origin(proposal, dishId, favoriteId, scannedFoodId, foodId))
+        val relu = composition.open(origin(proposal, dishId, favoriteId, scannedFoodId, foodId))
         if (relu == null) {
             status.value = Status.UNAVAILABLE
         } else {
